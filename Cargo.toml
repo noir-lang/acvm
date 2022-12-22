@@ -1,0 +1,3 @@
+[workspace]
+
+members = ["crates/noir_field", "crates/acir", "crates/acvm"]
