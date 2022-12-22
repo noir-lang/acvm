@@ -1,4 +1,4 @@
-use noir_field::FieldElement;
+use acir_field::FieldElement;
 
 use crate::{
     circuit::{gate::Directive, Gate},
@@ -29,7 +29,11 @@ pub fn split(
         g.linear_combinations.push((-two_pow, w));
         two_pow = FieldElement::from(2_i128) * two_pow;
     }
-    new_gates.push(Gate::Directive(Directive::Split { a: gate, b: bit_vector.clone(), bit_size }));
+    new_gates.push(Gate::Directive(Directive::Split {
+        a: gate,
+        b: bit_vector.clone(),
+        bit_size,
+    }));
     new_gates.extend(intermediate_gates);
     g.sort();
     new_gates.push(Gate::Arithmetic(g));
@@ -57,7 +61,8 @@ pub fn and(
     let mut g = Expression::default();
     let mut two_pow = FieldElement::one();
     for i in 0..bit_size {
-        g.mul_terms.push((two_pow, a_bits[i as usize], b_bits[i as usize]));
+        g.mul_terms
+            .push((two_pow, a_bits[i as usize], b_bits[i as usize]));
         two_pow = FieldElement::from(2_i128) * two_pow;
     }
     g.linear_combinations = vec![(-FieldElement::one(), result)];
@@ -84,7 +89,8 @@ pub fn xor(
         g.linear_combinations.push((two_pow, a_bits[i as usize]));
         g.linear_combinations.push((two_pow, b_bits[i as usize]));
         two_pow = FieldElement::from(2_i128) * two_pow;
-        g.mul_terms.push((-two_pow, a_bits[i as usize], b_bits[i as usize]));
+        g.mul_terms
+            .push((-two_pow, a_bits[i as usize], b_bits[i as usize]));
     }
     g.linear_combinations.push((-FieldElement::one(), result));
     g.sort();

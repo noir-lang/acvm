@@ -17,7 +17,7 @@ acir = { path = "../acir" }
 # aztec_backend = { optional = true, path = "../aztec_backend" }
 # arkworks_backend = { optional = true, git = "https://github.com/noir-lang/arkworks_backend" }
 sled = "0.34.6"
-noir_field = { path = "../noir_field", default-features = false }
+acir_field = { path = "../acir_field", default-features = false }
 sha2 = "0.9.3"
 blake2 = "0.9.1"
 hex = "0.4.2"
@@ -31,8 +31,8 @@ k256 = { version = "0.7.2", features = [
 indexmap = "1.7.0"
 
 [features]
-bn254 = ["noir_field/bn254"]
-bls12_381 = ["noir_field/bls12_381"]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]
 
 [dev-dependencies]
 tempfile = "3.2.0"

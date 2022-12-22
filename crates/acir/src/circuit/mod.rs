@@ -1,7 +1,7 @@
 pub mod gate;
 
+use acir_field::FieldElement;
 pub use gate::Gate;
-use noir_field::FieldElement;
 
 use crate::native_types::Witness;
 use rmp_serde;
@@ -45,7 +45,10 @@ pub struct PublicInputs(pub Vec<Witness>);
 impl PublicInputs {
     /// Returns the witness index of each public input
     pub fn indices(&self) -> Vec<u32> {
-        self.0.iter().map(|witness| witness.witness_index()).collect()
+        self.0
+            .iter()
+            .map(|witness| witness.witness_index())
+            .collect()
     }
 
     pub fn contains(&self, index: usize) -> bool {
@@ -65,7 +68,7 @@ impl Default for Selector {
 mod test {
     use super::{gate::AndGate, Circuit, Gate, PublicInputs};
     use crate::native_types::Witness;
-    use noir_field::FieldElement;
+    use acir_field::FieldElement;
 
     #[test]
     fn test_serialize() {

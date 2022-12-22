@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-noir_field = { path = "../noir_field", default-features = false }
+acir_field = { path = "../acir_field", default-features = false }
 indexmap = "1.7.0"
 serde = { version = "1.0.136", features = ["derive"] }
 rmp-serde = "1.1.0"

@@ -1,5 +1,5 @@
 use acir::{circuit::gate::GadgetInput, native_types::Witness};
-use noir_field::FieldElement;
+use acir_field::FieldElement;
 use std::collections::BTreeMap;
 
 // Re-usable methods that backends can use to implement their PWG

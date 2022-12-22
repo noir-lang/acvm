@@ -9,5 +9,5 @@ pub mod optimiser;
 pub mod fallback;
 pub mod opcode;
 
-pub use noir_field::FieldElement;
+pub use acir_field::FieldElement;
 pub use opcode::OPCODE;

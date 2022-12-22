@@ -3,7 +3,7 @@
 #![allow(clippy::op_ref)]
 
 use crate::native_types::{Expression, Witness};
-use noir_field::FieldElement;
+use acir_field::FieldElement;
 
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -19,7 +19,11 @@ impl Linear {
         self.mul_scale.is_one() && self.add_scale.is_zero()
     }
     pub fn from_witness(witness: Witness) -> Linear {
-        Linear { mul_scale: FieldElement::one(), witness, add_scale: FieldElement::zero() }
+        Linear {
+            mul_scale: FieldElement::one(),
+            witness,
+            add_scale: FieldElement::zero(),
+        }
     }
     // XXX: This is true for the NPC languages that we use, are there any where this is not true?
     pub const fn can_defer_constraint(&self) -> bool {
@@ -34,7 +38,11 @@ impl From<Witness> for Linear {
 }
 impl From<FieldElement> for Linear {
     fn from(element: FieldElement) -> Linear {
-        Linear { add_scale: element, witness: Witness::default(), mul_scale: FieldElement::zero() }
+        Linear {
+            add_scale: element,
+            witness: Witness::default(),
+            mul_scale: FieldElement::zero(),
+        }
     }
 }
 
@@ -55,7 +63,11 @@ impl Neg for &Linear {
     type Output = Linear;
     fn neg(self) -> Self::Output {
         // -(Ax + B) = -Ax - B
-        Linear { add_scale: -self.add_scale, witness: self.witness, mul_scale: -self.mul_scale }
+        Linear {
+            add_scale: -self.add_scale,
+            witness: self.witness,
+            mul_scale: -self.mul_scale,
+        }
     }
 }
 
@@ -97,7 +109,11 @@ impl Mul<&Linear> for &Linear {
             lc
         };
 
-        Expression { mul_terms, linear_combinations, q_c: bd }
+        Expression {
+            mul_terms,
+            linear_combinations,
+            q_c: bd,
+        }
     }
 }
 impl Mul<&FieldElement> for &Linear {

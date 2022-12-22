@@ -1,5 +1,5 @@
 use acir::native_types::{Expression, Witness};
-use noir_field::FieldElement;
+use acir_field::FieldElement;
 use std::collections::BTreeMap;
 
 use crate::GateResolution;
@@ -217,8 +217,14 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), GateResolution::Resolved);
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), GateResolution::Resolved);
+    assert_eq!(
+        ArithmeticSolver::solve(&mut values, &gate_a),
+        GateResolution::Resolved
+    );
+    assert_eq!(
+        ArithmeticSolver::solve(&mut values, &gate_b),
+        GateResolution::Resolved
+    );
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }

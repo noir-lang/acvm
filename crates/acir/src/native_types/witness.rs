@@ -32,7 +32,7 @@ impl Witness {
     }
 
     pub fn to_bytes(
-        witnesses: &std::collections::BTreeMap<Witness, noir_field::FieldElement>,
+        witnesses: &std::collections::BTreeMap<Witness, acir_field::FieldElement>,
     ) -> Vec<u8> {
         let buf = rmp_serde::to_vec(witnesses).unwrap();
         let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
@@ -43,7 +43,7 @@ impl Witness {
 
     pub fn from_bytes(
         bytes: &[u8],
-    ) -> std::collections::BTreeMap<Witness, noir_field::FieldElement> {
+    ) -> std::collections::BTreeMap<Witness, acir_field::FieldElement> {
         let mut deflater = DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();

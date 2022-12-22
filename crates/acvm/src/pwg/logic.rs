@@ -1,6 +1,6 @@
 use acir::circuit::gate::{AndGate, XorGate};
 use acir::native_types::Witness;
-use noir_field::FieldElement;
+use acir_field::FieldElement;
 use std::collections::BTreeMap;
 
 pub struct LogicSolver {}
