@@ -3,13 +3,14 @@ name = "acvm"
 version = "0.1.0"
 authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
 edition = "2018"
-
+license = "MIT"
+description = "The virtual machine that processes ACIR given a backend/proof system."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 num-bigint = "0.4"
 num-traits = "0.2"
-acir = { path = "../acir" }
+acir = { version = "0.1.0", path = "../acir" }
 
 # Ideally, there should be a way for the Nargo.toml file to indicate a proof system
 # and not need to pull in the other proof systems. Also ideally like to avoid using DLL (dynamically loaded lib)
@@ -17,7 +18,7 @@ acir = { path = "../acir" }
 # aztec_backend = { optional = true, path = "../aztec_backend" }
 # arkworks_backend = { optional = true, git = "https://github.com/noir-lang/arkworks_backend" }
 sled = "0.34.6"
-acir_field = { path = "../acir_field", default-features = false }
+acir_field = { version = "0.1.0", path = "../acir_field", default-features = false }
 sha2 = "0.9.3"
 blake2 = "0.9.1"
 hex = "0.4.2"
