@@ -62,7 +62,13 @@ impl std::fmt::Debug for Gate {
         match self {
             Gate::Arithmetic(a) => {
                 for i in &a.mul_terms {
-                    write!(f, "{:?}x{}*x{} + ", i.0, i.1.witness_index(), i.2.witness_index())?;
+                    write!(
+                        f,
+                        "{:?}x{}*x{} + ",
+                        i.0,
+                        i.1.witness_index(),
+                        i.2.witness_index()
+                    )?;
                 }
                 for i in &a.linear_combinations {
                     write!(f, "{:?}x{} + ", i.0, i.1.witness_index())?;
@@ -75,7 +81,12 @@ impl std::fmt::Debug for Gate {
             Gate::Directive(Directive::Invert { x, result: r }) => {
                 write!(f, "x{}=1/x{}, or 0", r.witness_index(), x.witness_index())
             }
-            Gate::Directive(Directive::Truncate { a, b, c: _c, bit_size }) => {
+            Gate::Directive(Directive::Truncate {
+                a,
+                b,
+                c: _c,
+                bit_size,
+            }) => {
                 write!(
                     f,
                     "Truncate: x{} is x{} truncated to {} bits",
@@ -84,7 +95,13 @@ impl std::fmt::Debug for Gate {
                     bit_size
                 )
             }
-            Gate::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
+            Gate::Directive(Directive::Quotient {
+                a,
+                b,
+                q,
+                r,
+                predicate,
+            }) => {
                 if let Some(pred) = predicate {
                     write!(
                         f,
