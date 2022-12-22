@@ -1,3 +1,3 @@
 [workspace]
 
-members = ["crates/acir_field", "crates/acir", "crates/acvm"]
+members = ["acir_field", "acir", "acvm"]
