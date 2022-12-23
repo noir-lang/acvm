@@ -10,10 +10,10 @@ description = "The virtual machine that processes ACIR given a backend/proof sys
 [dependencies]
 num-bigint = "0.4"
 num-traits = "0.2"
-acir = { version = "0.1.0", path = "../acir" }
+acir = { version = "0.2.1", path = "../acir" }
 
 sled = "0.34.6"
-acir_field = { version = "0.1.0", path = "../acir_field", default-features = false }
+acir_field = { version = "0.2.1", path = "../acir_field", default-features = false }
 sha2 = "0.9.3"
 blake2 = "0.9.1"
 hex = "0.4.2"
