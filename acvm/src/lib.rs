@@ -55,9 +55,30 @@ pub trait PartialWitnessGenerator {
                         _ => return result,
                     }
                 }
-                Gate::Range(w, r) => {
-                    if let Some(w_value) = initial_witness.get(w) {
-                        if w_value.num_bits() > *r {
+                Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => {
+                    // TODO: this consistency check can be moved to a general function
+                    let defined_input_size = OPCODE::RANGE
+                        .definition()
+                        .input_size
+                        .fixed_size()
+                        .expect("infallible: input for range gate is fixed");
+
+                    if gc.inputs.len() != defined_input_size as usize {
+                        return GateResolution::UnknownError(
+                            "defined input size does not equal given input size".to_string(),
+                        );
+                    }
+
+                    // For the range constraint, we know that the input size should be one
+                    assert_eq!(defined_input_size, 1);
+
+                    let input = gc
+                        .inputs
+                        .first()
+                        .expect("infallible: checked that input size is 1");
+
+                    if let Some(w_value) = initial_witness.get(&input.witness) {
+                        if w_value.num_bits() > input.num_bits {
                             return GateResolution::UnsatisfiedConstrain;
                         }
                         false
@@ -65,13 +86,11 @@ pub trait PartialWitnessGenerator {
                         true
                     }
                 }
-                Gate::And(and_gate) => {
-                    !LogicSolver::solve_and_gate(initial_witness, and_gate)
-                    // We compute the result because the other gates may want to use the assignment to generate their assignments
+                Gate::GadgetCall(gc) if gc.name == OPCODE::AND => {
+                    !LogicSolver::solve_and_gate(initial_witness, gc)
                 }
-                Gate::Xor(xor_gate) => {
-                    !LogicSolver::solve_xor_gate(initial_witness, xor_gate)
-                    // We compute the result because the other gates may want to use the assignment to generate their assignments
+                Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => {
+                    !LogicSolver::solve_xor_gate(initial_witness, gc)
                 }
                 Gate::GadgetCall(gc) => {
                     let mut unsolvable = false;
@@ -327,7 +346,7 @@ pub enum Language {
     R1CS,
     PLONKCSat { width: usize },
 }
-
+// TODO: We can remove this and have backends simply say what opcodes they support
 pub trait CustomGate {
     fn supports(&self, opcode: &str) -> bool;
     fn supports_gate(&self, gate: &Gate) -> bool;
@@ -341,13 +360,23 @@ impl CustomGate for Language {
         }
     }
 
+    // TODO: document this method, its intentions are not clear
+    // TODO: it was made to copy the functionality of the matches
+    // TODO code that was there before
     fn supports_gate(&self, gate: &Gate) -> bool {
-        !matches!(
-            (self, gate),
-            (Language::R1CS, Gate::Range(..))
-                | (Language::R1CS, Gate::And(..))
-                | (Language::R1CS, Gate::Xor(..))
-        )
+        let is_supported_gate = match gate {
+            Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => true,
+            Gate::GadgetCall(gc) if gc.name == OPCODE::AND => true,
+            Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => true,
+            Gate::GadgetCall(_) | Gate::Arithmetic(_) | Gate::Directive(_) => false,
+        };
+
+        let is_r1cs = match self {
+            Language::R1CS => true,
+            Language::PLONKCSat { .. } => false,
+        };
+
+        !(is_supported_gate | is_r1cs)
     }
 }
 

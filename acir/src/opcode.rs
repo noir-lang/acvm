@@ -150,6 +150,15 @@ pub enum InputSize {
     Fixed(u128),
 }
 
+impl InputSize {
+    pub fn fixed_size(&self) -> Option<u128> {
+        match self {
+            InputSize::Variable => None,
+            InputSize::Fixed(size) => Some(*size),
+        }
+    }
+}
+
 // Output size Cannot currently vary, so we use a separate struct
 // XXX: In the future, we may be able to allow the output to vary based on the input size, however this implies support for dynamic circuits
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

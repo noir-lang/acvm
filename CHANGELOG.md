@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- XOR, Range and AND gates are no longer special case. They are now another opcode in the GadgetCall
+
 ### Removed
 
 ## [0.2.1] - 2022-12-23

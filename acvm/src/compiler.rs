@@ -2,12 +2,10 @@ use indexmap::IndexMap;
 
 use crate::{CustomGate, Language};
 use acir::{
-    circuit::{
-        gate::{AndGate, GadgetCall, XorGate},
-        Circuit, Gate,
-    },
+    circuit::{gate::GadgetCall, Circuit, Gate},
     native_types::{Expression, Witness},
     optimiser::{CSatOptimiser, GeneralOptimiser},
+    OPCODE,
 };
 
 pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
@@ -109,30 +107,36 @@ pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
 fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
     let mut gadget_gates = Vec::new();
     match gate {
-        Gate::Range(a, bit_size) => {
+        Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => {
+            // TODO: add consistency checks in one place
+            // TODO: we aren't checking that range gate should have one input
+            let input = &gc.inputs[0];
+            // Note there are no outputs because range produces no outputs
             *witness_idx = acir::fallback::range(
-                Expression::from(a),
-                *bit_size,
+                Expression::from(&input.witness),
+                input.num_bits,
                 *witness_idx,
                 &mut gadget_gates,
             );
         }
-        Gate::And(AndGate { a, b, result, num_bits }) => {
+        Gate::GadgetCall(gc) if gc.name == OPCODE::AND => {
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = acir::fallback::and(
-                Expression::from(a),
-                Expression::from(b),
-                *result,
-                *num_bits,
+                Expression::from(&lhs),
+                Expression::from(&rhs),
+                result,
+                num_bits,
                 *witness_idx,
                 &mut gadget_gates,
             );
         }
-        Gate::Xor(XorGate { a, b, result, num_bits }) => {
+        Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => {
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = acir::fallback::xor(
-                Expression::from(a),
-                Expression::from(b),
-                *result,
-                *num_bits,
+                Expression::from(&lhs),
+                Expression::from(&rhs),
+                result,
+                num_bits,
                 *witness_idx,
                 &mut gadget_gates,
             );
