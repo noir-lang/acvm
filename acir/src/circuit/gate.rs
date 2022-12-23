@@ -31,6 +31,7 @@ pub enum Gate {
 }
 
 impl Gate {
+    // TODO: This will be deprecated when we flatten the IR
     pub fn name(&self) -> &str {
         match self {
             Gate::Arithmetic(_) => "arithmetic",
