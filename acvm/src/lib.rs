@@ -7,10 +7,7 @@ pub mod pwg;
 use std::collections::BTreeMap;
 
 use acir::{
-    circuit::{
-        gate::{Directive, GadgetCall},
-        Circuit, Gate,
-    },
+    circuit::{directives::Directive, gate::GadgetCall, Circuit, Gate},
     native_types::{Expression, Witness},
     OPCODE,
 };
@@ -101,7 +98,13 @@ pub trait PartialWitnessGenerator {
                             false
                         }
                     },
-                    Directive::Quotient { a, b, q, r, predicate } => {
+                    Directive::Quotient {
+                        a,
+                        b,
+                        q,
+                        r,
+                        predicate,
+                    } => {
                         match (
                             Self::get_value(a, initial_witness),
                             Self::get_value(b, initial_witness),

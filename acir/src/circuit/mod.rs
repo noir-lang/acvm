@@ -1,3 +1,4 @@
+pub mod directives;
 pub mod gate;
 
 use acir_field::FieldElement;

@@ -1,9 +1,8 @@
-use acir_field::FieldElement;
-
 use crate::{
-    circuit::{gate::Directive, Gate},
+    circuit::{directives::Directive, Gate},
     native_types::{Expression, Witness},
 };
+use acir_field::FieldElement;
 
 // Perform bit decomposition on the provided expression
 pub fn split(
