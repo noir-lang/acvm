@@ -5,29 +5,10 @@ use crate::OPCODE;
 
 use super::directives::Directive;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AndGate {
-    pub a: Witness,
-    pub b: Witness,
-    pub result: Witness,
-    pub num_bits: u32,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct XorGate {
-    pub a: Witness,
-    pub b: Witness,
-    pub result: Witness,
-    pub num_bits: u32,
-}
-
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 // XXX: Gate does not capture what this is anymore. I think IR/OPCODE would be a better name
 pub enum Gate {
     Arithmetic(Expression),
-    Range(Witness, u32),
-    And(AndGate),
-    Xor(XorGate),
     GadgetCall(GadgetCall),
     Directive(Directive),
 }
@@ -37,9 +18,6 @@ impl Gate {
     pub fn name(&self) -> &str {
         match self {
             Gate::Arithmetic(_) => "arithmetic",
-            Gate::Range(_, _) => "range",
-            Gate::And(_) => "and",
-            Gate::Xor(_) => "xor",
             Gate::Directive(Directive::Invert { .. }) => "invert",
             Gate::Directive(Directive::Truncate { .. }) => "truncate",
             Gate::Directive(Directive::Quotient { .. }) => "quotient",
@@ -77,9 +55,6 @@ impl std::fmt::Debug for Gate {
                     write!(f, "{:?}x{} + ", i.0, i.1.witness_index())?;
                 }
                 write!(f, "{:?} = 0", a.q_c)
-            }
-            Gate::Range(w, s) => {
-                write!(f, "x{} is {} bits", w.witness_index(), s)
             }
             Gate::Directive(Directive::Invert { x, result: r }) => {
                 write!(f, "x{}=1/x{}, or 0", r.witness_index(), x.witness_index())
@@ -137,8 +112,6 @@ impl std::fmt::Debug for Gate {
                     r.witness_index()
                 )
             }
-            Gate::And(g) => write!(f, "{:?}", g),
-            Gate::Xor(g) => write!(f, "{:?}", g),
             Gate::GadgetCall(g) => write!(f, "{:?}", g),
             Gate::Directive(Directive::Split { a, b, bit_size: _ }) => {
                 write!(

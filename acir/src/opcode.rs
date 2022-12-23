@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 pub enum OPCODE {
     #[allow(clippy::upper_case_acronyms)]
     AES,
+    AND,
+    XOR,
+    RANGE,
     SHA256,
     Blake2s,
     MerkleMembership,
@@ -33,6 +36,9 @@ impl OPCODE {
             OPCODE::HashToField => 6,
             OPCODE::EcdsaSecp256k1 => 7,
             OPCODE::FixedBaseScalarMul => 8,
+            OPCODE::AND => 9,
+            OPCODE::XOR => 10,
+            OPCODE::RANGE => 11,
         }
     }
     pub fn name(&self) -> &str {
@@ -46,6 +52,9 @@ impl OPCODE {
             OPCODE::HashToField => "hash_to_field",
             OPCODE::EcdsaSecp256k1 => "ecdsa_secp256k1",
             OPCODE::FixedBaseScalarMul => "fixed_base_scalar_mul",
+            OPCODE::AND => "and",
+            OPCODE::XOR => "xor",
+            OPCODE::RANGE => "range",
         }
     }
     pub fn lookup(op_name: &str) -> Option<OPCODE> {
@@ -58,6 +67,9 @@ impl OPCODE {
             "hash_to_field" => Some(OPCODE::HashToField),
             "ecdsa_secp256k1" => Some(OPCODE::EcdsaSecp256k1),
             "fixed_base_scalar_mul" => Some(OPCODE::FixedBaseScalarMul),
+            "and" => Some(OPCODE::AND),
+            "xor" => Some(OPCODE::XOR),
+            "range" => Some(OPCODE::RANGE),
             _ => None,
         }
     }
@@ -109,6 +121,21 @@ impl OPCODE {
                 name: self.name().into(),
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(2),
+            },
+            OPCODE::AND => GadgetDefinition {
+                name: self.name().into(),
+                input_size: InputSize::Fixed(2),
+                output_size: OutputSize(1),
+            },
+            OPCODE::XOR => GadgetDefinition {
+                name: self.name().into(),
+                input_size: InputSize::Fixed(2),
+                output_size: OutputSize(1),
+            },
+            OPCODE::RANGE => GadgetDefinition {
+                name: self.name().into(),
+                input_size: InputSize::Fixed(1),
+                output_size: OutputSize(0),
             },
         }
     }
