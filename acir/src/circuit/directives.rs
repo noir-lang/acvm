@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// Directives do not apply any constraints.
+/// You can think of them as opcodes that allow one to use non-determinism
+/// In the future, this can be replaced with asm non-determinism blocks
 pub enum Directive {
     //Inverts the value of x and stores it in the result variable
     Invert {
