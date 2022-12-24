@@ -1,7 +1,6 @@
 pub mod directives;
 pub mod gate;
 
-use acir_field::FieldElement;
 pub use gate::Gate;
 
 use crate::native_types::Witness;
@@ -54,14 +53,6 @@ impl PublicInputs {
 
     pub fn contains(&self, index: usize) -> bool {
         self.0.contains(&Witness(index as u32))
-    }
-}
-#[derive(Clone, Debug)]
-pub struct Selector(pub String, pub FieldElement);
-
-impl Default for Selector {
-    fn default() -> Selector {
-        Selector("zero".to_string(), FieldElement::zero())
     }
 }
 
