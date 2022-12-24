@@ -37,14 +37,14 @@ pub enum Directive {
         bit_size: u32,
     },
 
-    //bit decomposition of a: a=\sum b[i]*2^i
+    //Bit decomposition of a: a=\sum b[i]*2^i
     Split {
         a: Expression,
         b: Vec<Witness>,
         bit_size: u32,
     },
 
-    //byte decomposition of a: a=\sum b[i]*2^i where b is a byte array
+    //Byte decomposition of a: a=\sum b[i]*2^i where b is a byte array
     ToBytes {
         a: Expression,
         b: Vec<Witness>,
