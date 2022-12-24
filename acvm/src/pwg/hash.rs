@@ -1,9 +1,8 @@
-use std::collections::BTreeMap;
-
 use acir::{circuit::gate::GadgetCall, native_types::Witness};
 use acir_field::FieldElement;
 use blake2::{Blake2s, Digest};
 use sha2::Sha256;
+use std::collections::BTreeMap;
 
 pub fn blake2s(initial_witness: &mut BTreeMap<Witness, FieldElement>, gadget_call: &GadgetCall) {
     generic_hash_256::<Blake2s>(initial_witness, gadget_call)
