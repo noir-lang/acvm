@@ -1,6 +1,7 @@
-use crate::native_types::{Expression, Witness};
+use acir::native_types::{Expression, Witness};
 use acir_field::FieldElement;
 use indexmap::IndexMap;
+
 pub struct GeneralOpt;
 impl GeneralOpt {
     pub fn optimise(gate: Expression) -> Expression {

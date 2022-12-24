@@ -2,8 +2,8 @@
 // Org name is needed because more than one implementation of the same proof system may arise
 
 pub mod compiler;
+pub mod optimiser;
 pub mod pwg;
-
 use std::collections::BTreeMap;
 
 use acir::{

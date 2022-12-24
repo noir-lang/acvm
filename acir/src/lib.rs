@@ -4,7 +4,6 @@
 
 pub mod circuit;
 pub mod native_types;
-pub mod optimiser;
 
 pub mod opcode;
 

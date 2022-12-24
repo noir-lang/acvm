@@ -1,10 +1,10 @@
 use indexmap::IndexMap;
 
+use crate::optimiser::{CSatOptimiser, GeneralOptimiser};
 use crate::{CustomGate, Language};
 use acir::{
     circuit::{gate::GadgetCall, Circuit, Gate},
     native_types::{Expression, Witness},
-    optimiser::{CSatOptimiser, GeneralOptimiser},
     OPCODE,
 };
 

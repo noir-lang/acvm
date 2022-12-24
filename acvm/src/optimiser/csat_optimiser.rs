@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::native_types::{Expression, Witness};
+use acir::native_types::{Expression, Witness};
 use acir_field::FieldElement;
 use indexmap::IndexMap;
 
