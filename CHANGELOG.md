@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added stdlib module to hold all of the standard opcodes
+
 ### Fixed
 
 ### Changed
 
 - XOR, Range and AND gates are no longer special case. They are now another opcode in the GadgetCall
-
+- Move fallback module to `stdlib`
 ### Removed
 
 ## [0.2.1] - 2022-12-23
