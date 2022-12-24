@@ -1,0 +1,10 @@
+[package]
+name = "stdlib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+acir = { version = "0.2.1", path = "../acir" }
+acir_field = { version = "0.2.1", path = "../acir_field", default-features = true }
