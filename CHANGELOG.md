@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ACIR passes now live under the compiler parent module
 ### Removed
 
+- Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
+
 ## [0.2.1] - 2022-12-23
 
 - Removed ToBits and ToBytes opcode
