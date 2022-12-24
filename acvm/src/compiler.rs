@@ -112,7 +112,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
             // TODO: we aren't checking that range gate should have one input
             let input = &gc.inputs[0];
             // Note there are no outputs because range produces no outputs
-            *witness_idx = acir::fallback::range(
+            *witness_idx = stdlib::fallback::range(
                 Expression::from(&input.witness),
                 input.num_bits,
                 *witness_idx,
@@ -121,7 +121,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
         }
         Gate::GadgetCall(gc) if gc.name == OPCODE::AND => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
-            *witness_idx = acir::fallback::and(
+            *witness_idx = stdlib::fallback::and(
                 Expression::from(&lhs),
                 Expression::from(&rhs),
                 result,
@@ -132,7 +132,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
         }
         Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
-            *witness_idx = acir::fallback::xor(
+            *witness_idx = stdlib::fallback::xor(
                 Expression::from(&lhs),
                 Expression::from(&rhs),
                 result,

@@ -11,6 +11,7 @@ description = "The virtual machine that processes ACIR given a backend/proof sys
 num-bigint = "0.4"
 num-traits = "0.2"
 acir = { version = "0.2.1", path = "../acir" }
+stdlib = { version = "0.1.0", path = "../stdlib" }
 
 sled = "0.34.6"
 acir_field = { version = "0.2.1", path = "../acir_field", default-features = false }

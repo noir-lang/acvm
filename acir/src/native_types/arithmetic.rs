@@ -49,6 +49,7 @@ impl std::fmt::Display for Expression {
     }
 }
 
+// TODO: possibly remove, and move to noir repo.
 impl Ord for Expression {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut i1 = self.get_max_idx();
@@ -65,13 +66,13 @@ impl Ord for Expression {
         result
     }
 }
-
+// TODO: possibly remove, and move to noir repo.
 impl PartialOrd for Expression {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
-
+// TODO: possibly remove, and move to noir repo.
 struct WitnessIdx {
     linear: usize,
     mul: usize,
@@ -79,6 +80,7 @@ struct WitnessIdx {
 }
 
 impl Expression {
+    // TODO: possibly remove, and move to noir repo.
     pub const fn can_defer_constraint(&self) -> bool {
         false
     }
@@ -101,8 +103,21 @@ impl Expression {
         Self::default()
     }
 
+    // TODO: possibly rename, since linear can have one mul_term
     pub fn is_linear(&self) -> bool {
         self.mul_terms.is_empty()
+    }
+
+    pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
+        self.linear_combinations.push((coefficient, variable))
+    }
+    pub fn term_multiplication(
+        &mut self,
+        coefficient: acir_field::FieldElement,
+        lhs: Witness,
+        rhs: Witness,
+    ) {
+        self.mul_terms.push((coefficient, lhs, rhs))
     }
 
     pub fn is_const(&self) -> bool {
@@ -118,6 +133,7 @@ impl Expression {
     }
     // Returns the maximum witness at the provided position, and decrement the position
     // This function assumes the gate is sorted
+    // TODO: possibly remove, and move to noir repo.
     fn get_max_term(&self, idx: &mut WitnessIdx) -> Option<Witness> {
         if idx.linear > 0 {
             if idx.mul > 0 {
@@ -154,6 +170,7 @@ impl Expression {
         }
     }
 
+    // TODO: possibly remove, and move to noir repo.
     fn cmp_max(m1: Option<Witness>, m2: Option<Witness>) -> Ordering {
         if let Some(m1) = m1 {
             if let Some(m2) = m2 {
