@@ -67,9 +67,39 @@ impl Default for Selector {
 
 #[cfg(test)]
 mod test {
-    use super::{gate::AndGate, Circuit, Gate, PublicInputs};
+    use super::{
+        gate::{GadgetCall, GadgetInput},
+        Circuit, Gate, PublicInputs,
+    };
     use crate::native_types::Witness;
     use acir_field::FieldElement;
+
+    fn and_gate() -> Gate {
+        Gate::GadgetCall(GadgetCall {
+            name: crate::OPCODE::AND,
+            inputs: vec![
+                GadgetInput {
+                    witness: Witness(1),
+                    num_bits: 4,
+                },
+                GadgetInput {
+                    witness: Witness(2),
+                    num_bits: 4,
+                },
+            ],
+            outputs: vec![Witness(3)],
+        })
+    }
+    fn range_gate() -> Gate {
+        Gate::GadgetCall(GadgetCall {
+            name: crate::OPCODE::RANGE,
+            inputs: vec![GadgetInput {
+                witness: Witness(1),
+                num_bits: 8,
+            }],
+            outputs: vec![],
+        })
+    }
 
     #[test]
     fn test_serialize() {
@@ -81,13 +111,8 @@ mod test {
                     linear_combinations: vec![],
                     q_c: FieldElement::from_hex("FFFF").unwrap(),
                 }),
-                Gate::Range(Witness(1), 8),
-                Gate::And(AndGate {
-                    a: Witness(1),
-                    b: Witness(2),
-                    result: Witness(3),
-                    num_bits: 4,
-                }),
+                range_gate(),
+                and_gate(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
         };
@@ -109,13 +134,8 @@ mod test {
                     linear_combinations: vec![],
                     q_c: FieldElement::from_hex("FFFF").unwrap(),
                 }),
-                Gate::Range(Witness(1), 8),
-                Gate::And(AndGate {
-                    a: Witness(1),
-                    b: Witness(2),
-                    result: Witness(3),
-                    num_bits: 4,
-                }),
+                range_gate(),
+                and_gate(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
         };
