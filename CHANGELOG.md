@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - XOR, Range and AND gates are no longer special case. They are now another opcode in the GadgetCall
 - Move fallback module to `stdlib`
 - optimiser code and any other passes will live in acvm. acir is solely for defining the IR now.
-- ACIR passes now live under the compiler parent moduel
+- ACIR passes now live under the compiler parent module
 ### Removed
 
 ## [0.2.1] - 2022-12-23
