@@ -59,7 +59,7 @@ impl PublicInputs {
 #[cfg(test)]
 mod test {
     use super::{
-        gate::{BlackBoxFuncCall, GadgetInput},
+        gate::{BlackBoxFuncCall, FunctionInput},
         Circuit, Gate, PublicInputs,
     };
     use crate::native_types::Witness;
@@ -69,11 +69,11 @@ mod test {
         Gate::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::AND,
             inputs: vec![
-                GadgetInput {
+                FunctionInput {
                     witness: Witness(1),
                     num_bits: 4,
                 },
-                GadgetInput {
+                FunctionInput {
                     witness: Witness(2),
                     num_bits: 4,
                 },
@@ -84,7 +84,7 @@ mod test {
     fn range_gate() -> Gate {
         Gate::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![GadgetInput {
+            inputs: vec![FunctionInput {
                 witness: Witness(1),
                 num_bits: 8,
             }],

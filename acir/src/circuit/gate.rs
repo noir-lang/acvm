@@ -142,10 +142,10 @@ impl std::fmt::Debug for Gate {
     }
 }
 
-// Note: Some gadgets will not use all of the witness
+// Note: Some functions will not use all of the witness
 // So we need to supply how many bits of the witness is needed
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GadgetInput {
+pub struct FunctionInput {
     pub witness: Witness,
     pub num_bits: u32,
 }
@@ -153,6 +153,6 @@ pub struct GadgetInput {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BlackBoxFuncCall {
     pub name: BlackBoxFunc,
-    pub inputs: Vec<GadgetInput>,
+    pub inputs: Vec<FunctionInput>,
     pub outputs: Vec<Witness>,
 }
