@@ -59,14 +59,14 @@ impl PublicInputs {
 #[cfg(test)]
 mod test {
     use super::{
-        gate::{GadgetCall, GadgetInput},
+        gate::{GadgetInput, OpaqueFuncCall},
         Circuit, Gate, PublicInputs,
     };
     use crate::native_types::Witness;
     use acir_field::FieldElement;
 
     fn and_gate() -> Gate {
-        Gate::GadgetCall(GadgetCall {
+        Gate::OpaqueFuncCall(OpaqueFuncCall {
             name: crate::OPCODE::AND,
             inputs: vec![
                 GadgetInput {
@@ -82,7 +82,7 @@ mod test {
         })
     }
     fn range_gate() -> Gate {
-        Gate::GadgetCall(GadgetCall {
+        Gate::OpaqueFuncCall(OpaqueFuncCall {
             name: crate::OPCODE::RANGE,
             inputs: vec![GadgetInput {
                 witness: Witness(1),
