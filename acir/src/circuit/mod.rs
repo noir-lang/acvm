@@ -109,7 +109,6 @@ mod test {
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
-        println!("serialized: {}", json);
 
         let deserialized = serde_json::from_str(&json).unwrap();
         assert_eq!(circuit, deserialized);
@@ -132,7 +131,6 @@ mod test {
         };
 
         let bytes = circuit.to_bytes();
-        println!("bytes: {:?}", bytes);
 
         let deserialized = Circuit::from_bytes(bytes.as_slice());
         assert_eq!(circuit, deserialized);

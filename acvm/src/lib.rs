@@ -10,6 +10,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use blake2::digest::FixedOutput;
 
 use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver};
 use num_bigint::BigUint;
@@ -379,10 +380,9 @@ impl CustomGate for Language {
     }
 }
 
-pub fn hash_constraint_system(cs: &Circuit) {
+pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();
-    hasher.update(&format!("{:?}", cs));
-    let result = hasher.finalize();
-    println!("hash of constraint system : {:x?}", &result[..]);
+    hasher.update(cs.to_bytes());
+    hasher.finalize_fixed().into()
 }
