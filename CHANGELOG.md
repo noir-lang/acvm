@@ -20,7 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - optimiser code and any other passes will live in acvm. acir is solely for defining the IR now.
 - ACIR passes now live under the compiler parent module
 - Moved opcode module in acir crate to circuit/opcode
-- Rename GadgetCall to OpaqueFuncCall
+- Rename GadgetCall to BlackBoxFuncCall
+- Rename opcode file to blackbox_functions . Similarly OPCODE is now BlackBoxFunc
+- Renamed GateResolution::UnsupportedOpcode to GateResolution::UnsupportedBlackBoxFunc
+- Renamed GadgetDefinition to FuncDefinition
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
