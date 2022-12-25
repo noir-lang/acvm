@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed GateResolution::UnsupportedOpcode to GateResolution::UnsupportedBlackBoxFunc
 - Renamed GadgetDefinition to FuncDefinition
 - Rename GadgetInput to FunctionInput
+- Rename Gate -> Opcode
+- Rename CustomGate::supports_gate -> CustomGate::supports_opcode
+
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
