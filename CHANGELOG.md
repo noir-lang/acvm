@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename GadgetInput to FunctionInput
 - Rename Gate -> Opcode
 - Rename CustomGate::supports_gate -> CustomGate::supports_opcode
-
+- Rename GateResolution to OpcodeResolution
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
