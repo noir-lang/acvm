@@ -38,7 +38,7 @@ pub enum Directive {
     },
 
     //Bit decomposition of a: a=\sum b[i]*2^i
-    Split {
+    ToBits {
         a: Expression,
         b: Vec<Witness>,
         bit_size: u32,
@@ -59,7 +59,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::Oddrange { .. } => "odd_range",
-            Directive::Split { .. } => "split",
+            Directive::ToBits { .. } => "split",
             Directive::ToBytes { .. } => "to_bytes",
         }
     }

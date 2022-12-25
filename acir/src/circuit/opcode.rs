@@ -118,7 +118,7 @@ impl std::fmt::Debug for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{:?}", g),
-            Opcode::Directive(Directive::Split { a, b, bit_size: _ }) => {
+            Opcode::Directive(Directive::ToBits { a, b, bit_size: _ }) => {
                 write!(
                     f,
                     "Split: {} into x{}...x{}",

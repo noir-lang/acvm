@@ -40,7 +40,7 @@ pub fn bit_decomposition(
     }
 
     // Next create a directive which computes those bits.
-    new_gates.push(Opcode::Directive(Directive::Split {
+    new_gates.push(Opcode::Directive(Directive::ToBits {
         a: gate.clone(),
         b: bit_vector.clone(),
         bit_size,

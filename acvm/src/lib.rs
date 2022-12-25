@@ -174,7 +174,7 @@ pub trait PartialWitnessGenerator {
                         }
                         _ => true,
                     },
-                    Directive::Split { a, b, bit_size } => {
+                    Directive::ToBits { a, b, bit_size } => {
                         match Self::get_value(a, initial_witness) {
                             Some(val_a) => {
                                 let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
