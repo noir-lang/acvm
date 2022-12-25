@@ -59,15 +59,15 @@ impl PublicInputs {
 #[cfg(test)]
 mod test {
     use super::{
-        gate::{GadgetInput, OpaqueFuncCall},
+        gate::{BlackBoxFuncCall, GadgetInput},
         Circuit, Gate, PublicInputs,
     };
     use crate::native_types::Witness;
     use acir_field::FieldElement;
 
     fn and_gate() -> Gate {
-        Gate::OpaqueFuncCall(OpaqueFuncCall {
-            name: crate::OPCODE::AND,
+        Gate::BlackBoxFuncCall(BlackBoxFuncCall {
+            name: crate::BlackBoxFunc::AND,
             inputs: vec![
                 GadgetInput {
                     witness: Witness(1),
@@ -82,8 +82,8 @@ mod test {
         })
     }
     fn range_gate() -> Gate {
-        Gate::OpaqueFuncCall(OpaqueFuncCall {
-            name: crate::OPCODE::RANGE,
+        Gate::BlackBoxFuncCall(BlackBoxFuncCall {
+            name: crate::BlackBoxFunc::RANGE,
             inputs: vec![GadgetInput {
                 witness: Witness(1),
                 num_bits: 8,
