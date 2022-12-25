@@ -9,7 +9,7 @@ use super::directives::Directive;
 // XXX: Gate does not capture what this is anymore. I think IR/OPCODE would be a better name
 pub enum Gate {
     Arithmetic(Expression),
-    GadgetCall(GadgetCall),
+    OpaqueFuncCall(OpaqueFuncCall),
     Directive(Directive),
 }
 
@@ -18,22 +18,29 @@ impl Gate {
     pub fn name(&self) -> &str {
         match self {
             Gate::Arithmetic(_) => "arithmetic",
-            Gate::Directive(Directive::Invert { .. }) => "invert",
-            Gate::Directive(Directive::Truncate { .. }) => "truncate",
-            Gate::Directive(Directive::Quotient { .. }) => "quotient",
-            Gate::Directive(Directive::Oddrange { .. }) => "odd_range",
-            Gate::Directive(Directive::Split { .. }) => "split",
-            Gate::Directive(Directive::ToBytes { .. }) => "to_bytes",
-            Gate::GadgetCall(g) => g.name.name(),
+            Gate::Directive(directive) => directive.name(),
+            Gate::OpaqueFuncCall(g) => g.name.name(),
         }
     }
+    // We have three types of opcodes allowed in the IR
+    // Expression, OpaqueFuncCall and Directives
+    // When we serialise these opcodes, we use the index
+    // to uniquely identify which category of opcode we are dealing with.
+    pub fn to_index(&self) -> u8 {
+        match self {
+            Gate::Arithmetic(_) => 0,
+            Gate::OpaqueFuncCall(_) => 1,
+            Gate::Directive(_) => 2,
+        }
+    }
+
     pub fn is_arithmetic(&self) -> bool {
         matches!(self, Gate::Arithmetic(_))
     }
-    pub fn arithmetic(self) -> Expression {
+    pub fn arithmetic(self) -> Option<Expression> {
         match self {
-            Gate::Arithmetic(gate) => gate,
-            _ => panic!("tried to convert a non arithmetic gate to an Expression struct"),
+            Gate::Arithmetic(gate) => Some(gate),
+            _ => None,
         }
     }
 }
@@ -112,7 +119,7 @@ impl std::fmt::Debug for Gate {
                     r.witness_index()
                 )
             }
-            Gate::GadgetCall(g) => write!(f, "{:?}", g),
+            Gate::OpaqueFuncCall(g) => write!(f, "{:?}", g),
             Gate::Directive(Directive::Split { a, b, bit_size: _ }) => {
                 write!(
                     f,
@@ -144,7 +151,7 @@ pub struct GadgetInput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct GadgetCall {
+pub struct OpaqueFuncCall {
     pub name: OPCODE,
     pub inputs: Vec<GadgetInput>,
     pub outputs: Vec<Witness>,
