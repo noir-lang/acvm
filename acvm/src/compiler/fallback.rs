@@ -9,7 +9,7 @@ use acir::{
 pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
     let mut fallback_gates = Vec::new();
     let mut witness_idx = acir.current_witness_index + 1;
-    for g in &acir.gates {
+    for g in &acir.opcodes {
         if !np_language.supports_opcode(g) {
             let gates = gate_fallback(g, &mut witness_idx);
             fallback_gates.extend(gates);
@@ -20,7 +20,7 @@ pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
 
     Circuit {
         current_witness_index: witness_idx,
-        gates: fallback_gates,
+        opcodes: fallback_gates,
         public_inputs: acir.public_inputs.clone(),
     }
 }

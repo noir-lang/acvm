@@ -37,8 +37,8 @@ pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
     let mut optimised_gates = Vec::new();
 
     let mut next_witness_index = fallback.current_witness_index + 1;
-    for gate in fallback.gates {
-        match gate {
+    for opcode in fallback.opcodes {
+        match opcode {
             Opcode::Arithmetic(arith_expr) => {
                 let mut intermediate_variables: IndexMap<Witness, Expression> = IndexMap::new();
 
@@ -66,7 +66,7 @@ pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
 
     Circuit {
         current_witness_index,
-        gates: optimised_gates,
+        opcodes: optimised_gates,
         public_inputs: acir.public_inputs, // The optimiser does not add public inputs
     }
 }

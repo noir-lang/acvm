@@ -2,7 +2,7 @@ use acir::native_types::{Expression, Witness};
 use acir_field::FieldElement;
 use std::collections::BTreeMap;
 
-use crate::GateResolution;
+use crate::OpcodeResolution;
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
@@ -26,32 +26,34 @@ impl ArithmeticSolver {
     pub fn solve(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &Expression,
-    ) -> GateResolution {
+    ) -> OpcodeResolution {
         // Evaluate multiplication term
         let mul_result = ArithmeticSolver::solve_mul_term(gate, initial_witness);
         // Evaluate the fan-in terms
         let gate_status = ArithmeticSolver::solve_fan_in_term(gate, initial_witness);
 
         match (mul_result, gate_status) {
-            (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => GateResolution::Skip,
+            (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
+                OpcodeResolution::Skip
+            }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
                     // We have one unknown so we can solve the equation
                     let total_sum = a + gate.q_c;
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
-                            GateResolution::UnsatisfiedConstrain
+                            OpcodeResolution::UnsatisfiedConstrain
                         } else {
-                            GateResolution::Resolved
+                            OpcodeResolution::Resolved
                         }
                     } else {
                         let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
                         initial_witness.insert(w1, assignment);
-                        GateResolution::Resolved
+                        OpcodeResolution::Resolved
                     }
                 } else {
-                    GateResolution::Skip
+                    OpcodeResolution::Skip
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
@@ -62,24 +64,24 @@ impl ArithmeticSolver {
                 let total_sum = sum + gate.q_c;
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
-                        GateResolution::UnsatisfiedConstrain
+                        OpcodeResolution::UnsatisfiedConstrain
                     } else {
-                        GateResolution::Resolved
+                        OpcodeResolution::Resolved
                     }
                 } else {
                     let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    GateResolution::Resolved
+                    OpcodeResolution::Resolved
                 }
             }
             (MulTerm::Solved(a), GateStatus::GateSatisfied(b)) => {
                 // All the variables in the MulTerm are solved and the Fan-in is also solved
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
-                    GateResolution::UnsatisfiedConstrain
+                    OpcodeResolution::UnsatisfiedConstrain
                 } else {
-                    GateResolution::Resolved
+                    OpcodeResolution::Resolved
                 }
             }
             (
@@ -92,15 +94,15 @@ impl ArithmeticSolver {
                 let total_sum = total_prod + partial_sum + gate.q_c;
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
-                        GateResolution::UnsatisfiedConstrain
+                        OpcodeResolution::UnsatisfiedConstrain
                     } else {
-                        GateResolution::Resolved
+                        OpcodeResolution::Resolved
                     }
                 } else {
                     let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    GateResolution::Resolved
+                    OpcodeResolution::Resolved
                 }
             }
         }
@@ -219,11 +221,11 @@ fn arithmetic_smoke_test() {
 
     assert_eq!(
         ArithmeticSolver::solve(&mut values, &gate_a),
-        GateResolution::Resolved
+        OpcodeResolution::Resolved
     );
     assert_eq!(
         ArithmeticSolver::solve(&mut values, &gate_b),
-        GateResolution::Resolved
+        OpcodeResolution::Resolved
     );
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));

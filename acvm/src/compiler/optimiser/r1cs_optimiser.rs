@@ -14,7 +14,7 @@ impl R1CSOptimiser {
     pub fn optimise(self) -> Circuit {
         let optimised_arith_gates: Vec<_> = self
             .acir
-            .gates
+            .opcodes
             .into_iter()
             .map(|gate| match gate {
                 Opcode::Arithmetic(arith) => Opcode::Arithmetic(GeneralOptimiser::optimise(arith)),
@@ -28,7 +28,7 @@ impl R1CSOptimiser {
             // would require a linear scan over all gates in order to decrement all witness indices
             // above the witness which was removed
             current_witness_index: self.acir.current_witness_index,
-            gates: optimised_arith_gates,
+            opcodes: optimised_arith_gates,
             public_inputs: self.acir.public_inputs,
         }
     }

@@ -20,12 +20,12 @@ pub use acir;
 pub use acir::FieldElement;
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum GateResolution {
-    Resolved,                              //Gate is solved
-    Skip,                                  //Gate cannot be solved
-    UnknownError(String),                  //Generic error
-    UnsupportedBlackBoxFunc(BlackBoxFunc), //Unsupported black box function
-    UnsatisfiedConstrain,                  //Gate is not satisfied
+pub enum OpcodeResolution {
+    Resolved,                              // Opcode is solved
+    Skip,                                  // Opcode cannot be solved
+    UnknownError(String),                  // Generic error
+    UnsupportedBlackBoxFunc(BlackBoxFunc), // Unsupported black box function
+    UnsatisfiedConstrain,                  // Opcode is not satisfied
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
@@ -38,9 +38,9 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gates: Vec<Opcode>,
-    ) -> GateResolution {
+    ) -> OpcodeResolution {
         if gates.is_empty() {
-            return GateResolution::Resolved;
+            return OpcodeResolution::Resolved;
         }
         let mut unsolved_gates: Vec<Opcode> = Vec::new();
 
@@ -49,8 +49,8 @@ pub trait PartialWitnessGenerator {
                 Opcode::Arithmetic(arith) => {
                     let result = ArithmeticSolver::solve(initial_witness, arith);
                     match result {
-                        GateResolution::Resolved => false,
-                        GateResolution::Skip => true,
+                        OpcodeResolution::Resolved => false,
+                        OpcodeResolution::Skip => true,
                         _ => return result,
                     }
                 }
@@ -63,7 +63,7 @@ pub trait PartialWitnessGenerator {
                         .expect("infallible: input for range gate is fixed");
 
                     if gc.inputs.len() != defined_input_size as usize {
-                        return GateResolution::UnknownError(
+                        return OpcodeResolution::UnknownError(
                             "defined input size does not equal given input size".to_string(),
                         );
                     }
@@ -78,7 +78,7 @@ pub trait PartialWitnessGenerator {
 
                     if let Some(w_value) = initial_witness.get(&input.witness) {
                         if w_value.num_bits() > input.num_bits {
-                            return GateResolution::UnsatisfiedConstrain;
+                            return OpcodeResolution::UnsatisfiedConstrain;
                         }
                         false
                     } else {
@@ -102,7 +102,7 @@ pub trait PartialWitnessGenerator {
                     if unsolvable {
                         true
                     } else if let Err(op) = Self::solve_gadget_call(initial_witness, gc) {
-                        return GateResolution::UnsupportedBlackBoxFunc(op);
+                        return OpcodeResolution::UnsupportedBlackBoxFunc(op);
                     } else {
                         false
                     }
@@ -191,7 +191,7 @@ pub trait PartialWitnessGenerator {
                                         }
                                         std::collections::btree_map::Entry::Occupied(e) => {
                                             if e.get() != &v {
-                                                return GateResolution::UnsatisfiedConstrain;
+                                                return OpcodeResolution::UnsatisfiedConstrain;
                                             }
                                         }
                                     }
@@ -215,7 +215,7 @@ pub trait PartialWitnessGenerator {
                                         }
                                         std::collections::btree_map::Entry::Occupied(e) => {
                                             if e.get() != &v {
-                                                return GateResolution::UnsatisfiedConstrain;
+                                                return OpcodeResolution::UnsatisfiedConstrain;
                                             }
                                         }
                                     }
@@ -230,7 +230,7 @@ pub trait PartialWitnessGenerator {
                             let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
                             let pow: BigUint = BigUint::one() << (bit_size - 1);
                             if int_a >= (&pow << 1) {
-                                return GateResolution::UnsatisfiedConstrain;
+                                return OpcodeResolution::UnsatisfiedConstrain;
                             }
                             let bb = &int_a & &pow;
                             let int_r = &int_a - &bb;
