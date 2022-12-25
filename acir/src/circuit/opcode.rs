@@ -37,7 +37,7 @@ impl Opcode {
     }
     pub fn arithmetic(self) -> Option<Expression> {
         match self {
-            Opcode::Arithmetic(gate) => Some(gate),
+            Opcode::Arithmetic(expr) => Some(expr),
             _ => None,
         }
     }
