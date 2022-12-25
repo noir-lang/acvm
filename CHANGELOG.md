@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed GateResolution::UnsupportedOpcode to GateResolution::UnsupportedBlackBoxFunc
 - Renamed GadgetDefinition to FuncDefinition
 - Rename GadgetInput to FunctionInput
-- Rename Gate -> Opcode
+- Rename Gate -> Opcode . Similarly gate.rs is now opcodes.rs
 - Rename CustomGate::supports_gate -> CustomGate::supports_opcode
 - Rename GateResolution to OpcodeResolution
 - Rename Split directive to ToBits
