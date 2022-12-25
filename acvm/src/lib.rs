@@ -6,7 +6,7 @@ pub mod pwg;
 use std::collections::BTreeMap;
 
 use acir::{
-    circuit::{directives::Directive, gate::GadgetCall, Circuit, Gate},
+    circuit::{directives::Directive, gate::OpaqueFuncCall, Circuit, Gate},
     native_types::{Expression, Witness},
     OPCODE,
 };
@@ -54,7 +54,7 @@ pub trait PartialWitnessGenerator {
                         _ => return result,
                     }
                 }
-                Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => {
+                Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::RANGE => {
                     // TODO: this consistency check can be moved to a general function
                     let defined_input_size = OPCODE::RANGE
                         .definition()
@@ -85,13 +85,13 @@ pub trait PartialWitnessGenerator {
                         true
                     }
                 }
-                Gate::GadgetCall(gc) if gc.name == OPCODE::AND => {
+                Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::AND => {
                     !LogicSolver::solve_and_gate(initial_witness, gc)
                 }
-                Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => {
+                Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::XOR => {
                     !LogicSolver::solve_xor_gate(initial_witness, gc)
                 }
-                Gate::GadgetCall(gc) => {
+                Gate::OpaqueFuncCall(gc) => {
                     let mut unsolvable = false;
                     for i in &gc.inputs {
                         if !initial_witness.contains_key(&i.witness) {
@@ -259,7 +259,7 @@ pub trait PartialWitnessGenerator {
 
     fn solve_gadget_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gc: &GadgetCall,
+        gc: &OpaqueFuncCall,
     ) -> Result<(), OPCODE>;
 
     fn get_value(
@@ -364,10 +364,10 @@ impl CustomGate for Language {
     // TODO code that was there before
     fn supports_gate(&self, gate: &Gate) -> bool {
         let is_supported_gate = match gate {
-            Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => true,
-            Gate::GadgetCall(gc) if gc.name == OPCODE::AND => true,
-            Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => true,
-            Gate::GadgetCall(_) | Gate::Arithmetic(_) | Gate::Directive(_) => false,
+            Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::RANGE => true,
+            Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::AND => true,
+            Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::XOR => true,
+            Gate::OpaqueFuncCall(_) | Gate::Arithmetic(_) | Gate::Directive(_) => false,
         };
 
         let is_r1cs = match self {

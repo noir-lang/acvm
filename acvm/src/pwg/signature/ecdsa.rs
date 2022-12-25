@@ -1,11 +1,11 @@
 use crate::pwg::input_to_value;
-use acir::{circuit::gate::GadgetCall, native_types::Witness};
+use acir::{circuit::gate::OpaqueFuncCall, native_types::Witness};
 use acir_field::FieldElement;
 use std::collections::BTreeMap;
 
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &GadgetCall,
+    gadget_call: &OpaqueFuncCall,
 ) {
     let mut inputs_iter = gadget_call.inputs.iter();
 

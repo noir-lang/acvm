@@ -1,6 +1,6 @@
 use crate::{CustomGate, Language};
 use acir::{
-    circuit::{gate::GadgetCall, Circuit, Gate},
+    circuit::{gate::OpaqueFuncCall, Circuit, Gate},
     native_types::Expression,
     OPCODE,
 };
@@ -28,7 +28,7 @@ pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
 fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
     let mut gadget_gates = Vec::new();
     match gate {
-        Gate::GadgetCall(gc) if gc.name == OPCODE::RANGE => {
+        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::RANGE => {
             // TODO: add consistency checks in one place
             // TODO: we aren't checking that range gate should have one input
             let input = &gc.inputs[0];
@@ -40,7 +40,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::GadgetCall(gc) if gc.name == OPCODE::AND => {
+        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::AND => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = stdlib::fallback::and(
                 Expression::from(&lhs),
@@ -51,7 +51,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::GadgetCall(gc) if gc.name == OPCODE::XOR => {
+        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::XOR => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = stdlib::fallback::xor(
                 Expression::from(&lhs),
@@ -62,7 +62,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::GadgetCall(GadgetCall { name, .. }) => {
+        Gate::OpaqueFuncCall(OpaqueFuncCall { name, .. }) => {
             unreachable!("Missing alternative for opcode {}", name)
         }
         _ => todo!("no fallback for gate {:?}", gate),

@@ -1,4 +1,4 @@
-use acir::circuit::gate::GadgetCall;
+use acir::circuit::gate::OpaqueFuncCall;
 use acir::native_types::Witness;
 use acir_field::FieldElement;
 use std::collections::BTreeMap;
@@ -35,14 +35,14 @@ impl LogicSolver {
 
     pub fn solve_and_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gate: &GadgetCall,
+        gate: &OpaqueFuncCall,
     ) -> bool {
         let (a, b, result, num_bits) = extract_input_output(gate);
         LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
     }
     pub fn solve_xor_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gate: &GadgetCall,
+        gate: &OpaqueFuncCall,
     ) -> bool {
         let (a, b, result, num_bits) = extract_input_output(gate);
         LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, true)
@@ -50,7 +50,7 @@ impl LogicSolver {
 }
 // TODO: Is there somewhere else that we can put this?
 // TODO: extraction methods are needed for some opcodes like logic and range
-pub(crate) fn extract_input_output(gc: &GadgetCall) -> (Witness, Witness, Witness, u32) {
+pub(crate) fn extract_input_output(gc: &OpaqueFuncCall) -> (Witness, Witness, Witness, u32) {
     let a = &gc.inputs[0];
     let b = &gc.inputs[1];
     let result = &gc.outputs[0];
