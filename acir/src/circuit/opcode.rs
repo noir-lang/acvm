@@ -1,9 +1,7 @@
-use serde::{Deserialize, Serialize};
-
+use super::directives::Directive;
 use crate::native_types::{Expression, Witness};
 use crate::BlackBoxFunc;
-
-use super::directives::Directive;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
