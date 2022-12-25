@@ -6,7 +6,7 @@ pub mod pwg;
 use std::collections::BTreeMap;
 
 use acir::{
-    circuit::{directives::Directive, gate::BlackBoxFuncCall, Circuit, Gate},
+    circuit::{directives::Directive, opcode::BlackBoxFuncCall, Circuit, Opcode},
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
@@ -37,16 +37,16 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gates: Vec<Gate>,
+        gates: Vec<Opcode>,
     ) -> GateResolution {
         if gates.is_empty() {
             return GateResolution::Resolved;
         }
-        let mut unsolved_gates: Vec<Gate> = Vec::new();
+        let mut unsolved_gates: Vec<Opcode> = Vec::new();
 
         for gate in gates.into_iter() {
             let unsolved = match &gate {
-                Gate::Arithmetic(arith) => {
+                Opcode::Arithmetic(arith) => {
                     let result = ArithmeticSolver::solve(initial_witness, arith);
                     match result {
                         GateResolution::Resolved => false,
@@ -54,7 +54,7 @@ pub trait PartialWitnessGenerator {
                         _ => return result,
                     }
                 }
-                Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
+                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
                     // TODO: this consistency check can be moved to a general function
                     let defined_input_size = BlackBoxFunc::RANGE
                         .definition()
@@ -85,13 +85,13 @@ pub trait PartialWitnessGenerator {
                         true
                     }
                 }
-                Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
+                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
                     !LogicSolver::solve_and_gate(initial_witness, gc)
                 }
-                Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
+                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
                     !LogicSolver::solve_xor_gate(initial_witness, gc)
                 }
-                Gate::BlackBoxFuncCall(gc) => {
+                Opcode::BlackBoxFuncCall(gc) => {
                     let mut unsolvable = false;
                     for i in &gc.inputs {
                         if !initial_witness.contains_key(&i.witness) {
@@ -107,7 +107,7 @@ pub trait PartialWitnessGenerator {
                         false
                     }
                 }
-                Gate::Directive(directive) => match directive {
+                Opcode::Directive(directive) => match directive {
                     Directive::Invert { x, result } => match initial_witness.get(x) {
                         None => true,
                         Some(val) => {
@@ -348,7 +348,7 @@ pub enum Language {
 // TODO: We can remove this and have backends simply say what opcodes they support
 pub trait CustomGate {
     fn supports(&self, opcode: &str) -> bool;
-    fn supports_gate(&self, gate: &Gate) -> bool;
+    fn supports_opcode(&self, gate: &Opcode) -> bool;
 }
 
 impl CustomGate for Language {
@@ -362,12 +362,12 @@ impl CustomGate for Language {
     // TODO: document this method, its intentions are not clear
     // TODO: it was made to copy the functionality of the matches
     // TODO code that was there before
-    fn supports_gate(&self, gate: &Gate) -> bool {
+    fn supports_opcode(&self, gate: &Opcode) -> bool {
         let is_supported_gate = match gate {
-            Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => true,
-            Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => true,
-            Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => true,
-            Gate::BlackBoxFuncCall(_) | Gate::Arithmetic(_) | Gate::Directive(_) => false,
+            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => true,
+            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => true,
+            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => true,
+            Opcode::BlackBoxFuncCall(_) | Opcode::Arithmetic(_) | Opcode::Directive(_) => false,
         };
 
         let is_r1cs = match self {

@@ -7,19 +7,19 @@ use super::directives::Directive;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 // XXX: Gate does not capture what this is anymore. I think IR/OPCODE would be a better name
-pub enum Gate {
+pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
 }
 
-impl Gate {
+impl Opcode {
     // TODO: This will be deprecated when we flatten the IR
     pub fn name(&self) -> &str {
         match self {
-            Gate::Arithmetic(_) => "arithmetic",
-            Gate::Directive(directive) => directive.name(),
-            Gate::BlackBoxFuncCall(g) => g.name.name(),
+            Opcode::Arithmetic(_) => "arithmetic",
+            Opcode::Directive(directive) => directive.name(),
+            Opcode::BlackBoxFuncCall(g) => g.name.name(),
         }
     }
     // We have three types of opcodes allowed in the IR
@@ -28,27 +28,27 @@ impl Gate {
     // to uniquely identify which category of opcode we are dealing with.
     pub fn to_index(&self) -> u8 {
         match self {
-            Gate::Arithmetic(_) => 0,
-            Gate::BlackBoxFuncCall(_) => 1,
-            Gate::Directive(_) => 2,
+            Opcode::Arithmetic(_) => 0,
+            Opcode::BlackBoxFuncCall(_) => 1,
+            Opcode::Directive(_) => 2,
         }
     }
 
     pub fn is_arithmetic(&self) -> bool {
-        matches!(self, Gate::Arithmetic(_))
+        matches!(self, Opcode::Arithmetic(_))
     }
     pub fn arithmetic(self) -> Option<Expression> {
         match self {
-            Gate::Arithmetic(gate) => Some(gate),
+            Opcode::Arithmetic(gate) => Some(gate),
             _ => None,
         }
     }
 }
 
-impl std::fmt::Debug for Gate {
+impl std::fmt::Debug for Opcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Gate::Arithmetic(a) => {
+            Opcode::Arithmetic(a) => {
                 for i in &a.mul_terms {
                     write!(
                         f,
@@ -63,10 +63,10 @@ impl std::fmt::Debug for Gate {
                 }
                 write!(f, "{:?} = 0", a.q_c)
             }
-            Gate::Directive(Directive::Invert { x, result: r }) => {
+            Opcode::Directive(Directive::Invert { x, result: r }) => {
                 write!(f, "x{}=1/x{}, or 0", r.witness_index(), x.witness_index())
             }
-            Gate::Directive(Directive::Truncate {
+            Opcode::Directive(Directive::Truncate {
                 a,
                 b,
                 c: _c,
@@ -80,7 +80,7 @@ impl std::fmt::Debug for Gate {
                     bit_size
                 )
             }
-            Gate::Directive(Directive::Quotient {
+            Opcode::Directive(Directive::Quotient {
                 a,
                 b,
                 q,
@@ -109,7 +109,7 @@ impl std::fmt::Debug for Gate {
                     )
                 }
             }
-            Gate::Directive(Directive::Oddrange { a, b, r, bit_size }) => {
+            Opcode::Directive(Directive::Oddrange { a, b, r, bit_size }) => {
                 write!(
                     f,
                     "Oddrange: x{} = x{}*2^{} + x{}",
@@ -119,8 +119,8 @@ impl std::fmt::Debug for Gate {
                     r.witness_index()
                 )
             }
-            Gate::BlackBoxFuncCall(g) => write!(f, "{:?}", g),
-            Gate::Directive(Directive::Split { a, b, bit_size: _ }) => {
+            Opcode::BlackBoxFuncCall(g) => write!(f, "{:?}", g),
+            Opcode::Directive(Directive::Split { a, b, bit_size: _ }) => {
                 write!(
                     f,
                     "Split: {} into x{}...x{}",
@@ -129,7 +129,7 @@ impl std::fmt::Debug for Gate {
                     b.last().unwrap().witness_index(),
                 )
             }
-            Gate::Directive(Directive::ToBytes { a, b, byte_size: _ }) => {
+            Opcode::Directive(Directive::ToBytes { a, b, byte_size: _ }) => {
                 write!(
                     f,
                     "To Bytes: {} into x{}...x{}",

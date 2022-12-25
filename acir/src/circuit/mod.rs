@@ -1,7 +1,7 @@
 pub mod blackbox_functions;
 pub mod directives;
-pub mod gate;
-pub use gate::Gate;
+pub mod opcode;
+pub use opcode::Opcode;
 
 use crate::native_types::Witness;
 use rmp_serde;
@@ -14,7 +14,7 @@ use std::io::prelude::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Circuit {
     pub current_witness_index: u32,
-    pub gates: Vec<Gate>,
+    pub gates: Vec<Opcode>,
     pub public_inputs: PublicInputs,
 }
 
@@ -59,14 +59,14 @@ impl PublicInputs {
 #[cfg(test)]
 mod test {
     use super::{
-        gate::{BlackBoxFuncCall, FunctionInput},
-        Circuit, Gate, PublicInputs,
+        opcode::{BlackBoxFuncCall, FunctionInput},
+        Circuit, Opcode, PublicInputs,
     };
     use crate::native_types::Witness;
     use acir_field::FieldElement;
 
-    fn and_gate() -> Gate {
-        Gate::BlackBoxFuncCall(BlackBoxFuncCall {
+    fn and_opcode() -> Opcode {
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::AND,
             inputs: vec![
                 FunctionInput {
@@ -81,8 +81,8 @@ mod test {
             outputs: vec![Witness(3)],
         })
     }
-    fn range_gate() -> Gate {
-        Gate::BlackBoxFuncCall(BlackBoxFuncCall {
+    fn range_opcode() -> Opcode {
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::RANGE,
             inputs: vec![FunctionInput {
                 witness: Witness(1),
@@ -97,13 +97,13 @@ mod test {
         let circuit = Circuit {
             current_witness_index: 0,
             gates: vec![
-                Gate::Arithmetic(crate::native_types::Expression {
+                Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
                     q_c: FieldElement::from_hex("FFFF").unwrap(),
                 }),
-                range_gate(),
-                and_gate(),
+                range_opcode(),
+                and_opcode(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
         };
@@ -120,13 +120,13 @@ mod test {
         let circuit = Circuit {
             current_witness_index: 0,
             gates: vec![
-                Gate::Arithmetic(crate::native_types::Expression {
+                Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
                     q_c: FieldElement::from_hex("FFFF").unwrap(),
                 }),
-                range_gate(),
-                and_gate(),
+                range_opcode(),
+                and_opcode(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
         };

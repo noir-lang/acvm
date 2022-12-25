@@ -4,7 +4,7 @@ pub mod optimiser;
 
 use crate::Language;
 use acir::{
-    circuit::{Circuit, Gate},
+    circuit::{Circuit, Opcode},
     native_types::{Expression, Witness},
 };
 use indexmap::IndexMap;
@@ -39,7 +39,7 @@ pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
     let mut next_witness_index = fallback.current_witness_index + 1;
     for gate in fallback.gates {
         match gate {
-            Gate::Arithmetic(arith_expr) => {
+            Opcode::Arithmetic(arith_expr) => {
                 let mut intermediate_variables: IndexMap<Witness, Expression> = IndexMap::new();
 
                 let arith_expr =
@@ -55,7 +55,7 @@ pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
                 new_gates.push(arith_expr);
                 new_gates.sort();
                 for gate in new_gates {
-                    optimised_gates.push(Gate::Arithmetic(gate));
+                    optimised_gates.push(Opcode::Arithmetic(gate));
                 }
             }
             other_gate => optimised_gates.push(other_gate),

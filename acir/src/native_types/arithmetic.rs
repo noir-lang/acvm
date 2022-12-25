@@ -43,7 +43,7 @@ impl std::fmt::Display for Expression {
             write!(
                 f,
                 "%{:?}%",
-                crate::circuit::gate::Gate::Arithmetic(self.clone())
+                crate::circuit::opcode::Opcode::Arithmetic(self.clone())
             )
         }
     }

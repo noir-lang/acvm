@@ -1,5 +1,5 @@
 use crate::compiler::GeneralOptimiser;
-use acir::circuit::{Circuit, Gate};
+use acir::circuit::{Circuit, Opcode};
 
 pub struct R1CSOptimiser {
     acir: Circuit,
@@ -17,7 +17,7 @@ impl R1CSOptimiser {
             .gates
             .into_iter()
             .map(|gate| match gate {
-                Gate::Arithmetic(arith) => Gate::Arithmetic(GeneralOptimiser::optimise(arith)),
+                Opcode::Arithmetic(arith) => Opcode::Arithmetic(GeneralOptimiser::optimise(arith)),
                 other_gates => other_gates,
             })
             .collect();

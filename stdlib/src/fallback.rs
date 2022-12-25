@@ -1,6 +1,6 @@
 use crate::helpers::VariableStore;
 use acir::{
-    circuit::{directives::Directive, Gate},
+    circuit::{directives::Directive, Opcode},
     native_types::{Expression, Witness},
 };
 use acir_field::FieldElement;
@@ -14,7 +14,7 @@ pub fn split(
     gate: Expression,
     bit_size: u32,
     num_witness: u32,
-    new_gates: &mut Vec<Gate>,
+    new_gates: &mut Vec<Opcode>,
 ) -> Vec<Witness> {
     let (bits, _) = bit_decomposition(gate, bit_size, num_witness, new_gates);
     bits
@@ -29,7 +29,7 @@ pub fn bit_decomposition(
     gate: Expression,
     bit_size: u32,
     mut num_witness: u32,
-    new_gates: &mut Vec<Gate>,
+    new_gates: &mut Vec<Opcode>,
 ) -> (Vec<Witness>, u32) {
     let mut variables = VariableStore::new(&mut num_witness);
 
@@ -40,7 +40,7 @@ pub fn bit_decomposition(
     }
 
     // Next create a directive which computes those bits.
-    new_gates.push(Gate::Directive(Directive::Split {
+    new_gates.push(Opcode::Directive(Directive::Split {
         a: gate.clone(),
         b: bit_vector.clone(),
         bit_size,
@@ -57,7 +57,7 @@ pub fn bit_decomposition(
         let mut expr = Expression::default();
         expr.term_multiplication(FieldElement::one(), bit, bit);
         expr.term_addition(-FieldElement::one(), bit);
-        binary_exprs.push(Gate::Arithmetic(expr));
+        binary_exprs.push(Opcode::Arithmetic(expr));
 
         // Constraint to ensure that the bits are constrained to be a bit decomposition
         // of the input
@@ -68,13 +68,18 @@ pub fn bit_decomposition(
 
     new_gates.extend(binary_exprs);
     bit_decomp_constraint.sort(); // TODO: we have an issue open to check if this is needed. Ideally, we remove it.
-    new_gates.push(Gate::Arithmetic(bit_decomp_constraint));
+    new_gates.push(Opcode::Arithmetic(bit_decomp_constraint));
 
     (bit_vector, variables.finalise())
 }
 
 // Range constraint
-pub fn range(gate: Expression, bit_size: u32, num_witness: u32, new_gates: &mut Vec<Gate>) -> u32 {
+pub fn range(
+    gate: Expression,
+    bit_size: u32,
+    num_witness: u32,
+    new_gates: &mut Vec<Opcode>,
+) -> u32 {
     let (_, updated_witness_counter) = bit_decomposition(gate, bit_size, num_witness, new_gates);
     updated_witness_counter
 }
@@ -85,7 +90,7 @@ pub fn and(
     result: Witness,
     bit_size: u32,
     num_witness: u32,
-    new_gates: &mut Vec<Gate>,
+    new_gates: &mut Vec<Opcode>,
 ) -> u32 {
     // Decompose the operands into bits
     //
@@ -111,7 +116,7 @@ pub fn and(
     and_expr.term_addition(-FieldElement::one(), result);
 
     and_expr.sort();
-    new_gates.push(Gate::Arithmetic(and_expr));
+    new_gates.push(Opcode::Arithmetic(and_expr));
 
     updated_witness_counter
 }
@@ -122,7 +127,7 @@ pub fn xor(
     result: Witness,
     bit_size: u32,
     num_witness: u32,
-    new_gates: &mut Vec<Gate>,
+    new_gates: &mut Vec<Opcode>,
 ) -> u32 {
     // Decompose the operands into bits
     //
@@ -148,7 +153,7 @@ pub fn xor(
     xor_expr.term_addition(-FieldElement::one(), result);
 
     xor_expr.sort();
-    new_gates.push(Gate::Arithmetic(xor_expr));
+    new_gates.push(Opcode::Arithmetic(xor_expr));
 
     updated_witness_counter
 }

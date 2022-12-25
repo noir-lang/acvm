@@ -1,4 +1,4 @@
-use acir::circuit::gate::BlackBoxFuncCall;
+use acir::circuit::opcode::BlackBoxFuncCall;
 use acir::native_types::Witness;
 use acir_field::FieldElement;
 use std::collections::BTreeMap;
