@@ -13,7 +13,8 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    // TODO: This will be deprecated when we flatten the IR
+    // TODO We can add a domain separator by doing something like:
+    // TODO concat!("directive:", directive.name)
     pub fn name(&self) -> &str {
         match self {
             Opcode::Arithmetic(_) => "arithmetic",
