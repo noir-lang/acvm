@@ -14,7 +14,7 @@ use std::io::prelude::*;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Circuit {
     pub current_witness_index: u32,
-    pub gates: Vec<Opcode>,
+    pub opcodes: Vec<Opcode>,
     pub public_inputs: PublicInputs,
 }
 
@@ -96,7 +96,7 @@ mod test {
     fn test_serialize() {
         let circuit = Circuit {
             current_witness_index: 0,
-            gates: vec![
+            opcodes: vec![
                 Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
@@ -119,7 +119,7 @@ mod test {
     fn test_to_byte() {
         let circuit = Circuit {
             current_witness_index: 0,
-            gates: vec![
+            opcodes: vec![
                 Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
