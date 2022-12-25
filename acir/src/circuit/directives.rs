@@ -51,3 +51,16 @@ pub enum Directive {
         byte_size: u32,
     },
 }
+
+impl Directive {
+    pub fn name(&self) -> &str {
+        match self {
+            Directive::Invert { .. } => "invert",
+            Directive::Quotient { .. } => "quotient",
+            Directive::Truncate { .. } => "truncate",
+            Directive::Oddrange { .. } => "odd_range",
+            Directive::Split { .. } => "split",
+            Directive::ToBytes { .. } => "to_bytes",
+        }
+    }
+}
