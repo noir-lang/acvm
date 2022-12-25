@@ -1,4 +1,4 @@
-use acir::{circuit::opcode::FunctionInput, native_types::Witness};
+use acir::{circuit::opcodes::FunctionInput, native_types::Witness};
 use acir_field::FieldElement;
 use std::collections::BTreeMap;
 

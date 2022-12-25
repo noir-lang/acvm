@@ -1,7 +1,7 @@
 pub mod blackbox_functions;
 pub mod directives;
-pub mod opcode;
-pub use opcode::Opcode;
+pub mod opcodes;
+pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
 use rmp_serde;
@@ -59,7 +59,7 @@ impl PublicInputs {
 #[cfg(test)]
 mod test {
     use super::{
-        opcode::{BlackBoxFuncCall, FunctionInput},
+        opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode, PublicInputs,
     };
     use crate::native_types::Witness;

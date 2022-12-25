@@ -6,7 +6,7 @@ pub mod pwg;
 use std::collections::BTreeMap;
 
 use acir::{
-    circuit::{directives::Directive, opcode::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };

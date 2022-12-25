@@ -1,6 +1,6 @@
 use crate::{CustomGate, Language};
 use acir::{
-    circuit::{opcode::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Expression,
     BlackBoxFunc,
 };
