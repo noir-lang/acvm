@@ -6,7 +6,6 @@ use crate::BlackBoxFunc;
 use super::directives::Directive;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-// XXX: Gate does not capture what this is anymore. I think IR/OPCODE would be a better name
 pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
