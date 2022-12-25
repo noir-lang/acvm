@@ -1,8 +1,8 @@
 use crate::{CustomGate, Language};
 use acir::{
-    circuit::{gate::OpaqueFuncCall, Circuit, Gate},
+    circuit::{gate::BlackBoxFuncCall, Circuit, Gate},
     native_types::Expression,
-    OPCODE,
+    BlackBoxFunc,
 };
 
 //Acir pass which replace unsupported gates using arithmetic fallback
@@ -28,7 +28,7 @@ pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
 fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
     let mut gadget_gates = Vec::new();
     match gate {
-        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::RANGE => {
+        Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
             // TODO: add consistency checks in one place
             // TODO: we aren't checking that range gate should have one input
             let input = &gc.inputs[0];
@@ -40,7 +40,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::AND => {
+        Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = stdlib::fallback::and(
                 Expression::from(&lhs),
@@ -51,7 +51,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::OpaqueFuncCall(gc) if gc.name == OPCODE::XOR => {
+        Gate::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             *witness_idx = stdlib::fallback::xor(
                 Expression::from(&lhs),
@@ -62,7 +62,7 @@ fn gate_fallback(gate: &Gate, witness_idx: &mut u32) -> Vec<Gate> {
                 &mut gadget_gates,
             );
         }
-        Gate::OpaqueFuncCall(OpaqueFuncCall { name, .. }) => {
+        Gate::BlackBoxFuncCall(BlackBoxFuncCall { name, .. }) => {
             unreachable!("Missing alternative for opcode {}", name)
         }
         _ => todo!("no fallback for gate {:?}", gate),

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Debug, Hash, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OPCODE {
+pub enum BlackBoxFunc {
     #[allow(clippy::upper_case_acronyms)]
     AES,
     AND,
@@ -18,88 +18,88 @@ pub enum OPCODE {
     FixedBaseScalarMul,
 }
 
-impl std::fmt::Display for OPCODE {
+impl std::fmt::Display for BlackBoxFunc {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name())
     }
 }
 
-impl OPCODE {
+impl BlackBoxFunc {
     pub fn to_u16(self) -> u16 {
         match self {
-            OPCODE::AES => 0,
-            OPCODE::SHA256 => 1,
-            OPCODE::MerkleMembership => 2,
-            OPCODE::SchnorrVerify => 3,
-            OPCODE::Blake2s => 4,
-            OPCODE::Pedersen => 5,
-            OPCODE::HashToField => 6,
-            OPCODE::EcdsaSecp256k1 => 7,
-            OPCODE::FixedBaseScalarMul => 8,
-            OPCODE::AND => 9,
-            OPCODE::XOR => 10,
-            OPCODE::RANGE => 11,
+            BlackBoxFunc::AES => 0,
+            BlackBoxFunc::SHA256 => 1,
+            BlackBoxFunc::MerkleMembership => 2,
+            BlackBoxFunc::SchnorrVerify => 3,
+            BlackBoxFunc::Blake2s => 4,
+            BlackBoxFunc::Pedersen => 5,
+            BlackBoxFunc::HashToField => 6,
+            BlackBoxFunc::EcdsaSecp256k1 => 7,
+            BlackBoxFunc::FixedBaseScalarMul => 8,
+            BlackBoxFunc::AND => 9,
+            BlackBoxFunc::XOR => 10,
+            BlackBoxFunc::RANGE => 11,
         }
     }
     pub fn name(&self) -> &str {
         match self {
-            OPCODE::AES => "aes",
-            OPCODE::SHA256 => "sha256",
-            OPCODE::MerkleMembership => "merkle_membership",
-            OPCODE::SchnorrVerify => "schnorr_verify",
-            OPCODE::Blake2s => "blake2s",
-            OPCODE::Pedersen => "pedersen",
-            OPCODE::HashToField => "hash_to_field",
-            OPCODE::EcdsaSecp256k1 => "ecdsa_secp256k1",
-            OPCODE::FixedBaseScalarMul => "fixed_base_scalar_mul",
-            OPCODE::AND => "and",
-            OPCODE::XOR => "xor",
-            OPCODE::RANGE => "range",
+            BlackBoxFunc::AES => "aes",
+            BlackBoxFunc::SHA256 => "sha256",
+            BlackBoxFunc::MerkleMembership => "merkle_membership",
+            BlackBoxFunc::SchnorrVerify => "schnorr_verify",
+            BlackBoxFunc::Blake2s => "blake2s",
+            BlackBoxFunc::Pedersen => "pedersen",
+            BlackBoxFunc::HashToField => "hash_to_field",
+            BlackBoxFunc::EcdsaSecp256k1 => "ecdsa_secp256k1",
+            BlackBoxFunc::FixedBaseScalarMul => "fixed_base_scalar_mul",
+            BlackBoxFunc::AND => "and",
+            BlackBoxFunc::XOR => "xor",
+            BlackBoxFunc::RANGE => "range",
         }
     }
-    pub fn lookup(op_name: &str) -> Option<OPCODE> {
+    pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
         match op_name {
-            "sha256" => Some(OPCODE::SHA256),
-            "merkle_membership" => Some(OPCODE::MerkleMembership),
-            "schnorr_verify" => Some(OPCODE::SchnorrVerify),
-            "blake2s" => Some(OPCODE::Blake2s),
-            "pedersen" => Some(OPCODE::Pedersen),
-            "hash_to_field" => Some(OPCODE::HashToField),
-            "ecdsa_secp256k1" => Some(OPCODE::EcdsaSecp256k1),
-            "fixed_base_scalar_mul" => Some(OPCODE::FixedBaseScalarMul),
-            "and" => Some(OPCODE::AND),
-            "xor" => Some(OPCODE::XOR),
-            "range" => Some(OPCODE::RANGE),
+            "sha256" => Some(BlackBoxFunc::SHA256),
+            "merkle_membership" => Some(BlackBoxFunc::MerkleMembership),
+            "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
+            "blake2s" => Some(BlackBoxFunc::Blake2s),
+            "pedersen" => Some(BlackBoxFunc::Pedersen),
+            "hash_to_field" => Some(BlackBoxFunc::HashToField),
+            "ecdsa_secp256k1" => Some(BlackBoxFunc::EcdsaSecp256k1),
+            "fixed_base_scalar_mul" => Some(BlackBoxFunc::FixedBaseScalarMul),
+            "and" => Some(BlackBoxFunc::AND),
+            "xor" => Some(BlackBoxFunc::XOR),
+            "range" => Some(BlackBoxFunc::RANGE),
             _ => None,
         }
     }
-    pub fn is_valid_opcode_name(op_name: &str) -> bool {
-        OPCODE::lookup(op_name).is_some()
+    pub fn is_valid_black_box_func_name(op_name: &str) -> bool {
+        BlackBoxFunc::lookup(op_name).is_some()
     }
-    pub fn definition(&self) -> GadgetDefinition {
+    pub fn definition(&self) -> FuncDefinition {
         match self {
-            OPCODE::AES => unimplemented!(),
-            OPCODE::SHA256 => GadgetDefinition {
+            BlackBoxFunc::AES => unimplemented!(),
+            BlackBoxFunc::SHA256 => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
-            OPCODE::Blake2s => GadgetDefinition {
+            BlackBoxFunc::Blake2s => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
-            OPCODE::HashToField => GadgetDefinition {
+            BlackBoxFunc::HashToField => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
-            OPCODE::MerkleMembership => GadgetDefinition {
+            BlackBoxFunc::MerkleMembership => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
-            OPCODE::SchnorrVerify => GadgetDefinition {
+            BlackBoxFunc::SchnorrVerify => FuncDefinition {
                 name: self.name().into(),
                 // XXX: input_size can be changed to fixed, once we hash
                 // the message before passing it to schnorr.
@@ -107,32 +107,32 @@ impl OPCODE {
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
-            OPCODE::Pedersen => GadgetDefinition {
+            BlackBoxFunc::Pedersen => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(2),
             },
-            OPCODE::EcdsaSecp256k1 => GadgetDefinition {
+            BlackBoxFunc::EcdsaSecp256k1 => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
-            OPCODE::FixedBaseScalarMul => GadgetDefinition {
+            BlackBoxFunc::FixedBaseScalarMul => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(2),
             },
-            OPCODE::AND => GadgetDefinition {
+            BlackBoxFunc::AND => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Fixed(2),
                 output_size: OutputSize(1),
             },
-            OPCODE::XOR => GadgetDefinition {
+            BlackBoxFunc::XOR => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Fixed(2),
                 output_size: OutputSize(1),
             },
-            OPCODE::RANGE => GadgetDefinition {
+            BlackBoxFunc::RANGE => FuncDefinition {
                 name: self.name().into(),
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(0),
@@ -166,7 +166,7 @@ pub struct OutputSize(pub u128);
 
 #[derive(Clone, Debug, Hash)]
 // Specs for how many inputs/outputs the method takes.
-pub struct GadgetDefinition {
+pub struct FuncDefinition {
     pub name: String,
     pub input_size: InputSize,
     pub output_size: OutputSize,

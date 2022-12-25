@@ -1,4 +1,4 @@
-use acir::{circuit::gate::OpaqueFuncCall, native_types::Witness};
+use acir::{circuit::gate::BlackBoxFuncCall, native_types::Witness};
 use acir_field::FieldElement;
 use blake2::{Blake2s, Digest};
 use sha2::Sha256;
@@ -6,18 +6,21 @@ use std::collections::BTreeMap;
 
 pub fn blake2s(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &OpaqueFuncCall,
+    gadget_call: &BlackBoxFuncCall,
 ) {
     generic_hash_256::<Blake2s>(initial_witness, gadget_call)
 }
 
-pub fn sha256(initial_witness: &mut BTreeMap<Witness, FieldElement>, gadget_call: &OpaqueFuncCall) {
+pub fn sha256(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    gadget_call: &BlackBoxFuncCall,
+) {
     generic_hash_256::<Sha256>(initial_witness, gadget_call)
 }
 
 fn generic_hash_256<D: Digest>(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &OpaqueFuncCall,
+    gadget_call: &BlackBoxFuncCall,
 ) {
     let mut hasher = D::new();
 

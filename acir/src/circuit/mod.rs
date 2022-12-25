@@ -1,6 +1,6 @@
+pub mod blackbox_functions;
 pub mod directives;
 pub mod gate;
-pub mod opcode;
 pub use gate::Gate;
 
 use crate::native_types::Witness;
