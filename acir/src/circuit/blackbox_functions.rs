@@ -41,7 +41,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::RANGE => 11,
         }
     }
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match self {
             BlackBoxFunc::AES => "aes",
             BlackBoxFunc::SHA256 => "sha256",
@@ -77,30 +77,31 @@ impl BlackBoxFunc {
         BlackBoxFunc::lookup(op_name).is_some()
     }
     pub fn definition(&self) -> FuncDefinition {
+        let name = self.name();
         match self {
             BlackBoxFunc::AES => unimplemented!(),
             BlackBoxFunc::SHA256 => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
             BlackBoxFunc::Blake2s => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
             BlackBoxFunc::HashToField => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::MerkleMembership => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::SchnorrVerify => FuncDefinition {
-                name: self.name().into(),
+                name,
                 // XXX: input_size can be changed to fixed, once we hash
                 // the message before passing it to schnorr.
                 // This is assuming all hashes will be 256 bits. Reasonable?
@@ -108,32 +109,32 @@ impl BlackBoxFunc {
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::Pedersen => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(2),
             },
             BlackBoxFunc::EcdsaSecp256k1 => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::FixedBaseScalarMul => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(2),
             },
             BlackBoxFunc::AND => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Fixed(2),
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::XOR => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Fixed(2),
                 output_size: OutputSize(1),
             },
             BlackBoxFunc::RANGE => FuncDefinition {
-                name: self.name().into(),
+                name,
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(0),
             },
@@ -167,7 +168,7 @@ pub struct OutputSize(pub u128);
 #[derive(Clone, Debug, Hash)]
 // Specs for how many inputs/outputs the method takes.
 pub struct FuncDefinition {
-    pub name: String,
+    pub name: &'static str,
     pub input_size: InputSize,
     pub output_size: OutputSize,
 }
