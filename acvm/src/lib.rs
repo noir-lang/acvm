@@ -266,24 +266,41 @@ pub trait PartialWitnessGenerator {
     ) -> Result<(), BlackBoxFunc>;
 
     fn get_value(
-        a: &Expression,
-        initial_witness: &std::collections::BTreeMap<Witness, FieldElement>,
+        expr: &Expression,
+        initial_witness: &BTreeMap<Witness, FieldElement>,
     ) -> Option<FieldElement> {
-        let mut result = a.q_c;
-        for i in &a.linear_combinations {
-            if let Some(f) = initial_witness.get(&i.1) {
-                result += i.0 * *f;
-            } else {
-                return None;
-            }
+        let mut result = expr.q_c;
+
+        for term in &expr.linear_combinations {
+            let coefficient = term.0;
+            let variable = term.1;
+
+            // Get the value assigned to that variable
+            let assignment = match initial_witness.get(&variable) {
+                Some(value) => *value,
+                None => return None,
+            };
+
+            result += coefficient * assignment;
         }
-        for i in &a.mul_terms {
-            if let (Some(f), Some(g)) = (initial_witness.get(&i.1), initial_witness.get(&i.2)) {
-                result += i.0 * *f * *g;
-            } else {
-                return None;
-            }
+
+        for term in &expr.mul_terms {
+            let coefficient = term.0;
+            let lhs_variable = term.1;
+            let rhs_variable = term.2;
+
+            // Get the values assigned to those variables
+            let (lhs_assignment, rhs_assignment) = match (
+                initial_witness.get(&lhs_variable),
+                initial_witness.get(&rhs_variable),
+            ) {
+                (Some(lhs), Some(rhs)) => (*lhs, *rhs),
+                (_, _) => return None,
+            };
+
+            result += coefficient * lhs_assignment * rhs_assignment;
         }
+
         Some(result)
     }
 }
