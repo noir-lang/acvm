@@ -22,6 +22,8 @@ pub struct Expression {
     pub mul_terms: Vec<(FieldElement, Witness, Witness)>,
 
     pub linear_combinations: Vec<(FieldElement, Witness)>,
+    // TODO: rename q_c to `constant` moreover q_X is not clear to those who
+    // TODO are not familiar with PLONK
     pub q_c: FieldElement,
 }
 
