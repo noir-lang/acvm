@@ -59,6 +59,7 @@ impl BlackBoxFunc {
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
         match op_name {
+            "aes" => Some(BlackBoxFunc::AES),
             "sha256" => Some(BlackBoxFunc::SHA256),
             "merkle_membership" => Some(BlackBoxFunc::MerkleMembership),
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
@@ -171,4 +172,40 @@ pub struct FuncDefinition {
     pub name: &'static str,
     pub input_size: InputSize,
     pub output_size: OutputSize,
+}
+
+#[cfg(test)]
+mod test {
+    use crate::BlackBoxFunc;
+
+    static BLACKBOX_FUNCTIONS: [BlackBoxFunc; 12] = [
+        BlackBoxFunc::AES,
+        BlackBoxFunc::AND,
+        BlackBoxFunc::XOR,
+        BlackBoxFunc::RANGE,
+        BlackBoxFunc::SHA256,
+        BlackBoxFunc::Blake2s,
+        BlackBoxFunc::MerkleMembership,
+        BlackBoxFunc::SchnorrVerify,
+        BlackBoxFunc::Pedersen,
+        BlackBoxFunc::HashToField,
+        BlackBoxFunc::EcdsaSecp256k1,
+        BlackBoxFunc::FixedBaseScalarMul,
+    ];
+
+    #[test]
+    fn consistent_function_names() {
+        for bb_func in BLACKBOX_FUNCTIONS {
+            let resolved_func = BlackBoxFunc::lookup(bb_func.name()).unwrap_or_else(|| {
+                panic!(
+                    "BlackBoxFunc::lookup couldn't find black box function {}",
+                    bb_func
+                )
+            });
+            assert_eq!(
+                resolved_func, bb_func,
+                "BlackBoxFunc::lookup returns unexpected BlackBoxFunc"
+            )
+        }
+    }
 }
