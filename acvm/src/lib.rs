@@ -22,8 +22,12 @@ pub use acir::FieldElement;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum OpcodeResolution {
-    Resolved,                              // Opcode is solved
-    Skip,                                  // Opcode cannot be solved
+    Resolved, // Opcode is solved
+    Skip,     // Opcode cannot be solved
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub enum OpcodeResolutionError {
     UnknownError(String),                  // Generic error
     UnsupportedBlackBoxFunc(BlackBoxFunc), // Unsupported black box function
     UnsatisfiedConstrain,                  // Opcode is not satisfied
@@ -39,22 +43,15 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gates: Vec<Opcode>,
-    ) -> OpcodeResolution {
+    ) -> Result<(), OpcodeResolutionError> {
         if gates.is_empty() {
-            return OpcodeResolution::Resolved;
+            return Ok(());
         }
         let mut unsolved_gates: Vec<Opcode> = Vec::new();
 
         for gate in gates.into_iter() {
-            let unsolved = match &gate {
-                Opcode::Arithmetic(arith) => {
-                    let result = ArithmeticSolver::solve(initial_witness, arith);
-                    match result {
-                        OpcodeResolution::Resolved => false,
-                        OpcodeResolution::Skip => true,
-                        _ => return result,
-                    }
-                }
+            let resolution = match &gate {
+                Opcode::Arithmetic(arith) => ArithmeticSolver::solve(initial_witness, arith)?,
                 Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
                     // TODO: this consistency check can be moved to a general function
                     let defined_input_size = BlackBoxFunc::RANGE
@@ -64,9 +61,9 @@ pub trait PartialWitnessGenerator {
                         .expect("infallible: input for range gate is fixed");
 
                     if gc.inputs.len() != defined_input_size as usize {
-                        return OpcodeResolution::UnknownError(
+                        return Err(OpcodeResolutionError::UnknownError(
                             "defined input size does not equal given input size".to_string(),
-                        );
+                        ));
                     }
 
                     // For the range constraint, we know that the input size should be one
@@ -79,18 +76,18 @@ pub trait PartialWitnessGenerator {
 
                     if let Some(w_value) = initial_witness.get(&input.witness) {
                         if w_value.num_bits() > input.num_bits {
-                            return OpcodeResolution::UnsatisfiedConstrain;
+                            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                         }
-                        false
+                        OpcodeResolution::Resolved
                     } else {
-                        true
+                        OpcodeResolution::Skip
                     }
                 }
                 Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
-                    !LogicSolver::solve_and_gate(initial_witness, gc)
+                    LogicSolver::solve_and_gate(initial_witness, gc)
                 }
                 Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
-                    !LogicSolver::solve_xor_gate(initial_witness, gc)
+                    LogicSolver::solve_xor_gate(initial_witness, gc)
                 }
                 Opcode::BlackBoxFuncCall(gc) => {
                     let mut unsolvable = false;
@@ -101,20 +98,20 @@ pub trait PartialWitnessGenerator {
                         }
                     }
                     if unsolvable {
-                        true
+                        OpcodeResolution::Skip
                     } else if let Err(op) = Self::solve_gadget_call(initial_witness, gc) {
-                        return OpcodeResolution::UnsupportedBlackBoxFunc(op);
+                        return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(op));
                     } else {
-                        false
+                        OpcodeResolution::Resolved
                     }
                 }
                 Opcode::Directive(directive) => match directive {
                     Directive::Invert { x, result } => match initial_witness.get(x) {
-                        None => true,
+                        None => OpcodeResolution::Skip,
                         Some(val) => {
                             let inverse = val.inverse();
                             initial_witness.insert(*result, inverse);
-                            false
+                            OpcodeResolution::Resolved
                         }
                     },
                     Directive::Quotient {
@@ -147,12 +144,12 @@ pub trait PartialWitnessGenerator {
                                         *r,
                                         FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
                                     );
-                                    false
+                                    OpcodeResolution::Resolved
                                 } else {
-                                    true
+                                    OpcodeResolution::Skip
                                 }
                             }
-                            _ => true,
+                            _ => OpcodeResolution::Skip,
                         }
                     }
                     Directive::Truncate { a, b, c, bit_size } => match initial_witness.get(a) {
@@ -171,9 +168,9 @@ pub trait PartialWitnessGenerator {
                                 *c,
                                 FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
                             );
-                            false
+                            OpcodeResolution::Resolved
                         }
-                        _ => true,
+                        _ => OpcodeResolution::Skip,
                     },
                     Directive::ToBits { a, b, bit_size } => {
                         match Self::get_value(a, initial_witness) {
@@ -192,14 +189,16 @@ pub trait PartialWitnessGenerator {
                                         }
                                         std::collections::btree_map::Entry::Occupied(e) => {
                                             if e.get() != &v {
-                                                return OpcodeResolution::UnsatisfiedConstrain;
+                                                return Err(
+                                                    OpcodeResolutionError::UnsatisfiedConstrain,
+                                                );
                                             }
                                         }
                                     }
                                 }
-                                false
+                                OpcodeResolution::Resolved
                             }
-                            _ => true,
+                            _ => OpcodeResolution::Skip,
                         }
                     }
                     Directive::ToBytes { a, b, byte_size } => {
@@ -216,14 +215,16 @@ pub trait PartialWitnessGenerator {
                                         }
                                         std::collections::btree_map::Entry::Occupied(e) => {
                                             if e.get() != &v {
-                                                return OpcodeResolution::UnsatisfiedConstrain;
+                                                return Err(
+                                                    OpcodeResolutionError::UnsatisfiedConstrain,
+                                                );
                                             }
                                         }
                                     }
                                 }
-                                false
+                                OpcodeResolution::Resolved
                             }
-                            _ => true,
+                            _ => OpcodeResolution::Skip,
                         }
                     }
                     Directive::Oddrange { a, b, r, bit_size } => match initial_witness.get(a) {
@@ -231,7 +232,7 @@ pub trait PartialWitnessGenerator {
                             let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
                             let pow: BigUint = BigUint::one() << (bit_size - 1);
                             if int_a >= (&pow << 1) {
-                                return OpcodeResolution::UnsatisfiedConstrain;
+                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                             }
                             let bb = &int_a & &pow;
                             let int_r = &int_a - &bb;
@@ -245,13 +246,13 @@ pub trait PartialWitnessGenerator {
                                 *r,
                                 FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
                             );
-                            false
+                            OpcodeResolution::Resolved
                         }
-                        _ => true,
+                        _ => OpcodeResolution::Skip,
                     },
                 },
             };
-            if unsolved {
+            if resolution == OpcodeResolution::Skip {
                 unsolved_gates.push(gate);
             }
         }
