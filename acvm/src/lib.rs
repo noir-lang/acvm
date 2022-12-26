@@ -34,6 +34,7 @@ pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator
 /// This component will generate the backend specific output for
 /// each OPCODE.
 /// Returns an Error if the backend does not support that OPCODE
+// TODO: Remove usage of true and false and use an Enum
 pub trait PartialWitnessGenerator {
     fn solve(
         &self,
@@ -102,7 +103,8 @@ pub trait PartialWitnessGenerator {
                     }
                     if unsolvable {
                         true
-                    } else if let Err(op) = Self::solve_gadget_call(initial_witness, gc) {
+                    } else if let Err(op) = Self::solve_blackbox_function_call(initial_witness, gc)
+                    {
                         return OpcodeResolution::UnsupportedBlackBoxFunc(op);
                     } else {
                         false
@@ -258,9 +260,9 @@ pub trait PartialWitnessGenerator {
         self.solve(initial_witness, unsolved_gates)
     }
 
-    fn solve_gadget_call(
+    fn solve_blackbox_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gc: &BlackBoxFuncCall,
+        func_call: &BlackBoxFuncCall,
     ) -> Result<(), BlackBoxFunc>;
 
     fn get_value(
