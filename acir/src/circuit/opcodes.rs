@@ -216,6 +216,10 @@ impl std::fmt::Display for BlackBoxFuncCall {
         // OUTPUTS
         // TODO: Avoid duplication of INPUTS and OUTPUTS code
 
+        if self.outputs.is_empty() {
+            return Ok(());
+        }
+
         write!(f, "[ ")?;
         let outputs_str = if should_abbreviate_outputs {
             let mut result = String::new();
