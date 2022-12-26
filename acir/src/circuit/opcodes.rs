@@ -43,38 +43,42 @@ impl Opcode {
     }
 }
 
-impl std::fmt::Debug for Opcode {
+impl std::fmt::Display for Opcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Opcode::Arithmetic(a) => {
-                for i in &a.mul_terms {
+            Opcode::Arithmetic(expr) => {
+                write!(f, "EXPR [ ")?;
+                for i in &expr.mul_terms {
                     write!(
                         f,
-                        "{:?}x{}*x{} + ",
+                        "({}, _{}, _{}) ",
                         i.0,
                         i.1.witness_index(),
                         i.2.witness_index()
                     )?;
                 }
-                for i in &a.linear_combinations {
-                    write!(f, "{:?}x{} + ", i.0, i.1.witness_index())?;
+                for i in &expr.linear_combinations {
+                    write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
                 }
-                write!(f, "{:?} = 0", a.q_c)
+                write!(f, "{}", expr.q_c)?;
+
+                write!(f, " ]")
             }
             Opcode::Directive(Directive::Invert { x, result: r }) => {
-                write!(f, "x{}=1/x{}, or 0", r.witness_index(), x.witness_index())
+                write!(f, "DIR::INVERT ")?;
+                write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
             }
-            Opcode::Directive(Directive::Truncate {
-                a,
-                b,
-                c: _c,
-                bit_size,
-            }) => {
+            Opcode::Directive(Directive::Truncate { a, b, c, bit_size }) => {
+                write!(f, "DIR::TRUNCATE ")?;
                 write!(
                     f,
-                    "Truncate: x{} is x{} truncated to {} bits",
+                    "(out: _{}, _{}, _{}, bit_size: {})",
+                    // TODO: Modify Noir to switch a and b
                     b.witness_index(),
                     a.witness_index(),
+                    // TODO: check why c was unused before, and check when directive is being processed
+                    // TODO: and if it is used
+                    c.witness_index(),
                     bit_size
                 )
             }
@@ -85,58 +89,62 @@ impl std::fmt::Debug for Opcode {
                 r,
                 predicate,
             }) => {
+                write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
-                    write!(
-                        f,
-                        "Predicate euclidian division: {}*{} = {}*(x{}*{} + x{})",
-                        pred,
-                        a,
-                        pred,
-                        q.witness_index(),
-                        b,
-                        r.witness_index()
-                    )
-                } else {
-                    write!(
-                        f,
-                        "Euclidian division: {} = x{}*{} + x{}",
-                        a,
-                        q.witness_index(),
-                        b,
-                        r.witness_index()
-                    )
+                    writeln!(f, "PREDICATE = {}", pred)?;
                 }
-            }
-            Opcode::Directive(Directive::Oddrange { a, b, r, bit_size }) => {
+
                 write!(
                     f,
-                    "Oddrange: x{} = x{}*2^{} + x{}",
+                    "(out : _{},  (_{}, {}), _{})",
+                    a,
+                    q.witness_index(),
+                    b,
+                    r.witness_index()
+                )
+            }
+            Opcode::Directive(Directive::Oddrange { a, b, r, bit_size }) => {
+                write!(f, "DIR::ODDRANGE ")?;
+
+                write!(
+                    f,
+                    "(out: _{}, (_{}, bit_size: {}), _{})",
                     a.witness_index(),
                     b.witness_index(),
                     bit_size,
                     r.witness_index()
                 )
             }
-            Opcode::BlackBoxFuncCall(g) => write!(f, "{:?}", g),
+            Opcode::BlackBoxFuncCall(g) => write!(f, "{}", g),
             Opcode::Directive(Directive::ToBits { a, b, bit_size: _ }) => {
+                write!(f, "DIR::TOBITS ")?;
                 write!(
                     f,
-                    "Split: {} into x{}...x{}",
+                    // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
+                    // This should be the case, however, we can also have a function which checks this
+                    "(_{}, [_{}..._{}])",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
                 )
             }
             Opcode::Directive(Directive::ToBytes { a, b, byte_size: _ }) => {
+                write!(f, "DIR::TOBYTES ")?;
                 write!(
                     f,
-                    "To Bytes: {} into x{}...x{}",
+                    "(_{}, [_{}..._{}])",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
                 )
             }
         }
+    }
+}
+
+impl std::fmt::Debug for Opcode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
     }
 }
 
@@ -148,9 +156,92 @@ pub struct FunctionInput {
     pub num_bits: u32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BlackBoxFuncCall {
     pub name: BlackBoxFunc,
     pub inputs: Vec<FunctionInput>,
     pub outputs: Vec<Witness>,
+}
+
+impl std::fmt::Display for BlackBoxFuncCall {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let uppercase_name: String = self.name.name().into();
+        let uppercase_name = uppercase_name.to_uppercase();
+        write!(f, "BLACKBOX::{} ", uppercase_name)?;
+        write!(f, "[")?;
+
+        // Once a vectors length gets above this limit,
+        // instead of listing all of their elements, we use ellipses
+        // t abbreviate them
+        const ABBREVIATION_LIMIT: usize = 5;
+
+        let should_abbreviate_inputs = self.inputs.len() <= ABBREVIATION_LIMIT;
+        let should_abbreviate_outputs = self.outputs.len() <= ABBREVIATION_LIMIT;
+
+        // INPUTS
+        //
+        let inputs_str = if should_abbreviate_inputs {
+            let mut result = String::new();
+            for (index, inp) in self.inputs.iter().enumerate() {
+                result += &format!(
+                    "(_{}, num_bits: {})",
+                    inp.witness.witness_index(),
+                    inp.num_bits
+                );
+                // Add a comma, unless it is the last entry
+                if index != self.inputs.len() - 1 {
+                    result += ", "
+                }
+            }
+            result
+        } else {
+            let first = self.inputs.first().unwrap();
+            let last = self.inputs.last().unwrap();
+
+            let mut result = String::new();
+
+            result += &format!(
+                "(_{}, num_bits: {})...(_{}, num_bits: {})",
+                first.witness.witness_index(),
+                first.num_bits,
+                last.witness.witness_index(),
+                last.num_bits,
+            );
+
+            result
+        };
+        write!(f, "{}", inputs_str)?;
+        write!(f, "] ")?;
+
+        // OUTPUTS
+        // TODO: Avoid duplication of INPUTS and OUTPUTS code
+
+        write!(f, "[ ")?;
+        let outputs_str = if should_abbreviate_outputs {
+            let mut result = String::new();
+            for (index, output) in self.outputs.iter().enumerate() {
+                result += &format!("_{}", output.witness_index());
+                // Add a comma, unless it is the last entry
+                if index != self.outputs.len() - 1 {
+                    result += ", "
+                }
+            }
+            result
+        } else {
+            let first = self.outputs.first().unwrap();
+            let last = self.outputs.last().unwrap();
+
+            let mut result = String::new();
+            result += &format!("(_{},...,_{})", first.witness_index(), last.witness_index());
+            result
+        };
+        write!(f, "{}", outputs_str)?;
+        write!(f, "]")
+    }
+}
+
+impl std::fmt::Debug for BlackBoxFuncCall {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
 }
