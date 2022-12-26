@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
+use strum_macros::EnumIter;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Debug, Hash, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(test, derive(EnumIter))]
 pub enum BlackBoxFunc {
     #[allow(clippy::upper_case_acronyms)]
     AES,
@@ -176,26 +179,13 @@ pub struct FuncDefinition {
 
 #[cfg(test)]
 mod test {
-    use crate::BlackBoxFunc;
+    use strum::IntoEnumIterator;
 
-    static BLACKBOX_FUNCTIONS: [BlackBoxFunc; 12] = [
-        BlackBoxFunc::AES,
-        BlackBoxFunc::AND,
-        BlackBoxFunc::XOR,
-        BlackBoxFunc::RANGE,
-        BlackBoxFunc::SHA256,
-        BlackBoxFunc::Blake2s,
-        BlackBoxFunc::MerkleMembership,
-        BlackBoxFunc::SchnorrVerify,
-        BlackBoxFunc::Pedersen,
-        BlackBoxFunc::HashToField,
-        BlackBoxFunc::EcdsaSecp256k1,
-        BlackBoxFunc::FixedBaseScalarMul,
-    ];
+    use crate::BlackBoxFunc;
 
     #[test]
     fn consistent_function_names() {
-        for bb_func in BLACKBOX_FUNCTIONS {
+        for bb_func in BlackBoxFunc::iter() {
             let resolved_func = BlackBoxFunc::lookup(bb_func.name()).unwrap_or_else(|| {
                 panic!(
                     "BlackBoxFunc::lookup couldn't find black box function {}",
