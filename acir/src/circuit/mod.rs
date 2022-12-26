@@ -11,7 +11,7 @@ use flate2::bufread::{DeflateDecoder, DeflateEncoder};
 use flate2::Compression;
 use std::io::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
@@ -36,6 +36,31 @@ impl Circuit {
         let mut buf_c = Vec::new();
         deflater.read_to_end(&mut buf_c).unwrap();
         buf_c
+    }
+}
+
+impl std::fmt::Display for Circuit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "current witness index : {}", self.current_witness_index)?;
+        write!(f, "public input indices : [")?;
+        let indices = self.public_inputs.indices();
+        for (index, public_input) in indices.iter().enumerate() {
+            write!(f, "{}", public_input)?;
+            if index != indices.len() - 1 {
+                write!(f, ", ")?;
+            }
+        }
+        writeln!(f, "]")?;
+        for opcode in &self.opcodes {
+            writeln!(f, "{}", opcode)?
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Debug for Circuit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
     }
 }
 
