@@ -16,3 +16,5 @@ flate2 = "1.0.24"
 
 [dev-dependencies]
 serde_json = "1.0"
+strum = "0.24"
+strum_macros = "0.24"
