@@ -1,6 +1,5 @@
 use ark_ff::to_bytes;
 use ark_ff::FpParameters;
-use ark_ff::One;
 use ark_ff::PrimeField;
 use ark_ff::Zero;
 use num_bigint::BigUint;
@@ -13,47 +12,66 @@ pub struct FieldElement<F: PrimeField>(F);
 
 impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let big_f = BigUint::from_bytes_be(&self.to_bytes());
-        let s = big_f.bits();
-        let big_s = BigUint::one() << s;
-        if big_s == big_f {
-            return write!(f, "2^{}", s);
+        // First check if the number is zero
+        //
+        let number = BigUint::from_bytes_be(&self.to_bytes());
+        if number == BigUint::zero() {
+            return write!(f, "{}", "0");
         }
-        if big_f == BigUint::zero() {
-            return write!(f, "0");
+        // Check if the negative version is smaller to represent
+        //
+        let minus_number = BigUint::from_bytes_be(&(self.neg()).to_bytes());
+        let (smaller_repr, is_negative) =
+            if minus_number.to_string().len() < number.to_string().len() {
+                (minus_number, true)
+            } else {
+                (number, false)
+            };
+        if is_negative {
+            write!(f, "{}", "-")?;
         }
-        let big_minus = BigUint::from_bytes_be(&(self.neg()).to_bytes());
-        if big_minus.to_string().len() < big_f.to_string().len() {
-            return write!(f, "-{}", big_minus);
+
+        // Number of bits needed to represent the smaller representation
+        let num_bits = smaller_repr.bits();
+
+        // Check if the number represents a power of 2
+        if smaller_repr.count_ones() == 1 {
+            let mut bit_index = 0;
+            for i in 0..num_bits {
+                if smaller_repr.bit(i) {
+                    bit_index = i;
+                    break;
+                }
+            }
+            return write!(f, "2{}", superscript(bit_index));
         }
-        write!(f, "{}", big_f)
+
+        // Check if number is a multiple of a power of 2.
+        // This is used because when computing the quotient
+        // we usually have numbers in the form 2^t * q + r
+        // We focus on 2^64, 2^32, 2^16, 2^8, 2^4 because
+        // they are common. We could extend this to a more
+        // general factorisation strategy, but we pay in terms of CPU time
+        let mul_sign = "×";
+        for power in [64, 32, 16, 8, 4] {
+            let power_of_two = BigUint::from(2_u128).pow(power);
+            if &smaller_repr % &power_of_two == BigUint::zero() {
+                return write!(
+                    f,
+                    "2{}{}{}",
+                    superscript(power as u64),
+                    mul_sign,
+                    smaller_repr / &power_of_two,
+                );
+            }
+        }
+        return write!(f, "{}", smaller_repr);
     }
 }
 
 impl<F: PrimeField> std::fmt::Debug for FieldElement<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if *self == -FieldElement::one() {
-            return write!(f, "-1");
-        }
-        if *self == FieldElement::one() {
-            return write!(f, "1");
-        }
-
-        let big_f = BigUint::from_bytes_be(&self.to_bytes());
-        if big_f == BigUint::zero() {
-            return write!(f, "0");
-        }
-
-        let s = big_f.bits();
-        let big_s = BigUint::one() << s;
-        if big_s == big_f {
-            return write!(f, "2^{}", s);
-        }
-        if big_f.clone() % BigUint::from(2_u128).pow(32) == BigUint::zero() {
-            return write!(f, "2^32*{}", big_f / BigUint::from(2_u128).pow(32));
-        }
-
-        write!(f, "{}", self)
+        std::fmt::Display::fmt(self, f)
     }
 }
 
@@ -106,7 +124,10 @@ impl<'de, T: ark_ff::PrimeField> Deserialize<'de> for FieldElement<T> {
         let s = <&str>::deserialize(deserializer)?;
         match Self::from_hex(s) {
             Some(value) => Ok(value),
-            None => Err(serde::de::Error::custom(format!("Invalid hex for FieldElement: {}", s))),
+            None => Err(serde::de::Error::custom(format!(
+                "Invalid hex for FieldElement: {}",
+                s
+            ))),
         }
     }
 }
@@ -413,4 +434,33 @@ fn mask_vector_le(bytes: &mut [u8], num_bits: usize) {
     }
     // reverse back to little endian
     bytes.reverse();
+}
+
+// For pretty printing powers
+fn superscript(n: u64) -> String {
+    if n == 0 {
+        "⁰".to_owned()
+    } else if n == 1 {
+        "¹".to_owned()
+    } else if n == 2 {
+        "²".to_owned()
+    } else if n == 3 {
+        "³".to_owned()
+    } else if n == 4 {
+        "⁴".to_owned()
+    } else if n == 5 {
+        "⁵".to_owned()
+    } else if n == 6 {
+        "⁶".to_owned()
+    } else if n == 7 {
+        "⁷".to_owned()
+    } else if n == 8 {
+        "⁸".to_owned()
+    } else if n == 9 {
+        "⁹".to_owned()
+    } else if n >= 10 {
+        superscript(n / 10) + &superscript(n % 10)
+    } else {
+        panic!("{}", n.to_string() + " can't be converted to superscript.");
+    }
 }
