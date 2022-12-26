@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename CustomGate::supports_gate -> CustomGate::supports_opcode
 - Rename GateResolution to OpcodeResolution
 - Rename Split directive to ToBits
+- Field element printing function was modified to uses ascii superscript numbers and ascii multiplication
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
