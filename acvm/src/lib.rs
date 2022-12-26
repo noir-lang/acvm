@@ -56,59 +56,57 @@ pub trait PartialWitnessGenerator {
         for gate in gates.into_iter() {
             let resolution = match &gate {
                 Opcode::Arithmetic(arith) => ArithmeticSolver::solve(initial_witness, arith)?,
-                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
-                    // TODO: this consistency check can be moved to a general function
-                    let defined_input_size = BlackBoxFunc::RANGE
-                        .definition()
-                        .input_size
-                        .fixed_size()
-                        .expect("infallible: input for range gate is fixed");
+                Opcode::BlackBoxFuncCall(bb_func) => match bb_func.name {
+                    BlackBoxFunc::RANGE => {
+                        // TODO: this consistency check can be moved to a general function
+                        let defined_input_size = BlackBoxFunc::RANGE
+                            .definition()
+                            .input_size
+                            .fixed_size()
+                            .expect("infallible: input for range gate is fixed");
 
-                    if gc.inputs.len() != defined_input_size as usize {
-                        return Err(OpcodeResolutionError::UnknownError(
-                            "defined input size does not equal given input size".to_string(),
-                        ));
-                    }
-
-                    // For the range constraint, we know that the input size should be one
-                    assert_eq!(defined_input_size, 1);
-
-                    let input = gc
-                        .inputs
-                        .first()
-                        .expect("infallible: checked that input size is 1");
-
-                    if let Some(w_value) = initial_witness.get(&input.witness) {
-                        if w_value.num_bits() > input.num_bits {
-                            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                        if bb_func.inputs.len() != defined_input_size as usize {
+                            return Err(OpcodeResolutionError::UnknownError(
+                                "defined input size does not equal given input size".to_string(),
+                            ));
                         }
-                        OpcodeResolution::Resolved
-                    } else {
-                        OpcodeResolution::Skip
-                    }
-                }
-                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
-                    LogicSolver::solve_and_gate(initial_witness, gc)
-                }
-                Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
-                    LogicSolver::solve_xor_gate(initial_witness, gc)
-                }
-                Opcode::BlackBoxFuncCall(gc) => {
-                    let mut unsolvable = false;
-                    for i in &gc.inputs {
-                        if !initial_witness.contains_key(&i.witness) {
-                            unsolvable = true;
-                            break;
+
+                        // For the range constraint, we know that the input size should be one
+                        assert_eq!(defined_input_size, 1);
+
+                        let input = bb_func
+                            .inputs
+                            .first()
+                            .expect("infallible: checked that input size is 1");
+
+                        if let Some(w_value) = initial_witness.get(&input.witness) {
+                            if w_value.num_bits() > input.num_bits {
+                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                            }
+                            OpcodeResolution::Resolved
+                        } else {
+                            OpcodeResolution::Skip
                         }
                     }
-                    if unsolvable {
-                        OpcodeResolution::Skip
-                    } else if let Err(op) = Self::solve_gadget_call(initial_witness, gc) {
-                        return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(op));
-                    } else {
-                        OpcodeResolution::Resolved
+                    BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, bb_func),
+                    BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, bb_func),
+                    _ => {
+                        let mut unsolvable = false;
+                        for i in &bb_func.inputs {
+                            if !initial_witness.contains_key(&i.witness) {
+                                unsolvable = true;
+                                break;
+                            }
+                        }
+                        if unsolvable {
+                            OpcodeResolution::Skip
+                        } else if let Err(op) = Self::solve_gadget_call(initial_witness, bb_func) {
+                            return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(op));
+                        } else {
+                            OpcodeResolution::Resolved
+                        }
                     }
-                }
+                },
                 Opcode::Directive(directive) => match directive {
                     Directive::Invert { x, result } => match initial_witness.get(x) {
                         None => OpcodeResolution::Skip,
