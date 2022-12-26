@@ -15,6 +15,7 @@ use blake2::digest::FixedOutput;
 use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+use thiserror::Error;
 
 // re-export acir
 pub use acir;
@@ -26,11 +27,14 @@ pub enum OpcodeResolution {
     Skip,     // Opcode cannot be solved
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
-    UnknownError(String),                  // Generic error
-    UnsupportedBlackBoxFunc(BlackBoxFunc), // Unsupported black box function
-    UnsatisfiedConstrain,                  // Opcode is not satisfied
+    #[error("{0}")]
+    UnknownError(String),
+    #[error("backend does not currently support the {0} opcode. ACVM does not currently fall back to arithmetic gates.")]
+    UnsupportedBlackBoxFunc(BlackBoxFunc),
+    #[error("could not satisfy all constraints")]
+    UnsatisfiedConstrain,
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
