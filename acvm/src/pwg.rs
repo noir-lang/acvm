@@ -2,7 +2,6 @@ use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement}
 use std::collections::BTreeMap;
 
 // Re-usable methods that backends can use to implement their PWG
-// XXX: This can possible be refactored to be default trait methods
 
 pub mod arithmetic;
 pub mod hash;
