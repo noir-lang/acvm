@@ -99,14 +99,16 @@ pub trait PartialWitnessGenerator {
             .first()
             .expect("infallible: checked that input size is 1");
 
-        if let Some(w_value) = initial_witness.get(&input.witness) {
-            if w_value.num_bits() > input.num_bits {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-            Ok(OpcodeResolution::Resolved)
-        } else {
-            Ok(OpcodeResolution::Unsolved)
+        let w_value = match initial_witness.get(&input.witness) {
+            Some(value) => value,
+            None => return Ok(OpcodeResolution::Unsolved),
+        };
+
+        if w_value.num_bits() > input.num_bits {
+            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
         }
+
+        Ok(OpcodeResolution::Resolved)
     }
 
     fn solve_logic_opcode(
@@ -181,14 +183,16 @@ pub trait PartialWitnessGenerator {
         directive: &Directive,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         match directive {
-            Directive::Invert { x, result } => match initial_witness.get(x) {
-                None => Ok(OpcodeResolution::Unsolved),
-                Some(val) => {
-                    let inverse = val.inverse();
-                    initial_witness.insert(*result, inverse);
-                    Ok(OpcodeResolution::Resolved)
-                }
-            },
+            Directive::Invert { x, result } => {
+                let val = match initial_witness.get(x) {
+                    Some(value) => value,
+                    None => return Ok(OpcodeResolution::Unsolved),
+                };
+
+                let inverse = val.inverse();
+                initial_witness.insert(*result, inverse);
+                return Ok(OpcodeResolution::Resolved);
+            }
             Directive::Quotient {
                 a,
                 b,
@@ -196,119 +200,137 @@ pub trait PartialWitnessGenerator {
                 r,
                 predicate,
             } => {
-                match (
+                let (val_a, val_b) = match (
                     Self::get_value(a, initial_witness),
                     Self::get_value(b, initial_witness),
                 ) {
-                    (Some(val_a), Some(val_b)) => {
-                        let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                        let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
-                        let default = Box::new(Expression::one());
-                        let pred = predicate.as_ref().unwrap_or(&default);
-                        if let Some(pred_value) = Self::get_value(pred, initial_witness) {
-                            let (int_r, int_q) = if pred_value.is_zero() {
-                                (BigUint::zero(), BigUint::zero())
-                            } else {
-                                (&int_a % &int_b, &int_a / &int_b)
-                            };
-                            initial_witness.insert(
-                                *q,
-                                FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
-                            );
-                            initial_witness.insert(
-                                *r,
-                                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
-                            );
-                            Ok(OpcodeResolution::Resolved)
-                        } else {
-                            Ok(OpcodeResolution::Unsolved)
-                        }
-                    }
-                    _ => Ok(OpcodeResolution::Unsolved),
-                }
+                    (Some(a), Some(b)) => (a, b),
+                    (_, _) => return Ok(OpcodeResolution::Unsolved),
+                };
+
+                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
+
+                // If the predicate is `None`, then we simply return the value 1
+                // If the predicate is `Some` but we cannot find a value, then we return unresolved
+                let pred_value = match predicate {
+                    Some(pred) => match Self::get_value(pred, initial_witness) {
+                        Some(val) => val,
+                        None => return Ok(OpcodeResolution::Unsolved),
+                    },
+                    None => FieldElement::one(),
+                };
+
+                let (int_r, int_q) = if pred_value.is_zero() {
+                    (BigUint::zero(), BigUint::zero())
+                } else {
+                    (&int_a % &int_b, &int_a / &int_b)
+                };
+
+                initial_witness
+                    .insert(*q, FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()));
+                initial_witness
+                    .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+
+                Ok(OpcodeResolution::Resolved)
             }
-            Directive::Truncate { a, b, c, bit_size } => match initial_witness.get(a) {
-                Some(val_a) => {
-                    let pow: BigUint = BigUint::one() << bit_size;
+            Directive::Truncate { a, b, c, bit_size } => {
+                let val_a = match initial_witness.get(a) {
+                    Some(value) => value,
+                    None => return Ok(OpcodeResolution::Unsolved),
+                };
 
-                    let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                    let int_b: BigUint = &int_a % &pow;
-                    let int_c: BigUint = (&int_a - &int_b) / &pow;
+                let pow: BigUint = BigUint::one() << bit_size;
 
-                    initial_witness
-                        .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
-                    initial_witness
-                        .insert(*c, FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()));
-                    Ok(OpcodeResolution::Resolved)
-                }
-                _ => Ok(OpcodeResolution::Unsolved),
-            },
-            Directive::ToBits { a, b, bit_size } => match Self::get_value(a, initial_witness) {
-                Some(val_a) => {
-                    let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
-                    for i in 0..*bit_size {
-                        let j = i as usize;
-                        let v = if a_big.bit(j as u64) {
-                            FieldElement::one()
-                        } else {
-                            FieldElement::zero()
-                        };
-                        match initial_witness.entry(b[j]) {
-                            std::collections::btree_map::Entry::Vacant(e) => {
-                                e.insert(v);
-                            }
-                            std::collections::btree_map::Entry::Occupied(e) => {
-                                if e.get() != &v {
-                                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                                }
+                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                let int_b: BigUint = &int_a % &pow;
+                let int_c: BigUint = (&int_a - &int_b) / &pow;
+
+                initial_witness
+                    .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
+                initial_witness
+                    .insert(*c, FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()));
+
+                Ok(OpcodeResolution::Resolved)
+            }
+            Directive::ToBits { a, b, bit_size } => {
+                let val_a = match Self::get_value(a, initial_witness) {
+                    Some(value) => value,
+                    None => return Ok(OpcodeResolution::Unsolved),
+                };
+
+                let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
+                for i in 0..*bit_size {
+                    let j = i as usize;
+                    let v = if a_big.bit(j as u64) {
+                        FieldElement::one()
+                    } else {
+                        FieldElement::zero()
+                    };
+
+                    match initial_witness.entry(b[j]) {
+                        std::collections::btree_map::Entry::Vacant(e) => {
+                            e.insert(v);
+                        }
+                        std::collections::btree_map::Entry::Occupied(e) => {
+                            if e.get() != &v {
+                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                             }
                         }
                     }
-                    Ok(OpcodeResolution::Resolved)
                 }
-                _ => Ok(OpcodeResolution::Unsolved),
-            },
-            Directive::ToBytes { a, b, byte_size } => match Self::get_value(a, initial_witness) {
-                Some(val_a) => {
-                    let mut a_bytes = val_a.to_bytes();
-                    a_bytes.reverse();
-                    for i in 0..*byte_size {
-                        let i_usize = i as usize;
-                        let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i_usize]]);
-                        match initial_witness.entry(b[i_usize]) {
-                            std::collections::btree_map::Entry::Vacant(e) => {
-                                e.insert(v);
-                            }
-                            std::collections::btree_map::Entry::Occupied(e) => {
-                                if e.get() != &v {
-                                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                                }
+
+                Ok(OpcodeResolution::Resolved)
+            }
+            Directive::ToBytes { a, b, byte_size } => {
+                let val_a = match Self::get_value(a, initial_witness) {
+                    Some(value) => value,
+                    None => return Ok(OpcodeResolution::Unsolved),
+                };
+
+                let mut a_bytes = val_a.to_bytes();
+                a_bytes.reverse();
+
+                for i in 0..*byte_size {
+                    let i_usize = i as usize;
+                    let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i_usize]]);
+                    match initial_witness.entry(b[i_usize]) {
+                        std::collections::btree_map::Entry::Vacant(e) => {
+                            e.insert(v);
+                        }
+                        std::collections::btree_map::Entry::Occupied(e) => {
+                            if e.get() != &v {
+                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                             }
                         }
                     }
-                    Ok(OpcodeResolution::Resolved)
                 }
-                _ => Ok(OpcodeResolution::Unsolved),
-            },
-            Directive::Oddrange { a, b, r, bit_size } => match initial_witness.get(a) {
-                Some(val_a) => {
-                    let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                    let pow: BigUint = BigUint::one() << (bit_size - 1);
-                    if int_a >= (&pow << 1) {
-                        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                    }
-                    let bb = &int_a & &pow;
-                    let int_r = &int_a - &bb;
-                    let int_b = &bb >> (bit_size - 1);
 
-                    initial_witness
-                        .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
-                    initial_witness
-                        .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
-                    Ok(OpcodeResolution::Resolved)
+                Ok(OpcodeResolution::Resolved)
+            }
+            Directive::Oddrange { a, b, r, bit_size } => {
+                let val_a = match initial_witness.get(a) {
+                    Some(value) => value,
+                    None => return Ok(OpcodeResolution::Unsolved),
+                };
+
+                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                let pow: BigUint = BigUint::one() << (bit_size - 1);
+                if int_a >= (&pow << 1) {
+                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                 }
-                _ => Ok(OpcodeResolution::Unsolved),
-            },
+
+                let bb = &int_a & &pow;
+                let int_r = &int_a - &bb;
+                let int_b = &bb >> (bit_size - 1);
+
+                initial_witness
+                    .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
+                initial_witness
+                    .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+
+                Ok(OpcodeResolution::Resolved)
+            }
         }
     }
 }
