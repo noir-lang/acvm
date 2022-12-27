@@ -1,6 +1,5 @@
 use crate::pwg::input_to_value;
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use acir_field::FieldElement;
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 pub fn secp256k1_prehashed(

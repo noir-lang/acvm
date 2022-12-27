@@ -1,5 +1,7 @@
-use acir::native_types::{Expression, Witness};
-use acir_field::FieldElement;
+use acir::{
+    native_types::{Expression, Witness},
+    FieldElement,
+};
 use indexmap::IndexMap;
 
 pub struct GeneralOpt;

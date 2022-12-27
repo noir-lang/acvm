@@ -1,5 +1,4 @@
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness};
-use acir_field::FieldElement;
+use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 // Re-usable methods that backends can use to implement their PWG

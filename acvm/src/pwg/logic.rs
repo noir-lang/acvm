@@ -1,6 +1,4 @@
-use acir::circuit::opcodes::BlackBoxFuncCall;
-use acir::native_types::Witness;
-use acir_field::FieldElement;
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 use crate::OpcodeResolution;

@@ -1,5 +1,4 @@
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use acir_field::FieldElement;
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use blake2::{Blake2s, Digest};
 use sha2::Sha256;
 use std::collections::BTreeMap;
