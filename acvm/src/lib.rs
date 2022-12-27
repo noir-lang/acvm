@@ -56,206 +56,12 @@ pub trait PartialWitnessGenerator {
         for gate in gates.into_iter() {
             let resolution = match &gate {
                 Opcode::Arithmetic(arith) => ArithmeticSolver::solve(initial_witness, arith)?,
-                Opcode::BlackBoxFuncCall(bb_func) => match bb_func.name {
-                    BlackBoxFunc::RANGE => {
-                        // TODO: this consistency check can be moved to a general function
-                        let defined_input_size = BlackBoxFunc::RANGE
-                            .definition()
-                            .input_size
-                            .fixed_size()
-                            .expect("infallible: input for range gate is fixed");
-
-                        if bb_func.inputs.len() != defined_input_size as usize {
-                            return Err(OpcodeResolutionError::UnknownError(
-                                "defined input size does not equal given input size".to_string(),
-                            ));
-                        }
-
-                        // For the range constraint, we know that the input size should be one
-                        assert_eq!(defined_input_size, 1);
-
-                        let input = bb_func
-                            .inputs
-                            .first()
-                            .expect("infallible: checked that input size is 1");
-
-                        if let Some(w_value) = initial_witness.get(&input.witness) {
-                            if w_value.num_bits() > input.num_bits {
-                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                            }
-                            OpcodeResolution::Resolved
-                        } else {
-                            OpcodeResolution::Unsolved
-                        }
-                    }
-                    BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, bb_func),
-                    BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, bb_func),
-                    _ => {
-                        // Check if all of the inputs to the function have assignments
-                        // Returns true, if one of the witnesses do not have assignments
-                        let found_witness_not_assigned = bb_func
-                            .inputs
-                            .iter()
-                            .any(|input| !initial_witness.contains_key(&input.witness));
-
-                        if found_witness_not_assigned {
-                            OpcodeResolution::Unsolved
-                        } else if let Err(op) =
-                            Self::solve_blackbox_function_call(initial_witness, bb_func)
-                        {
-                            return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(op));
-                        } else {
-                            OpcodeResolution::Resolved
-                        }
-                    }
-                },
-                Opcode::Directive(directive) => match directive {
-                    Directive::Invert { x, result } => match initial_witness.get(x) {
-                        None => OpcodeResolution::Unsolved,
-                        Some(val) => {
-                            let inverse = val.inverse();
-                            initial_witness.insert(*result, inverse);
-                            OpcodeResolution::Resolved
-                        }
-                    },
-                    Directive::Quotient {
-                        a,
-                        b,
-                        q,
-                        r,
-                        predicate,
-                    } => {
-                        match (
-                            Self::get_value(a, initial_witness),
-                            Self::get_value(b, initial_witness),
-                        ) {
-                            (Some(val_a), Some(val_b)) => {
-                                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                                let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
-                                let default = Box::new(Expression::one());
-                                let pred = predicate.as_ref().unwrap_or(&default);
-                                if let Some(pred_value) = Self::get_value(pred, initial_witness) {
-                                    let (int_r, int_q) = if pred_value.is_zero() {
-                                        (BigUint::zero(), BigUint::zero())
-                                    } else {
-                                        (&int_a % &int_b, &int_a / &int_b)
-                                    };
-                                    initial_witness.insert(
-                                        *q,
-                                        FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
-                                    );
-                                    initial_witness.insert(
-                                        *r,
-                                        FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
-                                    );
-                                    OpcodeResolution::Resolved
-                                } else {
-                                    OpcodeResolution::Unsolved
-                                }
-                            }
-                            _ => OpcodeResolution::Unsolved,
-                        }
-                    }
-                    Directive::Truncate { a, b, c, bit_size } => match initial_witness.get(a) {
-                        Some(val_a) => {
-                            let pow: BigUint = BigUint::one() << bit_size;
-
-                            let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                            let int_b: BigUint = &int_a % &pow;
-                            let int_c: BigUint = (&int_a - &int_b) / &pow;
-
-                            initial_witness.insert(
-                                *b,
-                                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                            );
-                            initial_witness.insert(
-                                *c,
-                                FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
-                            );
-                            OpcodeResolution::Resolved
-                        }
-                        _ => OpcodeResolution::Unsolved,
-                    },
-                    Directive::ToBits { a, b, bit_size } => {
-                        match Self::get_value(a, initial_witness) {
-                            Some(val_a) => {
-                                let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
-                                for i in 0..*bit_size {
-                                    let j = i as usize;
-                                    let v = if a_big.bit(j as u64) {
-                                        FieldElement::one()
-                                    } else {
-                                        FieldElement::zero()
-                                    };
-                                    match initial_witness.entry(b[j]) {
-                                        std::collections::btree_map::Entry::Vacant(e) => {
-                                            e.insert(v);
-                                        }
-                                        std::collections::btree_map::Entry::Occupied(e) => {
-                                            if e.get() != &v {
-                                                return Err(
-                                                    OpcodeResolutionError::UnsatisfiedConstrain,
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                                OpcodeResolution::Resolved
-                            }
-                            _ => OpcodeResolution::Unsolved,
-                        }
-                    }
-                    Directive::ToBytes { a, b, byte_size } => {
-                        match Self::get_value(a, initial_witness) {
-                            Some(val_a) => {
-                                let mut a_bytes = val_a.to_bytes();
-                                a_bytes.reverse();
-                                for i in 0..*byte_size {
-                                    let i_usize = i as usize;
-                                    let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i_usize]]);
-                                    match initial_witness.entry(b[i_usize]) {
-                                        std::collections::btree_map::Entry::Vacant(e) => {
-                                            e.insert(v);
-                                        }
-                                        std::collections::btree_map::Entry::Occupied(e) => {
-                                            if e.get() != &v {
-                                                return Err(
-                                                    OpcodeResolutionError::UnsatisfiedConstrain,
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                                OpcodeResolution::Resolved
-                            }
-                            _ => OpcodeResolution::Unsolved,
-                        }
-                    }
-                    Directive::Oddrange { a, b, r, bit_size } => match initial_witness.get(a) {
-                        Some(val_a) => {
-                            let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                            let pow: BigUint = BigUint::one() << (bit_size - 1);
-                            if int_a >= (&pow << 1) {
-                                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                            }
-                            let bb = &int_a & &pow;
-                            let int_r = &int_a - &bb;
-                            let int_b = &bb >> (bit_size - 1);
-
-                            initial_witness.insert(
-                                *b,
-                                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                            );
-                            initial_witness.insert(
-                                *r,
-                                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
-                            );
-                            OpcodeResolution::Resolved
-                        }
-                        _ => OpcodeResolution::Unsolved,
-                    },
-                },
+                Opcode::BlackBoxFuncCall(bb_func) => {
+                    Self::solve_blackbox_function_call(initial_witness, bb_func)?
+                }
+                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive)?,
             };
+
             if resolution == OpcodeResolution::Unsolved {
                 unsolved_gates.push(gate);
             }
@@ -266,7 +72,70 @@ pub trait PartialWitnessGenerator {
     fn solve_blackbox_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<(), BlackBoxFunc>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+
+    fn solve_range_opcode(
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        func_call: &BlackBoxFuncCall,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        // TODO: this consistency check can be moved to a general function
+        let defined_input_size = BlackBoxFunc::RANGE
+            .definition()
+            .input_size
+            .fixed_size()
+            .expect("infallible: input for range gate is fixed");
+
+        if func_call.inputs.len() != defined_input_size as usize {
+            return Err(OpcodeResolutionError::UnknownError(
+                "defined input size does not equal given input size".to_string(),
+            ));
+        }
+
+        // For the range constraint, we know that the input size should be one
+        assert_eq!(defined_input_size, 1);
+
+        let input = func_call
+            .inputs
+            .first()
+            .expect("infallible: checked that input size is 1");
+
+        if let Some(w_value) = initial_witness.get(&input.witness) {
+            if w_value.num_bits() > input.num_bits {
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+            }
+            Ok(OpcodeResolution::Resolved)
+        } else {
+            Ok(OpcodeResolution::Unsolved)
+        }
+    }
+
+    fn solve_logic_opcode(
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        func_call: &BlackBoxFuncCall,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        match func_call.name {
+            BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, &func_call),
+            BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, &func_call),
+            _ => Err(OpcodeResolutionError::UnknownError(format!(
+                "expected a logic opcode, but instead got {:?}",
+                func_call.name,
+            ))),
+        }
+    }
+
+    // Check if all of the inputs to the function have assignments
+    // Returns true if all of the inputs have been assigned
+    fn all_func_inputs_assigned(
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        func_call: &BlackBoxFuncCall,
+    ) -> bool {
+        // This call to .any returns true, if any of the witnesses do not have assignments
+        // We then use `!`, so it returns false if any of the witnesses do not have assignments
+        !func_call
+            .inputs
+            .iter()
+            .any(|input| !initial_witness.contains_key(&input.witness))
+    }
 
     fn get_value(
         expr: &Expression,
@@ -305,6 +174,142 @@ pub trait PartialWitnessGenerator {
         }
 
         Some(result)
+    }
+
+    fn solve_directives(
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        directive: &Directive,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        match directive {
+            Directive::Invert { x, result } => match initial_witness.get(x) {
+                None => Ok(OpcodeResolution::Unsolved),
+                Some(val) => {
+                    let inverse = val.inverse();
+                    initial_witness.insert(*result, inverse);
+                    Ok(OpcodeResolution::Resolved)
+                }
+            },
+            Directive::Quotient {
+                a,
+                b,
+                q,
+                r,
+                predicate,
+            } => {
+                match (
+                    Self::get_value(a, initial_witness),
+                    Self::get_value(b, initial_witness),
+                ) {
+                    (Some(val_a), Some(val_b)) => {
+                        let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                        let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
+                        let default = Box::new(Expression::one());
+                        let pred = predicate.as_ref().unwrap_or(&default);
+                        if let Some(pred_value) = Self::get_value(pred, initial_witness) {
+                            let (int_r, int_q) = if pred_value.is_zero() {
+                                (BigUint::zero(), BigUint::zero())
+                            } else {
+                                (&int_a % &int_b, &int_a / &int_b)
+                            };
+                            initial_witness.insert(
+                                *q,
+                                FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
+                            );
+                            initial_witness.insert(
+                                *r,
+                                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
+                            );
+                            Ok(OpcodeResolution::Resolved)
+                        } else {
+                            Ok(OpcodeResolution::Unsolved)
+                        }
+                    }
+                    _ => Ok(OpcodeResolution::Unsolved),
+                }
+            }
+            Directive::Truncate { a, b, c, bit_size } => match initial_witness.get(a) {
+                Some(val_a) => {
+                    let pow: BigUint = BigUint::one() << bit_size;
+
+                    let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                    let int_b: BigUint = &int_a % &pow;
+                    let int_c: BigUint = (&int_a - &int_b) / &pow;
+
+                    initial_witness
+                        .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
+                    initial_witness
+                        .insert(*c, FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()));
+                    Ok(OpcodeResolution::Resolved)
+                }
+                _ => Ok(OpcodeResolution::Unsolved),
+            },
+            Directive::ToBits { a, b, bit_size } => match Self::get_value(a, initial_witness) {
+                Some(val_a) => {
+                    let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
+                    for i in 0..*bit_size {
+                        let j = i as usize;
+                        let v = if a_big.bit(j as u64) {
+                            FieldElement::one()
+                        } else {
+                            FieldElement::zero()
+                        };
+                        match initial_witness.entry(b[j]) {
+                            std::collections::btree_map::Entry::Vacant(e) => {
+                                e.insert(v);
+                            }
+                            std::collections::btree_map::Entry::Occupied(e) => {
+                                if e.get() != &v {
+                                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                                }
+                            }
+                        }
+                    }
+                    Ok(OpcodeResolution::Resolved)
+                }
+                _ => Ok(OpcodeResolution::Unsolved),
+            },
+            Directive::ToBytes { a, b, byte_size } => match Self::get_value(a, initial_witness) {
+                Some(val_a) => {
+                    let mut a_bytes = val_a.to_bytes();
+                    a_bytes.reverse();
+                    for i in 0..*byte_size {
+                        let i_usize = i as usize;
+                        let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i_usize]]);
+                        match initial_witness.entry(b[i_usize]) {
+                            std::collections::btree_map::Entry::Vacant(e) => {
+                                e.insert(v);
+                            }
+                            std::collections::btree_map::Entry::Occupied(e) => {
+                                if e.get() != &v {
+                                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                                }
+                            }
+                        }
+                    }
+                    Ok(OpcodeResolution::Resolved)
+                }
+                _ => Ok(OpcodeResolution::Unsolved),
+            },
+            Directive::Oddrange { a, b, r, bit_size } => match initial_witness.get(a) {
+                Some(val_a) => {
+                    let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                    let pow: BigUint = BigUint::one() << (bit_size - 1);
+                    if int_a >= (&pow << 1) {
+                        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                    }
+                    let bb = &int_a & &pow;
+                    let int_r = &int_a - &bb;
+                    let int_b = &bb >> (bit_size - 1);
+
+                    initial_witness
+                        .insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
+                    initial_witness
+                        .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+                    Ok(OpcodeResolution::Resolved)
+                }
+                _ => Ok(OpcodeResolution::Unsolved),
+            },
+        }
     }
 }
 
