@@ -91,14 +91,14 @@ pub trait PartialWitnessGenerator {
                     BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, bb_func),
                     BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, bb_func),
                     _ => {
-                        let mut unsolvable = false;
-                        for i in &bb_func.inputs {
-                            if !initial_witness.contains_key(&i.witness) {
-                                unsolvable = true;
-                                break;
-                            }
-                        }
-                        if unsolvable {
+                        // Check if all of the inputs to the function have assignments
+                        // Returns true, if one of the witnesses do not have assignments
+                        let found_witness_not_assigned = bb_func
+                            .inputs
+                            .iter()
+                            .any(|input| !initial_witness.contains_key(&input.witness));
+
+                        if found_witness_not_assigned {
                             OpcodeResolution::Unsolved
                         } else if let Err(op) =
                             Self::solve_blackbox_function_call(initial_witness, bb_func)
