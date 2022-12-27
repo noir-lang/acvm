@@ -22,7 +22,7 @@ impl LogicSolver {
 
         let (w_l_value, w_r_value) = match (w_l, w_r) {
             (Some(w_l_value), Some(w_r_value)) => (w_l_value, w_r_value),
-            (_, _) => return OpcodeResolution::Skip,
+            (_, _) => return OpcodeResolution::Unsolved,
         };
 
         if is_xor_gate {

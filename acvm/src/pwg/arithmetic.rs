@@ -34,7 +34,7 @@ impl ArithmeticSolver {
 
         match (mul_result, gate_status) {
             (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
-                Ok(OpcodeResolution::Skip)
+                Ok(OpcodeResolution::Unsolved)
             }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
@@ -53,7 +53,7 @@ impl ArithmeticSolver {
                         Ok(OpcodeResolution::Resolved)
                     }
                 } else {
-                    Ok(OpcodeResolution::Skip)
+                    Ok(OpcodeResolution::Unsolved)
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {

@@ -24,7 +24,7 @@ pub use acir::FieldElement;
 #[derive(PartialEq, Eq, Debug)]
 pub enum OpcodeResolution {
     Resolved, // Opcode is solved
-    Skip,     // Opcode cannot be solved
+    Unsolved, // Opcode cannot be solved
 }
 
 #[derive(PartialEq, Eq, Debug, Error)]
@@ -42,7 +42,6 @@ pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator
 /// This component will generate the backend specific output for
 /// each OPCODE.
 /// Returns an Error if the backend does not support that OPCODE
-// TODO: Remove usage of true and false and use an Enum
 pub trait PartialWitnessGenerator {
     fn solve(
         &self,
@@ -86,7 +85,7 @@ pub trait PartialWitnessGenerator {
                             }
                             OpcodeResolution::Resolved
                         } else {
-                            OpcodeResolution::Skip
+                            OpcodeResolution::Unsolved
                         }
                     }
                     BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, bb_func),
@@ -100,7 +99,7 @@ pub trait PartialWitnessGenerator {
                             }
                         }
                         if unsolvable {
-                            OpcodeResolution::Skip
+                            OpcodeResolution::Unsolved
                         } else if let Err(op) =
                             Self::solve_blackbox_function_call(initial_witness, bb_func)
                         {
@@ -112,7 +111,7 @@ pub trait PartialWitnessGenerator {
                 },
                 Opcode::Directive(directive) => match directive {
                     Directive::Invert { x, result } => match initial_witness.get(x) {
-                        None => OpcodeResolution::Skip,
+                        None => OpcodeResolution::Unsolved,
                         Some(val) => {
                             let inverse = val.inverse();
                             initial_witness.insert(*result, inverse);
@@ -151,10 +150,10 @@ pub trait PartialWitnessGenerator {
                                     );
                                     OpcodeResolution::Resolved
                                 } else {
-                                    OpcodeResolution::Skip
+                                    OpcodeResolution::Unsolved
                                 }
                             }
-                            _ => OpcodeResolution::Skip,
+                            _ => OpcodeResolution::Unsolved,
                         }
                     }
                     Directive::Truncate { a, b, c, bit_size } => match initial_witness.get(a) {
@@ -175,7 +174,7 @@ pub trait PartialWitnessGenerator {
                             );
                             OpcodeResolution::Resolved
                         }
-                        _ => OpcodeResolution::Skip,
+                        _ => OpcodeResolution::Unsolved,
                     },
                     Directive::ToBits { a, b, bit_size } => {
                         match Self::get_value(a, initial_witness) {
@@ -203,7 +202,7 @@ pub trait PartialWitnessGenerator {
                                 }
                                 OpcodeResolution::Resolved
                             }
-                            _ => OpcodeResolution::Skip,
+                            _ => OpcodeResolution::Unsolved,
                         }
                     }
                     Directive::ToBytes { a, b, byte_size } => {
@@ -229,7 +228,7 @@ pub trait PartialWitnessGenerator {
                                 }
                                 OpcodeResolution::Resolved
                             }
-                            _ => OpcodeResolution::Skip,
+                            _ => OpcodeResolution::Unsolved,
                         }
                     }
                     Directive::Oddrange { a, b, r, bit_size } => match initial_witness.get(a) {
@@ -253,11 +252,11 @@ pub trait PartialWitnessGenerator {
                             );
                             OpcodeResolution::Resolved
                         }
-                        _ => OpcodeResolution::Skip,
+                        _ => OpcodeResolution::Unsolved,
                     },
                 },
             };
-            if resolution == OpcodeResolution::Skip {
+            if resolution == OpcodeResolution::Unsolved {
                 unsolved_gates.push(gate);
             }
         }
