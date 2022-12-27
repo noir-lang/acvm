@@ -1,7 +1,6 @@
+use crate::{OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
-
-use crate::OpcodeResolution;
 
 pub struct LogicSolver;
 
@@ -36,16 +35,30 @@ impl LogicSolver {
     pub fn solve_and_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &BlackBoxFuncCall,
-    ) -> OpcodeResolution {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);
-        LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
+        Ok(LogicSolver::solve_logic_gate(
+            initial_witness,
+            &a,
+            &b,
+            result,
+            num_bits,
+            false,
+        ))
     }
     pub fn solve_xor_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &BlackBoxFuncCall,
-    ) -> OpcodeResolution {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);
-        LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, true)
+        Ok(LogicSolver::solve_logic_gate(
+            initial_witness,
+            &a,
+            &b,
+            result,
+            num_bits,
+            true,
+        ))
     }
 }
 // TODO: Is there somewhere else that we can put this?
