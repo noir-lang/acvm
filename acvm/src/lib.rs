@@ -260,8 +260,7 @@ pub trait PartialWitnessGenerator {
                 };
 
                 let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
-                for i in 0..*bit_size {
-                    let j = i as usize;
+                for j in 0..*bit_size as usize {
                     let v = if a_big.bit(j as u64) {
                         FieldElement::one()
                     } else {
@@ -291,10 +290,9 @@ pub trait PartialWitnessGenerator {
                 let mut a_bytes = val_a.to_bytes();
                 a_bytes.reverse();
 
-                for i in 0..*byte_size {
-                    let i_usize = i as usize;
-                    let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i_usize]]);
-                    match initial_witness.entry(b[i_usize]) {
+                for i in 0..*byte_size as usize {
+                    let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i]]);
+                    match initial_witness.entry(b[i]) {
                         std::collections::btree_map::Entry::Vacant(e) => {
                             e.insert(v);
                         }
