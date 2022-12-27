@@ -55,12 +55,12 @@ pub trait PartialWitnessGenerator {
 
         for gate in gates.into_iter() {
             let resolution = match &gate {
-                Opcode::Arithmetic(arith) => ArithmeticSolver::solve(initial_witness, arith)?,
+                Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
-                    Self::solve_blackbox_function_call(initial_witness, bb_func)?
+                    Self::solve_blackbox_function_call(initial_witness, bb_func)
                 }
-                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive)?,
-            };
+                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
+            }?;
 
             if resolution == OpcodeResolution::Unsolved {
                 unsolved_gates.push(gate);
