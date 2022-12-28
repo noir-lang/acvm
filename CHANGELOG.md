@@ -33,12 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor the way we print ACIR (This is a first draft and will change with more feedback)
 - Rename `solve_gadget_call` trait method on ProofSystemCompile to `solve_blackbox_function_call`
 - API for `compile` now requires a function pointer which tells us whether a blackbox function is supported
+
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
-- CustomGate trait -- There is a method in the ProofSystemCompiler Trait that backends can use to indicate whether 
+- CustomGate trait -- There is a method in the ProofSystemCompiler Trait that backends can use to indicate whether
 they support a particular black box function
 - Remove OpcodeResolution enum from pwg. The happy case is strictly when the witness has been solved
+
 ## [0.2.1] - 2022-12-23
 
 - Removed ToBits and ToBytes opcode
