@@ -1,72 +1,90 @@
-use crate::{CustomGate, Language};
 use acir::{
     circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Expression,
     BlackBoxFunc,
 };
 
-//Acir pass which replace unsupported gates using arithmetic fallback
-pub fn fallback(acir: &Circuit, np_language: &Language) -> Circuit {
-    let mut fallback_gates = Vec::new();
+// A predicate that returns true if the black box function is supported
+pub type IsBlackBoxSupported = fn(&BlackBoxFunc) -> bool;
+
+//ACIR pass which replace unsupported opcodes using arithmetic fallback
+pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Circuit {
+    let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
+
     let mut witness_idx = acir.current_witness_index + 1;
-    for g in &acir.opcodes {
-        if !np_language.supports_opcode(g) {
-            let gates = gate_fallback(g, &mut witness_idx);
-            fallback_gates.extend(gates);
-        } else {
-            fallback_gates.push(g.clone());
-        }
+
+    for opcode in acir.opcodes {
+        let bb_func_call = match &opcode {
+            Opcode::Arithmetic(_) | Opcode::Directive(_) => {
+                // If it is not a black box function, then it is a directive or
+                // an arithmetic expression which are always supported
+                acir_supported_opcodes.push(opcode);
+                continue;
+            }
+            Opcode::BlackBoxFuncCall(bb_func_call) => {
+                // We know it is an black box function. Now check if it is
+                // supported by the backend. If it is supported, then we can simply
+                // collect the opcode
+                if is_supported(&bb_func_call.name) {
+                    acir_supported_opcodes.push(opcode);
+                    continue;
+                }
+                bb_func_call
+            }
+        };
+
+        // If we get here then we know that this black box function is not supported
+        // so we need to replace it with a version of the opcode which only uses arithmetic
+        // expressions
+        let (updated_witness_index, opcodes_fallback) = opcode_fallback(&bb_func_call, witness_idx);
+        witness_idx = updated_witness_index;
+
+        acir_supported_opcodes.extend(opcodes_fallback);
     }
 
     Circuit {
         current_witness_index: witness_idx,
-        opcodes: fallback_gates,
+        opcodes: acir_supported_opcodes,
         public_inputs: acir.public_inputs.clone(),
     }
 }
 
-fn gate_fallback(gate: &Opcode, witness_idx: &mut u32) -> Vec<Opcode> {
-    let mut gadget_gates = Vec::new();
-    match gate {
-        Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => {
+fn opcode_fallback(gc: &BlackBoxFuncCall, current_witness_idx: u32) -> (u32, Vec<Opcode>) {
+    match gc.name {
+        BlackBoxFunc::AND => {
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
+            stdlib::fallback::and(
+                Expression::from(&lhs),
+                Expression::from(&rhs),
+                result,
+                num_bits,
+                current_witness_idx,
+            )
+        }
+        BlackBoxFunc::XOR => {
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
+            stdlib::fallback::xor(
+                Expression::from(&lhs),
+                Expression::from(&rhs),
+                result,
+                num_bits,
+                current_witness_idx,
+            )
+        }
+        BlackBoxFunc::RANGE => {
             // TODO: add consistency checks in one place
             // TODO: we aren't checking that range gate should have one input
             let input = &gc.inputs[0];
             // Note there are no outputs because range produces no outputs
-            *witness_idx = stdlib::fallback::range(
+            stdlib::fallback::range(
                 Expression::from(&input.witness),
                 input.num_bits,
-                *witness_idx,
-                &mut gadget_gates,
-            );
+                current_witness_idx,
+            )
         }
-        Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
-            *witness_idx = stdlib::fallback::and(
-                Expression::from(&lhs),
-                Expression::from(&rhs),
-                result,
-                num_bits,
-                *witness_idx,
-                &mut gadget_gates,
-            );
+        _ => {
+            // TODO: We should not panic and instead return a result here
+            unreachable!("Missing fallback implementation for opcode {}", gc.name)
         }
-        Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
-            *witness_idx = stdlib::fallback::xor(
-                Expression::from(&lhs),
-                Expression::from(&rhs),
-                result,
-                num_bits,
-                *witness_idx,
-                &mut gadget_gates,
-            );
-        }
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall { name, .. }) => {
-            unreachable!("Missing alternative for opcode {}", name)
-        }
-        _ => todo!("no fallback for gate {:?}", gate),
     }
-
-    gadget_gates
 }
