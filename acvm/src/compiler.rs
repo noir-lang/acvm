@@ -10,15 +10,19 @@ use acir::{
 use indexmap::IndexMap;
 use optimiser::{CSatOptimiser, GeneralOptimiser};
 
-use self::optimiser::R1CSOptimiser;
+use self::{fallback::IsBlackBoxSupported, optimiser::R1CSOptimiser};
 
-pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
+pub fn compile(
+    acir: Circuit,
+    np_language: Language,
+    is_blackbox_supported: IsBlackBoxSupported,
+) -> Circuit {
     // Instantiate the optimiser.
     // Currently the optimiser and reducer are one in the same
     // for CSAT
 
     // Fallback pass
-    let fallback = fallback::fallback(&acir, &np_language);
+    let fallback = fallback::fallback(acir, is_blackbox_supported);
 
     let optimiser = match &np_language {
         crate::Language::R1CS => {
@@ -67,6 +71,6 @@ pub fn compile(acir: Circuit, np_language: Language) -> Circuit {
     Circuit {
         current_witness_index,
         opcodes: optimised_gates,
-        public_inputs: acir.public_inputs, // The optimiser does not add public inputs
+        public_inputs: fallback.public_inputs, // The optimiser does not add public inputs
     }
 }
