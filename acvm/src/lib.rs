@@ -357,6 +357,8 @@ pub trait ProofSystemCompiler {
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
+    // Returns true if the backend supports the selected blackbox function
+    fn blackbox_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
     /// Creates a Proof given the circuit description and the witness values.
     /// It is important to note that the intermediate witnesses for blackbox functions will not generated
@@ -392,39 +394,6 @@ pub trait ProofSystemCompiler {
 pub enum Language {
     R1CS,
     PLONKCSat { width: usize },
-}
-// TODO: We can remove this and have backends simply say what opcodes they support
-pub trait CustomGate {
-    fn supports(&self, opcode: &str) -> bool;
-    fn supports_opcode(&self, gate: &Opcode) -> bool;
-}
-
-impl CustomGate for Language {
-    fn supports(&self, _opcode: &str) -> bool {
-        match self {
-            Language::R1CS => false,
-            Language::PLONKCSat { .. } => true,
-        }
-    }
-
-    // TODO: document this method, its intentions are not clear
-    // TODO: it was made to copy the functionality of the matches
-    // TODO code that was there before
-    fn supports_opcode(&self, gate: &Opcode) -> bool {
-        let is_supported_gate = match gate {
-            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::RANGE => true,
-            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::AND => true,
-            Opcode::BlackBoxFuncCall(gc) if gc.name == BlackBoxFunc::XOR => true,
-            Opcode::BlackBoxFuncCall(_) | Opcode::Arithmetic(_) | Opcode::Directive(_) => false,
-        };
-
-        let is_r1cs = match self {
-            Language::R1CS => true,
-            Language::PLONKCSat { .. } => false,
-        };
-
-        !(is_supported_gate | is_r1cs)
-    }
 }
 
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
