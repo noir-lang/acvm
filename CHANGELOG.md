@@ -32,10 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Field element printing function was modified to uses ascii superscript numbers and ascii multiplication
 - Refactor the way we print ACIR (This is a first draft and will change with more feedback)
 - Rename `solve_gadget_call` trait method on ProofSystemCompile to `solve_blackbox_function_call`
+- API for `compile` now requires a function pointer which tells us whether a blackbox function is supported
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
-
+- CustomGate trait -- There is a method in the ProofSystemCompiler Trait that backends can use to indicate whether 
+they support a particular black box function
 ## [0.2.1] - 2022-12-23
 
 - Removed ToBits and ToBytes opcode
