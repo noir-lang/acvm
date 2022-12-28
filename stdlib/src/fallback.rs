@@ -25,7 +25,7 @@ pub fn split(
 // TODO:Ideally, we return the updated witness counter, or we require the input
 // TODO to be a VariableStore. We are not doing this because we want migration to
 // TODO be less painful
-pub fn bit_decomposition(
+pub(crate) fn bit_decomposition(
     gate: Expression,
     bit_size: u32,
     mut num_witness: u32,
@@ -74,14 +74,11 @@ pub fn bit_decomposition(
 }
 
 // Range constraint
-pub fn range(
-    gate: Expression,
-    bit_size: u32,
-    num_witness: u32,
-    new_gates: &mut Vec<Opcode>,
-) -> u32 {
-    let (_, updated_witness_counter) = bit_decomposition(gate, bit_size, num_witness, new_gates);
-    updated_witness_counter
+pub fn range(gate: Expression, bit_size: u32, num_witness: u32) -> (u32, Vec<Opcode>) {
+    let mut new_gates = Vec::new();
+    let (_, updated_witness_counter) =
+        bit_decomposition(gate, bit_size, num_witness, &mut new_gates);
+    (updated_witness_counter, new_gates)
 }
 
 pub fn and(
@@ -90,13 +87,15 @@ pub fn and(
     result: Witness,
     bit_size: u32,
     num_witness: u32,
-    new_gates: &mut Vec<Opcode>,
-) -> u32 {
+) -> (u32, Vec<Opcode>) {
+    let mut new_gates = Vec::new();
+
     // Decompose the operands into bits
     //
-    let (a_bits, updated_witness_counter) = bit_decomposition(a, bit_size, num_witness, new_gates);
+    let (a_bits, updated_witness_counter) =
+        bit_decomposition(a, bit_size, num_witness, &mut new_gates);
     let (b_bits, updated_witness_counter) =
-        bit_decomposition(b, bit_size, updated_witness_counter, new_gates);
+        bit_decomposition(b, bit_size, updated_witness_counter, &mut new_gates);
 
     assert_eq!(a_bits.len(), b_bits.len());
     assert_eq!(a_bits.len(), bit_size as usize);
@@ -118,7 +117,7 @@ pub fn and(
     and_expr.sort();
     new_gates.push(Opcode::Arithmetic(and_expr));
 
-    updated_witness_counter
+    (updated_witness_counter, new_gates)
 }
 
 pub fn xor(
@@ -127,13 +126,15 @@ pub fn xor(
     result: Witness,
     bit_size: u32,
     num_witness: u32,
-    new_gates: &mut Vec<Opcode>,
-) -> u32 {
+) -> (u32, Vec<Opcode>) {
+    let mut new_gates = Vec::new();
+
     // Decompose the operands into bits
     //
-    let (a_bits, updated_witness_counter) = bit_decomposition(a, bit_size, num_witness, new_gates);
+    let (a_bits, updated_witness_counter) =
+        bit_decomposition(a, bit_size, num_witness, &mut new_gates);
     let (b_bits, updated_witness_counter) =
-        bit_decomposition(b, bit_size, updated_witness_counter, new_gates);
+        bit_decomposition(b, bit_size, updated_witness_counter, &mut new_gates);
 
     assert_eq!(a_bits.len(), b_bits.len());
     assert_eq!(a_bits.len(), bit_size as usize);
@@ -155,5 +156,5 @@ pub fn xor(
     xor_expr.sort();
     new_gates.push(Opcode::Arithmetic(xor_expr));
 
-    updated_witness_counter
+    (updated_witness_counter, new_gates)
 }
