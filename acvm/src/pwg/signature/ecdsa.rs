@@ -1,4 +1,3 @@
-use crate::pwg::input_to_value;
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
@@ -13,7 +12,8 @@ pub fn secp256k1_prehashed(
         let _x_i = inputs_iter
             .next()
             .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {} bytes", i));
-        let x_i = input_to_value(initial_witness, _x_i);
+
+        let x_i = initial_witness.get(&_x_i.witness).unwrap();
         *pkx = *x_i.to_bytes().last().unwrap()
     }
 
@@ -22,7 +22,7 @@ pub fn secp256k1_prehashed(
         let _y_i = inputs_iter
             .next()
             .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {} bytes", i));
-        let y_i = input_to_value(initial_witness, _y_i);
+        let y_i = initial_witness.get(&_y_i.witness).unwrap();
         *pky = *y_i.to_bytes().last().unwrap()
     }
 
@@ -31,13 +31,13 @@ pub fn secp256k1_prehashed(
         let _sig_i = inputs_iter
             .next()
             .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {} bytes", i));
-        let sig_i = input_to_value(initial_witness, _sig_i);
+        let sig_i = initial_witness.get(&_sig_i.witness).unwrap();
         *sig = *sig_i.to_bytes().last().unwrap()
     }
 
     let mut hashed_message = Vec::new();
     for msg in inputs_iter {
-        let msg_i_field = input_to_value(initial_witness, msg);
+        let msg_i_field = initial_witness.get(&msg.witness).unwrap();
         let msg_i = *msg_i_field.to_bytes().last().unwrap();
         hashed_message.push(msg_i);
     }
