@@ -59,7 +59,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::Oddrange { .. } => "odd_range",
-            Directive::ToBits { .. } => "split",
+            Directive::ToBits { .. } => "to_bits",
             Directive::ToBytes { .. } => "to_bytes",
         }
     }
