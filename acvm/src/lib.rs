@@ -51,7 +51,7 @@ pub trait PartialWitnessGenerator {
         if gates.is_empty() {
             return Ok(());
         }
-        let mut unsolved_gates: Vec<Opcode> = Vec::new();
+        let mut unsolved_opcodes: Vec<Opcode> = Vec::new();
 
         for gate in gates.into_iter() {
             let resolution = match &gate {
@@ -63,10 +63,10 @@ pub trait PartialWitnessGenerator {
             }?;
 
             if resolution == OpcodeResolution::Unsolved {
-                unsolved_gates.push(gate);
+                unsolved_opcodes.push(gate);
             }
         }
-        self.solve(initial_witness, unsolved_gates)
+        self.solve(initial_witness, unsolved_opcodes)
     }
 
     fn solve_blackbox_function_call(
