@@ -28,7 +28,7 @@ pub use acir::FieldElement;
 //
 // TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
 // TODO: we could have a error enum for arithmetic failure cases in that module
-// TODO that can be converted into an OpcodeNotSolvable or OpcodeResultionError enum
+// TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeNotSolvable {
     #[error("missing assignment for witness index {0}")]
