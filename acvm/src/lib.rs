@@ -39,14 +39,16 @@ pub enum OpcodeNotSolvable {
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
-    #[error("{0}")]
-    UnknownError(String),
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
+    #[error("unexpected opcode, expected {0}, but got {1}")]
+    UnexpectedOpcode(&'static str, BlackBoxFunc),
+    #[error("expected {0} inputs for function {1}, but got {2}")]
+    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
@@ -106,9 +108,12 @@ pub trait PartialWitnessGenerator {
             .fixed_size()
             .expect("infallible: input for range gate is fixed");
 
-        if func_call.inputs.len() != defined_input_size as usize {
-            return Err(OpcodeResolutionError::UnknownError(
-                "defined input size does not equal given input size".to_string(),
+        let num_arguments = func_call.inputs.len();
+        if num_arguments != defined_input_size as usize {
+            return Err(OpcodeResolutionError::IncorrectNumFunctionArguments(
+                defined_input_size as usize,
+                BlackBoxFunc::RANGE,
+                num_arguments,
             ));
         }
 
@@ -136,10 +141,10 @@ pub trait PartialWitnessGenerator {
         match func_call.name {
             BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, &func_call),
             BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, &func_call),
-            _ => Err(OpcodeResolutionError::UnknownError(format!(
-                "expected a logic opcode, but instead got {:?}",
+            _ => Err(OpcodeResolutionError::UnexpectedOpcode(
+                "logic opcode",
                 func_call.name,
-            ))),
+            )),
         }
     }
 
