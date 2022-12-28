@@ -3,18 +3,17 @@
 
 pub mod compiler;
 pub mod pwg;
-use std::collections::BTreeMap;
 
+use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver, witness_to_value};
 use acir::{
     circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
 use blake2::digest::FixedOutput;
-
-use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver, witness_to_value};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 // re-export acir
