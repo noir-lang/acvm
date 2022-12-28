@@ -12,7 +12,7 @@ use acir::{
 };
 use blake2::digest::FixedOutput;
 
-use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver};
+use crate::pwg::{arithmetic::ArithmeticSolver, logic::LogicSolver, witness_to_value};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 use thiserror::Error;
@@ -21,17 +21,29 @@ use thiserror::Error;
 pub use acir;
 pub use acir::FieldElement;
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum OpcodeResolution {
-    Resolved, // Opcode is solved
-    Unsolved, // Opcode cannot be solved
+// This enum represents the different cases in which an
+// opcode can be unsolvable.
+// The most common being that one of its input has not been
+// assigned a value.
+//
+// TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
+// TODO: we could have a error enum for arithmetic failure cases in that module
+// TODO that can be converted into an OpcodeNotSolvable or OpcodeResultionError enum
+#[derive(PartialEq, Eq, Debug, Error)]
+pub enum OpcodeNotSolvable {
+    #[error("missing assignment for witness index {0}")]
+    MissingAssignment(u32),
+    #[error("expression has too many unknowns {0}")]
+    ExpressionHasTooManyUnknowns(Expression),
 }
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("{0}")]
     UnknownError(String),
-    #[error("backend does not currently support the {0} opcode. ACVM does not currently fall back to arithmetic gates.")]
+    #[error("cannot solve opcode: {0}")]
+    OpcodeNotSolvable(OpcodeNotSolvable),
+    #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
@@ -60,10 +72,19 @@ pub trait PartialWitnessGenerator {
                     Self::solve_blackbox_function_call(initial_witness, bb_func)
                 }
                 Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
-            }?;
+            };
 
-            if resolution == OpcodeResolution::Unsolved {
-                unsolved_opcodes.push(gate);
+            match resolution {
+                Ok(_) => {
+                    // We do nothing in the happy case
+                }
+                Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                    // For opcode not solvable errors, we push those opcodes to the back as
+                    // it could be because the opcodes are out of order, ie this assignment
+                    // relies on a later gate's results
+                    unsolved_opcodes.push(gate);
+                }
+                Err(err) => return Err(err),
             }
         }
         self.solve(initial_witness, unsolved_opcodes)
@@ -72,12 +93,12 @@ pub trait PartialWitnessGenerator {
     fn solve_blackbox_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<(), OpcodeResolutionError>;
 
     fn solve_range_opcode(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         // TODO: this consistency check can be moved to a general function
         let defined_input_size = BlackBoxFunc::RANGE
             .definition()
@@ -99,22 +120,19 @@ pub trait PartialWitnessGenerator {
             .first()
             .expect("infallible: checked that input size is 1");
 
-        let w_value = match initial_witness.get(&input.witness) {
-            Some(value) => value,
-            None => return Ok(OpcodeResolution::Unsolved),
-        };
+        let w_value = witness_to_value(initial_witness, input.witness)?;
 
         if w_value.num_bits() > input.num_bits {
             return Err(OpcodeResolutionError::UnsatisfiedConstrain);
         }
 
-        Ok(OpcodeResolution::Resolved)
+        Ok(())
     }
 
     fn solve_logic_opcode(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         match func_call.name {
             BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, &func_call),
             BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, &func_call),
@@ -142,7 +160,7 @@ pub trait PartialWitnessGenerator {
     fn get_value(
         expr: &Expression,
         initial_witness: &BTreeMap<Witness, FieldElement>,
-    ) -> Option<FieldElement> {
+    ) -> Result<FieldElement, OpcodeResolutionError> {
         let mut result = expr.q_c;
 
         for term in &expr.linear_combinations {
@@ -150,10 +168,7 @@ pub trait PartialWitnessGenerator {
             let variable = term.1;
 
             // Get the value assigned to that variable
-            let assignment = match initial_witness.get(&variable) {
-                Some(value) => *value,
-                None => return None,
-            };
+            let assignment = *witness_to_value(initial_witness, variable)?;
 
             result += coefficient * assignment;
         }
@@ -164,34 +179,25 @@ pub trait PartialWitnessGenerator {
             let rhs_variable = term.2;
 
             // Get the values assigned to those variables
-            let (lhs_assignment, rhs_assignment) = match (
-                initial_witness.get(&lhs_variable),
-                initial_witness.get(&rhs_variable),
-            ) {
-                (Some(lhs), Some(rhs)) => (*lhs, *rhs),
-                (_, _) => return None,
-            };
+            let lhs_assignment = *witness_to_value(initial_witness, lhs_variable)?;
+            let rhs_assignment = *witness_to_value(initial_witness, rhs_variable)?;
 
             result += coefficient * lhs_assignment * rhs_assignment;
         }
 
-        Some(result)
+        Ok(result)
     }
 
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         match directive {
             Directive::Invert { x, result } => {
-                let val = match initial_witness.get(x) {
-                    Some(value) => value,
-                    None => return Ok(OpcodeResolution::Unsolved),
-                };
-
+                let val = witness_to_value(initial_witness, *x)?;
                 let inverse = val.inverse();
                 initial_witness.insert(*result, inverse);
-                return Ok(OpcodeResolution::Resolved);
+                return Ok(());
             }
             Directive::Quotient {
                 a,
@@ -200,13 +206,8 @@ pub trait PartialWitnessGenerator {
                 r,
                 predicate,
             } => {
-                let (val_a, val_b) = match (
-                    Self::get_value(a, initial_witness),
-                    Self::get_value(b, initial_witness),
-                ) {
-                    (Some(a), Some(b)) => (a, b),
-                    (_, _) => return Ok(OpcodeResolution::Unsolved),
-                };
+                let val_a = Self::get_value(a, initial_witness)?;
+                let val_b = Self::get_value(b, initial_witness)?;
 
                 let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
                 let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
@@ -214,10 +215,7 @@ pub trait PartialWitnessGenerator {
                 // If the predicate is `None`, then we simply return the value 1
                 // If the predicate is `Some` but we cannot find a value, then we return unresolved
                 let pred_value = match predicate {
-                    Some(pred) => match Self::get_value(pred, initial_witness) {
-                        Some(val) => val,
-                        None => return Ok(OpcodeResolution::Unsolved),
-                    },
+                    Some(pred) => Self::get_value(pred, initial_witness)?,
                     None => FieldElement::one(),
                 };
 
@@ -232,13 +230,10 @@ pub trait PartialWitnessGenerator {
                 initial_witness
                     .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
 
-                Ok(OpcodeResolution::Resolved)
+                Ok(())
             }
             Directive::Truncate { a, b, c, bit_size } => {
-                let val_a = match initial_witness.get(a) {
-                    Some(value) => value,
-                    None => return Ok(OpcodeResolution::Unsolved),
-                };
+                let val_a = witness_to_value(initial_witness, *a)?;
 
                 let pow: BigUint = BigUint::one() << bit_size;
 
@@ -251,13 +246,10 @@ pub trait PartialWitnessGenerator {
                 initial_witness
                     .insert(*c, FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()));
 
-                Ok(OpcodeResolution::Resolved)
+                Ok(())
             }
             Directive::ToBits { a, b, bit_size } => {
-                let val_a = match Self::get_value(a, initial_witness) {
-                    Some(value) => value,
-                    None => return Ok(OpcodeResolution::Unsolved),
-                };
+                let val_a = Self::get_value(a, initial_witness)?;
 
                 let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
                 for j in 0..*bit_size as usize {
@@ -279,13 +271,10 @@ pub trait PartialWitnessGenerator {
                     }
                 }
 
-                Ok(OpcodeResolution::Resolved)
+                Ok(())
             }
             Directive::ToBytes { a, b, byte_size } => {
-                let val_a = match Self::get_value(a, initial_witness) {
-                    Some(value) => value,
-                    None => return Ok(OpcodeResolution::Unsolved),
-                };
+                let val_a = Self::get_value(a, initial_witness)?;
 
                 let mut a_bytes = val_a.to_bytes();
                 a_bytes.reverse();
@@ -304,13 +293,10 @@ pub trait PartialWitnessGenerator {
                     }
                 }
 
-                Ok(OpcodeResolution::Resolved)
+                Ok(())
             }
             Directive::Oddrange { a, b, r, bit_size } => {
-                let val_a = match initial_witness.get(a) {
-                    Some(value) => value,
-                    None => return Ok(OpcodeResolution::Unsolved),
-                };
+                let val_a = witness_to_value(initial_witness, *a)?;
 
                 let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
                 let pow: BigUint = BigUint::one() << (bit_size - 1);
@@ -327,7 +313,7 @@ pub trait PartialWitnessGenerator {
                 initial_witness
                     .insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
 
-                Ok(OpcodeResolution::Resolved)
+                Ok(())
             }
         }
     }

@@ -4,7 +4,7 @@ use acir::{
 };
 use std::collections::BTreeMap;
 
-use crate::{OpcodeResolution, OpcodeResolutionError};
+use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
@@ -28,7 +28,7 @@ impl ArithmeticSolver {
     pub fn solve(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &Expression,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         // Evaluate multiplication term
         let mul_result = ArithmeticSolver::solve_mul_term(gate, initial_witness);
         // Evaluate the fan-in terms
@@ -36,7 +36,9 @@ impl ArithmeticSolver {
 
         match (mul_result, gate_status) {
             (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
-                Ok(OpcodeResolution::Unsolved)
+                Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
+                ))
             }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
@@ -46,16 +48,19 @@ impl ArithmeticSolver {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain)
                         } else {
-                            Ok(OpcodeResolution::Resolved)
+                            Ok(())
                         }
                     } else {
                         let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
                         initial_witness.insert(w1, assignment);
-                        Ok(OpcodeResolution::Resolved)
+                        Ok(())
                     }
                 } else {
-                    Ok(OpcodeResolution::Unsolved)
+                    // TODO: can we be more specific with this error?
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(
+                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
+                    ))
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
@@ -68,13 +73,13 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain)
                     } else {
-                        Ok(OpcodeResolution::Resolved)
+                        Ok(())
                     }
                 } else {
                     let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    Ok(OpcodeResolution::Resolved)
+                    Ok(())
                 }
             }
             (MulTerm::Solved(a), GateStatus::GateSatisfied(b)) => {
@@ -83,7 +88,7 @@ impl ArithmeticSolver {
                 if !(a + b + gate.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain)
                 } else {
-                    Ok(OpcodeResolution::Resolved)
+                    Ok(())
                 }
             }
             (
@@ -98,13 +103,13 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain)
                     } else {
-                        Ok(OpcodeResolution::Resolved)
+                        Ok(())
                     }
                 } else {
                     let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    Ok(OpcodeResolution::Resolved)
+                    Ok(())
                 }
             }
         }
@@ -221,14 +226,8 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(
-        ArithmeticSolver::solve(&mut values, &gate_a),
-        Ok(OpcodeResolution::Resolved)
-    );
-    assert_eq!(
-        ArithmeticSolver::solve(&mut values, &gate_b),
-        Ok(OpcodeResolution::Resolved)
-    );
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), Ok(()));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), Ok(()));
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }
