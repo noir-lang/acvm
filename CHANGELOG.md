@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added stdlib module to hold all of the standard opcodes
+- added `read` , `write` methods for circuit
 
 ### Fixed
 
@@ -33,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactor the way we print ACIR (This is a first draft and will change with more feedback)
 - Rename `solve_gadget_call` trait method on ProofSystemCompile to `solve_blackbox_function_call`
 - API for `compile` now requires a function pointer which tells us whether a blackbox function is supported
-
+- Renamed Directive::Oddrange to Directive::OddRange
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
