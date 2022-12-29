@@ -139,7 +139,7 @@ impl std::fmt::Display for Opcode {
                     r.witness_index()
                 )
             }
-            Opcode::Directive(Directive::Oddrange { a, b, r, bit_size }) => {
+            Opcode::Directive(Directive::OddRange { a, b, r, bit_size }) => {
                 write!(f, "DIR::ODDRANGE ")?;
 
                 write!(

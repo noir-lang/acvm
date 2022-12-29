@@ -299,7 +299,7 @@ pub trait PartialWitnessGenerator {
 
                 Ok(())
             }
-            Directive::Oddrange { a, b, r, bit_size } => {
+            Directive::OddRange { a, b, r, bit_size } => {
                 let val_a = witness_to_value(initial_witness, *a)?;
 
                 let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
