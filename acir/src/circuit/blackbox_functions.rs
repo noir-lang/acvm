@@ -44,6 +44,24 @@ impl BlackBoxFunc {
             BlackBoxFunc::RANGE => 11,
         }
     }
+    pub fn from_u16(index: u16) -> Option<Self> {
+        let function = match index {
+            0 => BlackBoxFunc::AES,
+            1 => BlackBoxFunc::SHA256,
+            2 => BlackBoxFunc::MerkleMembership,
+            3 => BlackBoxFunc::SchnorrVerify,
+            4 => BlackBoxFunc::Blake2s,
+            5 => BlackBoxFunc::Pedersen,
+            6 => BlackBoxFunc::HashToField,
+            7 => BlackBoxFunc::EcdsaSecp256k1,
+            8 => BlackBoxFunc::FixedBaseScalarMul,
+            9 => BlackBoxFunc::AND,
+            10 => BlackBoxFunc::XOR,
+            11 => BlackBoxFunc::RANGE,
+            _ => return None,
+        };
+        Some(function)
+    }
     pub fn name(&self) -> &'static str {
         match self {
             BlackBoxFunc::AES => "aes",
@@ -195,6 +213,18 @@ mod test {
             assert_eq!(
                 resolved_func, bb_func,
                 "BlackBoxFunc::lookup returns unexpected BlackBoxFunc"
+            )
+        }
+    }
+    #[test]
+    fn consistent_index() {
+        for bb_func in BlackBoxFunc::iter() {
+            let func_index = bb_func.to_u16();
+            let got_bb_func =
+                BlackBoxFunc::from_u16(func_index).expect("blackbox function should have an index");
+            assert_eq!(
+                got_bb_func, bb_func,
+                "BlackBox function index lookup is inconsistent"
             )
         }
     }
