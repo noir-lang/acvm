@@ -1,7 +1,9 @@
 use crate::native_types::{Linear, Witness};
+use crate::serialisation::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::io::{Read, Write};
 use std::ops::{Add, Mul, Neg, Sub};
 
 use super::witness::UnknownWitness;
@@ -103,6 +105,52 @@ impl Expression {
 
     pub fn zero() -> Expression {
         Self::default()
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        let num_mul_terms = self.mul_terms.len() as u32;
+        write_u32(&mut writer, num_mul_terms)?;
+
+        let num_lin_combinations = self.linear_combinations.len() as u32;
+        write_u32(&mut writer, num_lin_combinations)?;
+
+        for mul_term in &self.mul_terms {
+            write_bytes(&mut writer, &mul_term.0.to_bytes())?;
+            write_u32(&mut writer, mul_term.1.witness_index())?;
+            write_u32(&mut writer, mul_term.2.witness_index())?;
+        }
+
+        for lin_comb_term in &self.linear_combinations {
+            write_bytes(&mut writer, &lin_comb_term.0.to_bytes())?;
+            write_u32(&mut writer, lin_comb_term.1.witness_index())?;
+        }
+
+        write_bytes(&mut writer, &self.q_c.to_bytes())?;
+
+        Ok(())
+    }
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let mut expr = Expression::default();
+
+        const FIELD_ELEMENT_NUM_BYTES: usize = FieldElement::max_num_bytes() as usize;
+
+        let num_mul_terms = read_u32(&mut reader)?;
+        let num_lin_comb_terms = read_u32(&mut reader)?;
+
+        for _ in 0..num_mul_terms {
+            let mul_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
+            let mul_term_lhs = read_u32(&mut reader)?;
+            let mul_term_rhs = read_u32(&mut reader)?;
+            expr.term_multiplication(mul_term_coeff, Witness(mul_term_lhs), Witness(mul_term_rhs))
+        }
+
+        for _ in 0..num_lin_comb_terms {
+            let lin_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
+            let lin_term_variable = read_u32(&mut reader)?;
+            expr.term_addition(lin_term_coeff, Witness(lin_term_variable))
+        }
+
+        Ok(expr)
     }
 
     // TODO: possibly rename, since linear can have one mul_term
