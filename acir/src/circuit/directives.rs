@@ -23,8 +23,7 @@ pub enum Directive {
         b: Expression,
         q: Witness,
         r: Witness,
-        // TODO: why is this boxed?
-        predicate: Option<Box<Expression>>,
+        predicate: Option<Expression>,
     },
 
     //Reduces the value of a modulo 2^bit_size and stores the result in b: a= c*2^bit_size + b
@@ -166,7 +165,7 @@ impl Directive {
                 // Read byte to figure out if there is a predicate
                 let predicate_is_some = read_n::<1, _>(&mut reader)?[0] != 0;
                 let predicate = match predicate_is_some {
-                    true => Some(Box::new(Expression::read(&mut reader)?)),
+                    true => Some(Expression::read(&mut reader)?),
                     false => None,
                 };
 
