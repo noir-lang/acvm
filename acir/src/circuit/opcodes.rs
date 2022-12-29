@@ -1,5 +1,8 @@
+use std::io::{Read, Write};
+
 use super::directives::Directive;
 use crate::native_types::{Expression, Witness};
+use crate::serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +27,7 @@ impl Opcode {
     // Expression, BlackBoxFuncCall and Directives
     // When we serialise these opcodes, we use the index
     // to uniquely identify which category of opcode we are dealing with.
-    pub fn to_index(&self) -> u8 {
+    pub(crate) fn to_index(&self) -> u8 {
         match self {
             Opcode::Arithmetic(_) => 0,
             Opcode::BlackBoxFuncCall(_) => 1,
@@ -39,6 +42,39 @@ impl Opcode {
         match self {
             Opcode::Arithmetic(expr) => Some(expr),
             _ => None,
+        }
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        let opcode_index = self.to_index();
+        write_bytes(&mut writer, &[opcode_index])?;
+
+        match self {
+            Opcode::Arithmetic(expr) => expr.write(writer),
+            Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
+            Opcode::Directive(directive) => directive.write(writer),
+        }
+    }
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        // First byte indicates the opcode category
+        let opcode_index = read_n::<1, _>(&mut reader)?[0];
+
+        match opcode_index {
+            0 => {
+                let expr = Expression::read(reader)?;
+
+                Ok(Opcode::Arithmetic(expr))
+            }
+            1 => {
+                let func_call = BlackBoxFuncCall::read(reader)?;
+
+                Ok(Opcode::BlackBoxFuncCall(func_call))
+            }
+            2 => {
+                let directive = Directive::read(reader)?;
+                Ok(Opcode::Directive(directive))
+            }
+            _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }
 }
@@ -161,6 +197,55 @@ pub struct BlackBoxFuncCall {
     pub name: BlackBoxFunc,
     pub inputs: Vec<FunctionInput>,
     pub outputs: Vec<Witness>,
+}
+
+impl BlackBoxFuncCall {
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        write_u16(&mut writer, self.name.to_u16())?;
+
+        let num_inputs = self.inputs.len() as u32;
+        write_u32(&mut writer, num_inputs)?;
+
+        for input in &self.inputs {
+            write_u32(&mut writer, input.witness.witness_index())?;
+            write_u32(&mut writer, input.num_bits)?;
+        }
+
+        let num_outputs = self.outputs.len() as u32;
+        write_u32(&mut writer, num_outputs)?;
+
+        for output in &self.outputs {
+            write_u32(&mut writer, output.witness_index())?;
+        }
+
+        Ok(())
+    }
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let func_index = read_u16(&mut reader)?;
+        let name = BlackBoxFunc::from_u16(func_index).ok_or(std::io::ErrorKind::InvalidData)?;
+
+        let num_inputs = read_u32(&mut reader)?;
+        let mut inputs = Vec::with_capacity(num_inputs as usize);
+        for _ in 0..num_inputs {
+            let witness = Witness(read_u32(&mut reader)?);
+            let num_bits = read_u32(&mut reader)?;
+            let input = FunctionInput { witness, num_bits };
+            inputs.push(input)
+        }
+
+        let num_outputs = read_u32(&mut reader)?;
+        let mut outputs = Vec::with_capacity(num_outputs as usize);
+        for _ in 0..num_outputs {
+            let witness = Witness(read_u32(&mut reader)?);
+            outputs.push(witness)
+        }
+
+        Ok(BlackBoxFuncCall {
+            name,
+            inputs,
+            outputs,
+        })
+    }
 }
 
 impl std::fmt::Display for BlackBoxFuncCall {
