@@ -4,12 +4,15 @@ pub mod opcodes;
 pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
+use crate::serialisation::{read_u32, write_u32};
 use rmp_serde;
 use serde::{Deserialize, Serialize};
 
 use flate2::bufread::{DeflateDecoder, DeflateEncoder};
 use flate2::Compression;
 use std::io::prelude::*;
+
+const VERSION_NUMBER: u32 = 0;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Circuit {
@@ -36,6 +39,57 @@ impl Circuit {
         let mut buf_c = Vec::new();
         deflater.read_to_end(&mut buf_c).unwrap();
         buf_c
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        write_u32(&mut writer, VERSION_NUMBER)?;
+
+        write_u32(&mut writer, self.current_witness_index)?;
+
+        let public_input_indices = self.public_inputs.indices();
+        write_u32(&mut writer, public_input_indices.len() as u32)?;
+        for public_input_index in public_input_indices {
+            write_u32(&mut writer, public_input_index)?;
+        }
+
+        write_u32(&mut writer, self.opcodes.len() as u32)?;
+        for opcode in &self.opcodes {
+            opcode.write(&mut writer)?;
+        }
+        Ok(())
+    }
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let version_number = read_u32(&mut reader)?;
+        // TODO (Note): we could use semver versioning from the Cargo.toml
+        // here and then reject anything that has a major bump
+        //
+        // We may also not want to do that if we do not want to couple serialisation
+        // with other breaking changes
+        if version_number != VERSION_NUMBER {
+            return Err(std::io::ErrorKind::InvalidData.into());
+        }
+
+        let current_witness_index = read_u32(&mut reader)?;
+
+        let num_public_inputs = read_u32(&mut reader)?;
+        let mut public_inputs = PublicInputs(Vec::with_capacity(num_public_inputs as usize));
+        for _ in 0..num_public_inputs {
+            let public_input_index = Witness(read_u32(&mut reader)?);
+            public_inputs.0.push(public_input_index)
+        }
+
+        let num_opcodes = read_u32(&mut reader)?;
+        let mut opcodes = Vec::with_capacity(num_opcodes as usize);
+        for _ in 0..num_opcodes {
+            let opcode = Opcode::read(&mut reader)?;
+            opcodes.push(opcode)
+        }
+
+        Ok(Self {
+            current_witness_index,
+            opcodes,
+            public_inputs,
+        })
     }
 }
 
