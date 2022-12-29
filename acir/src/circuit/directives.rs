@@ -36,8 +36,7 @@ pub enum Directive {
     },
 
     //Computes the highest bit b of a: a = b*2^(bit_size-1) + r, where a<2^bit_size, b is 0 or 1 and r<2^(bit_size-1)
-    // TODO : change to OddRange
-    Oddrange {
+    OddRange {
         a: Witness,
         b: Witness,
         r: Witness,
@@ -65,7 +64,7 @@ impl Directive {
             Directive::Invert { .. } => "invert",
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
-            Directive::Oddrange { .. } => "odd_range",
+            Directive::OddRange { .. } => "odd_range",
             Directive::ToBits { .. } => "to_bits",
             Directive::ToBytes { .. } => "to_bytes",
         }
@@ -75,7 +74,7 @@ impl Directive {
             Directive::Invert { .. } => 0,
             Directive::Quotient { .. } => 1,
             Directive::Truncate { .. } => 2,
-            Directive::Oddrange { .. } => 3,
+            Directive::OddRange { .. } => 3,
             Directive::ToBits { .. } => 4,
             Directive::ToBytes { .. } => 5,
         }
@@ -113,7 +112,7 @@ impl Directive {
                 write_u32(&mut writer, c.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::Oddrange { a, b, r, bit_size } => {
+            Directive::OddRange { a, b, r, bit_size } => {
                 write_u32(&mut writer, a.witness_index())?;
                 write_u32(&mut writer, b.witness_index())?;
                 write_u32(&mut writer, r.witness_index())?;
@@ -191,7 +190,7 @@ impl Directive {
                 let b = Witness(read_u32(&mut reader)?);
                 let r = Witness(read_u32(&mut reader)?);
                 let bit_size = read_u32(&mut reader)?;
-                Ok(Directive::Oddrange { a, b, r, bit_size })
+                Ok(Directive::OddRange { a, b, r, bit_size })
             }
             4 => {
                 let a = Expression::read(&mut reader)?;
