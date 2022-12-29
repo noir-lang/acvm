@@ -166,7 +166,7 @@ impl<F: PrimeField> FieldElement<F> {
     /// Example, you only need 254 bits to represent a field element in BN256
     /// But the representation uses 256 bits, so the top two bits are always zero
     /// This method would return 254
-    pub fn max_num_bits() -> u32 {
+    pub const fn max_num_bits() -> u32 {
         F::Params::MODULUS_BITS
     }
 
@@ -174,7 +174,7 @@ impl<F: PrimeField> FieldElement<F> {
     /// We are not guaranteed that the number of bits being used to represent a field element
     /// will always be divisible by 8. If the case that it is not, we add one to the max number of bytes
     /// For example, a max bit size of 254 would give a max byte size of 32.
-    pub fn max_num_bytes() -> u32 {
+    pub const fn max_num_bytes() -> u32 {
         let num_bytes = Self::max_num_bits() / 8;
         if Self::max_num_bits() % 8 == 0 {
             num_bytes
