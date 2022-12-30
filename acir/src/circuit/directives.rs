@@ -221,3 +221,74 @@ impl Directive {
         }
     }
 }
+
+#[test]
+fn serialisation_roundtrip() {
+    fn read_write(directive: Directive) -> (Directive, Directive) {
+        let mut bytes = Vec::new();
+        directive.write(&mut bytes).unwrap();
+        let got_dir = Directive::read(&*bytes).unwrap();
+
+        (directive, got_dir)
+    }
+    // TODO: Find a way to ensure that we include all of the variants
+    let invert = Directive::Invert {
+        x: Witness(10),
+        result: Witness(10),
+    };
+
+    let quotient_none = Directive::Quotient {
+        a: Expression::default(),
+        b: Expression::default(),
+        q: Witness(1u32),
+        r: Witness(2u32),
+        predicate: None,
+    };
+    let quotient_predicate = Directive::Quotient {
+        a: Expression::default(),
+        b: Expression::default(),
+        q: Witness(1u32),
+        r: Witness(2u32),
+        predicate: Some(Expression::default()),
+    };
+
+    let truncate = Directive::Truncate {
+        a: Witness(1u32),
+        b: Witness(2u32),
+        c: Witness(3u32),
+        bit_size: 123,
+    };
+
+    let odd_range = Directive::OddRange {
+        a: Witness(1u32),
+        b: Witness(2u32),
+        r: Witness(3u32),
+        bit_size: 32,
+    };
+
+    let to_bits = Directive::ToBits {
+        a: Expression::default(),
+        b: vec![Witness(1u32), Witness(2u32)],
+        bit_size: 2,
+    };
+    let to_bytes = Directive::ToBytes {
+        a: Expression::default(),
+        b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
+        byte_size: 4,
+    };
+
+    let directives = vec![
+        invert,
+        quotient_none,
+        quotient_predicate,
+        truncate,
+        odd_range,
+        to_bits,
+        to_bytes,
+    ];
+
+    for directive in directives {
+        let (dir, got_dir) = read_write(directive);
+        assert_eq!(dir, got_dir);
+    }
+}
