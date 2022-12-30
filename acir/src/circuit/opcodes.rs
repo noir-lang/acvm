@@ -334,3 +334,42 @@ impl std::fmt::Debug for BlackBoxFuncCall {
         std::fmt::Display::fmt(self, f)
     }
 }
+
+#[test]
+fn serialisation_roundtrip() {
+    fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
+        let mut bytes = Vec::new();
+        opcode.write(&mut bytes).unwrap();
+        let got_opcode = Opcode::read(&*bytes).unwrap();
+        (opcode, got_opcode)
+    }
+
+    let opcode_arith = Opcode::Arithmetic(Expression::default());
+
+    let opcode_blackbox_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
+        name: BlackBoxFunc::AES,
+        inputs: vec![
+            FunctionInput {
+                witness: Witness(1u32),
+                num_bits: 12,
+            },
+            FunctionInput {
+                witness: Witness(24u32),
+                num_bits: 32,
+            },
+        ],
+        outputs: vec![Witness(123u32), Witness(245u32)],
+    });
+
+    let opcode_directive = Opcode::Directive(Directive::Invert {
+        x: Witness(1234u32),
+        result: Witness(56789u32),
+    });
+
+    let opcodes = vec![opcode_arith, opcode_blackbox_func, opcode_directive];
+
+    for opcode in opcodes {
+        let (op, got_op) = read_write(opcode);
+        assert_eq!(op, got_op)
+    }
+}
