@@ -26,6 +26,9 @@ impl Circuit {
         self.current_witness_index + 1
     }
 
+    #[deprecated(
+        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi). use `read` instead"
+    )]
     pub fn from_bytes(bytes: &[u8]) -> Circuit {
         let mut deflater = DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
@@ -33,6 +36,9 @@ impl Circuit {
         rmp_serde::from_slice(buf_d.as_slice()).unwrap()
     }
 
+    #[deprecated(
+        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi).use `write` instead"
+    )]
     pub fn to_bytes(&self) -> Vec<u8> {
         let buf = rmp_serde::to_vec(&self).unwrap();
         let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
