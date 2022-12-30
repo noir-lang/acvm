@@ -16,7 +16,9 @@ pub enum BlackBoxFunc {
     MerkleMembership,
     SchnorrVerify,
     Pedersen,
-    HashToField,
+    // 128 here specifies that this function
+    // should have 128 bits of security
+    HashToField128Security,
     EcdsaSecp256k1,
     FixedBaseScalarMul,
 }
@@ -36,7 +38,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::SchnorrVerify => 3,
             BlackBoxFunc::Blake2s => 4,
             BlackBoxFunc::Pedersen => 5,
-            BlackBoxFunc::HashToField => 6,
+            BlackBoxFunc::HashToField128Security => 6,
             BlackBoxFunc::EcdsaSecp256k1 => 7,
             BlackBoxFunc::FixedBaseScalarMul => 8,
             BlackBoxFunc::AND => 9,
@@ -52,7 +54,7 @@ impl BlackBoxFunc {
             3 => BlackBoxFunc::SchnorrVerify,
             4 => BlackBoxFunc::Blake2s,
             5 => BlackBoxFunc::Pedersen,
-            6 => BlackBoxFunc::HashToField,
+            6 => BlackBoxFunc::HashToField128Security,
             7 => BlackBoxFunc::EcdsaSecp256k1,
             8 => BlackBoxFunc::FixedBaseScalarMul,
             9 => BlackBoxFunc::AND,
@@ -70,7 +72,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::SchnorrVerify => "schnorr_verify",
             BlackBoxFunc::Blake2s => "blake2s",
             BlackBoxFunc::Pedersen => "pedersen",
-            BlackBoxFunc::HashToField => "hash_to_field",
+            BlackBoxFunc::HashToField128Security => "hash_to_field_128_security",
             BlackBoxFunc::EcdsaSecp256k1 => "ecdsa_secp256k1",
             BlackBoxFunc::FixedBaseScalarMul => "fixed_base_scalar_mul",
             BlackBoxFunc::AND => "and",
@@ -86,7 +88,7 @@ impl BlackBoxFunc {
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
             "blake2s" => Some(BlackBoxFunc::Blake2s),
             "pedersen" => Some(BlackBoxFunc::Pedersen),
-            "hash_to_field" => Some(BlackBoxFunc::HashToField),
+            "hash_to_field_128_security" => Some(BlackBoxFunc::HashToField128Security),
             "ecdsa_secp256k1" => Some(BlackBoxFunc::EcdsaSecp256k1),
             "fixed_base_scalar_mul" => Some(BlackBoxFunc::FixedBaseScalarMul),
             "and" => Some(BlackBoxFunc::AND),
@@ -112,7 +114,7 @@ impl BlackBoxFunc {
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
-            BlackBoxFunc::HashToField => FuncDefinition {
+            BlackBoxFunc::HashToField128Security => FuncDefinition {
                 name,
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
