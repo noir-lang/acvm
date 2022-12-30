@@ -14,7 +14,7 @@ use std::io::prelude::*;
 
 const VERSION_NUMBER: u32 = 0;
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
@@ -118,7 +118,7 @@ impl std::fmt::Debug for Circuit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PublicInputs(pub Vec<Witness>);
 
 impl PublicInputs {
@@ -169,6 +169,25 @@ mod test {
             }],
             outputs: vec![],
         })
+    }
+
+    #[test]
+    fn serialisation_roundtrip() {
+        let circuit = Circuit {
+            current_witness_index: 5,
+            opcodes: vec![and_opcode(), range_opcode()],
+            public_inputs: PublicInputs(vec![Witness(2), Witness(12)]),
+        };
+
+        fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
+            let mut bytes = Vec::new();
+            circuit.write(&mut bytes).unwrap();
+            let got_circuit = Circuit::read(&*bytes).unwrap();
+            (circuit, got_circuit)
+        }
+
+        let (circ, got_circ) = read_write(circuit);
+        assert_eq!(circ, got_circ)
     }
 
     #[test]
