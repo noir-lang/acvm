@@ -115,17 +115,17 @@ impl Expression {
         write_u32(&mut writer, num_lin_combinations)?;
 
         for mul_term in &self.mul_terms {
-            write_bytes(&mut writer, &mul_term.0.to_bytes())?;
+            write_bytes(&mut writer, &mul_term.0.to_be_bytes())?;
             write_u32(&mut writer, mul_term.1.witness_index())?;
             write_u32(&mut writer, mul_term.2.witness_index())?;
         }
 
         for lin_comb_term in &self.linear_combinations {
-            write_bytes(&mut writer, &lin_comb_term.0.to_bytes())?;
+            write_bytes(&mut writer, &lin_comb_term.0.to_be_bytes())?;
             write_u32(&mut writer, lin_comb_term.1.witness_index())?;
         }
 
-        write_bytes(&mut writer, &self.q_c.to_bytes())?;
+        write_bytes(&mut writer, &self.q_c.to_be_bytes())?;
 
         Ok(())
     }

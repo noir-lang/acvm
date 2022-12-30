@@ -213,8 +213,8 @@ pub trait PartialWitnessGenerator {
                 let val_a = Self::get_value(a, initial_witness)?;
                 let val_b = Self::get_value(b, initial_witness)?;
 
-                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
-                let int_b = BigUint::from_bytes_be(&val_b.to_bytes());
+                let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
+                let int_b = BigUint::from_bytes_be(&val_b.to_be_bytes());
 
                 // If the predicate is `None`, then we simply return the value 1
                 // If the predicate is `Some` but we cannot find a value, then we return unresolved
@@ -241,7 +241,7 @@ pub trait PartialWitnessGenerator {
 
                 let pow: BigUint = BigUint::one() << bit_size;
 
-                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
                 let int_b: BigUint = &int_a % &pow;
                 let int_c: BigUint = (&int_a - &int_b) / &pow;
 
@@ -255,7 +255,7 @@ pub trait PartialWitnessGenerator {
             Directive::ToBits { a, b, bit_size } => {
                 let val_a = Self::get_value(a, initial_witness)?;
 
-                let a_big = BigUint::from_bytes_be(&val_a.to_bytes());
+                let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
                 for j in 0..*bit_size as usize {
                     let v = if a_big.bit(j as u64) {
                         FieldElement::one()
@@ -280,7 +280,7 @@ pub trait PartialWitnessGenerator {
             Directive::ToBytes { a, b, byte_size } => {
                 let val_a = Self::get_value(a, initial_witness)?;
 
-                let mut a_bytes = val_a.to_bytes();
+                let mut a_bytes = val_a.to_be_bytes();
                 a_bytes.reverse();
 
                 for i in 0..*byte_size as usize {
@@ -302,7 +302,7 @@ pub trait PartialWitnessGenerator {
             Directive::OddRange { a, b, r, bit_size } => {
                 let val_a = witness_to_value(initial_witness, *a)?;
 
-                let int_a = BigUint::from_bytes_be(&val_a.to_bytes());
+                let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
                 let pow: BigUint = BigUint::one() << (bit_size - 1);
                 if int_a >= (&pow << 1) {
                     return Err(OpcodeResolutionError::UnsatisfiedConstrain);

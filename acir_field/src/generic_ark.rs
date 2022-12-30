@@ -14,13 +14,13 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // First check if the number is zero
         //
-        let number = BigUint::from_bytes_be(&self.to_bytes());
+        let number = BigUint::from_bytes_be(&self.to_be_bytes());
         if number == BigUint::zero() {
             return write!(f, "{}", "0");
         }
         // Check if the negative version is smaller to represent
         //
-        let minus_number = BigUint::from_bytes_be(&(self.neg()).to_bytes());
+        let minus_number = BigUint::from_bytes_be(&(self.neg()).to_be_bytes());
         let (smaller_repr, is_negative) =
             if minus_number.to_string().len() < number.to_string().len() {
                 (minus_number, true)
@@ -77,13 +77,13 @@ impl<F: PrimeField> std::fmt::Debug for FieldElement<F> {
 
 impl<F: PrimeField> std::hash::Hash for FieldElement<F> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write(&self.to_bytes())
+        state.write(&self.to_be_bytes())
     }
 }
 
 impl<F: PrimeField> PartialEq for FieldElement<F> {
     fn eq(&self, other: &Self) -> bool {
-        self.to_bytes() == other.to_bytes()
+        self.to_be_bytes() == other.to_be_bytes()
     }
 }
 
@@ -214,9 +214,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn to_u128(self) -> u128 {
-        use std::convert::TryInto;
-
-        let bytes = self.to_bytes();
+        let bytes = self.to_be_bytes();
         u128::from_be_bytes(bytes[16..32].try_into().unwrap())
     }
 
@@ -256,7 +254,10 @@ impl<F: PrimeField> FieldElement<F> {
         Some(FieldElement::from_be_bytes_reduce(&hex_as_bytes))
     }
 
-    pub fn to_bytes(self) -> Vec<u8> {
+    pub fn to_be_bytes(self) -> Vec<u8> {
+        // to_be_bytes! uses little endian which is why we reverse the output
+        // TODO: Add a little endian equivalent, so the caller can use whichever one
+        // TODO they desire
         let mut bytes = to_bytes!(self.0).unwrap();
         bytes.reverse();
         bytes
@@ -269,7 +270,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn bits(&self) -> Vec<bool> {
-        let bytes = self.to_bytes();
+        let bytes = self.to_be_bytes();
         let mut bits = Vec::with_capacity(bytes.len() * 8);
         for byte in bytes {
             let _bits = FieldElement::<F>::byte_to_bit(byte);
@@ -296,7 +297,7 @@ impl<F: PrimeField> FieldElement<F> {
         let num_bytes = nearest_bytes(num_bits);
         let num_elements = num_bytes / 8;
 
-        let mut bytes = self.to_bytes();
+        let mut bytes = self.to_be_bytes();
         bytes.reverse(); // put it in big endian format. XXX(next refactor): we should be explicit about endianess.
 
         bytes[0..num_elements].to_vec()
@@ -305,8 +306,8 @@ impl<F: PrimeField> FieldElement<F> {
     // mask_to methods will not remove any bytes from the field
     // they are simply zeroed out
     // Whereas truncate_to will remove those bits and make the byte array smaller
-    fn mask_to_bytes(&self, num_bits: u32) -> Vec<u8> {
-        let mut bytes = self.to_bytes();
+    fn mask_to_be_bytes(&self, num_bits: u32) -> Vec<u8> {
+        let mut bytes = self.to_be_bytes();
         mask_vector_le(&mut bytes, num_bits as usize);
         bytes.to_vec()
     }
@@ -322,8 +323,8 @@ impl<F: PrimeField> FieldElement<F> {
         //     num_bits
         // );
 
-        let lhs_bytes = self.mask_to_bytes(num_bits);
-        let rhs_bytes = rhs.mask_to_bytes(num_bits);
+        let lhs_bytes = self.mask_to_be_bytes(num_bits);
+        let rhs_bytes = rhs.mask_to_be_bytes(num_bits);
 
         let and_byte_arr: Vec<_> = lhs_bytes
             .into_iter()
@@ -402,7 +403,7 @@ mod test {
         for x in 0..max {
             let x = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(x as i128);
             let res = x.and(&x, num_bits);
-            assert_eq!(res.to_bytes(), x.to_bytes());
+            assert_eq!(res.to_be_bytes(), x.to_be_bytes());
         }
     }
 }
