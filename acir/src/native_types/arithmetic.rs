@@ -150,6 +150,9 @@ impl Expression {
             expr.term_addition(lin_term_coeff, Witness(lin_term_variable))
         }
 
+        let q_c = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
+        expr.q_c = q_c;
+
         Ok(expr)
     }
 
@@ -472,4 +475,30 @@ impl Expression {
 
         found_x & found_y
     }
+}
+
+#[test]
+fn serialisation_roundtrip() {
+    // Empty expression
+    //
+    let expr = Expression::default();
+
+    fn read_write(expr: Expression) -> (Expression, Expression) {
+        let mut bytes = Vec::new();
+        expr.write(&mut bytes).unwrap();
+        let got_expr = Expression::read(&*bytes).unwrap();
+        (expr, got_expr)
+    }
+
+    let (expr, got_expr) = read_write(expr);
+    assert_eq!(expr, got_expr);
+
+    //
+    let mut expr = Expression::default();
+    expr.term_addition(FieldElement::from(123i128), Witness(20u32));
+    expr.term_multiplication(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
+    expr.q_c = FieldElement::from(789456i128);
+
+    let (expr, got_expr) = read_write(expr);
+    assert_eq!(expr, got_expr);
 }
