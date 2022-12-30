@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rename `solve_gadget_call` trait method on ProofSystemCompile to `solve_blackbox_function_call`
 - API for `compile` now requires a function pointer which tells us whether a blackbox function is supported
 - Renamed Directive::Oddrange to Directive::OddRange
+- Renamed FieldElement::to_bytes to FieldElement::to_be_bytes
 ### Removed
 
 - Selector struct has been removed as it is no longer being used. It is also not being used by Noir.
