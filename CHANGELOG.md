@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ACVM compile method now returns an Error for when a function cannot be reduced to arithmetic gates
+
 ### Removed
 
 ## [0.3.0] - 2022-12-31
