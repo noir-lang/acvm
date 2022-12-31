@@ -30,7 +30,7 @@ fn generic_hash_256<D: Digest>(
 
         let witness_assignment = initial_witness.get(witness);
         let assignment = match witness_assignment {
-            None => panic!("cannot find witness assignment for {:?}", witness),
+            None => panic!("cannot find witness assignment for {witness:?}"),
             Some(assignment) => assignment,
         };
 

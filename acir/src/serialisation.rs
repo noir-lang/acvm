@@ -14,7 +14,7 @@ pub fn write_n<const NUM_BYTES: usize, W: Write>(
     write_bytes(w, &bytes)
 }
 pub fn write_bytes<W: Write>(mut w: W, bytes: &[u8]) -> std::io::Result<usize> {
-    w.write(&bytes)
+    w.write(bytes)
 }
 
 pub fn write_u16<W: Write>(w: W, num: u16) -> std::io::Result<usize> {

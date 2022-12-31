@@ -169,13 +169,13 @@ impl Directive {
                     false => None,
                 };
 
-                return Ok(Directive::Quotient {
+                Ok(Directive::Quotient {
                     a,
                     b,
                     q,
                     r,
                     predicate,
-                });
+                })
             }
             2 => {
                 let a = Witness(read_u32(&mut reader)?);

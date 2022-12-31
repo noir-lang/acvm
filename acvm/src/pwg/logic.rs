@@ -8,8 +8,8 @@ pub fn solve_logic_opcode(
     func_call: &BlackBoxFuncCall,
 ) -> Result<(), OpcodeResolutionError> {
     match func_call.name {
-        BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, &func_call),
-        BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, &func_call),
+        BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
+        BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
         _ => Err(OpcodeResolutionError::UnexpectedOpcode(
             "logic opcode",
             func_call.name,

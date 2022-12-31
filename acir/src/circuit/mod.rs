@@ -105,14 +105,14 @@ impl std::fmt::Display for Circuit {
         write!(f, "public input indices : [")?;
         let indices = self.public_inputs.indices();
         for (index, public_input) in indices.iter().enumerate() {
-            write!(f, "{}", public_input)?;
+            write!(f, "{public_input}")?;
             if index != indices.len() - 1 {
                 write!(f, ", ")?;
             }
         }
         writeln!(f, "]")?;
         for opcode in &self.opcodes {
-            writeln!(f, "{}", opcode)?
+            writeln!(f, "{opcode}")?
         }
         Ok(())
     }

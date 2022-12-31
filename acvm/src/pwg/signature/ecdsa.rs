@@ -13,7 +13,7 @@ pub fn secp256k1_prehashed(
     for (i, pkx) in pub_key_x.iter_mut().enumerate() {
         let _x_i = inputs_iter
             .next()
-            .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {} bytes", i));
+            .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {i} bytes"));
 
         let x_i = witness_to_value(initial_witness, _x_i.witness)?;
         *pkx = *x_i.to_be_bytes().last().unwrap()
@@ -23,7 +23,7 @@ pub fn secp256k1_prehashed(
     for (i, pky) in pub_key_y.iter_mut().enumerate() {
         let _y_i = inputs_iter
             .next()
-            .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {} bytes", i));
+            .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {i} bytes"));
 
         let y_i = witness_to_value(initial_witness, _y_i.witness)?;
         *pky = *y_i.to_be_bytes().last().unwrap()
@@ -33,7 +33,7 @@ pub fn secp256k1_prehashed(
     for (i, sig) in signature.iter_mut().enumerate() {
         let _sig_i = inputs_iter
             .next()
-            .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {} bytes", i));
+            .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {i} bytes"));
 
         let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
         *sig = *sig_i.to_be_bytes().last().unwrap()

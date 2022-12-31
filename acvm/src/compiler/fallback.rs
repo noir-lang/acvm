@@ -37,8 +37,7 @@ pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Result<Circ
         // If we get here then we know that this black box function is not supported
         // so we need to replace it with a version of the opcode which only uses arithmetic
         // expressions
-        let (updated_witness_index, opcodes_fallback) =
-            opcode_fallback(&bb_func_call, witness_idx)?;
+        let (updated_witness_index, opcodes_fallback) = opcode_fallback(bb_func_call, witness_idx)?;
         witness_idx = updated_witness_index;
 
         acir_supported_opcodes.extend(opcodes_fallback);
@@ -47,7 +46,7 @@ pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Result<Circ
     Ok(Circuit {
         current_witness_index: witness_idx,
         opcodes: acir_supported_opcodes,
-        public_inputs: acir.public_inputs.clone(),
+        public_inputs: acir.public_inputs,
     })
 }
 
@@ -57,7 +56,7 @@ fn opcode_fallback(
 ) -> Result<(u32, Vec<Opcode>), CompileError> {
     let (updated_witness_index, opcodes_fallback) = match gc.name {
         BlackBoxFunc::AND => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
             stdlib::fallback::and(
                 Expression::from(&lhs),
                 Expression::from(&rhs),
@@ -67,7 +66,7 @@ fn opcode_fallback(
             )
         }
         BlackBoxFunc::XOR => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
+            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
             stdlib::fallback::xor(
                 Expression::from(&lhs),
                 Expression::from(&rhs),

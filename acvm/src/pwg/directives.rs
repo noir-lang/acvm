@@ -17,7 +17,7 @@ pub fn solve_directives(
             let val = witness_to_value(initial_witness, *x)?;
             let inverse = val.inverse();
             initial_witness.insert(*result, inverse);
-            return Ok(());
+            Ok(())
         }
         Directive::Quotient {
             a,
@@ -68,14 +68,15 @@ pub fn solve_directives(
             let val_a = get_value(a, initial_witness)?;
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            for j in 0..*bit_size as usize {
+
+            for (j, b_j) in b.iter().enumerate().take(*bit_size as usize) {
                 let v = if a_big.bit(j as u64) {
                     FieldElement::one()
                 } else {
                     FieldElement::zero()
                 };
 
-                match initial_witness.entry(b[j]) {
+                match initial_witness.entry(*b_j) {
                     std::collections::btree_map::Entry::Vacant(e) => {
                         e.insert(v);
                     }

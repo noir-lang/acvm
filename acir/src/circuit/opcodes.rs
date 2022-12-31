@@ -127,7 +127,7 @@ impl std::fmt::Display for Opcode {
             }) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
-                    writeln!(f, "PREDICATE = {}", pred)?;
+                    writeln!(f, "PREDICATE = {pred}")?;
                 }
 
                 write!(
@@ -151,7 +151,7 @@ impl std::fmt::Display for Opcode {
                     r.witness_index()
                 )
             }
-            Opcode::BlackBoxFuncCall(g) => write!(f, "{}", g),
+            Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
             Opcode::Directive(Directive::ToBits { a, b, bit_size: _ }) => {
                 write!(f, "DIR::TOBITS ")?;
                 write!(
@@ -252,7 +252,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let uppercase_name: String = self.name.name().into();
         let uppercase_name = uppercase_name.to_uppercase();
-        write!(f, "BLACKBOX::{} ", uppercase_name)?;
+        write!(f, "BLACKBOX::{uppercase_name} ")?;
         write!(f, "[")?;
 
         // Once a vectors length gets above this limit,
@@ -295,7 +295,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
             result
         };
-        write!(f, "{}", inputs_str)?;
+        write!(f, "{inputs_str}")?;
         write!(f, "] ")?;
 
         // OUTPUTS
@@ -324,7 +324,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
             result += &format!("(_{},...,_{})", first.witness_index(), last.witness_index());
             result
         };
-        write!(f, "{}", outputs_str)?;
+        write!(f, "{outputs_str}")?;
         write!(f, "]")
     }
 }

@@ -10,7 +10,6 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
-use blake2::digest::FixedOutput;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -180,8 +179,12 @@ pub enum Language {
 }
 
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
+    let mut bytes = Vec::new();
+    cs.write(&mut bytes).expect("could not serialise circuit");
+
+    use sha2::{digest::FixedOutput, Digest, Sha256};
     let mut hasher = Sha256::new();
-    hasher.update(cs.to_bytes());
+
+    hasher.update(bytes);
     hasher.finalize_fixed().into()
 }

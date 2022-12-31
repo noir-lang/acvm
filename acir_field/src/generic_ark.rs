@@ -16,7 +16,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
         //
         let number = BigUint::from_bytes_be(&self.to_be_bytes());
         if number == BigUint::zero() {
-            return write!(f, "{}", "0");
+            return write!(f, "0");
         }
         // Check if the negative version is smaller to represent
         //
@@ -28,7 +28,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
                 (number, false)
             };
         if is_negative {
-            write!(f, "{}", "-")?;
+            write!(f, "-")?;
         }
 
         // Number of bits needed to represent the smaller representation
@@ -65,7 +65,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
                 );
             }
         }
-        return write!(f, "{}", smaller_repr);
+        write!(f, "{smaller_repr}")
     }
 }
 
@@ -125,8 +125,7 @@ impl<'de, T: ark_ff::PrimeField> Deserialize<'de> for FieldElement<T> {
         match Self::from_hex(s) {
             Some(value) => Ok(value),
             None => Err(serde::de::Error::custom(format!(
-                "Invalid hex for FieldElement: {}",
-                s
+                "Invalid hex for FieldElement: {s}",
             ))),
         }
     }
