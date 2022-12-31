@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+### Removed
+
+## [0.3.0] - 2022-12-31
+
+### Added
+
 - Added stdlib module to hold all of the standard opcodes
 - added `read` , `write` methods for circuit
 
