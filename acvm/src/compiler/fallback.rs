@@ -1,3 +1,4 @@
+use super::CompileError;
 use acir::{
     circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Expression,
@@ -8,7 +9,7 @@ use acir::{
 pub type IsBlackBoxSupported = fn(&BlackBoxFunc) -> bool;
 
 //ACIR pass which replace unsupported opcodes using arithmetic fallback
-pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Circuit {
+pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Result<Circuit, CompileError> {
     let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
 
     let mut witness_idx = acir.current_witness_index + 1;
@@ -36,21 +37,25 @@ pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Circuit {
         // If we get here then we know that this black box function is not supported
         // so we need to replace it with a version of the opcode which only uses arithmetic
         // expressions
-        let (updated_witness_index, opcodes_fallback) = opcode_fallback(&bb_func_call, witness_idx);
+        let (updated_witness_index, opcodes_fallback) =
+            opcode_fallback(&bb_func_call, witness_idx)?;
         witness_idx = updated_witness_index;
 
         acir_supported_opcodes.extend(opcodes_fallback);
     }
 
-    Circuit {
+    Ok(Circuit {
         current_witness_index: witness_idx,
         opcodes: acir_supported_opcodes,
         public_inputs: acir.public_inputs.clone(),
-    }
+    })
 }
 
-fn opcode_fallback(gc: &BlackBoxFuncCall, current_witness_idx: u32) -> (u32, Vec<Opcode>) {
-    match gc.name {
+fn opcode_fallback(
+    gc: &BlackBoxFuncCall,
+    current_witness_idx: u32,
+) -> Result<(u32, Vec<Opcode>), CompileError> {
+    let (updated_witness_index, opcodes_fallback) = match gc.name {
         BlackBoxFunc::AND => {
             let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(&gc);
             stdlib::fallback::and(
@@ -83,8 +88,9 @@ fn opcode_fallback(gc: &BlackBoxFuncCall, current_witness_idx: u32) -> (u32, Vec
             )
         }
         _ => {
-            // TODO: We should not panic and instead return a result here
-            unreachable!("Missing fallback implementation for opcode {}", gc.name)
+            return Err(CompileError::UnsupportedBlackBox(gc.name));
         }
-    }
+    };
+
+    Ok((updated_witness_index, opcodes_fallback))
 }

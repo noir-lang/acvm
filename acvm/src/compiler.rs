@@ -6,28 +6,36 @@ use crate::Language;
 use acir::{
     circuit::{Circuit, Opcode},
     native_types::{Expression, Witness},
+    BlackBoxFunc,
 };
 use indexmap::IndexMap;
 use optimiser::{CSatOptimiser, GeneralOptimiser};
+use thiserror::Error;
 
 use self::{fallback::IsBlackBoxSupported, optimiser::R1CSOptimiser};
+
+#[derive(PartialEq, Eq, Debug, Error)]
+pub enum CompileError {
+    #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
+    UnsupportedBlackBox(BlackBoxFunc),
+}
 
 pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_blackbox_supported: IsBlackBoxSupported,
-) -> Circuit {
+) -> Result<Circuit, CompileError> {
     // Instantiate the optimiser.
     // Currently the optimiser and reducer are one in the same
     // for CSAT
 
     // Fallback pass
-    let fallback = fallback::fallback(acir, is_blackbox_supported);
+    let fallback = fallback::fallback(acir, is_blackbox_supported)?;
 
     let optimiser = match &np_language {
         crate::Language::R1CS => {
             let optimiser = R1CSOptimiser::new(fallback);
-            return optimiser.optimise();
+            return Ok(optimiser.optimise());
         }
         crate::Language::PLONKCSat { width } => CSatOptimiser::new(*width),
     };
@@ -68,9 +76,9 @@ pub fn compile(
 
     let current_witness_index = next_witness_index - 1;
 
-    Circuit {
+    Ok(Circuit {
         current_witness_index,
         opcodes: optimised_gates,
         public_inputs: fallback.public_inputs, // The optimiser does not add public inputs
-    }
+    })
 }
