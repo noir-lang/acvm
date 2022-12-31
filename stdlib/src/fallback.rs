@@ -5,9 +5,6 @@ use acir::{
 };
 use acir_field::FieldElement;
 
-// TODO: instead of passing a `new_gates` parameter, we can just return a vector and it is upto the caller to deal with it
-// TODO This does not hurt performance at all because we are not reallocating capacity for the new_gates anyways.
-
 // Perform bit decomposition on the provided expression
 #[deprecated(note = "use bit_decomposition function instead")]
 pub fn split(
@@ -16,7 +13,8 @@ pub fn split(
     num_witness: u32,
     new_gates: &mut Vec<Opcode>,
 ) -> Vec<Witness> {
-    let (bits, _) = bit_decomposition(gate, bit_size, num_witness, new_gates);
+    let (extra_gates, bits, _) = bit_decomposition(gate, bit_size, num_witness);
+    new_gates.extend(extra_gates);
     bits
 }
 
@@ -29,8 +27,8 @@ pub(crate) fn bit_decomposition(
     gate: Expression,
     bit_size: u32,
     mut num_witness: u32,
-    new_gates: &mut Vec<Opcode>,
-) -> (Vec<Witness>, u32) {
+) -> (Vec<Opcode>, Vec<Witness>, u32) {
+    let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
 
     // First create a witness for each bit
@@ -70,14 +68,12 @@ pub(crate) fn bit_decomposition(
     bit_decomp_constraint.sort(); // TODO: we have an issue open to check if this is needed. Ideally, we remove it.
     new_gates.push(Opcode::Arithmetic(bit_decomp_constraint));
 
-    (bit_vector, variables.finalise())
+    (new_gates, bit_vector, variables.finalise())
 }
 
 // Range constraint
 pub fn range(gate: Expression, bit_size: u32, num_witness: u32) -> (u32, Vec<Opcode>) {
-    let mut new_gates = Vec::new();
-    let (_, updated_witness_counter) =
-        bit_decomposition(gate, bit_size, num_witness, &mut new_gates);
+    let (new_gates, _, updated_witness_counter) = bit_decomposition(gate, bit_size, num_witness);
     (updated_witness_counter, new_gates)
 }
 
@@ -88,14 +84,13 @@ pub fn and(
     bit_size: u32,
     num_witness: u32,
 ) -> (u32, Vec<Opcode>) {
-    let mut new_gates = Vec::new();
-
     // Decompose the operands into bits
     //
-    let (a_bits, updated_witness_counter) =
-        bit_decomposition(a, bit_size, num_witness, &mut new_gates);
-    let (b_bits, updated_witness_counter) =
-        bit_decomposition(b, bit_size, updated_witness_counter, &mut new_gates);
+    let (extra_gates_a, a_bits, updated_witness_counter) =
+        bit_decomposition(a, bit_size, num_witness);
+
+    let (extra_gates_b, b_bits, updated_witness_counter) =
+        bit_decomposition(b, bit_size, updated_witness_counter);
 
     assert_eq!(a_bits.len(), b_bits.len());
     assert_eq!(a_bits.len(), bit_size as usize);
@@ -115,6 +110,10 @@ pub fn and(
     and_expr.term_addition(-FieldElement::one(), result);
 
     and_expr.sort();
+
+    let mut new_gates = Vec::new();
+    new_gates.extend(extra_gates_a);
+    new_gates.extend(extra_gates_b);
     new_gates.push(Opcode::Arithmetic(and_expr));
 
     (updated_witness_counter, new_gates)
@@ -127,14 +126,12 @@ pub fn xor(
     bit_size: u32,
     num_witness: u32,
 ) -> (u32, Vec<Opcode>) {
-    let mut new_gates = Vec::new();
-
     // Decompose the operands into bits
     //
-    let (a_bits, updated_witness_counter) =
-        bit_decomposition(a, bit_size, num_witness, &mut new_gates);
-    let (b_bits, updated_witness_counter) =
-        bit_decomposition(b, bit_size, updated_witness_counter, &mut new_gates);
+    let (extra_gates_a, a_bits, updated_witness_counter) =
+        bit_decomposition(a, bit_size, num_witness);
+    let (extra_gates_b, b_bits, updated_witness_counter) =
+        bit_decomposition(b, bit_size, updated_witness_counter);
 
     assert_eq!(a_bits.len(), b_bits.len());
     assert_eq!(a_bits.len(), bit_size as usize);
@@ -154,6 +151,9 @@ pub fn xor(
     xor_expr.term_addition(-FieldElement::one(), result);
 
     xor_expr.sort();
+    let mut new_gates = Vec::new();
+    new_gates.extend(extra_gates_a);
+    new_gates.extend(extra_gates_b);
     new_gates.push(Opcode::Arithmetic(xor_expr));
 
     (updated_witness_counter, new_gates)
