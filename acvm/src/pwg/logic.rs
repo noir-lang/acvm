@@ -1,8 +1,21 @@
+use super::witness_to_value;
 use crate::OpcodeResolutionError;
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
 
-use super::witness_to_value;
+pub fn solve_logic_opcode(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Result<(), OpcodeResolutionError> {
+    match func_call.name {
+        BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, &func_call),
+        BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, &func_call),
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode(
+            "logic opcode",
+            func_call.name,
+        )),
+    }
+}
 
 pub struct LogicSolver;
 
