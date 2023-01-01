@@ -56,15 +56,15 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gates: Vec<Opcode>,
+        opcodes: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
-        if gates.is_empty() {
+        if opcodes.is_empty() {
             return Ok(());
         }
         let mut unsolved_opcodes: Vec<Opcode> = Vec::new();
 
-        for gate in gates.into_iter() {
-            let resolution = match &gate {
+        for opcode in opcodes.into_iter() {
+            let resolution = match &opcode {
                 Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
                     Self::solve_blackbox_function_call(initial_witness, bb_func)
@@ -79,8 +79,8 @@ pub trait PartialWitnessGenerator {
                 Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                     // For opcode not solvable errors, we push those opcodes to the back as
                     // it could be because the opcodes are out of order, ie this assignment
-                    // relies on a later gate's results
-                    unsolved_opcodes.push(gate);
+                    // relies on a later opcodes's results
+                    unsolved_opcodes.push(opcode);
                 }
                 Err(err) => return Err(err),
             }
@@ -163,7 +163,7 @@ pub trait ProofSystemCompiler {
     fn verify_from_cs(
         &self,
         proof: &[u8],
-        public_input: Vec<FieldElement>,
+        public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool;
 
