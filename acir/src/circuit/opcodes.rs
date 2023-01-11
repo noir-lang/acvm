@@ -111,7 +111,7 @@ impl std::fmt::Display for Opcode {
                     "(out: _{}, _{}, _{}, bit_size: {})",
                     // TODO: Modify Noir to switch a and b
                     b.witness_index(),
-                    a.witness_index(),
+                    a,
                     // TODO: check why c was unused before, and check when directive is being processed
                     // TODO: and if it is used
                     c.witness_index(),
@@ -152,22 +152,12 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToBits { a, b, bit_size: _ }) => {
-                write!(f, "DIR::TOBITS ")?;
+            Opcode::Directive(Directive::ToRadix { a, b, radix: _ }) => {
+                write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
                     // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}])",
-                    a,
-                    b.first().unwrap().witness_index(),
-                    b.last().unwrap().witness_index(),
-                )
-            }
-            Opcode::Directive(Directive::ToBytes { a, b, byte_size: _ }) => {
-                write!(f, "DIR::TOBYTES ")?;
-                write!(
-                    f,
                     "(_{}, [_{}..._{}])",
                     a,
                     b.first().unwrap().witness_index(),

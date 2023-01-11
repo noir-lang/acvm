@@ -28,7 +28,7 @@ pub enum Directive {
 
     //Reduces the value of a modulo 2^bit_size and stores the result in b: a= c*2^bit_size + b
     Truncate {
-        a: Witness,
+        a: Expression,
         b: Witness,
         c: Witness,
         bit_size: u32,
@@ -42,18 +42,11 @@ pub enum Directive {
         bit_size: u32,
     },
 
-    //Bit decomposition of a: a=\sum b[i]*2^i
-    ToBits {
+    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix
+    ToRadix {
         a: Expression,
         b: Vec<Witness>,
-        bit_size: u32,
-    },
-
-    //Byte decomposition of a: a=\sum b[i]*2^i where b is a byte array
-    ToBytes {
-        a: Expression,
-        b: Vec<Witness>,
-        byte_size: u32,
+        radix: u32,
     },
 }
 
@@ -64,8 +57,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
-            Directive::ToBits { .. } => "to_bits",
-            Directive::ToBytes { .. } => "to_bytes",
+            Directive::ToRadix { .. } => "to_radix",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -74,8 +66,7 @@ impl Directive {
             Directive::Quotient { .. } => 1,
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
-            Directive::ToBits { .. } => 4,
-            Directive::ToBytes { .. } => 5,
+            Directive::ToRadix { .. } => 4,
         }
     }
 
@@ -106,7 +97,7 @@ impl Directive {
                 }
             }
             Directive::Truncate { a, b, c, bit_size } => {
-                write_u32(&mut writer, a.witness_index())?;
+                a.write(&mut writer)?;
                 write_u32(&mut writer, b.witness_index())?;
                 write_u32(&mut writer, c.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
@@ -117,30 +108,13 @@ impl Directive {
                 write_u32(&mut writer, r.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::ToBits { a, b, bit_size } => {
+            Directive::ToRadix { a, b, radix } => {
                 a.write(&mut writer)?;
-
-                // The length of the bit vector is the same as the bit_size
-                // TODO: can we omit the bit_size altogether then?
                 write_u32(&mut writer, b.len() as u32)?;
                 for bit in b {
                     write_u32(&mut writer, bit.witness_index())?;
                 }
-
-                write_u32(&mut writer, *bit_size)?;
-            }
-            Directive::ToBytes { a, b, byte_size } => {
-                a.write(&mut writer)?;
-
-                // TODO: can we omit the byte_size altogether?
-                // TODO see comment on ToBits about inferring this
-                // TODO from the size of the vector
-                write_u32(&mut writer, b.len() as u32)?;
-                for bit in b {
-                    write_u32(&mut writer, bit.witness_index())?;
-                }
-
-                write_u32(&mut writer, *byte_size)?;
+                write_u32(&mut writer, *radix)?;
             }
         };
 
@@ -178,7 +152,7 @@ impl Directive {
                 })
             }
             2 => {
-                let a = Witness(read_u32(&mut reader)?);
+                let a = Expression::read(&mut reader)?;
                 let b = Witness(read_u32(&mut reader)?);
                 let c = Witness(read_u32(&mut reader)?);
                 let bit_size = read_u32(&mut reader)?;
@@ -200,23 +174,11 @@ impl Directive {
                     b.push(witness)
                 }
 
-                let bit_size = read_u32(&mut reader)?;
+                let radix = read_u32(&mut reader)?;
 
-                Ok(Directive::ToBits { a, b, bit_size })
+                Ok(Directive::ToRadix { a, b, radix })
             }
-            5 => {
-                let a = Expression::read(&mut reader)?;
-                let b_len = read_u32(&mut reader)?;
-                let mut b = Vec::with_capacity(b_len as usize);
-                for _ in 0..b_len {
-                    let witness = Witness(read_u32(&mut reader)?);
-                    b.push(witness)
-                }
 
-                let byte_size = read_u32(&mut reader)?;
-
-                Ok(Directive::ToBytes { a, b, byte_size })
-            }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }

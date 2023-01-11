@@ -51,7 +51,7 @@ pub fn solve_directives(
             Ok(())
         }
         Directive::Truncate { a, b, c, bit_size } => {
-            let val_a = witness_to_value(initial_witness, *a)?;
+            let val_a = get_value(a, initial_witness)?;
 
             let pow: BigUint = BigUint::one() << bit_size;
 
@@ -64,40 +64,20 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::ToBits { a, b, bit_size } => {
+        Directive::ToRadix { a, b, radix } => {
             let val_a = get_value(a, initial_witness)?;
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-
-            for (j, b_j) in b.iter().enumerate().take(*bit_size as usize) {
-                let v = if a_big.bit(j as u64) {
-                    FieldElement::one()
+            let a_dec = a_big.to_radix_le(*radix);
+            if b.len() < a_dec.len() {
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+            }
+            for i in 0..b.len() {
+                let v = if i < a_dec.len() {
+                    FieldElement::from_be_bytes_reduce(&[a_dec[i]])
                 } else {
                     FieldElement::zero()
                 };
-
-                match initial_witness.entry(*b_j) {
-                    std::collections::btree_map::Entry::Vacant(e) => {
-                        e.insert(v);
-                    }
-                    std::collections::btree_map::Entry::Occupied(e) => {
-                        if e.get() != &v {
-                            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                        }
-                    }
-                }
-            }
-
-            Ok(())
-        }
-        Directive::ToBytes { a, b, byte_size } => {
-            let val_a = get_value(a, initial_witness)?;
-
-            let mut a_bytes = val_a.to_be_bytes();
-            a_bytes.reverse();
-
-            for i in 0..*byte_size as usize {
-                let v = FieldElement::from_be_bytes_reduce(&[a_bytes[i]]);
                 match initial_witness.entry(b[i]) {
                     std::collections::btree_map::Entry::Vacant(e) => {
                         e.insert(v);
