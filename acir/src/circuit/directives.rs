@@ -215,7 +215,7 @@ fn serialisation_roundtrip() {
     };
 
     let truncate = Directive::Truncate {
-        a: Witness(1u32),
+        a: Expression::default(),
         b: Witness(2u32),
         c: Witness(3u32),
         bit_size: 123,
@@ -228,15 +228,10 @@ fn serialisation_roundtrip() {
         bit_size: 32,
     };
 
-    let to_bits = Directive::ToBits {
-        a: Expression::default(),
-        b: vec![Witness(1u32), Witness(2u32)],
-        bit_size: 2,
-    };
-    let to_bytes = Directive::ToBytes {
+    let to_radix = Directive::ToRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
-        byte_size: 4,
+        radix: 4,
     };
 
     let directives = vec![
@@ -245,8 +240,7 @@ fn serialisation_roundtrip() {
         quotient_predicate,
         truncate,
         odd_range,
-        to_bits,
-        to_bytes,
+        to_radix,
     ];
 
     for directive in directives {
