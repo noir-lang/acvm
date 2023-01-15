@@ -188,3 +188,37 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     hasher.update(bytes);
     hasher.finalize_fixed().into()
 }
+
+#[deprecated(
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for blackbox function support based on the np language. \n Backends should simply specify what they support."
+)]
+// This is set to match the previous functionality that we had
+// Where we could deduce what blackbox functions were supported
+// by knowing the np complete language
+pub fn default_is_blackbox_supported(
+    language: Language,
+) -> compiler::fallback::IsBlackBoxSupported {
+    // R1CS does not support any of the blackbox functions by default.
+    // The compiler will replace those that it can -- ie range, xor, and
+    fn r1cs_is_supported(opcode: &BlackBoxFunc) -> bool {
+        match opcode {
+            _ => false,
+        }
+    }
+
+    // PLONK supports most of the blackbox functions by default
+    // The ones which are not supported, the acvm compiler will
+    // attempt to transform into supported gates. If these are also not available
+    // then a compiler error will be emitted.
+    fn plonk_is_supported(opcode: &BlackBoxFunc) -> bool {
+        match opcode {
+            BlackBoxFunc::AES => false,
+            _ => true,
+        }
+    }
+
+    match language {
+        Language::R1CS => r1cs_is_supported,
+        Language::PLONKCSat { .. } => plonk_is_supported,
+    }
+}
