@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Removed
+
+## [0.3.1] - 2023-01-18
+
+### Added
+
+### Fixed
+
+### Changed
+
 - ACVM compile method now returns an Error for when a function cannot be reduced to arithmetic gates
 
 - Backtrack changes from noir-lang/noir/587
