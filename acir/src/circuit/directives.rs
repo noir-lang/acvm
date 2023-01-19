@@ -42,8 +42,15 @@ pub enum Directive {
         bit_size: u32,
     },
 
-    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix
-    ToRadix {
+    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in little endian form
+    ToRadixLe {
+        a: Expression,
+        b: Vec<Witness>,
+        radix: u32,
+    },
+
+    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in big endian form
+    ToRadixBe {
         a: Expression,
         b: Vec<Witness>,
         radix: u32,
@@ -57,7 +64,8 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
-            Directive::ToRadix { .. } => "to_radix",
+            Directive::ToRadixLe { .. } => "to_radix_le",
+            Directive::ToRadixBe { .. } => "to_radix_be",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -66,7 +74,8 @@ impl Directive {
             Directive::Quotient { .. } => 1,
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
-            Directive::ToRadix { .. } => 4,
+            Directive::ToRadixLe { .. } => 4,
+            Directive::ToRadixBe { .. } => 5,
         }
     }
 
@@ -108,7 +117,15 @@ impl Directive {
                 write_u32(&mut writer, r.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::ToRadix { a, b, radix } => {
+            Directive::ToRadixLe { a, b, radix } => {
+                a.write(&mut writer)?;
+                write_u32(&mut writer, b.len() as u32)?;
+                for bit in b {
+                    write_u32(&mut writer, bit.witness_index())?;
+                }
+                write_u32(&mut writer, *radix)?;
+            }
+            Directive::ToRadixBe { a, b, radix } => {
                 a.write(&mut writer)?;
                 write_u32(&mut writer, b.len() as u32)?;
                 for bit in b {
@@ -176,7 +193,20 @@ impl Directive {
 
                 let radix = read_u32(&mut reader)?;
 
-                Ok(Directive::ToRadix { a, b, radix })
+                Ok(Directive::ToRadixLe { a, b, radix })
+            }
+            5 => {
+                let a = Expression::read(&mut reader)?;
+                let b_len = read_u32(&mut reader)?;
+                let mut b = Vec::with_capacity(b_len as usize);
+                for _ in 0..b_len {
+                    let witness = Witness(read_u32(&mut reader)?);
+                    b.push(witness)
+                }
+
+                let radix = read_u32(&mut reader)?;
+
+                Ok(Directive::ToRadixBe { a, b, radix })
             }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
@@ -228,7 +258,13 @@ fn serialisation_roundtrip() {
         bit_size: 32,
     };
 
-    let to_radix = Directive::ToRadix {
+    let to_radix_le = Directive::ToRadixLe {
+        a: Expression::default(),
+        b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
+        radix: 4,
+    };
+
+    let to_radix_be = Directive::ToRadixBe {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
@@ -240,7 +276,8 @@ fn serialisation_roundtrip() {
         quotient_predicate,
         truncate,
         odd_range,
-        to_radix,
+        to_radix_le,
+        to_radix_be,
     ];
 
     for directive in directives {

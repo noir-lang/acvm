@@ -64,11 +64,39 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::ToRadix { a, b, radix } => {
+        Directive::ToRadixLe { a, b, radix } => {
             let val_a = get_value(a, initial_witness)?;
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let a_dec = a_big.to_radix_le(*radix);
+            if b.len() < a_dec.len() {
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+            }
+            for i in 0..b.len() {
+                let v = if i < a_dec.len() {
+                    FieldElement::from_be_bytes_reduce(&[a_dec[i]])
+                } else {
+                    FieldElement::zero()
+                };
+                match initial_witness.entry(b[i]) {
+                    std::collections::btree_map::Entry::Vacant(e) => {
+                        e.insert(v);
+                    }
+                    std::collections::btree_map::Entry::Occupied(e) => {
+                        if e.get() != &v {
+                            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                        }
+                    }
+                }
+            }
+
+            Ok(())
+        }
+        Directive::ToRadixBe { a, b, radix } => {
+            let val_a = get_value(a, initial_witness)?;
+
+            let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
+            let a_dec = a_big.to_radix_be(*radix);
             if b.len() < a_dec.len() {
                 return Err(OpcodeResolutionError::UnsatisfiedConstrain);
             }
