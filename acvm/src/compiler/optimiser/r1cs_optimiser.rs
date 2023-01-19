@@ -30,6 +30,7 @@ impl R1CSOptimiser {
             current_witness_index: self.acir.current_witness_index,
             opcodes: optimised_arith_gates,
             public_inputs: self.acir.public_inputs,
+            public_outputs: self.acir.public_outputs,
         }
     }
 }

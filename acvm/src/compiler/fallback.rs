@@ -47,6 +47,7 @@ pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Result<Circ
         current_witness_index: witness_idx,
         opcodes: acir_supported_opcodes,
         public_inputs: acir.public_inputs,
+        public_outputs: acir.public_outputs,
     })
 }
 

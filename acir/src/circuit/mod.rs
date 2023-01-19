@@ -19,6 +19,11 @@ pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
     pub public_inputs: PublicInputs,
+    // Public outputs are a subset of public inputs.
+    // They describe at a high level, what witness indices
+    // should be seen as the output of executing the
+    // function that this Circuit represents
+    pub public_outputs: PublicInputs,
 }
 
 impl Circuit {
@@ -58,6 +63,12 @@ impl Circuit {
             write_u32(&mut writer, public_input_index)?;
         }
 
+        let public_output_indices = self.public_outputs.indices();
+        write_u32(&mut writer, public_output_indices.len() as u32)?;
+        for public_output_index in public_output_indices {
+            write_u32(&mut writer, public_output_index)?;
+        }
+
         write_u32(&mut writer, self.opcodes.len() as u32)?;
         for opcode in &self.opcodes {
             opcode.write(&mut writer)?;
@@ -83,6 +94,12 @@ impl Circuit {
             let public_input_index = Witness(read_u32(&mut reader)?);
             public_inputs.0.push(public_input_index)
         }
+        let num_public_outputs = read_u32(&mut reader)?;
+        let mut public_outputs = PublicInputs(Vec::with_capacity(num_public_outputs as usize));
+        for _ in 0..num_public_outputs {
+            let public_output_index = Witness(read_u32(&mut reader)?);
+            public_outputs.0.push(public_output_index)
+        }
 
         let num_opcodes = read_u32(&mut reader)?;
         let mut opcodes = Vec::with_capacity(num_opcodes as usize);
@@ -95,6 +112,7 @@ impl Circuit {
             current_witness_index,
             opcodes,
             public_inputs,
+            public_outputs,
         })
     }
 }
@@ -183,6 +201,7 @@ mod test {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode()],
             public_inputs: PublicInputs(vec![Witness(2), Witness(12)]),
+            public_outputs: PublicInputs(vec![Witness(4), Witness(12)]),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -210,6 +229,7 @@ mod test {
                 and_opcode(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
+            public_outputs: PublicInputs(vec![Witness(2)]),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
@@ -232,6 +252,7 @@ mod test {
                 and_opcode(),
             ],
             public_inputs: PublicInputs(vec![Witness(2)]),
+            public_outputs: PublicInputs(vec![Witness(2)]),
         };
 
         let bytes = circuit.to_bytes();

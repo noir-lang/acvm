@@ -80,5 +80,6 @@ pub fn compile(
         current_witness_index,
         opcodes: optimised_gates,
         public_inputs: fallback.public_inputs, // The optimiser does not add public inputs
+        public_outputs: fallback.public_outputs,
     })
 }
