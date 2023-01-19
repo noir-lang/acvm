@@ -6,35 +6,30 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-use super::general_optimiser::GeneralOpt;
-// Optimiser struct with all of the related optimisations to the arithmetic gate
-
 // Is this more of a Reducer than an optimiser?
 // Should we give it all of the gates?
 // Have a single optimiser that you instantiate with a width, then pass many gates through
-pub struct Optimiser {
+pub struct CSatTransformer {
     width: usize,
 }
 
-impl Optimiser {
+impl CSatTransformer {
     // Configure the width for the optimiser
-    pub fn new(width: usize) -> Optimiser {
+    pub fn new(width: usize) -> CSatTransformer {
         assert!(width > 2);
 
-        Optimiser { width }
+        CSatTransformer { width }
     }
 
     // Still missing dead witness optimisation.
     // To do this, we will need the whole set of arithmetic gates
     // I think it can also be done before the local optimisation seen here, as dead variables will come from the user
-    pub fn optimise(
+    pub fn transform(
         &self,
         gate: Expression,
         intermediate_variables: &mut IndexMap<Witness, Expression>,
         num_witness: u32,
     ) -> Expression {
-        let gate = GeneralOpt::optimise(gate);
-
         // Here we create intermediate variables and constrain them to be equal to any subset of the polynomial that can be represented as a full gate
         let gate = self.full_gate_scan_optimisation(gate, intermediate_variables, num_witness);
         // The last optimisation to do is to create intermediate variables in order to flatten the fan-in and the amount of mul terms
@@ -348,8 +343,9 @@ fn simple_reduction_smoke_test() {
 
     let num_witness = 4;
 
-    let optimiser = Optimiser::new(3);
-    let got_optimised_gate_a = optimiser.optimise(gate_a, &mut intermediate_variables, num_witness);
+    let optimiser = CSatTransformer::new(3);
+    let got_optimised_gate_a =
+        optimiser.transform(gate_a, &mut intermediate_variables, num_witness);
 
     // a = b + c + d => a - b - c - d = 0
     // For width3, the result becomes:

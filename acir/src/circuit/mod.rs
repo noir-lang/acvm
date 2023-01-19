@@ -16,6 +16,8 @@ const VERSION_NUMBER: u32 = 0;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
+    // current_witness_index is the highest witness index in the circuit. The next witness to be added to this circuit
+    // will take on this value. (The value is cached here as an optimisation.)
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
     pub public_inputs: PublicInputs,
@@ -204,7 +206,7 @@ mod test {
                 Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
-                    q_c: FieldElement::from_hex("FFFF").unwrap(),
+                    q_c: FieldElement::from(8u128),
                 }),
                 range_opcode(),
                 and_opcode(),
