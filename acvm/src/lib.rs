@@ -4,9 +4,9 @@
 pub mod compiler;
 pub mod pwg;
 
-use crate::pwg::arithmetic::ArithmeticSolver;
+use crate::{compiler::compile, pwg::arithmetic::ArithmeticSolver};
 use acir::{
-    circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode, PublicInputs},
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
@@ -197,7 +197,7 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
 // by knowing the np complete language
 pub fn default_is_blackbox_supported(
     language: Language,
-) -> compiler::fallback::IsBlackBoxSupported {
+) -> compiler::transformers::IsBlackBoxSupported {
     // R1CS does not support any of the blackbox functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
     fn r1cs_is_supported(opcode: &BlackBoxFunc) -> bool {
