@@ -13,6 +13,8 @@ use optimisers::GeneralOptimiser;
 use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsBlackBoxSupported, R1CSTransformer};
 
+use self::optimisers::BackPropagateSolutionsOptimiser;
+
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
@@ -42,6 +44,9 @@ pub fn compile(
         };
     }
     let acir = Circuit { opcodes, ..acir };
+
+    // Back propagate solutions pass
+    let acir = BackPropagateSolutionsOptimiser::optimise(&acir);
 
     let transformer = match &np_language {
         crate::Language::R1CS => {

@@ -3,6 +3,7 @@ use crate::serialisation::{read_field_element, read_u32, write_bytes, write_u32}
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -244,6 +245,14 @@ impl Expression {
         self.mul_terms
             .sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
         self.linear_combinations.sort_by(|a, b| a.1.cmp(&b.1));
+    }
+
+    pub fn get_witnesses(&self) -> HashSet<Witness> {
+        self.mul_terms
+            .iter()
+            .flat_map(|term| vec![term.1, term.2])
+            .chain(self.linear_combinations.iter().map(|term| term.1))
+            .collect()
     }
 }
 
