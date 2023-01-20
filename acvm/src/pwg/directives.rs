@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use acir::{circuit::directives::Directive, native_types::Witness, FieldElement};
+use acir::{
+    circuit::directives::{Directive, LogInfo},
+    native_types::Witness,
+    FieldElement,
+};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
@@ -108,6 +112,46 @@ pub fn solve_directives(
             initial_witness.insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
             initial_witness.insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
 
+            Ok(())
+        }
+        Directive::Log(info) => {
+            match info {
+                LogInfo::FinalizedOutput(output_string) => println!("{}", output_string),
+                LogInfo::WitnessOutput(witnesses) => {
+                    if witnesses.len() == 1 {
+                        match initial_witness.entry(witnesses[0]) {
+                            std::collections::btree_map::Entry::Vacant(_) => {
+                                unreachable!("log entry does must have a witness");
+                            }
+                            std::collections::btree_map::Entry::Occupied(e) => {
+                                println!("{}", e.get().to_hex());
+                            }
+                        }
+                    } else {
+                        // If multiple witnesses are to be fetched for a log directive,
+                        // it assumed that an array is meant to be printed to standard output
+                        let mut output_witnesses_string = "".to_owned();
+                        output_witnesses_string.push_str("[");
+                        let mut iter = witnesses.iter().peekable();
+                        while let Some(w) = iter.next() {
+                            let elem = match initial_witness.entry(*w) {
+                                std::collections::btree_map::Entry::Vacant(_) => {
+                                    // TODO switch this to an error
+                                    unreachable!("log entry does must have a witness");
+                                }
+                                std::collections::btree_map::Entry::Occupied(e) => e.get().clone(),
+                            };
+                            if iter.peek().is_none() {
+                                output_witnesses_string.push_str(&format!("{}", elem.to_hex()));
+                            } else {
+                                output_witnesses_string.push_str(&format!("{}, ", elem.to_hex()));
+                            }
+                        }
+                        output_witnesses_string.push_str("]");
+                        println!("{}", output_witnesses_string);
+                    }
+                }
+            }
             Ok(())
         }
     }
