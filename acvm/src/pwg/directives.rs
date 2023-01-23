@@ -8,7 +8,7 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-use crate::OpcodeResolutionError;
+use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{get_value, witness_to_value};
 
@@ -136,8 +136,9 @@ pub fn solve_directives(
                         while let Some(w) = iter.next() {
                             let elem = match initial_witness.entry(*w) {
                                 std::collections::btree_map::Entry::Vacant(_) => {
-                                    // TODO switch this to an error
-                                    unreachable!("log entry does must have a witness");
+                                    return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                                        OpcodeNotSolvable::MissingAssignment(w.0),
+                                    ))
                                 }
                                 std::collections::btree_map::Entry::Occupied(e) => e.get().clone(),
                             };
