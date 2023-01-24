@@ -164,18 +164,6 @@ impl std::fmt::Display for Opcode {
                     b.last().unwrap().witness_index(),
                 )
             }
-            // Opcode::Directive(Directive::Log { output_string, witnesses }) => {
-            //     if !witnesses.is_empty() {
-            //         write!(
-            //             f,
-            //             "Log: _{}..._{}",
-            //             witnesses.first().unwrap().witness_index(),
-            //             witnesses.last().unwrap().witness_index()
-            //         )
-            //     } else {
-            //         write!(f, "Log: {}", output_string)
-            //     }
-            // }
             Opcode::Directive(Directive::Log(info)) => match info {
                 LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {}", output_string),
                 LogInfo::WitnessOutput(witnesses) => write!(
