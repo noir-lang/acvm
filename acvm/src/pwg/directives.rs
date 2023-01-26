@@ -69,7 +69,7 @@ pub fn solve_directives(
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let a_dec = a_big.to_radix_le(*radix);
-            match insert_to_radix(b, &a_dec, initial_witness) {
+            match to_radix_outcome(b, &a_dec, initial_witness) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(e),
             }
@@ -79,7 +79,7 @@ pub fn solve_directives(
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let a_dec = a_big.to_radix_be(*radix);
-            match insert_to_radix(b, &a_dec, initial_witness) {
+            match to_radix_outcome(b, &a_dec, initial_witness) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(e),
             }
@@ -105,7 +105,7 @@ pub fn solve_directives(
     }
 }
 
-fn insert_to_radix(
+fn to_radix_outcome(
     b: &Vec<Witness>,
     a_dec: &Vec<u8>,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
