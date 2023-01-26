@@ -69,8 +69,7 @@ pub fn solve_directives(
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let a_dec = a_big.to_radix_le(*radix);
-            let insertion_result = insert_to_radix(b, &a_dec, initial_witness);
-            match insertion_result {
+            match insert_to_radix(b, &a_dec, initial_witness) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(e),
             }
@@ -80,8 +79,7 @@ pub fn solve_directives(
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let a_dec = a_big.to_radix_be(*radix);
-            let insertion_result = insert_to_radix(b, &a_dec, initial_witness);
-            match insertion_result {
+            match insert_to_radix(b, &a_dec, initial_witness) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(e),
             }
