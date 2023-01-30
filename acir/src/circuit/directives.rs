@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::{
     native_types::{Expression, Witness},
-    serialisation::{read_n, read_u16, read_u32, write_bytes, write_n, write_u16, write_u32},
+    serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
 use serde::{Deserialize, Serialize};
 

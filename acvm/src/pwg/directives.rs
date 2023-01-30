@@ -116,7 +116,7 @@ pub fn solve_directives(
         }
         Directive::Log(info) => {
             match info {
-                LogInfo::FinalizedOutput(output_string) => println!("{}", output_string),
+                LogInfo::FinalizedOutput(output_string) => println!("{output_string}"),
                 LogInfo::WitnessOutput(witnesses) => {
                     if witnesses.len() == 1 {
                         match initial_witness.entry(witnesses[0]) {
@@ -131,7 +131,7 @@ pub fn solve_directives(
                         // If multiple witnesses are to be fetched for a log directive,
                         // it assumed that an array is meant to be printed to standard output
                         let mut output_witnesses_string = "".to_owned();
-                        output_witnesses_string.push_str("[");
+                        output_witnesses_string.push('[');
                         let mut iter = witnesses.iter().peekable();
                         while let Some(w) = iter.next() {
                             let elem = match initial_witness.entry(*w) {
@@ -140,16 +140,16 @@ pub fn solve_directives(
                                         OpcodeNotSolvable::MissingAssignment(w.0),
                                     ))
                                 }
-                                std::collections::btree_map::Entry::Occupied(e) => e.get().clone(),
+                                std::collections::btree_map::Entry::Occupied(e) => *e.get(),
                             };
                             if iter.peek().is_none() {
-                                output_witnesses_string.push_str(&format!("{}", elem.to_hex()));
+                                output_witnesses_string.push_str(&elem.to_hex());
                             } else {
                                 output_witnesses_string.push_str(&format!("{}, ", elem.to_hex()));
                             }
                         }
-                        output_witnesses_string.push_str("]");
-                        println!("{}", output_witnesses_string);
+                        output_witnesses_string.push(']');
+                        println!("{output_witnesses_string}");
                     }
                 }
             }

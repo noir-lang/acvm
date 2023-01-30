@@ -165,7 +165,7 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::Directive(Directive::Log(info)) => match info {
-                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {}", output_string),
+                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
                 LogInfo::WitnessOutput(witnesses) => write!(
                     f,
                     "Log: _{}..._{}",
