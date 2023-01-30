@@ -182,17 +182,13 @@ impl Directive {
                 }
 
                 let radix = read_u32(&mut reader)?;
-                let endianess = read_u32(&mut reader)?;
-                let mut is_little_endian = true;
-                if endianess == 0 {
-                    is_little_endian = false;
-                }
+                let is_little_endian = read_u32(&mut reader)?;
 
                 Ok(Directive::ToRadix {
                     a,
                     b,
                     radix,
-                    is_little_endian,
+                    is_little_endian: if is_little_endian == 1 { true } else { false },
                 })
             }
 
