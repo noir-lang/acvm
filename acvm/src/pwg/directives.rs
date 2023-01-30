@@ -73,10 +73,11 @@ pub fn solve_directives(
             let val_a = get_value(a, initial_witness)?;
 
             let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let mut a_dec = a_big.to_radix_be(*radix);
-            if *is_little_endian {
-                a_dec = a_big.to_radix_le(*radix);
-            }
+            let a_dec = if *is_little_endian {
+                a_big.to_radix_le(*radix)
+            } else {
+                a_big.to_radix_be(*radix)
+            };
             match to_radix_outcome(b, &a_dec, initial_witness) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(e),
