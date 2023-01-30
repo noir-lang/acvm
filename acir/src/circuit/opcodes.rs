@@ -152,28 +152,22 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToRadixLe { a, b, radix: _ }) => {
+            Opcode::Directive(Directive::ToRadix {
+                a,
+                b,
+                radix: _,
+                is_little_endian,
+            }) => {
                 write!(f, "DIR::TORADIXLE ")?;
                 write!(
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
                     // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}])",
+                    "(_{}, [_{}..._{}], endianess: {})",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
-                )
-            }
-            Opcode::Directive(Directive::ToRadixBe { a, b, radix: _ }) => {
-                write!(f, "DIR::TORADIXLE ")?;
-                write!(
-                    f,
-                    // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
-                    // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}])",
-                    a,
-                    b.first().unwrap().witness_index(),
-                    b.last().unwrap().witness_index(),
+                    if *is_little_endian { "little" } else { "big" }
                 )
             }
         }

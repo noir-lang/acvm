@@ -42,18 +42,12 @@ pub enum Directive {
         bit_size: u32,
     },
 
-    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in little endian form
-    ToRadixLe {
+    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in either little endian or big endian form
+    ToRadix {
         a: Expression,
         b: Vec<Witness>,
         radix: u32,
-    },
-
-    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in big endian form
-    ToRadixBe {
-        a: Expression,
-        b: Vec<Witness>,
-        radix: u32,
+        is_little_endian: bool,
     },
 }
 
@@ -64,8 +58,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
-            Directive::ToRadixLe { .. } => "to_radix_le",
-            Directive::ToRadixBe { .. } => "to_radix_be",
+            Directive::ToRadix { .. } => "to_radix",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -74,8 +67,7 @@ impl Directive {
             Directive::Quotient { .. } => 1,
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
-            Directive::ToRadixLe { .. } => 4,
-            Directive::ToRadixBe { .. } => 5,
+            Directive::ToRadix { .. } => 4,
         }
     }
 
@@ -117,21 +109,19 @@ impl Directive {
                 write_u32(&mut writer, r.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::ToRadixLe { a, b, radix } => {
+            Directive::ToRadix {
+                a,
+                b,
+                radix,
+                is_little_endian,
+            } => {
                 a.write(&mut writer)?;
                 write_u32(&mut writer, b.len() as u32)?;
                 for bit in b {
                     write_u32(&mut writer, bit.witness_index())?;
                 }
                 write_u32(&mut writer, *radix)?;
-            }
-            Directive::ToRadixBe { a, b, radix } => {
-                a.write(&mut writer)?;
-                write_u32(&mut writer, b.len() as u32)?;
-                for bit in b {
-                    write_u32(&mut writer, bit.witness_index())?;
-                }
-                write_u32(&mut writer, *radix)?;
+                write_u32(&mut writer, *is_little_endian as u32)?;
             }
         };
 
@@ -192,21 +182,18 @@ impl Directive {
                 }
 
                 let radix = read_u32(&mut reader)?;
-
-                Ok(Directive::ToRadixLe { a, b, radix })
-            }
-            5 => {
-                let a = Expression::read(&mut reader)?;
-                let b_len = read_u32(&mut reader)?;
-                let mut b = Vec::with_capacity(b_len as usize);
-                for _ in 0..b_len {
-                    let witness = Witness(read_u32(&mut reader)?);
-                    b.push(witness)
+                let endianess = read_u32(&mut reader)?;
+                let mut is_little_endian = true;
+                if endianess == 0 {
+                    is_little_endian = false;
                 }
 
-                let radix = read_u32(&mut reader)?;
-
-                Ok(Directive::ToRadixBe { a, b, radix })
+                Ok(Directive::ToRadix {
+                    a,
+                    b,
+                    radix,
+                    is_little_endian,
+                })
             }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
@@ -258,16 +245,18 @@ fn serialisation_roundtrip() {
         bit_size: 32,
     };
 
-    let to_radix_le = Directive::ToRadixLe {
+    let to_radix_le = Directive::ToRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
+        is_little_endian: true,
     };
 
-    let to_radix_be = Directive::ToRadixBe {
+    let to_radix_be = Directive::ToRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
+        is_little_endian: false,
     };
 
     let directives = vec![
