@@ -156,7 +156,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn pow(&self, exponent: &Self) -> Self {
-        FieldElement(self.0.pow(exponent.0.into_repr()))
+        FieldElement(self.0.pow(exponent.0.into_bigint()))
     }
 
     /// Maximum number of bits needed to represent a field element
