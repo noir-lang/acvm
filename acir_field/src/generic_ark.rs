@@ -1,6 +1,5 @@
 use ark_ff::PrimeField;
 use ark_ff::Zero;
-use ark_serialize::CanonicalSerialize;
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
 
