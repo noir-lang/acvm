@@ -165,7 +165,7 @@ impl<F: PrimeField> FieldElement<F> {
     /// But the representation uses 256 bits, so the top two bits are always zero
     /// This method would return 254
     pub const fn max_num_bits() -> u32 {
-        F::Params::MODULUS_BITS
+        F::MODULUS_BIT_SIZE
     }
 
     /// Maximum numbers of bytes needed to represent a field element
@@ -182,7 +182,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn modulus() -> BigUint {
-        F::Params::MODULUS.into()
+        F::MODULUS.into()
     }
     /// Returns None, if the string is not a canonical
     /// representation of a field element; less than the order
