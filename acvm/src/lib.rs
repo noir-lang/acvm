@@ -168,6 +168,21 @@ pub trait ProofSystemCompiler {
     ) -> bool;
 
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
+
+    fn preprocess(&self, circuit: Circuit);
+
+    fn prove_with_pk(
+        &self,
+        circuit: Circuit,
+        witness_values: BTreeMap<Witness, FieldElement>,
+    ) -> Vec<u8>;
+
+    fn verify_with_vk(
+        &self,
+        proof: &[u8],
+        public_inputs: Vec<FieldElement>,
+        circuit: Circuit,
+    ) -> bool;
 }
 
 /// Supported NP complete languages
