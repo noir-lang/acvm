@@ -26,9 +26,6 @@ serde = { version = "1.0.136", features = ["derive"] }
 num-bigint = "0.4"
 num-traits = "0.2.8"
 
-[dev-dependencies]
-ark-bn254 = { version = "^0.4.0", features = ["curve"] }
-
 [features]
 default = ["bn254"]
 bn254 = ["ark-bn254", "ark-ff"]
