@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 pub mod arithmetic;
 // Directives
 pub mod directives;
-// blackbox functions
+// black box functions
 pub mod hash;
 pub mod logic;
 pub mod range;

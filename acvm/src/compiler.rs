@@ -23,14 +23,14 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_blackbox_supported: IsBlackBoxSupported,
+    is_black_box_supported: IsBlackBoxSupported,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimiser.
     // Currently the optimiser and reducer are one in the same
     // for CSAT
 
     // Fallback pass
-    let fallback = fallback::fallback(acir, is_blackbox_supported)?;
+    let fallback = fallback::fallback(acir, is_black_box_supported)?;
 
     let optimiser = match &np_language {
         crate::Language::R1CS => {

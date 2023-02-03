@@ -336,7 +336,7 @@ fn serialisation_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_blackbox_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
+    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
         name: BlackBoxFunc::AES,
         inputs: vec![
             FunctionInput {
@@ -356,7 +356,7 @@ fn serialisation_roundtrip() {
         result: Witness(56789u32),
     });
 
-    let opcodes = vec![opcode_arith, opcode_blackbox_func, opcode_directive];
+    let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
 
     for opcode in opcodes {
         let (op, got_op) = read_write(opcode);
