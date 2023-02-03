@@ -115,44 +115,50 @@ pub fn solve_directives(
             Ok(())
         }
         Directive::Log(info) => {
-            match info {
-                LogInfo::FinalizedOutput(output_string) => println!("{output_string}"),
-                LogInfo::WitnessOutput(witnesses) => {
-                    if witnesses.len() == 1 {
-                        match initial_witness.entry(witnesses[0]) {
-                            std::collections::btree_map::Entry::Vacant(_) => {
-                                unreachable!("log entry does must have a witness");
-                            }
-                            std::collections::btree_map::Entry::Occupied(e) => {
-                                println!("{}", e.get().to_hex());
-                            }
-                        }
-                    } else {
-                        // If multiple witnesses are to be fetched for a log directive,
-                        // it assumed that an array is meant to be printed to standard output
-                        let mut output_witnesses_string = "".to_owned();
-                        output_witnesses_string.push('[');
-                        let mut iter = witnesses.iter().peekable();
-                        while let Some(w) = iter.next() {
-                            let elem = match initial_witness.entry(*w) {
-                                std::collections::btree_map::Entry::Vacant(_) => {
-                                    return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                                        OpcodeNotSolvable::MissingAssignment(w.0),
-                                    ))
-                                }
-                                std::collections::btree_map::Entry::Occupied(e) => *e.get(),
-                            };
-                            if iter.peek().is_none() {
-                                output_witnesses_string.push_str(&elem.to_hex());
-                            } else {
-                                output_witnesses_string.push_str(&format!("{}, ", elem.to_hex()));
-                            }
-                        }
-                        output_witnesses_string.push(']');
-                        println!("{output_witnesses_string}");
+            let witnesses = match info {
+                LogInfo::FinalizedOutput(output_string) => {
+                    println!("{output_string}");
+                    return Ok(());
+                }
+                LogInfo::WitnessOutput(witnesses) => witnesses,
+            };
+
+            if witnesses.len() == 1 {
+                match initial_witness.entry(witnesses[0]) {
+                    std::collections::btree_map::Entry::Vacant(_) => {
+                        unreachable!("log entry does must have a witness");
+                    }
+                    std::collections::btree_map::Entry::Occupied(e) => {
+                        println!("{}", e.get().to_hex());
                     }
                 }
+                return Ok(());
             }
+
+            // If multiple witnesses are to be fetched for a log directive,
+            // it assumed that an array is meant to be printed to standard output
+            let mut output_witnesses_string = "".to_owned();
+            output_witnesses_string.push('[');
+            let mut iter = witnesses.iter().peekable();
+            while let Some(w) = iter.next() {
+                let elem = match initial_witness.entry(*w) {
+                    std::collections::btree_map::Entry::Vacant(_) => {
+                        return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                            OpcodeNotSolvable::MissingAssignment(w.0),
+                        ))
+                    }
+                    std::collections::btree_map::Entry::Occupied(e) => *e.get(),
+                };
+                if iter.peek().is_none() {
+                    output_witnesses_string.push_str(&elem.to_hex());
+                } else {
+                    output_witnesses_string.push_str(&format!("{}, ", elem.to_hex()));
+                }
+            }
+
+            output_witnesses_string.push(']');
+            println!("{output_witnesses_string}");
+
             Ok(())
         }
     }
