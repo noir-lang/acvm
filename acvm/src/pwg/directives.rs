@@ -136,19 +136,13 @@ pub fn solve_directives(
             let mut output_witnesses_string = "".to_owned();
             output_witnesses_string.push('[');
             let mut iter = witnesses.iter().peekable();
+
             while let Some(w) = iter.next() {
-                let elem = match initial_witness.entry(*w) {
-                    std::collections::btree_map::Entry::Vacant(_) => {
-                        return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                            OpcodeNotSolvable::MissingAssignment(w.0),
-                        ))
-                    }
-                    std::collections::btree_map::Entry::Occupied(e) => *e.get(),
-                };
+                let element = witness_to_value(initial_witness, *w)?;
                 if iter.peek().is_none() {
-                    output_witnesses_string.push_str(&elem.to_hex());
+                    output_witnesses_string.push_str(&element.to_hex());
                 } else {
-                    output_witnesses_string.push_str(&format!("{}, ", elem.to_hex()));
+                    output_witnesses_string.push_str(&format!("{}, ", element.to_hex()));
                 }
             }
 
