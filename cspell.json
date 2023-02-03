@@ -2,34 +2,43 @@
     "version": "0.2",
     "words": [
         "blackbox",
-        "decomp",
-        "finalise",
-        "generalises",
-        "optimise",
-        "optimisation",
-        "optimisations",
-        "optimised",
-        "optimiser",
-        "arithmetisation",
         // In code
         //
         "acir",
         "ACIR",
         "ACVM",
+        "Axyz",
+        "arithmetization",
+        "bivariate",
+        "canonicalize",
         "coeff",
         "consts",
+        "csat",
+        "decomp",
+        "deflater",
+        "endianness",
+        "euclidian",
         "hasher",
+        "Merkle",
         "OddRange",
+        "Pedersen",
         "PLONKC",
         "prehashed",
         "pubkey",
+        "repr",
         "secp",
+        "Schnorr",
         "Shleft",
         "Shright",
         "stdlib",
-        "typenum"
+        "struct",
+        "TORADIX",
         // Dependencies
         //
-        "thiserror"
+        "bufread",
+        "flate",
+        "indexmap",
+        "thiserror",
+        "typenum"
     ]
 }

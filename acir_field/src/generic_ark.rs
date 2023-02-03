@@ -51,7 +51,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
         // we usually have numbers in the form 2^t * q + r
         // We focus on 2^64, 2^32, 2^16, 2^8, 2^4 because
         // they are common. We could extend this to a more
-        // general factorisation strategy, but we pay in terms of CPU time
+        // general factorization strategy, but we pay in terms of CPU time
         let mul_sign = "×";
         for power in [64, 32, 16, 8, 4] {
             let power_of_two = BigUint::from(2_u128).pow(power);
@@ -226,7 +226,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     /// Computes the inverse or returns zero if the inverse does not exist
-    /// Before using this FieldElement, please ensure that this behaviour is necessary
+    /// Before using this FieldElement, please ensure that this behavior is necessary
     pub fn inverse(&self) -> FieldElement<F> {
         let inv = self.0.inverse().unwrap_or_else(F::zero);
         FieldElement(inv)
@@ -297,7 +297,7 @@ impl<F: PrimeField> FieldElement<F> {
         let num_elements = num_bytes / 8;
 
         let mut bytes = self.to_be_bytes();
-        bytes.reverse(); // put it in big endian format. XXX(next refactor): we should be explicit about endianess.
+        bytes.reverse(); // put it in big endian format. XXX(next refactor): we should be explicit about endianness.
 
         bytes[0..num_elements].to_vec()
     }

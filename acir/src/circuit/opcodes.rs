@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use super::directives::Directive;
 use crate::native_types::{Expression, Witness};
-use crate::serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
+use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +25,7 @@ impl Opcode {
     }
     // We have three types of opcodes allowed in the IR
     // Expression, BlackBoxFuncCall and Directives
-    // When we serialise these opcodes, we use the index
+    // When we serialize these opcodes, we use the index
     // to uniquely identify which category of opcode we are dealing with.
     pub(crate) fn to_index(&self) -> u8 {
         match self {
@@ -326,7 +326,7 @@ impl std::fmt::Debug for BlackBoxFuncCall {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
         opcode.write(&mut bytes).unwrap();

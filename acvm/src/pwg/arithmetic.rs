@@ -124,7 +124,7 @@ impl ArithmeticSolver {
         witness_assignments: &BTreeMap<Witness, FieldElement>,
     ) -> MulTerm {
         // First note that the mul term can only contain one/zero term
-        // We are assuming it has been optimised.
+        // We are assuming it has been optimized.
         match arith_gate.mul_terms.len() {
             0 => MulTerm::Solved(FieldElement::zero()),
             1 => {

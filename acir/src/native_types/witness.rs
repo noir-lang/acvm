@@ -55,7 +55,7 @@ impl Witness {
 // We use this, so that they are pushed to the beginning of the array
 //
 // When they are pushed to the beginning of the array, they are less likely to be used in an intermediate gate
-// by the optimiser, which would mean two unknowns in an equation.
+// by the optimizer, which would mean two unknowns in an equation.
 // See Issue #20
 // TODO: can we find a better solution to this?
 pub struct UnknownWitness(pub u32);

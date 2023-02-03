@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::{
     native_types::{Expression, Witness},
-    serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
+    serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
 use serde::{Deserialize, Serialize};
 
@@ -185,7 +185,7 @@ impl Directive {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     fn read_write(directive: Directive) -> (Directive, Directive) {
         let mut bytes = Vec::new();
         directive.write(&mut bytes).unwrap();
