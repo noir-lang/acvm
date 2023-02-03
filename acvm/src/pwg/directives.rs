@@ -125,12 +125,8 @@ pub fn solve_directives(
 
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
-
-                let e = initial_witness.get(witness).expect(
-                    "infallible: initial witness should contain the given witness index {witness}",
-                );
-
-                println!("{}", e.to_hex());
+                let log_value = witness_to_value(initial_witness, *witness)?;
+                println!("{}", log_value.to_hex());
 
                 return Ok(());
             }
