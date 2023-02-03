@@ -6,8 +6,8 @@ use indexmap::IndexMap;
 
 pub struct GeneralOpt;
 impl GeneralOpt {
-    pub fn optimise(gate: Expression) -> Expression {
-        // XXX: Perhaps this optimisation can be done on the fly
+    pub fn optimize(gate: Expression) -> Expression {
+        // XXX: Perhaps this optimization can be done on the fly
         let gate = remove_zero_coefficients(gate);
         simplify_mul_terms(gate)
     }
@@ -27,7 +27,7 @@ pub fn remove_zero_coefficients(mut gate: Expression) -> Expression {
 pub fn simplify_mul_terms(mut gate: Expression) -> Expression {
     let mut hash_map: IndexMap<(Witness, Witness), FieldElement> = IndexMap::new();
 
-    // Canonicalise the ordering of the multiplication, lets just order by variable name
+    // Canonicalize the ordering of the multiplication, lets just order by variable name
     for (scale, w_l, w_r) in gate.mul_terms.clone().into_iter() {
         let mut pair = vec![w_l, w_r];
         // Sort using rust sort algorithm

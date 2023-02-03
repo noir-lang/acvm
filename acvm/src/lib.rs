@@ -180,7 +180,7 @@ pub enum Language {
 
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialise circuit");
+    cs.write(&mut bytes).expect("could not serialize circuit");
 
     use sha2::{digest::FixedOutput, Digest, Sha256};
     let mut hasher = Sha256::new();

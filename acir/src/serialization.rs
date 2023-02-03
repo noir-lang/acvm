@@ -43,7 +43,7 @@ pub fn read_field_element<const NUM_BYTES: usize, R: Read>(
 
     let bytes = read_n::<FIELD_ELEMENT_NUM_BYTES, _>(&mut r)?;
 
-    // TODO: We should not reduce here, we want the serialisation to be
+    // TODO: We should not reduce here, we want the serialization to be
     // TODO canonical
     let field_element = FieldElement::from_be_bytes_reduce(&bytes);
 
