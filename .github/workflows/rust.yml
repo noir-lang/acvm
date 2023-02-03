@@ -22,3 +22,14 @@ jobs:
       run: cargo clippy --verbose
     - name: Run tests
       run: cargo test --verbose
+  
+  spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: streetsidesoftware/cspell-action@v2
+        with:
+          files: |
+            **/*.{md,rs}
+          incremental_files_only : false # Run this action on files which have changed in PR
+          strict: false # Do not fail, if a spelling mistake is found (This can be annoying for contributors)

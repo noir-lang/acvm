@@ -1,0 +1,35 @@
+{
+    "version": "0.2",
+    "words": [
+        "blackbox",
+        "decomp",
+        "finalise",
+        "generalises",
+        "optimise",
+        "optimisation",
+        "optimisations",
+        "optimised",
+        "optimiser",
+        "arithmetisation",
+        // In code
+        //
+        "acir",
+        "ACIR",
+        "ACVM",
+        "coeff",
+        "consts",
+        "hasher",
+        "OddRange",
+        "PLONKC",
+        "prehashed",
+        "pubkey",
+        "secp",
+        "Shleft",
+        "Shright",
+        "stdlib",
+        "typenum"
+        // Dependencies
+        //
+        "thiserror"
+    ]
+}
