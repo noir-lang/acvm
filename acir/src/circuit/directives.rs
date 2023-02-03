@@ -200,8 +200,10 @@ impl Directive {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-// If values are compile time and/or known during evaluation, we can form an output string during ACIR gen.
-// Otherwise, we must store witnesses whose values will be fetched during the PWG.
+// If values are compile time and/or known during
+// evaluation, we can form an output string during ACIR generation.
+// Otherwise, we must store witnesses whose values will
+// be fetched during the PWG stage.
 pub enum LogInfo {
     FinalizedOutput(String),
     WitnessOutput(Vec<Witness>),
