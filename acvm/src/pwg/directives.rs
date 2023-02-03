@@ -126,9 +126,9 @@ pub fn solve_directives(
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
 
-                let e = initial_witness
-                    .get(witness)
-                    .expect("log entry does must have a witness");
+                let e = initial_witness.get(witness).expect(
+                    "infallible: initial witness should contain the given witness index {witness}",
+                );
 
                 println!("{}", e.to_hex());
 
