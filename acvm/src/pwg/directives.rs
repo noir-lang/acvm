@@ -124,14 +124,14 @@ pub fn solve_directives(
             };
 
             if witnesses.len() == 1 {
-                match initial_witness.entry(witnesses[0]) {
-                    std::collections::btree_map::Entry::Vacant(_) => {
-                        unreachable!("log entry does must have a witness");
-                    }
-                    std::collections::btree_map::Entry::Occupied(e) => {
-                        println!("{}", e.get().to_hex());
-                    }
-                }
+                let witness = &witnesses[0];
+
+                let e = initial_witness
+                    .get(witness)
+                    .expect("log entry does must have a witness");
+
+                println!("{}", e.to_hex());
+
                 return Ok(());
             }
 
