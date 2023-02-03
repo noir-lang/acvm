@@ -1,4 +1,4 @@
-pub mod blackbox_functions;
+pub mod black_box_functions;
 pub mod directives;
 pub mod opcodes;
 pub use opcodes::Opcode;

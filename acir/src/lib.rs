@@ -5,4 +5,4 @@ pub mod native_types;
 mod serialization;
 
 pub use acir_field::FieldElement;
-pub use circuit::blackbox_functions::BlackBoxFunc;
+pub use circuit::black_box_functions::BlackBoxFunc;

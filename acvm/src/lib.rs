@@ -67,7 +67,7 @@ pub trait PartialWitnessGenerator {
             let resolution = match &opcode {
                 Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
-                    Self::solve_blackbox_function_call(initial_witness, bb_func)
+                    Self::solve_black_box_function_call(initial_witness, bb_func)
                 }
                 Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
             };
@@ -88,7 +88,7 @@ pub trait PartialWitnessGenerator {
         self.solve(initial_witness, unsolved_opcodes)
     }
 
-    fn solve_blackbox_function_call(
+    fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<(), OpcodeResolutionError>;
@@ -139,11 +139,11 @@ pub trait ProofSystemCompiler {
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
-    // Returns true if the backend supports the selected blackbox function
-    fn blackbox_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
+    // Returns true if the backend supports the selected black box function
+    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
     /// Creates a Proof given the circuit description and the witness values.
-    /// It is important to note that the intermediate witnesses for blackbox functions will not generated
+    /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     ///
     /// See `SmartContract` regarding the removal of `num_witnesses` and `num_public_inputs`
@@ -190,15 +190,15 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
 }
 
 #[deprecated(
-    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for blackbox function support based on the np language. \n Backends should simply specify what they support."
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
 )]
 // This is set to match the previous functionality that we had
-// Where we could deduce what blackbox functions were supported
+// Where we could deduce what black box functions were supported
 // by knowing the np complete language
-pub fn default_is_blackbox_supported(
+pub fn default_is_black_box_supported(
     language: Language,
 ) -> compiler::fallback::IsBlackBoxSupported {
-    // R1CS does not support any of the blackbox functions by default.
+    // R1CS does not support any of the black box functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
     fn r1cs_is_supported(opcode: &BlackBoxFunc) -> bool {
         match opcode {
@@ -206,7 +206,7 @@ pub fn default_is_blackbox_supported(
         }
     }
 
-    // PLONK supports most of the blackbox functions by default
+    // PLONK supports most of the black box functions by default
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
