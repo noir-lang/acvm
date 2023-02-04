@@ -70,19 +70,18 @@ pub fn get_value(
 // which does not match the value that one is about to insert
 fn insert_value(
     witness: &Witness,
-    value: FieldElement,
+    value_to_insert: FieldElement,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
 ) -> Result<(), OpcodeResolutionError> {
-    // First check if the value is present in the map
-    match initial_witness.entry(*witness) {
-        std::collections::btree_map::Entry::Vacant(e) => {
-            e.insert(value);
-        }
-        std::collections::btree_map::Entry::Occupied(e) => {
-            if e.get() != &value {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-        }
+    let optional_old_value = initial_witness.insert(*witness, value_to_insert);
+
+    let old_value = match optional_old_value {
+        Some(old_value) => old_value,
+        None => return Ok(()),
+    };
+
+    if old_value != value_to_insert {
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
 
     Ok(())
