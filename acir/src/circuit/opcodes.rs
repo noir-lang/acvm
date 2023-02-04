@@ -158,7 +158,7 @@ impl std::fmt::Display for Opcode {
                 radix: _,
                 is_little_endian,
             }) => {
-                write!(f, "DIR::TORADIXLE ")?;
+                write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
