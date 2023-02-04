@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use acir::{circuit::directives::Directive, native_types::Witness, FieldElement};
+use acir::{
+    circuit::directives::{Directive, LogInfo},
+    native_types::Witness,
+    FieldElement,
+};
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
@@ -107,6 +111,43 @@ pub fn solve_directives(
 
             initial_witness.insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
             initial_witness.insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+
+            Ok(())
+        }
+        Directive::Log(info) => {
+            let witnesses = match info {
+                LogInfo::FinalizedOutput(output_string) => {
+                    println!("{output_string}");
+                    return Ok(());
+                }
+                LogInfo::WitnessOutput(witnesses) => witnesses,
+            };
+
+            if witnesses.len() == 1 {
+                let witness = &witnesses[0];
+                let log_value = witness_to_value(initial_witness, *witness)?;
+                println!("{}", log_value.to_hex());
+
+                return Ok(());
+            }
+
+            // If multiple witnesses are to be fetched for a log directive,
+            // it assumed that an array is meant to be printed to standard output
+            //
+            // Collect all field element values corresponding to the given witness indices
+            // and convert them to hex strings.
+            let mut elements_as_hex = Vec::with_capacity(witnesses.len());
+            for witness in witnesses {
+                let element = witness_to_value(initial_witness, *witness)?;
+                elements_as_hex.push(element.to_hex());
+            }
+
+            // Join all of the hex strings using a comma
+            let comma_separated_elements = elements_as_hex.join(",");
+
+            let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
+
+            println!("{output_witnesses_string}");
 
             Ok(())
         }

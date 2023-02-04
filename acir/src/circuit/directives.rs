@@ -48,6 +48,8 @@ pub enum Directive {
         b: Vec<Witness>,
         radix: u32,
     },
+
+    Log(LogInfo),
 }
 
 impl Directive {
@@ -58,6 +60,7 @@ impl Directive {
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
             Directive::ToRadix { .. } => "to_radix",
+            Directive::Log { .. } => "log",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -67,6 +70,7 @@ impl Directive {
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
             Directive::ToRadix { .. } => 4,
+            Directive::Log { .. } => 5,
         }
     }
 
@@ -116,6 +120,17 @@ impl Directive {
                 }
                 write_u32(&mut writer, *radix)?;
             }
+            Directive::Log(info) => match info {
+                LogInfo::FinalizedOutput(output_string) => {
+                    write_bytes(&mut writer, output_string.as_bytes())?;
+                }
+                LogInfo::WitnessOutput(witnesses) => {
+                    write_u32(&mut writer, witnesses.len() as u32)?;
+                    for w in witnesses {
+                        write_u32(&mut writer, w.witness_index())?;
+                    }
+                }
+            },
         };
 
         Ok(())
@@ -182,6 +197,16 @@ impl Directive {
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+// If values are compile time and/or known during
+// evaluation, we can form an output string during ACIR generation.
+// Otherwise, we must store witnesses whose values will
+// be fetched during the PWG stage.
+pub enum LogInfo {
+    FinalizedOutput(String),
+    WitnessOutput(Vec<Witness>),
 }
 
 #[test]

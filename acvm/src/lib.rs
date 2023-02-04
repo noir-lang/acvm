@@ -211,10 +211,7 @@ pub fn default_is_black_box_supported(
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &BlackBoxFunc) -> bool {
-        match opcode {
-            BlackBoxFunc::AES => false,
-            _ => true,
-        }
+        !matches!(opcode, BlackBoxFunc::AES)
     }
 
     match language {
