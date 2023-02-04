@@ -18,3 +18,7 @@ flate2 = "1.0.24"
 serde_json = "1.0"
 strum = "0.24"
 strum_macros = "0.24"
+
+[features]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]
