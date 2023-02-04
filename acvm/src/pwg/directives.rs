@@ -133,20 +133,20 @@ pub fn solve_directives(
 
             // If multiple witnesses are to be fetched for a log directive,
             // it assumed that an array is meant to be printed to standard output
-            let mut output_witnesses_string = "".to_owned();
-            output_witnesses_string.push('[');
-            let mut iter = witnesses.iter().peekable();
-
-            while let Some(w) = iter.next() {
-                let element = witness_to_value(initial_witness, *w)?;
-                if iter.peek().is_none() {
-                    output_witnesses_string.push_str(&element.to_hex());
-                } else {
-                    output_witnesses_string.push_str(&format!("{}, ", element.to_hex()));
-                }
+            //
+            // Collect all field element values corresponding to the given witness indices
+            // and convert them to hex strings.
+            let mut elements_as_hex = Vec::with_capacity(witnesses.len());
+            for witness in witnesses {
+                let element = witness_to_value(initial_witness, *witness)?;
+                elements_as_hex.push(element.to_hex());
             }
 
-            output_witnesses_string.push(']');
+            // Join all of the hex strings using a comma
+            let comma_separated_elements = elements_as_hex.join(",");
+
+            let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
+
             println!("{output_witnesses_string}");
 
             Ok(())
