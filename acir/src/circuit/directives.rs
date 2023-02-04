@@ -188,7 +188,7 @@ impl Directive {
                     a,
                     b,
                     radix,
-                    is_little_endian: if is_little_endian == 1 { true } else { false },
+                    is_little_endian: is_little_endian == 1,
                 })
             }
 
