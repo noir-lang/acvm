@@ -6,7 +6,7 @@ use num_traits::{One, Zero};
 
 use crate::OpcodeResolutionError;
 
-use super::{get_value, witness_to_value};
+use super::{get_value, insert_value, witness_to_value};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -70,18 +70,18 @@ pub fn solve_directives(
             radix,
             is_little_endian,
         } => {
-            let val_a = get_value(a, initial_witness)?;
+            let value_a = get_value(a, initial_witness)?;
 
-            let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let a_dec = if *is_little_endian {
-                a_big.to_radix_le(*radix)
+            let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
+
+            // Decompose the integer into its radix digits
+            let decomposed_integer = if *is_little_endian {
+                big_integer.to_radix_le(*radix)
             } else {
-                a_big.to_radix_be(*radix)
+                big_integer.to_radix_be(*radix)
             };
-            match to_radix_outcome(b, &a_dec, initial_witness) {
-                Ok(()) => Ok(()),
-                Err(e) => Err(e),
-            }
+
+            to_radix_outcome(b, decomposed_integer, initial_witness)
         }
         Directive::OddRange { a, b, r, bit_size } => {
             let val_a = witness_to_value(initial_witness, *a)?;
@@ -105,29 +105,25 @@ pub fn solve_directives(
 }
 
 fn to_radix_outcome(
-    b: &Vec<Witness>,
-    a_dec: &Vec<u8>,
+    witnesses: &Vec<Witness>,
+    decomposed_integer: Vec<u8>,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
 ) -> Result<(), OpcodeResolutionError> {
-    if b.len() < a_dec.len() {
+    if witnesses.len() < decomposed_integer.len() {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
-    for i in 0..b.len() {
-        let v = if i < a_dec.len() {
-            FieldElement::from_be_bytes_reduce(&[a_dec[i]])
-        } else {
-            FieldElement::zero()
+
+    for (i, witness) in witnesses.into_iter().enumerate() {
+        // Fetch the `i'th` digit from the decomposed integer list
+        // and convert it to a field element.
+        // If it is not available, which can happen when the decomposed integer
+        // list is shorter than the witness list, we return 0.
+        let value = match decomposed_integer.get(i) {
+            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+            None => FieldElement::zero(),
         };
-        match initial_witness.entry(b[i]) {
-            std::collections::btree_map::Entry::Vacant(e) => {
-                e.insert(v);
-            }
-            std::collections::btree_map::Entry::Occupied(e) => {
-                if e.get() != &v {
-                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                }
-            }
-        }
+
+        insert_value(witness, value, initial_witness)?
     }
 
     Ok(())
