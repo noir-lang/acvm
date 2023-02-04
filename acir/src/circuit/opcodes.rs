@@ -163,7 +163,7 @@ impl std::fmt::Display for Opcode {
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
                     // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}], endianess: {})",
+                    "(_{}, [_{}..._{}], endianness: {})",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
