@@ -8,7 +8,7 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError};
+use crate::OpcodeResolutionError;
 
 use super::{get_value, witness_to_value};
 
