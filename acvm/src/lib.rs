@@ -169,7 +169,7 @@ pub trait ProofSystemCompiler {
 
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
 
-    fn preprocess(&self, circuit: Circuit);
+    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>);
 
     fn prove_with_pk(
         &self,
