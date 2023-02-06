@@ -17,7 +17,7 @@ impl<'a> VariableStore<'a> {
         witness
     }
 
-    pub fn finalise(self) -> u32 {
+    pub fn finalize(self) -> u32 {
         *self.witness_index
     }
 }

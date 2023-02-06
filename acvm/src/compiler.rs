@@ -1,6 +1,6 @@
 // The various passes that we can use over ACIR
 pub mod fallback;
-pub mod optimiser;
+pub mod optimizer;
 
 use crate::Language;
 use acir::{
@@ -9,10 +9,10 @@ use acir::{
     BlackBoxFunc,
 };
 use indexmap::IndexMap;
-use optimiser::{CSatOptimiser, GeneralOptimiser};
+use optimizer::{CSatOptimizer, GeneralOptimizer};
 use thiserror::Error;
 
-use self::{fallback::IsBlackBoxSupported, optimiser::R1CSOptimiser};
+use self::{fallback::IsBlackBoxSupported, optimizer::R1CSOptimizer};
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -23,30 +23,30 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_blackbox_supported: IsBlackBoxSupported,
+    is_black_box_supported: IsBlackBoxSupported,
 ) -> Result<Circuit, CompileError> {
-    // Instantiate the optimiser.
-    // Currently the optimiser and reducer are one in the same
+    // Instantiate the optimizer.
+    // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Fallback pass
-    let fallback = fallback::fallback(acir, is_blackbox_supported)?;
+    let fallback = fallback::fallback(acir, is_black_box_supported)?;
 
-    let optimiser = match &np_language {
+    let optimizer = match &np_language {
         crate::Language::R1CS => {
-            let optimiser = R1CSOptimiser::new(fallback);
-            return Ok(optimiser.optimise());
+            let optimizer = R1CSOptimizer::new(fallback);
+            return Ok(optimizer.optimize());
         }
-        crate::Language::PLONKCSat { width } => CSatOptimiser::new(*width),
+        crate::Language::PLONKCSat { width } => CSatOptimizer::new(*width),
     };
 
-    // TODO: the code below is only for CSAT optimiser
+    // TODO: the code below is only for CSAT optimizer
     // TODO it may be possible to refactor it in a way that we do not need to return early from the r1cs
-    // TODO or at the very least, we could put all of it inside of CSATOptimiser pass
+    // TODO or at the very least, we could put all of it inside of CSatOptimizer pass
 
-    // Optimise the arithmetic gates by reducing them into the correct width and
+    // Optimize the arithmetic gates by reducing them into the correct width and
     // creating intermediate variables when necessary
-    let mut optimised_gates = Vec::new();
+    let mut optimized_gates = Vec::new();
 
     let mut next_witness_index = fallback.current_witness_index + 1;
     for opcode in fallback.opcodes {
@@ -55,7 +55,7 @@ pub fn compile(
                 let mut intermediate_variables: IndexMap<Witness, Expression> = IndexMap::new();
 
                 let arith_expr =
-                    optimiser.optimise(arith_expr, &mut intermediate_variables, next_witness_index);
+                    optimizer.optimize(arith_expr, &mut intermediate_variables, next_witness_index);
 
                 // Update next_witness counter
                 next_witness_index += intermediate_variables.len() as u32;
@@ -67,10 +67,10 @@ pub fn compile(
                 new_gates.push(arith_expr);
                 new_gates.sort();
                 for gate in new_gates {
-                    optimised_gates.push(Opcode::Arithmetic(gate));
+                    optimized_gates.push(Opcode::Arithmetic(gate));
                 }
             }
-            other_gate => optimised_gates.push(other_gate),
+            other_gate => optimized_gates.push(other_gate),
         }
     }
 
@@ -78,7 +78,7 @@ pub fn compile(
 
     Ok(Circuit {
         current_witness_index,
-        opcodes: optimised_gates,
-        public_inputs: fallback.public_inputs, // The optimiser does not add public inputs
+        opcodes: optimized_gates,
+        public_inputs: fallback.public_inputs, // The optimizer does not add public inputs
     })
 }

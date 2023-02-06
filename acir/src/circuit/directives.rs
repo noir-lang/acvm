@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::{
     native_types::{Expression, Witness},
-    serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
+    serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
 use serde::{Deserialize, Serialize};
 
@@ -48,6 +48,16 @@ pub enum Directive {
         b: Vec<Witness>,
         radix: u32,
     },
+
+    // Sort directive, using a sorting network
+    // This directive is used to generate the values of the control bits for the sorting network such that its ouputs are properly sorted accroding to sort_by
+    PermutationSort {
+        inputs: Vec<Vec<Expression>>, // Array of tuples to sort
+        tuple: u32, // tuple size; if 1 then inputs is a single array [a0,a1,..], if 2 then inputs=[(a0,b0),..] is [a0,b0,a1,b1,..], etc..
+        bits: Vec<Witness>, // control bits of the network which permutes the inputs into its sorted version
+        sort_by: Vec<u32>, // specify primary index to sort by, then the secondary,... For instance, if typle is 2 and sort_by is [1,0], then a=[(a0,b0),..] is sorted by bi and then ai.
+    },
+    Log(LogInfo),
 }
 
 impl Directive {
@@ -58,6 +68,8 @@ impl Directive {
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
             Directive::ToRadix { .. } => "to_radix",
+            Directive::PermutationSort { .. } => "permutation_sort",
+            Directive::Log { .. } => "log",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -67,6 +79,8 @@ impl Directive {
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
             Directive::ToRadix { .. } => 4,
+            Directive::Log { .. } => 5,
+            Directive::PermutationSort { .. } => 6,
         }
     }
 
@@ -116,6 +130,39 @@ impl Directive {
                 }
                 write_u32(&mut writer, *radix)?;
             }
+            Directive::PermutationSort {
+                inputs: a,
+                tuple,
+                bits,
+                sort_by,
+            } => {
+                write_u32(&mut writer, *tuple)?;
+                write_u32(&mut writer, a.len() as u32)?;
+                for e in a {
+                    for i in 0..*tuple {
+                        e[i as usize].write(&mut writer)?;
+                    }
+                }
+                write_u32(&mut writer, bits.len() as u32)?;
+                for b in bits {
+                    write_u32(&mut writer, b.witness_index())?;
+                }
+                write_u32(&mut writer, sort_by.len() as u32)?;
+                for i in sort_by {
+                    write_u32(&mut writer, *i)?;
+                }
+            }
+            Directive::Log(info) => match info {
+                LogInfo::FinalizedOutput(output_string) => {
+                    write_bytes(&mut writer, output_string.as_bytes())?;
+                }
+                LogInfo::WitnessOutput(witnesses) => {
+                    write_u32(&mut writer, witnesses.len() as u32)?;
+                    for w in witnesses {
+                        write_u32(&mut writer, w.witness_index())?;
+                    }
+                }
+            },
         };
 
         Ok(())
@@ -178,14 +225,53 @@ impl Directive {
 
                 Ok(Directive::ToRadix { a, b, radix })
             }
+            6 => {
+                let tuple = read_u32(&mut reader)?;
+                let a_len = read_u32(&mut reader)?;
+                let mut a = Vec::with_capacity(a_len as usize);
+                for _ in 0..a_len {
+                    let mut element = Vec::new();
+                    for _ in 0..tuple {
+                        element.push(Expression::read(&mut reader)?);
+                    }
+                    a.push(element);
+                }
+
+                let bits_len = read_u32(&mut reader)?;
+                let mut bits = Vec::with_capacity(bits_len as usize);
+                for _ in 0..bits_len {
+                    bits.push(Witness(read_u32(&mut reader)?));
+                }
+                let sort_by_len = read_u32(&mut reader)?;
+                let mut sort_by = Vec::with_capacity(sort_by_len as usize);
+                for _ in 0..sort_by_len {
+                    sort_by.push(read_u32(&mut reader)?);
+                }
+                Ok(Directive::PermutationSort {
+                    inputs: a,
+                    tuple,
+                    bits,
+                    sort_by,
+                })
+            }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+// If values are compile time and/or known during
+// evaluation, we can form an output string during ACIR generation.
+// Otherwise, we must store witnesses whose values will
+// be fetched during the PWG stage.
+pub enum LogInfo {
+    FinalizedOutput(String),
+    WitnessOutput(Vec<Witness>),
+}
+
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     fn read_write(directive: Directive) -> (Directive, Directive) {
         let mut bytes = Vec::new();
         directive.write(&mut bytes).unwrap();
