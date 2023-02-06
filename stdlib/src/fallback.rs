@@ -1,9 +1,9 @@
 use crate::helpers::VariableStore;
 use acir::{
+    acir_field::FieldElement,
     circuit::{directives::Directive, Opcode},
     native_types::{Expression, Witness},
 };
-use acir_field::FieldElement;
 
 // Perform bit decomposition on the provided expression
 #[deprecated(note = "use bit_decomposition function instead")]
