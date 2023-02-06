@@ -205,7 +205,7 @@ pub fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Vec<bool>
                     // connect the output wire to its matching input
                     let in_idx = network.route_out_wire(out_idx, start_sub);
                     if network.is_single_x(in_idx) {
-                        start_sub = !start_sub; //We need to restart, but did not complete the loop so we switch the subnetwork
+                        start_sub = !start_sub; //We need to restart, but did not complete the loop so we switch the sub network
                         (start, out_idx) = network.new_start();
                         switch = start;
                         continue;
