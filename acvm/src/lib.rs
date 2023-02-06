@@ -175,6 +175,7 @@ pub trait ProofSystemCompiler {
         &self,
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
+        proving_key: Vec<u8>,
     ) -> Vec<u8>;
 
     fn verify_with_vk(
@@ -182,6 +183,7 @@ pub trait ProofSystemCompiler {
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
+        verification_key: Vec<u8>,
     ) -> bool;
 }
 
