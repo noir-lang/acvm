@@ -50,7 +50,7 @@ pub enum Directive {
     },
 
     // Sort directive, using a sorting network
-    // This directive is used to generate the values of the control bits for the sorting network such that its outputs are properly sorted accroding to sort_by
+    // This directive is used to generate the values of the control bits for the sorting network such that its outputs are properly sorted according to sort_by
     PermutationSort {
         inputs: Vec<Vec<Expression>>, // Array of tuples to sort
         tuple: u32, // tuple size; if 1 then inputs is a single array [a0,a1,..], if 2 then inputs=[(a0,b0),..] is [a0,b0,a1,b1,..], etc..

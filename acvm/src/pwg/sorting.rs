@@ -157,6 +157,7 @@ impl SortingNetwork {
 }
 
 // Computes the control bits of the sorting network which transform inputs into outputs
+// implementation is based on https://www.mdpi.com/2227-7080/10/1/16
 pub fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Vec<bool> {
     assert_eq!(inputs.len(), outputs.len());
     match inputs.len() {
@@ -292,6 +293,7 @@ mod test {
         result
     }
 
+    // returns the number of switches in the network
     pub fn switch_nb(n: usize) -> usize {
         let mut s = 0;
         for i in 0..n {
