@@ -183,7 +183,6 @@ pub trait ProofSystemCompiler {
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
-        proving_key: Vec<u8>,
         verification_key: Vec<u8>,
     ) -> bool;
 }
