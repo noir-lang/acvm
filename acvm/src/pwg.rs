@@ -16,6 +16,7 @@ pub mod hash;
 pub mod logic;
 pub mod range;
 pub mod signature;
+pub mod sorting;
 
 // Returns the concrete value for a particular witness
 // If the witness has no assignment, then

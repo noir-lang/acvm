@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BTreeMap};
 
 use acir::{
     circuit::directives::{Directive, LogInfo},
@@ -10,7 +10,7 @@ use num_traits::{One, Zero};
 
 use crate::OpcodeResolutionError;
 
-use super::{get_value, witness_to_value};
+use super::{get_value, sorting::route, witness_to_value};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -49,8 +49,16 @@ pub fn solve_directives(
                 (&int_a % &int_b, &int_a / &int_b)
             };
 
-            initial_witness.insert(*q, FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()));
-            initial_witness.insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+            insert_witness(
+                *q,
+                FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
+                initial_witness,
+            )?;
+            insert_witness(
+                *r,
+                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
+                initial_witness,
+            )?;
 
             Ok(())
         }
@@ -63,8 +71,16 @@ pub fn solve_directives(
             let int_b: BigUint = &int_a % &pow;
             let int_c: BigUint = (&int_a - &int_b) / &pow;
 
-            initial_witness.insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
-            initial_witness.insert(*c, FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()));
+            insert_witness(
+                *b,
+                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
+                initial_witness,
+            )?;
+            insert_witness(
+                *c,
+                FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
+                initial_witness,
+            )?;
 
             Ok(())
         }
@@ -82,16 +98,7 @@ pub fn solve_directives(
                 } else {
                     FieldElement::zero()
                 };
-                match initial_witness.entry(b[i]) {
-                    std::collections::btree_map::Entry::Vacant(e) => {
-                        e.insert(v);
-                    }
-                    std::collections::btree_map::Entry::Occupied(e) => {
-                        if e.get() != &v {
-                            return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                        }
-                    }
-                }
+                insert_witness(b[i], v, initial_witness)?;
             }
 
             Ok(())
@@ -109,8 +116,95 @@ pub fn solve_directives(
             let int_r = &int_a - &bb;
             let int_b = &bb >> (bit_size - 1);
 
-            initial_witness.insert(*b, FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()));
-            initial_witness.insert(*r, FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()));
+            insert_witness(
+                *b,
+                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
+                initial_witness,
+            )?;
+            insert_witness(
+                *r,
+                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
+                initial_witness,
+            )?;
+
+            Ok(())
+        }
+        Directive::PermutationSort {
+            inputs: a,
+            tuple,
+            bits,
+            sort_by,
+        } => {
+            let mut val_a = Vec::new();
+            let mut base = Vec::new();
+            for (i, element) in a.iter().enumerate() {
+                assert_eq!(element.len(), *tuple as usize);
+                let mut element_val = Vec::with_capacity(*tuple as usize + 1);
+                for e in element {
+                    element_val.push(get_value(e, initial_witness)?);
+                }
+                let field_i = FieldElement::from(i as i128);
+                element_val.push(field_i);
+                base.push(field_i);
+                val_a.push(element_val);
+            }
+            val_a.sort_by(|a, b| {
+                for i in sort_by {
+                    let int_a = BigUint::from_bytes_be(&a[*i as usize].to_be_bytes());
+                    let int_b = BigUint::from_bytes_be(&b[*i as usize].to_be_bytes());
+                    let cmp = int_a.cmp(&int_b);
+                    if cmp != Ordering::Equal {
+                        return cmp;
+                    }
+                }
+                Ordering::Equal
+            });
+            let b = val_a.iter().map(|a| *a.last().unwrap()).collect();
+            let control = route(base, b);
+            for (w, value) in bits.iter().zip(control) {
+                let value = if value {
+                    FieldElement::one()
+                } else {
+                    FieldElement::zero()
+                };
+                insert_witness(*w, value, initial_witness)?;
+            }
+            Ok(())
+        }
+        Directive::Log(info) => {
+            let witnesses = match info {
+                LogInfo::FinalizedOutput(output_string) => {
+                    println!("{output_string}");
+                    return Ok(());
+                }
+                LogInfo::WitnessOutput(witnesses) => witnesses,
+            };
+
+            if witnesses.len() == 1 {
+                let witness = &witnesses[0];
+                let log_value = witness_to_value(initial_witness, *witness)?;
+                println!("{}", log_value.to_hex());
+
+                return Ok(());
+            }
+
+            // If multiple witnesses are to be fetched for a log directive,
+            // it assumed that an array is meant to be printed to standard output
+            //
+            // Collect all field element values corresponding to the given witness indices
+            // and convert them to hex strings.
+            let mut elements_as_hex = Vec::with_capacity(witnesses.len());
+            for witness in witnesses {
+                let element = witness_to_value(initial_witness, *witness)?;
+                elements_as_hex.push(element.to_hex());
+            }
+
+            // Join all of the hex strings using a comma
+            let comma_separated_elements = elements_as_hex.join(",");
+
+            let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
+
+            println!("{output_witnesses_string}");
 
             Ok(())
         }
@@ -152,4 +246,22 @@ pub fn solve_directives(
             Ok(())
         }
     }
+}
+
+fn insert_witness(
+    w: Witness,
+    value: FieldElement,
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+) -> Result<(), OpcodeResolutionError> {
+    match initial_witness.entry(w) {
+        std::collections::btree_map::Entry::Vacant(e) => {
+            e.insert(value);
+        }
+        std::collections::btree_map::Entry::Occupied(e) => {
+            if e.get() != &value {
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+            }
+        }
+    }
+    Ok(())
 }

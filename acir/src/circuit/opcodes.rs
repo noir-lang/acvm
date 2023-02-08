@@ -164,6 +164,24 @@ impl std::fmt::Display for Opcode {
                     b.last().unwrap().witness_index(),
                 )
             }
+            Opcode::Directive(Directive::PermutationSort {
+                inputs: a,
+                tuple,
+                bits,
+                sort_by,
+            }) => {
+                write!(f, "DIR::PERMUTATIONSORT ")?;
+                write!(
+                    f,
+                    "(permutation size: {} {}-tuples, sort_by: {:#?}, bits: [_{}..._{}]))",
+                    a.len(),
+                    tuple,
+                    sort_by,
+                    // (Note): the bits do not have contiguous index but there are too many for display
+                    bits.first().unwrap().witness_index(),
+                    bits.last().unwrap().witness_index(),
+                )
+            }
             Opcode::Directive(Directive::Log(info)) => match info {
                 LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
                 LogInfo::WitnessOutput(witnesses) => write!(
