@@ -5,13 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2023-02-08
 
 ### Added
+
+- Add log directive
+- Expose `acir_field` through `acir` crate
+- Add permutation directive
+- Add preprocess methods to ACVM interface
 
 ### Fixed
 
 ### Changed
+
+- Changed spellings of many functions to be correct using spellchecker
 
 ### Removed
 
