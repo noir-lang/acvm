@@ -217,10 +217,8 @@ pub fn default_is_black_box_supported(
 ) -> compiler::fallback::IsBlackBoxSupported {
     // R1CS does not support any of the black box functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
-    fn r1cs_is_supported(opcode: &BlackBoxFunc) -> bool {
-        match opcode {
-            _ => false,
-        }
+    fn r1cs_is_supported(_opcode: &BlackBoxFunc) -> bool {
+        false
     }
 
     // PLONK supports most of the black box functions by default
