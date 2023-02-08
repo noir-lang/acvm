@@ -81,7 +81,7 @@ pub fn solve_directives(
                 big_integer.to_radix_be(*radix)
             };
 
-            to_radix_outcome(b, decomposed_integer, initial_witness)
+            to_radix_outcome(b, decomposed_integer, initial_witness, is_little_endian)
         }
         Directive::OddRange { a, b, r, bit_size } => {
             let val_a = witness_to_value(initial_witness, *a)?;
@@ -108,22 +108,42 @@ fn to_radix_outcome(
     witnesses: &Vec<Witness>,
     decomposed_integer: Vec<u8>,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    is_little_endian: &bool,
 ) -> Result<(), OpcodeResolutionError> {
     if witnesses.len() < decomposed_integer.len() {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
 
-    for (i, witness) in witnesses.into_iter().enumerate() {
-        // Fetch the `i'th` digit from the decomposed integer list
-        // and convert it to a field element.
-        // If it is not available, which can happen when the decomposed integer
-        // list is shorter than the witness list, we return 0.
-        let value = match decomposed_integer.get(i) {
-            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
-            None => FieldElement::zero(),
-        };
+    if *is_little_endian {
+        for (i, witness) in witnesses.into_iter().enumerate() {
+            // Fetch the `i'th` digit from the decomposed integer list
+            // and convert it to a field element.
+            // If it is not available, which can happen when the decomposed integer
+            // list is shorter than the witness list, we return 0.
+            let value = match decomposed_integer.get(i) {
+                Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                None => FieldElement::zero(),
+            };
 
-        insert_value(witness, value, initial_witness)?
+            insert_value(witness, value, initial_witness)?
+        }
+    } else {
+        // if it is big endian and the decompoased integer list is shorter
+        // than the witness list, pad the extra part with 0 first then
+        // add the decompsed interger list to the witness list.
+        let padding_len = witnesses.len() - decomposed_integer.len();
+        for (i, witness) in witnesses.into_iter().enumerate() {
+            if i < padding_len {
+                insert_value(witness, FieldElement::zero(), initial_witness)?
+            } else {
+                let value = match decomposed_integer.get(i) {
+                    Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                    None => FieldElement::zero(),
+                };
+
+                insert_value(witness, value, initial_witness)?
+            }
+        }
     }
 
     Ok(())
