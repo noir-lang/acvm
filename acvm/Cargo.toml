@@ -1,6 +1,6 @@
 [package]
 name = "acvm"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -10,8 +10,8 @@ description = "The virtual machine that processes ACIR given a backend/proof sys
 [dependencies]
 num-bigint = "0.4"
 num-traits = "0.2"
-acir = { version = "0.4.0", path = "../acir" }
-stdlib = { package = "acvm_stdlib", version = "0.4.0", path = "../stdlib" }
+acir = { version = "0.4.1", path = "../acir" }
+stdlib = { package = "acvm_stdlib", version = "0.4.1", path = "../stdlib" }
 
 sha2 = "0.9.3"
 blake2 = "0.9.1"
