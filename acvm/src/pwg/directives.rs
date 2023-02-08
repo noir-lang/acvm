@@ -136,7 +136,7 @@ fn to_radix_outcome(
             if i < padding_len {
                 insert_value(witness, FieldElement::zero(), initial_witness)?
             } else {
-                let value = match decomposed_integer.get(i) {
+                let value = match decomposed_integer.get(i - padding_len) {
                     Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
                     None => FieldElement::zero(),
                 };
