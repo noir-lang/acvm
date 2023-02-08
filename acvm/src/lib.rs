@@ -206,6 +206,12 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     hasher.finalize_fixed().into()
 }
 
+fn fails_clippy() {
+    if true {
+    } else {
+    }
+}
+
 #[deprecated(
     note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
 )]
