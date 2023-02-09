@@ -43,7 +43,13 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
                     break;
                 }
             }
-            return write!(f, "2{}", superscript(bit_index));
+            return match bit_index {
+                0 => write!(f, "1"),
+                1 => write!(f, "2"),
+                2 => write!(f, "4"),
+                3 => write!(f, "8"),
+                _ => write!(f, "2{}", superscript(bit_index)),
+            };
         }
 
         // Check if number is a multiple of a power of 2.
