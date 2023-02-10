@@ -405,6 +405,28 @@ mod test {
             assert_eq!(res.to_be_bytes(), x.to_be_bytes());
         }
     }
+
+    #[test]
+    fn serialize_fixed_test_vectors() {
+        // Serialized field elements from of 0, -1, -2, -3
+        let hex_strings = vec![
+            "0000000000000000000000000000000000000000000000000000000000000000",
+            "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000000",
+            "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593efffffff",
+            "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593effffffe",
+        ];
+
+        for (i, string) in hex_strings.into_iter().enumerate() {
+            let minus_i_field_element =
+                -crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(i as i128);
+            assert_eq!(minus_i_field_element.to_hex(), string)
+        }
+    }
+    #[test]
+    fn max_num_bits_smoke() {
+        let max_num_bits_bn254 = crate::generic_ark::FieldElement::<ark_bn254::Fr>::max_num_bits();
+        assert_eq!(max_num_bits_bn254, 254)
+    }
 }
 
 fn mask_vector_le(bytes: &mut [u8], num_bits: usize) {
