@@ -1,5 +1,3 @@
-use ark_ff::to_bytes;
-use ark_ff::FpParameters;
 use ark_ff::PrimeField;
 use ark_ff::Zero;
 use num_bigint::BigUint;
@@ -163,7 +161,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn pow(&self, exponent: &Self) -> Self {
-        FieldElement(self.0.pow(exponent.0.into_repr()))
+        FieldElement(self.0.pow(exponent.0.into_bigint()))
     }
 
     /// Maximum number of bits needed to represent a field element
@@ -172,7 +170,7 @@ impl<F: PrimeField> FieldElement<F> {
     /// But the representation uses 256 bits, so the top two bits are always zero
     /// This method would return 254
     pub const fn max_num_bits() -> u32 {
-        F::Params::MODULUS_BITS
+        F::MODULUS_BIT_SIZE
     }
 
     /// Maximum numbers of bytes needed to represent a field element
@@ -189,7 +187,7 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn modulus() -> BigUint {
-        F::Params::MODULUS.into()
+        F::MODULUS.into()
     }
     /// Returns None, if the string is not a canonical
     /// representation of a field element; less than the order
@@ -249,7 +247,8 @@ impl<F: PrimeField> FieldElement<F> {
     }
 
     pub fn to_hex(self) -> String {
-        let mut bytes = to_bytes!(self.0).unwrap();
+        let mut bytes = Vec::new();
+        self.0.serialize_uncompressed(&mut bytes).unwrap();
         bytes.reverse();
         hex::encode(bytes)
     }
@@ -263,7 +262,8 @@ impl<F: PrimeField> FieldElement<F> {
         // to_be_bytes! uses little endian which is why we reverse the output
         // TODO: Add a little endian equivalent, so the caller can use whichever one
         // TODO they desire
-        let mut bytes = to_bytes!(self.0).unwrap();
+        let mut bytes = Vec::new();
+        self.0.serialize_uncompressed(&mut bytes).unwrap();
         bytes.reverse();
         bytes
     }
