@@ -14,8 +14,8 @@ num-bigint.workspace = true
 num-traits.workspace = true
 blake2.workspace = true
 
-acir = { version = "0.4.1", path = "../acir" }
-stdlib = { package = "acvm_stdlib", version = "0.4.1", path = "../stdlib" }
+acir.workspace = true
+stdlib.workspace = true
 
 sha2 = "0.9.3"
 k256 = { version = "0.7.2", features = [
