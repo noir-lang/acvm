@@ -1,5 +1,5 @@
 // The various passes that we can use over ACIR
-pub mod optimisers;
+pub mod optimizers;
 pub mod transformers;
 
 use crate::Language;
@@ -9,7 +9,7 @@ use acir::{
     BlackBoxFunc,
 };
 use indexmap::IndexMap;
-use optimisers::GeneralOptimiser;
+use optimizers::GeneralOptimizer;
 use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsBlackBoxSupported, R1CSTransformer};
 
@@ -22,21 +22,21 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_blackbox_supported: IsBlackBoxSupported,
+    is_black_box_supported: IsBlackBoxSupported,
 ) -> Result<Circuit, CompileError> {
-    // Instantiate the optimiser.
-    // Currently the optimiser and reducer are one in the same
+    // Instantiate the optimizer.
+    // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Fallback transformer pass
-    let acir = FallbackTransformer::transform(acir, is_blackbox_supported)?;
+    let acir = FallbackTransformer::transform(acir, is_black_box_supported)?;
 
-    // General optimiser pass
+    // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();
     for opcode in acir.opcodes {
         match opcode {
             Opcode::Arithmetic(arith_expr) => {
-                opcodes.push(Opcode::Arithmetic(GeneralOptimiser::optimise(arith_expr)))
+                opcodes.push(Opcode::Arithmetic(GeneralOptimizer::optimize(arith_expr)))
             }
             other_gate => opcodes.push(other_gate),
         };
@@ -53,9 +53,9 @@ pub fn compile(
 
     // TODO: the code below is only for CSAT transformer
     // TODO it may be possible to refactor it in a way that we do not need to return early from the r1cs
-    // TODO or at the very least, we could put all of it inside of CSATOptimiser pass
+    // TODO or at the very least, we could put all of it inside of CSatOptimizer pass
 
-    // Optimise the arithmetic gates by reducing them into the correct width and
+    // Optimize the arithmetic gates by reducing them into the correct width and
     // creating intermediate variables when necessary
     let mut transformed_gates = Vec::new();
 
@@ -93,6 +93,6 @@ pub fn compile(
     Ok(Circuit {
         current_witness_index,
         opcodes: transformed_gates,
-        public_inputs: acir.public_inputs, // The optimiser does not add public inputs
+        public_inputs: acir.public_inputs, // The optimizer does not add public inputs
     })
 }

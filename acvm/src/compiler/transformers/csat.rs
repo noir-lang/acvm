@@ -6,24 +6,24 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-// Is this more of a Reducer than an optimiser?
+// Is this more of a Reducer than an optimizer?
 // Should we give it all of the gates?
-// Have a single optimiser that you instantiate with a width, then pass many gates through
+// Have a single transformer that you instantiate with a width, then pass many gates through
 pub struct CSatTransformer {
     width: usize,
 }
 
 impl CSatTransformer {
-    // Configure the width for the optimiser
+    // Configure the width for the optimizer
     pub fn new(width: usize) -> CSatTransformer {
         assert!(width > 2);
 
         CSatTransformer { width }
     }
 
-    // Still missing dead witness optimisation.
+    // Still missing dead witness optimization.
     // To do this, we will need the whole set of arithmetic gates
-    // I think it can also be done before the local optimisation seen here, as dead variables will come from the user
+    // I think it can also be done before the local optimization seen here, as dead variables will come from the user
     pub fn transform(
         &self,
         gate: Expression,
@@ -31,23 +31,23 @@ impl CSatTransformer {
         num_witness: u32,
     ) -> Expression {
         // Here we create intermediate variables and constrain them to be equal to any subset of the polynomial that can be represented as a full gate
-        let gate = self.full_gate_scan_optimisation(gate, intermediate_variables, num_witness);
-        // The last optimisation to do is to create intermediate variables in order to flatten the fan-in and the amount of mul terms
+        let gate = self.full_gate_scan_optimization(gate, intermediate_variables, num_witness);
+        // The last optimization to do is to create intermediate variables in order to flatten the fan-in and the amount of mul terms
         // If a gate has more than one mul term. We may need an intermediate variable for each one. Since not every variable will need to link to
         // the mul term, we could possibly do it that way.
-        // We wil call this a partial gate scan optimisation which will result in the gates being able to fit into the correct width
+        // We wil call this a partial gate scan optimization which will result in the gates being able to fit into the correct width
         let mut gate =
-            self.partial_gate_scan_optimisation(gate, intermediate_variables, num_witness);
+            self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness);
         gate.sort();
         gate
     }
 
-    // This optimisation will search for combinations of terms which can be represented in a single arithmetic gate
+    // This optimization will search for combinations of terms which can be represented in a single arithmetic gate
     // Case 1 : qM * wL * wR + qL * wL + qR * wR + qO * wO + qC
-    // This polynomial does not require any further optimisations, it can be safely represented in one gate
+    // This polynomial does not require any further optimizations, it can be safely represented in one gate
     // ie a polynomial with 1 mul(bi-variate) term and 3 (univariate) terms where 2 of those terms match the bivariate term
     // wL and wR, we can represent it in one gate
-    // GENERALISED for WIDTH: instead of the number 3, we use `WIDTH`
+    // GENERALIZED for WIDTH: instead of the number 3, we use `WIDTH`
     //
     //
     // Case 2: qM * wL * wR + qL * wL + qR * wR + qO * wO + qC + qM2 * wL2 * wR2 + qL * wL2 + qR * wR2 + qO * wO2 + qC2
@@ -65,7 +65,7 @@ impl CSatTransformer {
     // The polynomial now looks like so t + t2
     // We can no longer extract another full gate, hence the algorithm terminates. Creating two intermediate variables t and t2.
     // This stage of preprocessing does not guarantee that all polynomials can fit into a gate. It only guarantees that all full gates have been extracted from each polynomial
-    fn full_gate_scan_optimisation(
+    fn full_gate_scan_optimization(
         &self,
         mut gate: Expression,
         intermediate_variables: &mut IndexMap<Witness, Expression>,
@@ -74,11 +74,11 @@ impl CSatTransformer {
         // We pass around this intermediate variable IndexMap, so that we do not create intermediate variables that we have created before
         // One instance where this might happen is t1 = wL * wR and t2 = wR * wL
 
-        // First check that this is not a simple gate which does not need optimisation
+        // First check that this is not a simple gate which does not need optimization
         //
-        // If the gate only has one mul term, then this algorithm cannot optimise it any further
+        // If the gate only has one mul term, then this algorithm cannot optimize it any further
         // Either it can be represented in a single arithmetic equation or it's fan-in is too large and we need intermediate variables for those
-        // large-fan-in optimisation is not this algorithms purpose.
+        // large-fan-in optimization is not this algorithms purpose.
         // If the gate has 0 mul terms, then it is an add gate and similarly it can either fit into a single arithmetic gate or it has a large fan-in
         if gate.mul_terms.len() <= 1 {
             return gate;
@@ -98,7 +98,7 @@ impl CSatTransformer {
 
             // Check if this pair is present in the simplified fan-in
             // We are assuming that the fan-in/fan-out has been simplified.
-            // Note this function is not public, and can only be called within the optimise method, so this guarantee will always hold
+            // Note this function is not public, and can only be called within the optimize method, so this guarantee will always hold
             let index_wl = gate
                 .linear_combinations
                 .iter()
@@ -157,15 +157,15 @@ impl CSatTransformer {
                             // Add this element into the new gate
                             intermediate_gate.linear_combinations.push(wire_term);
                         } else {
-                            // Nomore elements left in the old gate, we could stop the whole function
-                            // We could alternative let it keep going, as it will never reach this branch again since there are nomore elements left
-                            // XXX: Future optimisation
-                            // nomoreleft = true
+                            // No more elements left in the old gate, we could stop the whole function
+                            // We could alternative let it keep going, as it will never reach this branch again since there are no more elements left
+                            // XXX: Future optimization
+                            // no_more_left = true
                         }
                     }
                     // Constraint this intermediate_gate to be equal to the temp variable by adding it into the IndexMap
                     // We need a unique name for our intermediate variable
-                    // XXX: Another optimisation, which could be applied in another algorithm
+                    // XXX: Another optimization, which could be applied in another algorithm
                     // If two gates have a large fan-in/out and they share a few common terms, then we should create intermediate variables for them
                     // Do some sort of subset matching algorithm for this on the terms of the polynomial
                     let inter_var = Witness(intermediate_variables.len() as u32 + num_witness);
@@ -197,16 +197,16 @@ impl CSatTransformer {
         new_gate
     }
 
-    // A partial gate scan optimisation aim to create intermediate variables in order to compress the polynomial
+    // A partial gate scan optimization aim to create intermediate variables in order to compress the polynomial
     // So that it fits within the given width
-    // Note that this gate follows the full gate scan optimisation.
+    // Note that this gate follows the full gate scan optimization.
     // We define the partial width as equal to the full width - 2.
     // This is because two of our variables cannot be used as they are linked to the multiplication terms
     // Example: qM1 * wL1 * wR2 + qL1 * wL3 + qR1 * wR4+ qR2 * wR5 + qO1 * wO5 + qC
     // One thing to note is that the multiplication wires do not match any of the fan-in/out wires. This is guaranteed as we have
-    // just completed the full gate optimisation algorithm.
+    // just completed the full gate optimization algorithm.
     //
-    //Actually we can optimise in two ways here: We can create an intermediate variable which is equal to the fan-in terms
+    //Actually we can optimize in two ways here: We can create an intermediate variable which is equal to the fan-in terms
     // t = qL1 * wL3 + qR1 * wR4 -> width = 3
     // This `t` value can only use width - 1 terms
     // The gate now looks like: qM1 * wL1 * wR2 + t + qR2 * wR5+ qO1 * wO5 + qC
@@ -229,12 +229,12 @@ impl CSatTransformer {
     // The gate now looks like: t2 + qR1 * wR4+ qR2 * wR5 + qO1 * wO5 + qC
     // t3 = t2 + qR1 * wR4
     // The gate now looks like: t3 + qR2 * wR5 + qO1 * wO5 + qC
-    // This took the same amount of gates, but which one is better when the width increases? Compute this and maybe do both optimisations
+    // This took the same amount of gates, but which one is better when the width increases? Compute this and maybe do both optimizations
     // naming : partial_gate_mul_first_opt and partial_gate_fan_first_opt
     // Also remember that since we did full gate scan, there is no way we can have a non-zero mul term along with the wL and wR terms being non-zero
     //
     // Cases, a lot of mul terms, a lot of fan-in terms, 50/50
-    fn partial_gate_scan_optimisation(
+    fn partial_gate_scan_optimization(
         &self,
         mut gate: Expression,
         intermediate_variables: &mut IndexMap<Witness, Expression>,
@@ -243,7 +243,7 @@ impl CSatTransformer {
         // We will go for the easiest route, which is to convert all multiplications into additions using intermediate variables
         // Then use intermediate variables again to squash the fan-in, so that it can fit into the appropriate width
 
-        // First check if this polynomial actually needs a partial gate optimisation
+        // First check if this polynomial actually needs a partial gate optimization
         // There is the chance that it fits perfectly within the arithmetic gate
         if gate.fits_in_one_identity(self.width) {
             return gate;
@@ -316,7 +316,7 @@ impl CSatTransformer {
         // keep consistency with the original equation.
         gate.linear_combinations.extend(added);
 
-        self.partial_gate_scan_optimisation(gate, intermediate_variables, num_witness)
+        self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness)
     }
 }
 
@@ -343,9 +343,9 @@ fn simple_reduction_smoke_test() {
 
     let num_witness = 4;
 
-    let optimiser = CSatTransformer::new(3);
-    let got_optimised_gate_a =
-        optimiser.transform(gate_a, &mut intermediate_variables, num_witness);
+    let optimizer = CSatTransformer::new(3);
+    let got_optimized_gate_a =
+        optimizer.transform(gate_a, &mut intermediate_variables, num_witness);
 
     // a = b + c + d => a - b - c - d = 0
     // For width3, the result becomes:
@@ -354,7 +354,7 @@ fn simple_reduction_smoke_test() {
     //
     // a - b + e = 0
     let e = Witness(4);
-    let expected_optimised_gate_a = Expression {
+    let expected_optimized_gate_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -363,7 +363,7 @@ fn simple_reduction_smoke_test() {
         ],
         q_c: FieldElement::zero(),
     };
-    assert_eq!(expected_optimised_gate_a, got_optimised_gate_a);
+    assert_eq!(expected_optimized_gate_a, got_optimized_gate_a);
 
     assert_eq!(intermediate_variables.len(), 1);
 
