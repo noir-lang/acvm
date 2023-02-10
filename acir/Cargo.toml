@@ -1,10 +1,11 @@
 [package]
 name = "acir"
-version = "0.4.1"
-authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
-edition = "2021"
-license = "MIT"
 description = "ACIR is the IR that the VM processes, it is analogous to LLVM IR"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
