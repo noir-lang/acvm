@@ -6,3 +6,7 @@ ACIR is an NP complete language that generalizes R1CS and arithmetic circuits wh
 
 This can be seen as the ACIR compiler. It will take an ACIR instance and convert it to the format required 
 by a particular proving system to create a proof.
+
+## Minimum Rust version
+
+This crate's minimum supported rustc version is 1.66.0.
