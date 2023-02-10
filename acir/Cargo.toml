@@ -11,7 +11,8 @@ rust-version.workspace = true
 
 [dependencies]
 acir_field.workspace = true
-serde = { version = "1.0.136", features = ["derive"] }
+serde.workspace = true
+
 rmp-serde = "1.1.0"
 flate2 = "1.0.24"
 
