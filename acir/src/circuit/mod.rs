@@ -1,10 +1,10 @@
-pub mod blackbox_functions;
+pub mod black_box_functions;
 pub mod directives;
 pub mod opcodes;
 pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
-use crate::serialisation::{read_u32, write_u32};
+use crate::serialization::{read_u32, write_u32};
 use rmp_serde;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +27,7 @@ impl Circuit {
     }
 
     #[deprecated(
-        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi). use `read` instead"
+        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi). use `read` instead"
     )]
     pub fn from_bytes(bytes: &[u8]) -> Circuit {
         let mut deflater = DeflateDecoder::new(bytes);
@@ -37,7 +37,7 @@ impl Circuit {
     }
 
     #[deprecated(
-        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi).use `write` instead"
+        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi).use `write` instead"
     )]
     pub fn to_bytes(&self) -> Vec<u8> {
         let buf = rmp_serde::to_vec(&self).unwrap();
@@ -69,7 +69,7 @@ impl Circuit {
         // TODO (Note): we could use semver versioning from the Cargo.toml
         // here and then reject anything that has a major bump
         //
-        // We may also not want to do that if we do not want to couple serialisation
+        // We may also not want to do that if we do not want to couple serialization
         // with other breaking changes
         if version_number != VERSION_NUMBER {
             return Err(std::io::ErrorKind::InvalidData.into());
@@ -178,7 +178,7 @@ mod test {
     }
 
     #[test]
-    fn serialisation_roundtrip() {
+    fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode()],

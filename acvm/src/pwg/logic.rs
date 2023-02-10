@@ -59,10 +59,12 @@ impl LogicSolver {
 }
 // TODO: Is there somewhere else that we can put this?
 // TODO: extraction methods are needed for some opcodes like logic and range
-pub(crate) fn extract_input_output(gc: &BlackBoxFuncCall) -> (Witness, Witness, Witness, u32) {
-    let a = &gc.inputs[0];
-    let b = &gc.inputs[1];
-    let result = &gc.outputs[0];
+pub(crate) fn extract_input_output(
+    bb_func_call: &BlackBoxFuncCall,
+) -> (Witness, Witness, Witness, u32) {
+    let a = &bb_func_call.inputs[0];
+    let b = &bb_func_call.inputs[1];
+    let result = &bb_func_call.outputs[0];
 
     // The num_bits variable should be the same for all witnesses
     assert_eq!(

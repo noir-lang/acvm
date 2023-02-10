@@ -1,5 +1,5 @@
 use crate::native_types::{Linear, Witness};
-use crate::serialisation::{read_field_element, read_u32, write_bytes, write_u32};
+use crate::serialization::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -17,7 +17,7 @@ use super::witness::UnknownWitness;
 // XXX: If we allow the degree of the quotient polynomial to be arbitrary, then we will need a vector of wire values
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Expression {
-    // To avoid having to create intermediate variables pre-optimisation
+    // To avoid having to create intermediate variables pre-optimization
     // We collect all of the multiplication terms in the arithmetic gate
     // A multiplication term if of the form q_M * wL * wR
     // Hence this vector represents the following sum: q_M1 * wL1 * wR1 + q_M2 * wL2 * wR2 + .. +
@@ -448,7 +448,7 @@ impl Expression {
         // A polynomial whose mul terms are non zero which do not match up with two terms in the fan-in cannot fit into one gate
         // An example of this is: Axy + Bx + Cy + ...
         // Notice how the bivariate monomial xy has two univariate monomials with their respective coefficients
-        // XXX: note that if x or y is zero, then we could apply a further optimisation, but this would be done in another algorithm.
+        // XXX: note that if x or y is zero, then we could apply a further optimization, but this would be done in another algorithm.
         // It would be the same as when we have zero coefficients - Can only work if wire is constrained to be zero publicly
         let mul_term = &self.mul_terms[0];
 
@@ -478,7 +478,7 @@ impl Expression {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     // Empty expression
     //
     let expr = Expression::default();

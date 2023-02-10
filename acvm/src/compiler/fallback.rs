@@ -51,12 +51,13 @@ pub fn fallback(acir: Circuit, is_supported: IsBlackBoxSupported) -> Result<Circ
 }
 
 fn opcode_fallback(
-    gc: &BlackBoxFuncCall,
+    bb_func_call: &BlackBoxFuncCall,
     current_witness_idx: u32,
 ) -> Result<(u32, Vec<Opcode>), CompileError> {
-    let (updated_witness_index, opcodes_fallback) = match gc.name {
+    let (updated_witness_index, opcodes_fallback) = match bb_func_call.name {
         BlackBoxFunc::AND => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+            let (lhs, rhs, result, num_bits) =
+                crate::pwg::logic::extract_input_output(bb_func_call);
             stdlib::fallback::and(
                 Expression::from(&lhs),
                 Expression::from(&rhs),
@@ -66,7 +67,8 @@ fn opcode_fallback(
             )
         }
         BlackBoxFunc::XOR => {
-            let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+            let (lhs, rhs, result, num_bits) =
+                crate::pwg::logic::extract_input_output(bb_func_call);
             stdlib::fallback::xor(
                 Expression::from(&lhs),
                 Expression::from(&rhs),
@@ -78,7 +80,7 @@ fn opcode_fallback(
         BlackBoxFunc::RANGE => {
             // TODO: add consistency checks in one place
             // TODO: we aren't checking that range gate should have one input
-            let input = &gc.inputs[0];
+            let input = &bb_func_call.inputs[0];
             // Note there are no outputs because range produces no outputs
             stdlib::fallback::range(
                 Expression::from(&input.witness),
@@ -87,7 +89,7 @@ fn opcode_fallback(
             )
         }
         _ => {
-            return Err(CompileError::UnsupportedBlackBox(gc.name));
+            return Err(CompileError::UnsupportedBlackBox(bb_func_call.name));
         }
     };
 

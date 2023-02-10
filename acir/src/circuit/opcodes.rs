@@ -1,8 +1,8 @@
 use std::io::{Read, Write};
 
-use super::directives::Directive;
+use super::directives::{Directive, LogInfo};
 use crate::native_types::{Expression, Witness};
-use crate::serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
+use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
@@ -25,7 +25,7 @@ impl Opcode {
     }
     // We have three types of opcodes allowed in the IR
     // Expression, BlackBoxFuncCall and Directives
-    // When we serialise these opcodes, we use the index
+    // When we serialize these opcodes, we use the index
     // to uniquely identify which category of opcode we are dealing with.
     pub(crate) fn to_index(&self) -> u8 {
         match self {
@@ -164,6 +164,33 @@ impl std::fmt::Display for Opcode {
                     b.last().unwrap().witness_index(),
                 )
             }
+            Opcode::Directive(Directive::PermutationSort {
+                inputs: a,
+                tuple,
+                bits,
+                sort_by,
+            }) => {
+                write!(f, "DIR::PERMUTATIONSORT ")?;
+                write!(
+                    f,
+                    "(permutation size: {} {}-tuples, sort_by: {:#?}, bits: [_{}..._{}]))",
+                    a.len(),
+                    tuple,
+                    sort_by,
+                    // (Note): the bits do not have contiguous index but there are too many for display
+                    bits.first().unwrap().witness_index(),
+                    bits.last().unwrap().witness_index(),
+                )
+            }
+            Opcode::Directive(Directive::Log(info)) => match info {
+                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
+                LogInfo::WitnessOutput(witnesses) => write!(
+                    f,
+                    "Log: _{}..._{}",
+                    witnesses.first().unwrap().witness_index(),
+                    witnesses.last().unwrap().witness_index()
+                ),
+            },
         }
     }
 }
@@ -326,7 +353,7 @@ impl std::fmt::Debug for BlackBoxFuncCall {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
         opcode.write(&mut bytes).unwrap();
@@ -336,7 +363,7 @@ fn serialisation_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_blackbox_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
+    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
         name: BlackBoxFunc::AES,
         inputs: vec![
             FunctionInput {
@@ -356,7 +383,7 @@ fn serialisation_roundtrip() {
         result: Witness(56789u32),
     });
 
-    let opcodes = vec![opcode_arith, opcode_blackbox_func, opcode_directive];
+    let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
 
     for opcode in opcodes {
         let (op, got_op) = read_write(opcode);
