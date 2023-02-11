@@ -21,6 +21,7 @@ pub enum BlackBoxFunc {
     HashToField128Security,
     EcdsaSecp256k1,
     FixedBaseScalarMul,
+    Keccak256,
 }
 
 impl std::fmt::Display for BlackBoxFunc {
@@ -44,6 +45,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::AND => 9,
             BlackBoxFunc::XOR => 10,
             BlackBoxFunc::RANGE => 11,
+            BlackBoxFunc::Keccak256 => 12,
         }
     }
     pub fn from_u16(index: u16) -> Option<Self> {
@@ -60,6 +62,7 @@ impl BlackBoxFunc {
             9 => BlackBoxFunc::AND,
             10 => BlackBoxFunc::XOR,
             11 => BlackBoxFunc::RANGE,
+            12 => BlackBoxFunc::Keccak256,
             _ => return None,
         };
         Some(function)
@@ -78,6 +81,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::AND => "and",
             BlackBoxFunc::XOR => "xor",
             BlackBoxFunc::RANGE => "range",
+            BlackBoxFunc::Keccak256 => "keccak256",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -94,6 +98,7 @@ impl BlackBoxFunc {
             "and" => Some(BlackBoxFunc::AND),
             "xor" => Some(BlackBoxFunc::XOR),
             "range" => Some(BlackBoxFunc::RANGE),
+            "keccak256" => Some(BlackBoxFunc::Keccak256),
             _ => None,
         }
     }
@@ -161,6 +166,11 @@ impl BlackBoxFunc {
                 name,
                 input_size: InputSize::Fixed(1),
                 output_size: OutputSize(0),
+            },
+            BlackBoxFunc::Keccak256 => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize(32),
             },
         }
     }
