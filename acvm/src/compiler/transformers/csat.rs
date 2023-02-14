@@ -6,35 +6,30 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-use super::general_optimizer::GeneralOpt;
-// Optimizer struct with all of the related optimizations to the arithmetic gate
-
 // Is this more of a Reducer than an optimizer?
 // Should we give it all of the gates?
-// Have a single optimizer that you instantiate with a width, then pass many gates through
-pub struct Optimizer {
+// Have a single transformer that you instantiate with a width, then pass many gates through
+pub struct CSatTransformer {
     width: usize,
 }
 
-impl Optimizer {
-    // Configure the width for the Optimizer
-    pub fn new(width: usize) -> Optimizer {
+impl CSatTransformer {
+    // Configure the width for the optimizer
+    pub fn new(width: usize) -> CSatTransformer {
         assert!(width > 2);
 
-        Optimizer { width }
+        CSatTransformer { width }
     }
 
     // Still missing dead witness optimization.
     // To do this, we will need the whole set of arithmetic gates
     // I think it can also be done before the local optimization seen here, as dead variables will come from the user
-    pub fn optimize(
+    pub fn transform(
         &self,
         gate: Expression,
         intermediate_variables: &mut IndexMap<Witness, Expression>,
         num_witness: u32,
     ) -> Expression {
-        let gate = GeneralOpt::optimize(gate);
-
         // Here we create intermediate variables and constrain them to be equal to any subset of the polynomial that can be represented as a full gate
         let gate = self.full_gate_scan_optimization(gate, intermediate_variables, num_witness);
         // The last optimization to do is to create intermediate variables in order to flatten the fan-in and the amount of mul terms
@@ -348,8 +343,9 @@ fn simple_reduction_smoke_test() {
 
     let num_witness = 4;
 
-    let optimizer = Optimizer::new(3);
-    let got_optimized_gate_a = optimizer.optimize(gate_a, &mut intermediate_variables, num_witness);
+    let optimizer = CSatTransformer::new(3);
+    let got_optimized_gate_a =
+        optimizer.transform(gate_a, &mut intermediate_variables, num_witness);
 
     // a = b + c + d => a - b - c - d = 0
     // For width3, the result becomes:

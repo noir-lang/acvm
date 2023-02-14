@@ -214,7 +214,7 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
 // by knowing the np complete language
 pub fn default_is_black_box_supported(
     language: Language,
-) -> compiler::fallback::IsBlackBoxSupported {
+) -> compiler::transformers::IsBlackBoxSupported {
     // R1CS does not support any of the black box functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
     fn r1cs_is_supported(_opcode: &BlackBoxFunc) -> bool {
