@@ -163,7 +163,7 @@ pub trait ProofSystemCompiler {
     fn verify_from_cs(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: Circuit,
     ) -> bool;
 
@@ -181,7 +181,7 @@ pub trait ProofSystemCompiler {
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: Circuit,
         verification_key: Vec<u8>,
     ) -> bool;
