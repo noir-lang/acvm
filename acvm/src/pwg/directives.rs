@@ -102,7 +102,7 @@ pub fn solve_directives(
                     return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                 }
 
-                for (i, witness) in b.into_iter().enumerate() {
+                for (i, witness) in b.iter().enumerate() {
                     // Fetch the `i'th` digit from the decomposed integer list
                     // and convert it to a field element.
                     // If it is not available, which can happen when the decomposed integer
@@ -123,7 +123,7 @@ pub fn solve_directives(
                 // add the decompsed interger list to the witness list.
                 let padding_len = b.len() - decomposed_integer.len();
                 let mut value = FieldElement::zero();
-                for (i, witness) in b.into_iter().enumerate() {
+                for (i, witness) in b.iter().enumerate() {
                     if i >= padding_len {
                         value = match decomposed_integer.get(i - padding_len) {
                             Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
