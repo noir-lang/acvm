@@ -1,6 +1,6 @@
 # ACIR - Abstract Circuit Intermediate Representation
 
-ACIR is an NP complete language that generalises R1CS and arithmetic circuits while not losing proving system specific optimisations through the use of black box functions.
+ACIR is an NP complete language that generalizes R1CS and arithmetic circuits while not losing proving system specific optimizations through the use of black box functions.
 
 # ACVM - Abstract Circuit Virtual Machine
 

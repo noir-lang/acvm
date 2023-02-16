@@ -1,9 +1,9 @@
 use crate::helpers::VariableStore;
 use acir::{
+    acir_field::FieldElement,
     circuit::{directives::Directive, Opcode},
     native_types::{Expression, Witness},
 };
-use acir_field::FieldElement;
 
 // Perform bit decomposition on the provided expression
 #[deprecated(note = "use bit_decomposition function instead")]
@@ -69,7 +69,7 @@ pub(crate) fn bit_decomposition(
     bit_decomp_constraint.sort(); // TODO: we have an issue open to check if this is needed. Ideally, we remove it.
     new_gates.push(Opcode::Arithmetic(bit_decomp_constraint));
 
-    (new_gates, bit_vector, variables.finalise())
+    (new_gates, bit_vector, variables.finalize())
 }
 
 // Range constraint
@@ -141,7 +141,7 @@ pub fn xor(
     let two = FieldElement::from(2_i128);
 
     // Build an xor expression
-    // TODO: check this is the correct arithmetisation
+    // TODO: check this is the correct arithmetization
     let mut xor_expr = Expression::default();
     for (a_bit, b_bit) in a_bits.into_iter().zip(b_bits) {
         xor_expr.term_addition(two_pow, a_bit);

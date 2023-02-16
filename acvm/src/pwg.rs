@@ -11,11 +11,12 @@ use std::collections::BTreeMap;
 pub mod arithmetic;
 // Directives
 pub mod directives;
-// blackbox functions
+// black box functions
 pub mod hash;
 pub mod logic;
 pub mod range;
 pub mod signature;
+pub mod sorting;
 
 // Returns the concrete value for a particular witness
 // If the witness has no assignment, then
