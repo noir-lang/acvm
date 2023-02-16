@@ -183,7 +183,7 @@ pub fn solve_directives(
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
                 let log_value = witness_to_value(initial_witness, *witness)?;
-                println!("{}", log_value.to_hex());
+                println!("{}", format_field_string(*log_value));
 
                 return Ok(());
             }
@@ -196,11 +196,11 @@ pub fn solve_directives(
             let mut elements_as_hex = Vec::with_capacity(witnesses.len());
             for witness in witnesses {
                 let element = witness_to_value(initial_witness, *witness)?;
-                elements_as_hex.push(element.to_hex());
+                elements_as_hex.push(format_field_string(*element));
             }
 
             // Join all of the hex strings using a comma
-            let comma_separated_elements = elements_as_hex.join(",");
+            let comma_separated_elements = elements_as_hex.join(", ");
 
             let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
 
@@ -227,4 +227,16 @@ fn insert_witness(
         }
     }
     Ok(())
+}
+
+/// This trims any leading zeroes.
+/// A singular '0' will be prepended as well if the trimmed string has an odd length.
+/// A hex string's length needs to be even to decode into bytes, as two digits correspond to
+/// one byte.
+fn format_field_string(field: FieldElement) -> String {
+    let mut trimmed_field = field.to_hex().trim_start_matches('0').to_owned();
+    if trimmed_field.len() % 2 != 0 {
+        trimmed_field = "0".to_owned() + &trimmed_field
+    };
+    "0x".to_owned() + &trimmed_field
 }
