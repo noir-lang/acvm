@@ -164,7 +164,7 @@ pub trait ProofSystemCompiler {
     /// These keys can then be used to construct a proof and for its verification
     fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>);
 
-    /// Creates a Proof given the circuit description and the witness values.
+    /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     fn prove_with_pk(
@@ -174,7 +174,7 @@ pub trait ProofSystemCompiler {
         proving_key: Vec<u8>,
     ) -> Vec<u8>;
 
-    /// Verifies a Proof, given the circuit description.
+    /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
     fn verify_with_vk(
         &self,
         proof: &[u8],
