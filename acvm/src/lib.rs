@@ -31,8 +31,6 @@ pub enum OpcodeNotSolvable {
     MissingAssignment(u32),
     #[error("expression has too many unknowns {0}")]
     ExpressionHasTooManyUnknowns(Expression),
-    #[error("compiler error: unreachable code")]
-    UnreachableCode,
 }
 
 #[derive(PartialEq, Eq, Debug, Error)]
