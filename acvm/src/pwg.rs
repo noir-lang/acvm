@@ -64,3 +64,26 @@ pub fn get_value(
 
     Ok(result)
 }
+
+// Inserts `value` into the initial witness map
+// under the key of `witness`.
+// Returns an error, if there was already a value in the map
+// which does not match the value that one is about to insert
+fn insert_value(
+    witness: &Witness,
+    value_to_insert: FieldElement,
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+) -> Result<(), OpcodeResolutionError> {
+    let optional_old_value = initial_witness.insert(*witness, value_to_insert);
+
+    let old_value = match optional_old_value {
+        Some(old_value) => old_value,
+        None => return Ok(()),
+    };
+
+    if old_value != value_to_insert {
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+    }
+
+    Ok(())
+}

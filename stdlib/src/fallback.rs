@@ -42,6 +42,7 @@ pub(crate) fn bit_decomposition(
         a: gate.clone(),
         b: bit_vector.clone(),
         radix: 2,
+        is_little_endian: true,
     }));
 
     // Now apply constraints to the bits such that they are the bit decomposition
