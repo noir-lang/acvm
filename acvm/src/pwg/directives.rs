@@ -237,6 +237,6 @@ fn format_field_string(field: FieldElement) -> String {
     let mut trimmed_field = field.to_hex().trim_start_matches('0').to_owned();
     if trimmed_field.len() % 2 != 0 {
         trimmed_field = "0".to_owned() + &trimmed_field
-    };
+    }
     "0x".to_owned() + &trimmed_field
 }
