@@ -113,10 +113,10 @@ pub fn solve_directives(
                                 ))
                             }
                         };
-                    };
+                    }
                     insert_value(witness, value, initial_witness)?
                 }
-            };
+            }
 
             Ok(())
         }
