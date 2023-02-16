@@ -10,8 +10,7 @@ use num_traits::{One, Zero};
 
 use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
-use super::{get_value, sorting::route, insert_value,witness_to_value};
-
+use super::{get_value, insert_value, sorting::route, witness_to_value};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -137,18 +136,6 @@ pub fn solve_directives(
                     }
                     insert_value(witness, value, initial_witness)?
                 }
-            let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let a_dec = a_big.to_radix_le(*radix);
-            if b.len() < a_dec.len() {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-            for i in 0..b.len() {
-                let v = if i < a_dec.len() {
-                    FieldElement::from_be_bytes_reduce(&[a_dec[i]])
-                } else {
-                    FieldElement::zero()
-                };
-                insert_witness(b[i], v, initial_witness)?;
             }
 
             Ok(())
