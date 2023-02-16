@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use flate2::bufread::{DeflateDecoder, DeflateEncoder};
 use flate2::Compression;
+use std::collections::BTreeSet;
 use std::io::prelude::*;
 
 const VERSION_NUMBER: u32 = 0;
@@ -80,10 +81,10 @@ impl Circuit {
         let current_witness_index = read_u32(&mut reader)?;
 
         let num_public_inputs = read_u32(&mut reader)?;
-        let mut public_inputs = PublicInputs(Vec::with_capacity(num_public_inputs as usize));
+        let mut public_inputs = PublicInputs(BTreeSet::new());
         for _ in 0..num_public_inputs {
             let public_input_index = Witness(read_u32(&mut reader)?);
-            public_inputs.0.push(public_input_index)
+            public_inputs.0.insert(public_input_index);
         }
 
         let num_opcodes = read_u32(&mut reader)?;
@@ -127,7 +128,7 @@ impl std::fmt::Debug for Circuit {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct PublicInputs(pub Vec<Witness>);
+pub struct PublicInputs(pub BTreeSet<Witness>);
 
 impl PublicInputs {
     /// Returns the witness index of each public input
@@ -145,6 +146,8 @@ impl PublicInputs {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeSet;
+
     use super::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode, PublicInputs,
@@ -184,7 +187,7 @@ mod test {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode()],
-            public_inputs: PublicInputs(vec![Witness(2), Witness(12)]),
+            public_inputs: PublicInputs(BTreeSet::from([Witness(2), Witness(12)])),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -211,7 +214,7 @@ mod test {
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(vec![Witness(2)]),
+            public_inputs: PublicInputs(BTreeSet::from([Witness(2)])),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
@@ -233,7 +236,7 @@ mod test {
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(vec![Witness(2)]),
+            public_inputs: PublicInputs(BTreeSet::from([Witness(2)])),
         };
 
         let bytes = circuit.to_bytes();
