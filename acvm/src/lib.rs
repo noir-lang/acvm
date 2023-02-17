@@ -144,24 +144,14 @@ pub trait ProofSystemCompiler {
     // Returns true if the backend supports the selected black box function
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
-    /// Creates a Proof given the circuit description and the witness values.
-    /// It is important to note that the intermediate witnesses for black box functions will not generated
-    /// This is the responsibility of the proof system.
-    ///
-    /// See `SmartContract` regarding the removal of `num_witnesses` and `num_public_inputs`
+    #[deprecated]
     fn prove_with_meta(
         &self,
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8>;
 
-    /// Verifies a Proof, given the circuit description.
-    ///
-    /// XXX: This will be changed in the future to accept a VerifierKey.
-    /// At the moment, the Aztec backend API only accepts a constraint system,
-    /// which is why this is here.
-    ///
-    /// See `SmartContract` regarding the removal of `num_witnesses` and `num_public_inputs`
+    #[deprecated]
     fn verify_from_cs(
         &self,
         proof: &[u8],
@@ -169,10 +159,16 @@ pub trait ProofSystemCompiler {
         circuit: Circuit,
     ) -> bool;
 
+    /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
 
+    /// Generates a proving and verification key given the circuit description
+    /// These keys can then be used to construct a proof and for its verification
     fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>);
 
+    /// Creates a Proof given the circuit description, the initial witness values, and the proving key
+    /// It is important to note that the intermediate witnesses for black box functions will not generated
+    /// This is the responsibility of the proof system.
     fn prove_with_pk(
         &self,
         circuit: Circuit,
@@ -180,6 +176,7 @@ pub trait ProofSystemCompiler {
         proving_key: Vec<u8>,
     ) -> Vec<u8>;
 
+    /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
     fn verify_with_vk(
         &self,
         proof: &[u8],
