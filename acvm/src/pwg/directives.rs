@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use acir::{
-    circuit::directives::{Directive, LogInfo},
+    circuit::directives::{Directive, LogOutputInfo},
     native_types::Witness,
     FieldElement,
 };
@@ -15,13 +15,13 @@ use super::{get_value, insert_value, sorting::route, witness_to_value};
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     directive: &Directive,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<Option<Directive>, OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
             let inverse = val.inverse();
             initial_witness.insert(*result, inverse);
-            Ok(())
+            Ok(None)
         }
         Directive::Quotient {
             a,
@@ -60,7 +60,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::Truncate { a, b, c, bit_size } => {
             let val_a = get_value(a, initial_witness)?;
@@ -82,7 +82,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::ToRadix {
             a,
@@ -138,7 +138,7 @@ pub fn solve_directives(
                 }
             }
 
-            Ok(())
+            Ok(None)
         }
         Directive::OddRange { a, b, r, bit_size } => {
             let val_a = witness_to_value(initial_witness, *a)?;
@@ -164,7 +164,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::PermutationSort {
             inputs: a,
@@ -206,23 +206,30 @@ pub fn solve_directives(
                 };
                 insert_witness(*w, value, initial_witness)?;
             }
-            Ok(())
+            Ok(None)
         }
-        Directive::Log(info) => {
-            let witnesses = match info {
-                LogInfo::FinalizedOutput(output_string) => {
-                    println!("{output_string}");
-                    return Ok(());
+        Directive::Log {
+            is_trace,
+            output_info,
+        } => {
+            let witnesses = match output_info {
+                LogOutputInfo::FinalizedOutput(_) => {
+                    return Ok(Some(directive.clone()));
                 }
-                LogInfo::WitnessOutput(witnesses) => witnesses,
+                LogOutputInfo::WitnessOutput(witnesses) => witnesses,
             };
 
             if witnesses.len() == 1 {
+                dbg!(witnesses.clone());
+
                 let witness = &witnesses[0];
                 let log_value = witness_to_value(initial_witness, *witness)?;
-                println!("{}", format_field_string(*log_value));
 
-                return Ok(());
+                let solved_log_directive = Directive::Log {
+                    is_trace: *is_trace,
+                    output_info: LogOutputInfo::FinalizedOutput(format_field_string(*log_value)),
+                };
+                return Ok(Some(solved_log_directive));
             }
 
             // If multiple witnesses are to be fetched for a log directive,
@@ -241,9 +248,11 @@ pub fn solve_directives(
 
             let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
 
-            println!("{output_witnesses_string}");
-
-            Ok(())
+            let solved_log_directive = Directive::Log {
+                is_trace: *is_trace,
+                output_info: LogOutputInfo::FinalizedOutput(output_witnesses_string),
+            };
+            Ok(Some(solved_log_directive))
         }
     }
 }

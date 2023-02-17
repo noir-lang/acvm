@@ -25,7 +25,7 @@ pub use acir::FieldElement;
 // TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
 // TODO: we could have a error enum for arithmetic failure cases in that module
 // TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(PartialEq, Eq, Debug, Error, Clone)]
 pub enum OpcodeNotSolvable {
     #[error("missing assignment for witness index {0}")]
     MissingAssignment(u32),
@@ -35,7 +35,7 @@ pub enum OpcodeNotSolvable {
     UnreachableCode,
 }
 
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(PartialEq, Eq, Debug, Error, Clone)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(OpcodeNotSolvable),
@@ -59,6 +59,7 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         opcodes: Vec<Opcode>,
+        logs: &mut Vec<Directive>,
     ) -> Result<(), OpcodeResolutionError> {
         if opcodes.is_empty() {
             return Ok(());
@@ -71,7 +72,12 @@ pub trait PartialWitnessGenerator {
                 Opcode::BlackBoxFuncCall(bb_func) => {
                     Self::solve_black_box_function_call(initial_witness, bb_func)
                 }
-                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
+                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive)
+                    .map(|possible_log| {
+                        if let Some(solved_log) = possible_log {
+                            logs.push(solved_log)
+                        }
+                    }),
             };
 
             match resolution {
@@ -87,7 +93,7 @@ pub trait PartialWitnessGenerator {
                 Err(err) => return Err(err),
             }
         }
-        self.solve(initial_witness, unsolved_opcodes)
+        self.solve(initial_witness, unsolved_opcodes, logs)
     }
 
     fn solve_black_box_function_call(
@@ -112,7 +118,7 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<Option<Directive>, OpcodeResolutionError> {
         pwg::directives::solve_directives(initial_witness, directive)
     }
 }

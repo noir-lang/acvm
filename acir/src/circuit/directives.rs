@@ -58,7 +58,10 @@ pub enum Directive {
         bits: Vec<Witness>, // control bits of the network which permutes the inputs into its sorted version
         sort_by: Vec<u32>, // specify primary index to sort by, then the secondary,... For instance, if tuple is 2 and sort_by is [1,0], then a=[(a0,b0),..] is sorted by bi and then ai.
     },
-    Log(LogInfo),
+    Log {
+        is_trace: bool, // This field states whether the log should be further manipulated or simply displayed to standard output
+        output_info: LogOutputInfo,
+    },
 }
 
 impl Directive {
@@ -159,17 +162,23 @@ impl Directive {
                     write_u32(&mut writer, *i)?;
                 }
             }
-            Directive::Log(info) => match info {
-                LogInfo::FinalizedOutput(output_string) => {
-                    write_bytes(&mut writer, output_string.as_bytes())?;
-                }
-                LogInfo::WitnessOutput(witnesses) => {
-                    write_u32(&mut writer, witnesses.len() as u32)?;
-                    for w in witnesses {
-                        write_u32(&mut writer, w.witness_index())?;
+            Directive::Log {
+                is_trace,
+                output_info,
+            } => {
+                write_u32(&mut writer, *is_trace as u32)?;
+                match output_info {
+                    LogOutputInfo::FinalizedOutput(output_string) => {
+                        write_bytes(&mut writer, output_string.as_bytes())?;
+                    }
+                    LogOutputInfo::WitnessOutput(witnesses) => {
+                        write_u32(&mut writer, witnesses.len() as u32)?;
+                        for w in witnesses {
+                            write_u32(&mut writer, w.witness_index())?;
+                        }
                     }
                 }
-            },
+            }
         };
 
         Ok(())
@@ -274,11 +283,12 @@ impl Directive {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-// If values are compile time and/or known during
-// evaluation, we can form an output string during ACIR generation.
-// Otherwise, we must store witnesses whose values will
-// be fetched during the PWG stage.
-pub enum LogInfo {
+/// This info is used when solving the initial witness
+/// If values are compile time and/or known during
+/// evaluation, we can form an output string during ACIR generation.
+/// Otherwise, we must store witnesses whose values will
+/// be fetched during the PWG stage.
+pub enum LogOutputInfo {
     FinalizedOutput(String),
     WitnessOutput(Vec<Witness>),
 }
