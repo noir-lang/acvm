@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use strum_macros::EnumIter;
 
+#[non_exhaustive]
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Debug, Hash, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(EnumIter))]
