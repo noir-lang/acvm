@@ -146,6 +146,7 @@ impl CSatTransformer {
                         }
                         Ordering::Equal => {
                             gate.linear_combinations.remove(x);
+                            intermediate_gate.linear_combinations.pop();
                         }
                     }
 
