@@ -103,10 +103,7 @@ pub trait PartialWitnessGenerator {
     ) -> bool {
         // This call to .any returns true, if any of the witnesses do not have assignments
         // We then use `!`, so it returns false if any of the witnesses do not have assignments
-        !func_call
-            .inputs
-            .iter()
-            .any(|input| !initial_witness.contains_key(&input.witness))
+        !func_call.inputs.iter().any(|input| !initial_witness.contains_key(&input.witness))
     }
 
     fn solve_directives(

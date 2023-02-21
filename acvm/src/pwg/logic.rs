@@ -10,10 +10,7 @@ pub fn solve_logic_opcode(
     match func_call.name {
         BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
         BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
-        _ => Err(OpcodeResolutionError::UnexpectedOpcode(
-            "logic opcode",
-            func_call.name,
-        )),
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.name)),
     }
 }
 
@@ -67,10 +64,7 @@ pub(crate) fn extract_input_output(
     let result = &bb_func_call.outputs[0];
 
     // The num_bits variable should be the same for all witnesses
-    assert_eq!(
-        a.num_bits, b.num_bits,
-        "number of bits specified for each input must be the same"
-    );
+    assert_eq!(a.num_bits, b.num_bits, "number of bits specified for each input must be the same");
 
     let num_bits = a.num_bits;
 

@@ -94,11 +94,7 @@ impl Circuit {
             opcodes.push(opcode)
         }
 
-        Ok(Self {
-            current_witness_index,
-            opcodes,
-            public_inputs,
-        })
+        Ok(Self { current_witness_index, opcodes, public_inputs })
     }
 }
 
@@ -133,10 +129,7 @@ pub struct PublicInputs(pub BTreeSet<Witness>);
 impl PublicInputs {
     /// Returns the witness index of each public input
     pub fn indices(&self) -> Vec<u32> {
-        self.0
-            .iter()
-            .map(|witness| witness.witness_index())
-            .collect()
+        self.0.iter().map(|witness| witness.witness_index()).collect()
     }
 
     pub fn contains(&self, index: usize) -> bool {
@@ -159,14 +152,8 @@ mod test {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::AND,
             inputs: vec![
-                FunctionInput {
-                    witness: Witness(1),
-                    num_bits: 4,
-                },
-                FunctionInput {
-                    witness: Witness(2),
-                    num_bits: 4,
-                },
+                FunctionInput { witness: Witness(1), num_bits: 4 },
+                FunctionInput { witness: Witness(2), num_bits: 4 },
             ],
             outputs: vec![Witness(3)],
         })
@@ -174,10 +161,7 @@ mod test {
     fn range_opcode() -> Opcode {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![FunctionInput {
-                witness: Witness(1),
-                num_bits: 8,
-            }],
+            inputs: vec![FunctionInput { witness: Witness(1), num_bits: 8 }],
             outputs: vec![],
         })
     }
