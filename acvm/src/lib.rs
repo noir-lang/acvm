@@ -160,18 +160,18 @@ pub trait ProofSystemCompiler {
     ) -> bool;
 
     /// Returns the number of gates in a circuit
-    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
 
     /// Generates a proving and verification key given the circuit description
     /// These keys can then be used to construct a proof and for its verification
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>);
+    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>);
 
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     fn prove_with_pk(
         &self,
-        circuit: Circuit,
+        circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: Vec<u8>,
     ) -> Vec<u8>;
@@ -181,7 +181,7 @@ pub trait ProofSystemCompiler {
         &self,
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
+        circuit: &Circuit,
         verification_key: Vec<u8>,
     ) -> bool;
 }
