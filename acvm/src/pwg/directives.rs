@@ -8,9 +8,9 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-use crate::OpcodeResolutionError;
+use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
-use super::{get_value, sorting::route, witness_to_value};
+use super::{get_value, insert_value, sorting::route, witness_to_value};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -23,13 +23,7 @@ pub fn solve_directives(
             initial_witness.insert(*result, inverse);
             Ok(())
         }
-        Directive::Quotient {
-            a,
-            b,
-            q,
-            r,
-            predicate,
-        } => {
+        Directive::Quotient { a, b, q, r, predicate } => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;
 
@@ -84,21 +78,53 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::ToRadix { a, b, radix } => {
-            let val_a = get_value(a, initial_witness)?;
+        Directive::ToRadix { a, b, radix, is_little_endian } => {
+            let value_a = get_value(a, initial_witness)?;
 
-            let a_big = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let a_dec = a_big.to_radix_le(*radix);
-            if b.len() < a_dec.len() {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-            for i in 0..b.len() {
-                let v = if i < a_dec.len() {
-                    FieldElement::from_be_bytes_reduce(&[a_dec[i]])
-                } else {
-                    FieldElement::zero()
-                };
-                insert_witness(b[i], v, initial_witness)?;
+            let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
+
+            if *is_little_endian {
+                // Decompose the integer into its radix digits in little endian form.
+                let decomposed_integer = big_integer.to_radix_le(*radix);
+
+                if b.len() < decomposed_integer.len() {
+                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                }
+
+                for (i, witness) in b.iter().enumerate() {
+                    // Fetch the `i'th` digit from the decomposed integer list
+                    // and convert it to a field element.
+                    // If it is not available, which can happen when the decomposed integer
+                    // list is shorter than the witness list, we return 0.
+                    let value = match decomposed_integer.get(i) {
+                        Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                        None => FieldElement::zero(),
+                    };
+
+                    insert_value(witness, value, initial_witness)?
+                }
+            } else {
+                // Decompose the integer into its radix digits in big endian form.
+                let decomposed_integer = big_integer.to_radix_be(*radix);
+
+                // if it is big endian and the decompoased integer list is shorter
+                // than the witness list, pad the extra part with 0 first then
+                // add the decompsed interger list to the witness list.
+                let padding_len = b.len() - decomposed_integer.len();
+                let mut value = FieldElement::zero();
+                for (i, witness) in b.iter().enumerate() {
+                    if i >= padding_len {
+                        value = match decomposed_integer.get(i - padding_len) {
+                            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                            None => {
+                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                                    OpcodeNotSolvable::UnreachableCode,
+                                ))
+                            }
+                        };
+                    }
+                    insert_value(witness, value, initial_witness)?
+                }
             }
 
             Ok(())
@@ -129,12 +155,7 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::PermutationSort {
-            inputs: a,
-            tuple,
-            bits,
-            sort_by,
-        } => {
+        Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
             let mut val_a = Vec::new();
             let mut base = Vec::new();
             for (i, element) in a.iter().enumerate() {
@@ -162,11 +183,7 @@ pub fn solve_directives(
             let b = val_a.iter().map(|a| *a.last().unwrap()).collect();
             let control = route(base, b);
             for (w, value) in bits.iter().zip(control) {
-                let value = if value {
-                    FieldElement::one()
-                } else {
-                    FieldElement::zero()
-                };
+                let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_witness(*w, value, initial_witness)?;
             }
             Ok(())
@@ -183,7 +200,7 @@ pub fn solve_directives(
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
                 let log_value = witness_to_value(initial_witness, *witness)?;
-                println!("{}", log_value.to_hex());
+                println!("{}", format_field_string(*log_value));
 
                 return Ok(());
             }
@@ -196,11 +213,11 @@ pub fn solve_directives(
             let mut elements_as_hex = Vec::with_capacity(witnesses.len());
             for witness in witnesses {
                 let element = witness_to_value(initial_witness, *witness)?;
-                elements_as_hex.push(element.to_hex());
+                elements_as_hex.push(format_field_string(*element));
             }
 
             // Join all of the hex strings using a comma
-            let comma_separated_elements = elements_as_hex.join(",");
+            let comma_separated_elements = elements_as_hex.join(", ");
 
             let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
 
@@ -227,4 +244,16 @@ fn insert_witness(
         }
     }
     Ok(())
+}
+
+/// This trims any leading zeroes.
+/// A singular '0' will be prepended as well if the trimmed string has an odd length.
+/// A hex string's length needs to be even to decode into bytes, as two digits correspond to
+/// one byte.
+fn format_field_string(field: FieldElement) -> String {
+    let mut trimmed_field = field.to_hex().trim_start_matches('0').to_owned();
+    if trimmed_field.len() % 2 != 0 {
+        trimmed_field = "0".to_owned() + &trimmed_field
+    }
+    "0x".to_owned() + &trimmed_field
 }

@@ -7,7 +7,24 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "component": "root"
+      "component": "root",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.acir.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.acir_field.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.stdlib.version"
+        }
+      ]
     },
     "acir": {
       "component": "acir"

@@ -19,6 +19,7 @@
         "endianness",
         "euclidian",
         "hasher",
+        "keccak",
         "Merkle",
         "OddRange",
         "Pedersen",

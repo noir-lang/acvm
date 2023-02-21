@@ -42,11 +42,12 @@ pub enum Directive {
         bit_size: u32,
     },
 
-    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix
+    //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in either little endian or big endian form
     ToRadix {
         a: Expression,
         b: Vec<Witness>,
         radix: u32,
+        is_little_endian: bool,
     },
 
     // Sort directive, using a sorting network
@@ -91,13 +92,7 @@ impl Directive {
                 write_u32(&mut writer, x.witness_index())?;
                 write_u32(&mut writer, result.witness_index())?;
             }
-            Directive::Quotient {
-                a,
-                b,
-                q,
-                r,
-                predicate,
-            } => {
+            Directive::Quotient { a, b, q, r, predicate } => {
                 a.write(&mut writer)?;
                 b.write(&mut writer)?;
                 write_u32(&mut writer, q.witness_index())?;
@@ -122,20 +117,16 @@ impl Directive {
                 write_u32(&mut writer, r.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::ToRadix { a, b, radix } => {
+            Directive::ToRadix { a, b, radix, is_little_endian } => {
                 a.write(&mut writer)?;
                 write_u32(&mut writer, b.len() as u32)?;
                 for bit in b {
                     write_u32(&mut writer, bit.witness_index())?;
                 }
                 write_u32(&mut writer, *radix)?;
+                write_u32(&mut writer, *is_little_endian as u32)?;
             }
-            Directive::PermutationSort {
-                inputs: a,
-                tuple,
-                bits,
-                sort_by,
-            } => {
+            Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
                 write_u32(&mut writer, *tuple)?;
                 write_u32(&mut writer, a.len() as u32)?;
                 for e in a {
@@ -190,13 +181,7 @@ impl Directive {
                     false => None,
                 };
 
-                Ok(Directive::Quotient {
-                    a,
-                    b,
-                    q,
-                    r,
-                    predicate,
-                })
+                Ok(Directive::Quotient { a, b, q, r, predicate })
             }
             2 => {
                 let a = Expression::read(&mut reader)?;
@@ -222,8 +207,9 @@ impl Directive {
                 }
 
                 let radix = read_u32(&mut reader)?;
+                let is_little_endian = read_u32(&mut reader)?;
 
-                Ok(Directive::ToRadix { a, b, radix })
+                Ok(Directive::ToRadix { a, b, radix, is_little_endian: is_little_endian == 1 })
             }
             6 => {
                 let tuple = read_u32(&mut reader)?;
@@ -247,12 +233,7 @@ impl Directive {
                 for _ in 0..sort_by_len {
                     sort_by.push(read_u32(&mut reader)?);
                 }
-                Ok(Directive::PermutationSort {
-                    inputs: a,
-                    tuple,
-                    bits,
-                    sort_by,
-                })
+                Ok(Directive::PermutationSort { inputs: a, tuple, bits, sort_by })
             }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
@@ -280,10 +261,7 @@ fn serialization_roundtrip() {
         (directive, got_dir)
     }
     // TODO: Find a way to ensure that we include all of the variants
-    let invert = Directive::Invert {
-        x: Witness(10),
-        result: Witness(10),
-    };
+    let invert = Directive::Invert { x: Witness(10), result: Witness(10) };
 
     let quotient_none = Directive::Quotient {
         a: Expression::default(),
@@ -307,17 +285,21 @@ fn serialization_roundtrip() {
         bit_size: 123,
     };
 
-    let odd_range = Directive::OddRange {
-        a: Witness(1u32),
-        b: Witness(2u32),
-        r: Witness(3u32),
-        bit_size: 32,
-    };
+    let odd_range =
+        Directive::OddRange { a: Witness(1u32), b: Witness(2u32), r: Witness(3u32), bit_size: 32 };
 
-    let to_radix = Directive::ToRadix {
+    let to_radix_le = Directive::ToRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
+        is_little_endian: true,
+    };
+
+    let to_radix_be = Directive::ToRadix {
+        a: Expression::default(),
+        b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
+        radix: 4,
+        is_little_endian: false,
     };
 
     let directives = vec![
@@ -326,7 +308,8 @@ fn serialization_roundtrip() {
         quotient_predicate,
         truncate,
         odd_range,
-        to_radix,
+        to_radix_le,
+        to_radix_be,
     ];
 
     for directive in directives {
