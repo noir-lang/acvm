@@ -23,13 +23,7 @@ pub fn solve_directives(
             initial_witness.insert(*result, inverse);
             Ok(())
         }
-        Directive::Quotient {
-            a,
-            b,
-            q,
-            r,
-            predicate,
-        } => {
+        Directive::Quotient { a, b, q, r, predicate } => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;
 
@@ -84,12 +78,7 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::ToRadix {
-            a,
-            b,
-            radix,
-            is_little_endian,
-        } => {
+        Directive::ToRadix { a, b, radix, is_little_endian } => {
             let value_a = get_value(a, initial_witness)?;
 
             let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
@@ -166,12 +155,7 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::PermutationSort {
-            inputs: a,
-            tuple,
-            bits,
-            sort_by,
-        } => {
+        Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
             let mut val_a = Vec::new();
             let mut base = Vec::new();
             for (i, element) in a.iter().enumerate() {
@@ -199,11 +183,7 @@ pub fn solve_directives(
             let b = val_a.iter().map(|a| *a.last().unwrap()).collect();
             let control = route(base, b);
             for (w, value) in bits.iter().zip(control) {
-                let value = if value {
-                    FieldElement::one()
-                } else {
-                    FieldElement::zero()
-                };
+                let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_witness(*w, value, initial_witness)?;
             }
             Ok(())

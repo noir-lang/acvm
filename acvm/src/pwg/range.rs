@@ -25,10 +25,7 @@ pub fn solve_range_opcode(
     // For the range constraint, we know that the input size should be one
     assert_eq!(defined_input_size, 1);
 
-    let input = func_call
-        .inputs
-        .first()
-        .expect("infallible: checked that input size is 1");
+    let input = func_call.inputs.first().expect("infallible: checked that input size is 1");
 
     let w_value = witness_to_value(initial_witness, input.witness)?;
 
