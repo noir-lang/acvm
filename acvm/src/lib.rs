@@ -152,7 +152,7 @@ pub trait ProofSystemCompiler {
     fn verify_from_cs(
         &self,
         proof: &[u8],
-        public_inputs: BTreeMap<Witness, FieldElement>,
+        public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool;
 
