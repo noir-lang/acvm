@@ -58,36 +58,39 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        opcodes: Vec<Opcode>,
+        mut opcodes: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
-        if opcodes.is_empty() {
-            return Ok(());
-        }
-        let mut unsolved_opcodes: Vec<Opcode> = Vec::new();
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        while !opcodes.is_empty() {
+            unresolved_opcodes.clear();
 
-        for opcode in opcodes.into_iter() {
-            let resolution = match &opcode {
-                Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                Opcode::BlackBoxFuncCall(bb_func) => {
-                    Self::solve_black_box_function_call(initial_witness, bb_func)
-                }
-                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
-            };
+            for opcode in &opcodes {
+                let resolution = match opcode {
+                    Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
+                    Opcode::BlackBoxFuncCall(bb_func) => {
+                        Self::solve_black_box_function_call(initial_witness, bb_func)
+                    }
+                    Opcode::Directive(directive) => {
+                        Self::solve_directives(initial_witness, directive)
+                    }
+                };
 
-            match resolution {
-                Ok(_) => {
-                    // We do nothing in the happy case
+                match resolution {
+                    Ok(_) => {
+                        // We do nothing in the happy case
+                    }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        // For opcode not solvable errors, we push those opcodes to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Err(err) => return Err(err),
                 }
-                Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                    // For opcode not solvable errors, we push those opcodes to the back as
-                    // it could be because the opcodes are out of order, ie this assignment
-                    // relies on a later opcodes's results
-                    unsolved_opcodes.push(opcode);
-                }
-                Err(err) => return Err(err),
             }
+            std::mem::swap(&mut opcodes, &mut unresolved_opcodes);
         }
-        self.solve(initial_witness, unsolved_opcodes)
+        Ok(())
     }
 
     fn solve_black_box_function_call(
