@@ -1,12 +1,12 @@
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
-use crate::{pwg::witness_to_value, OpcodeResolutionError};
+use crate::{pwg::witness_to_value, GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     gadget_call: &BlackBoxFuncCall,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<GateResolution, OpcodeResolutionError> {
     let mut inputs_iter = gadget_call.inputs.iter();
 
     let mut pub_key_x = [0u8; 32];
@@ -15,8 +15,11 @@ pub fn secp256k1_prehashed(
             .next()
             .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {i} bytes"));
 
-        let x_i = witness_to_value(initial_witness, _x_i.witness)?;
-        *pkx = *x_i.to_be_bytes().last().unwrap()
+        if let Some(x_i) = witness_to_value(initial_witness, _x_i.witness) {
+            *pkx = *x_i.to_be_bytes().last().unwrap();
+        } else {
+            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(_x_i.witness.0)));
+        }
     }
 
     let mut pub_key_y = [0u8; 32];
@@ -25,8 +28,11 @@ pub fn secp256k1_prehashed(
             .next()
             .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {i} bytes"));
 
-        let y_i = witness_to_value(initial_witness, _y_i.witness)?;
-        *pky = *y_i.to_be_bytes().last().unwrap()
+        if let Some(y_i) = witness_to_value(initial_witness, _y_i.witness) {
+            *pky = *y_i.to_be_bytes().last().unwrap();
+        } else {
+            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(_y_i.witness.0)));
+        }
     }
 
     let mut signature = [0u8; 64];
@@ -35,15 +41,23 @@ pub fn secp256k1_prehashed(
             .next()
             .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {i} bytes"));
 
-        let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-        *sig = *sig_i.to_be_bytes().last().unwrap()
+        if let Some(sig_i) = witness_to_value(initial_witness, _sig_i.witness) {
+            *sig = *sig_i.to_be_bytes().last().unwrap()
+        } else {
+            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
+                _sig_i.witness.0,
+            )));
+        }
     }
 
     let mut hashed_message = Vec::new();
     for msg in inputs_iter {
-        let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
-        let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
-        hashed_message.push(msg_i);
+        if let Some(msg_i_field) = witness_to_value(initial_witness, msg.witness) {
+            let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
+            hashed_message.push(msg_i);
+        } else {
+            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(msg.witness.0)));
+        }
     }
 
     let result =
@@ -56,7 +70,7 @@ pub fn secp256k1_prehashed(
     };
 
     initial_witness.insert(gadget_call.outputs[0], result);
-    Ok(())
+    Ok(GateResolution::Resolved)
 }
 
 mod ecdsa_secp256k1 {

@@ -149,9 +149,21 @@ impl Expression {
         Ok(expr)
     }
 
-    // TODO: possibly rename, since linear can have one mul_term
     pub fn is_linear(&self) -> bool {
         self.mul_terms.is_empty()
+    }
+
+    // Returns a witness belonging to the expression
+    pub fn get_witness(&self) -> Option<Witness> {
+        if self.linear_combinations.is_empty() {
+            if self.mul_terms.is_empty() {
+                None
+            } else {
+                Some(self.mul_terms[0].1)
+            }
+        } else {
+            Some(self.linear_combinations[0].1)
+        }
     }
 
     pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
