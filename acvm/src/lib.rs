@@ -115,6 +115,8 @@ pub trait PartialWitnessGenerator {
 }
 
 pub trait SmartContract {
+    // TODO: Allow a backend to support multiple smart contract platforms
+
     /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
     /// Then returns an Ethereum smart contract
     ///
