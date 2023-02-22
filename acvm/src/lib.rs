@@ -118,12 +118,7 @@ pub trait PartialWitnessGenerator {
 }
 
 pub trait SmartContract {
-    // Takes a verification  key and produces a smart contract
-    // The platform indicator allows a backend to support multiple smart contract platforms
-    //
-    // fn verification_key(&self, platform: u8, vk: &[u8]) -> &[u8] {
-    //     todo!("currently the backend is not configured to use this.")
-    // }
+    // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
     /// Then returns an Ethereum smart contract
@@ -132,7 +127,11 @@ pub trait SmartContract {
     /// This deprecation may happen in two stages:
     /// The first stage will remove `num_witnesses` and `num_public_inputs` parameters.
     /// If we cannot avoid `num_witnesses`, it can be added into the Circuit struct.
+    #[deprecated]
     fn eth_contract_from_cs(&self, circuit: Circuit) -> String;
+
+    /// Returns an Ethereum smart contract to verify proofs against a given verification key.
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
 }
 
 pub trait ProofSystemCompiler {
