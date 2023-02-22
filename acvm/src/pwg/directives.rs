@@ -197,8 +197,6 @@ pub fn solve_directives(
             };
 
             if witnesses.len() == 1 {
-                dbg!(witnesses.clone());
-
                 let witness = &witnesses[0];
                 let log_value = witness_to_value(initial_witness, *witness)?;
 
