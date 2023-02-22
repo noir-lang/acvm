@@ -172,6 +172,8 @@ impl std::fmt::Display for Opcode {
                     LogOutputInfo::FinalizedOutput(output_string) => {
                         write!(f, "Log: {output_string}, log type {is_trace_display}")
                     }
+                    // Note: This assumes that the witnesses have contiguous indices.
+                    // This may not always be the case however we don't want to print out the full vec.
                     LogOutputInfo::WitnessOutput(witnesses) => write!(
                         f,
                         "Log: _{}..._{}, log type: {is_trace_display}",
