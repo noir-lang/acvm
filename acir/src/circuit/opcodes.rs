@@ -85,13 +85,7 @@ impl std::fmt::Display for Opcode {
             Opcode::Arithmetic(expr) => {
                 write!(f, "EXPR [ ")?;
                 for i in &expr.mul_terms {
-                    write!(
-                        f,
-                        "({}, _{}, _{}) ",
-                        i.0,
-                        i.1.witness_index(),
-                        i.2.witness_index()
-                    )?;
+                    write!(f, "({}, _{}, _{}) ", i.0, i.1.witness_index(), i.2.witness_index())?;
                 }
                 for i in &expr.linear_combinations {
                     write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
@@ -118,13 +112,7 @@ impl std::fmt::Display for Opcode {
                     bit_size
                 )
             }
-            Opcode::Directive(Directive::Quotient {
-                a,
-                b,
-                q,
-                r,
-                predicate,
-            }) => {
+            Opcode::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
                     writeln!(f, "PREDICATE = {pred}")?;
@@ -152,12 +140,7 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToRadix {
-                a,
-                b,
-                radix: _,
-                is_little_endian,
-            }) => {
+            Opcode::Directive(Directive::ToRadix { a, b, radix: _, is_little_endian }) => {
                 write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,
@@ -170,12 +153,7 @@ impl std::fmt::Display for Opcode {
                     if *is_little_endian { "little" } else { "big" }
                 )
             }
-            Opcode::Directive(Directive::PermutationSort {
-                inputs: a,
-                tuple,
-                bits,
-                sort_by,
-            }) => {
+            Opcode::Directive(Directive::PermutationSort { inputs: a, tuple, bits, sort_by }) => {
                 write!(f, "DIR::PERMUTATIONSORT ")?;
                 write!(
                     f,
@@ -188,10 +166,7 @@ impl std::fmt::Display for Opcode {
                     bits.last().unwrap().witness_index(),
                 )
             }
-            Opcode::Directive(Directive::Log {
-                is_trace,
-                output_info,
-            }) => {
+            Opcode::Directive(Directive::Log { is_trace, output_info }) => {
                 let is_trace_display = if *is_trace { "trace" } else { "println" };
                 match output_info {
                     LogOutputInfo::FinalizedOutput(output_string) => {
@@ -271,11 +246,7 @@ impl BlackBoxFuncCall {
             outputs.push(witness)
         }
 
-        Ok(BlackBoxFuncCall {
-            name,
-            inputs,
-            outputs,
-        })
+        Ok(BlackBoxFuncCall { name, inputs, outputs })
     }
 }
 
@@ -299,11 +270,8 @@ impl std::fmt::Display for BlackBoxFuncCall {
         let inputs_str = if should_abbreviate_inputs {
             let mut result = String::new();
             for (index, inp) in self.inputs.iter().enumerate() {
-                result += &format!(
-                    "(_{}, num_bits: {})",
-                    inp.witness.witness_index(),
-                    inp.num_bits
-                );
+                result +=
+                    &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
                 // Add a comma, unless it is the last entry
                 if index != self.inputs.len() - 1 {
                     result += ", "
@@ -380,22 +348,14 @@ fn serialization_roundtrip() {
     let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
         name: BlackBoxFunc::AES,
         inputs: vec![
-            FunctionInput {
-                witness: Witness(1u32),
-                num_bits: 12,
-            },
-            FunctionInput {
-                witness: Witness(24u32),
-                num_bits: 32,
-            },
+            FunctionInput { witness: Witness(1u32), num_bits: 12 },
+            FunctionInput { witness: Witness(24u32), num_bits: 32 },
         ],
         outputs: vec![Witness(123u32), Witness(245u32)],
     });
 
-    let opcode_directive = Opcode::Directive(Directive::Invert {
-        x: Witness(1234u32),
-        result: Witness(56789u32),
-    });
+    let opcode_directive =
+        Opcode::Directive(Directive::Invert { x: Witness(1234u32), result: Witness(56789u32) });
 
     let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
 

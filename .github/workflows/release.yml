@@ -18,3 +18,16 @@ jobs:
         uses: google-github-actions/release-please-action@v3
         with:
           command: manifest
+
+  publish:
+    name: Publish crates
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.tag-name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch to publish workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: publish.yml
+          ref: master
+          inputs: '{ "acvm-ref": "${{ needs.release-please.outputs.tag-name }}" }'

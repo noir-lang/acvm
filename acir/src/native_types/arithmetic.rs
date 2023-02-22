@@ -44,11 +44,7 @@ impl std::fmt::Display for Expression {
         if self.mul_terms.is_empty() && self.linear_combinations.len() == 1 && self.q_c.is_zero() {
             write!(f, "x{}", self.linear_combinations[0].1.witness_index())
         } else {
-            write!(
-                f,
-                "%{:?}%",
-                crate::circuit::opcodes::Opcode::Arithmetic(self.clone())
-            )
+            write!(f, "%{:?}%", crate::circuit::opcodes::Opcode::Arithmetic(self.clone()))
         }
     }
 }
@@ -93,10 +89,7 @@ impl Expression {
     }
 
     pub fn from_field(q_c: FieldElement) -> Expression {
-        Self {
-            q_c,
-            ..Default::default()
-        }
+        Self { q_c, ..Default::default() }
     }
 
     pub fn one() -> Expression {
@@ -241,8 +234,7 @@ impl Expression {
     /// Sorts gate in a deterministic order
     /// XXX: We can probably make this more efficient by sorting on each phase. We only care if it is deterministic
     pub fn sort(&mut self) {
-        self.mul_terms
-            .sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+        self.mul_terms.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
         self.linear_combinations.sort_by(|a, b| a.1.cmp(&b.1));
     }
 }
@@ -251,27 +243,17 @@ impl Mul<&FieldElement> for &Expression {
     type Output = Expression;
     fn mul(self, rhs: &FieldElement) -> Self::Output {
         // Scale the mul terms
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .map(|(q_m, w_l, w_r)| (*q_m * *rhs, *w_l, *w_r))
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().map(|(q_m, w_l, w_r)| (*q_m * *rhs, *w_l, *w_r)).collect();
 
         // Scale the linear combinations terms
-        let lin_combinations: Vec<_> = self
-            .linear_combinations
-            .iter()
-            .map(|(q_l, w_l)| (*q_l * *rhs, *w_l))
-            .collect();
+        let lin_combinations: Vec<_> =
+            self.linear_combinations.iter().map(|(q_l, w_l)| (*q_l * *rhs, *w_l)).collect();
 
         // Scale the constant
         let q_c = self.q_c * *rhs;
 
-        Expression {
-            mul_terms,
-            q_c,
-            linear_combinations: lin_combinations,
-        }
+        Expression { mul_terms, q_c, linear_combinations: lin_combinations }
     }
 }
 impl Add<&FieldElement> for Expression {
@@ -280,11 +262,7 @@ impl Add<&FieldElement> for Expression {
         // Increase the constant
         let q_c = self.q_c + *rhs;
 
-        Expression {
-            mul_terms: self.mul_terms,
-            q_c,
-            linear_combinations: self.linear_combinations,
-        }
+        Expression { mul_terms: self.mul_terms, q_c, linear_combinations: self.linear_combinations }
     }
 }
 impl Sub<&FieldElement> for Expression {
@@ -293,11 +271,7 @@ impl Sub<&FieldElement> for Expression {
         // Increase the constant
         let q_c = self.q_c - *rhs;
 
-        Expression {
-            mul_terms: self.mul_terms,
-            q_c,
-            linear_combinations: self.linear_combinations,
-        }
+        Expression { mul_terms: self.mul_terms, q_c, linear_combinations: self.linear_combinations }
     }
 }
 
@@ -306,12 +280,8 @@ impl Add<&Expression> for &Expression {
     fn add(self, rhs: &Expression) -> Expression {
         // XXX(med) : Implement an efficient way to do this
 
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .cloned()
-            .chain(rhs.mul_terms.iter().cloned())
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().cloned().chain(rhs.mul_terms.iter().cloned()).collect();
 
         let linear_combinations: Vec<_> = self
             .linear_combinations
@@ -321,11 +291,7 @@ impl Add<&Expression> for &Expression {
             .collect();
         let q_c = self.q_c + rhs.q_c;
 
-        Expression {
-            mul_terms,
-            linear_combinations,
-            q_c,
-        }
+        Expression { mul_terms, linear_combinations, q_c }
     }
 }
 
@@ -334,24 +300,14 @@ impl Neg for &Expression {
     fn neg(self) -> Self::Output {
         // XXX(med) : Implement an efficient way to do this
 
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .map(|(q_m, w_l, w_r)| (-*q_m, *w_l, *w_r))
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().map(|(q_m, w_l, w_r)| (-*q_m, *w_l, *w_r)).collect();
 
-        let linear_combinations: Vec<_> = self
-            .linear_combinations
-            .iter()
-            .map(|(q_k, w_k)| (-*q_k, *w_k))
-            .collect();
+        let linear_combinations: Vec<_> =
+            self.linear_combinations.iter().map(|(q_k, w_k)| (-*q_k, *w_k)).collect();
         let q_c = -self.q_c;
 
-        Expression {
-            mul_terms,
-            linear_combinations,
-            q_c,
-        }
+        Expression { mul_terms, linear_combinations, q_c }
     }
 }
 
@@ -364,11 +320,7 @@ impl Sub<&Expression> for &Expression {
 
 impl From<&FieldElement> for Expression {
     fn from(constant: &FieldElement) -> Expression {
-        Expression {
-            q_c: *constant,
-            linear_combinations: Vec::new(),
-            mul_terms: Vec::new(),
-        }
+        Expression { q_c: *constant, linear_combinations: Vec::new(), mul_terms: Vec::new() }
     }
 }
 impl From<&Linear> for Expression {
@@ -413,9 +365,7 @@ impl Sub<&UnknownWitness> for &Expression {
     type Output = Expression;
     fn sub(self, rhs: &UnknownWitness) -> Expression {
         let mut cloned = self.clone();
-        cloned
-            .linear_combinations
-            .insert(0, (-FieldElement::one(), rhs.as_witness()));
+        cloned.linear_combinations.insert(0, (-FieldElement::one(), rhs.as_witness()));
         cloned
     }
 }

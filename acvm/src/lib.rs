@@ -109,10 +109,7 @@ pub trait PartialWitnessGenerator {
     ) -> bool {
         // This call to .any returns true, if any of the witnesses do not have assignments
         // We then use `!`, so it returns false if any of the witnesses do not have assignments
-        !func_call
-            .inputs
-            .iter()
-            .any(|input| !initial_witness.contains_key(&input.witness))
+        !func_call.inputs.iter().any(|input| !initial_witness.contains_key(&input.witness))
     }
 
     fn solve_directives(
@@ -124,12 +121,7 @@ pub trait PartialWitnessGenerator {
 }
 
 pub trait SmartContract {
-    // Takes a verification  key and produces a smart contract
-    // The platform indicator allows a backend to support multiple smart contract platforms
-    //
-    // fn verification_key(&self, platform: u8, vk: &[u8]) -> &[u8] {
-    //     todo!("currently the backend is not configured to use this.")
-    // }
+    // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
     /// Then returns an Ethereum smart contract
@@ -138,7 +130,11 @@ pub trait SmartContract {
     /// This deprecation may happen in two stages:
     /// The first stage will remove `num_witnesses` and `num_public_inputs` parameters.
     /// If we cannot avoid `num_witnesses`, it can be added into the Circuit struct.
+    #[deprecated]
     fn eth_contract_from_cs(&self, circuit: Circuit) -> String;
+
+    /// Returns an Ethereum smart contract to verify proofs against a given verification key.
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
 }
 
 pub trait ProofSystemCompiler {
@@ -166,20 +162,20 @@ pub trait ProofSystemCompiler {
     ) -> bool;
 
     /// Returns the number of gates in a circuit
-    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
 
     /// Generates a proving and verification key given the circuit description
     /// These keys can then be used to construct a proof and for its verification
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>);
+    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>);
 
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     fn prove_with_pk(
         &self,
-        circuit: Circuit,
+        circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
-        proving_key: Vec<u8>,
+        proving_key: &[u8],
     ) -> Vec<u8>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
@@ -187,8 +183,8 @@ pub trait ProofSystemCompiler {
         &self,
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
-        verification_key: Vec<u8>,
+        circuit: &Circuit,
+        verification_key: &[u8],
     ) -> bool;
 }
 
