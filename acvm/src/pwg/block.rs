@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use acir::{
-    circuit::opcodes::{BlockId, BlockOp},
+    circuit::opcodes::{BlockId, MemOp},
     native_types::Witness,
     FieldElement,
 };
@@ -23,7 +23,7 @@ impl Blocks {
     pub fn solve(
         &mut self,
         id: BlockId,
-        trace: &[BlockOp],
+        trace: &[MemOp],
         solved_witness: &mut BTreeMap<Witness, FieldElement>,
     ) -> Result<GateResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
@@ -70,7 +70,7 @@ impl BlockSolver {
     pub fn solve(
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        trace: &[BlockOp],
+        trace: &[MemOp],
     ) -> Result<GateResolution, OpcodeResolutionError> {
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
@@ -144,7 +144,7 @@ mod test {
     use std::collections::BTreeMap;
 
     use acir::{
-        circuit::opcodes::{BlockId, BlockOp},
+        circuit::opcodes::{BlockId, MemOp},
         native_types::{Expression, Witness},
         FieldElement,
     };
@@ -156,24 +156,24 @@ mod test {
     #[test]
     fn test_solver() {
         let mut index = FieldElement::zero();
-        let mut trace = vec![BlockOp {
+        let mut trace = vec![MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
             value: Expression::from(&Witness(1)),
         }];
         index += FieldElement::one();
-        trace.push(BlockOp {
+        trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
             value: Expression::from(&Witness(2)),
         });
         index += FieldElement::one();
-        trace.push(BlockOp {
+        trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
             value: Expression::from(&Witness(3)),
         });
-        trace.push(BlockOp {
+        trace.push(MemOp {
             operation: Expression::zero(),
             index: Expression::one(),
             value: Expression::from(&Witness(4)),

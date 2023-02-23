@@ -12,7 +12,7 @@ pub struct BlockId(u32);
 /// Operation on a block
 /// We can either write or read at a block index
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BlockOp {
+pub struct MemOp {
     pub operation: Expression,
     pub index: Expression,
     pub value: Expression,
@@ -23,7 +23,7 @@ pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
-    Block(BlockId, Vec<BlockOp>),
+    Block(BlockId, Vec<MemOp>),
 }
 
 impl Opcode {
@@ -107,7 +107,7 @@ impl Opcode {
                     let operation = Expression::read(&mut reader)?;
                     let index = Expression::read(&mut reader)?;
                     let value = Expression::read(&mut reader)?;
-                    trace.push(BlockOp { operation, index, value });
+                    trace.push(MemOp { operation, index, value });
                 }
                 Ok(Opcode::Block(BlockId(id), trace))
             }
