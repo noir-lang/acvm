@@ -73,7 +73,7 @@ pub trait PartialWitnessGenerator {
             unresolved_gates.clear();
 
             for gate in &gates_to_resolve {
-                let result = match gate {
+                let resolution = match gate {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
                         Self::solve_black_box_function_call(initial_witness, bb_func)
@@ -83,9 +83,16 @@ pub trait PartialWitnessGenerator {
                     }
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 }?;
-                match result {
-                    GateResolution::Skip(_) => unresolved_gates.push(gate.clone()),
-                    GateResolution::Resolved => (),
+                match resolution {
+                    GateResolution::Skip(_) => {
+                        // For opcode not solvable errors, we push those opcodes to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_gates.push(gate.clone())
+                    }
+                    GateResolution::Resolved => {
+                        // We do nothing in the happy case
+                    }
                 }
             }
             std::mem::swap(&mut gates_to_resolve, &mut unresolved_gates);
@@ -179,7 +186,7 @@ pub trait ProofSystemCompiler {
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool;
