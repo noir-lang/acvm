@@ -68,7 +68,7 @@ pub trait PartialWitnessGenerator {
         mut gates_to_resolve: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
         let mut unresolved_gates: Vec<Opcode> = Vec::new();
-        let mut blocker = Blocks::default();
+        let mut blocks = Blocks::default();
         while !gates_to_resolve.is_empty() {
             unresolved_gates.clear();
 
@@ -81,7 +81,7 @@ pub trait PartialWitnessGenerator {
                     Opcode::Directive(directive) => {
                         Self::solve_directives(initial_witness, directive)
                     }
-                    Opcode::Block(id, trace) => blocker.solve(*id, trace, initial_witness),
+                    Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 }?;
                 match result {
                     GateResolution::Skip(_) => unresolved_gates.push(gate.clone()),

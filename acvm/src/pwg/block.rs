@@ -23,7 +23,7 @@ impl Blocks {
     pub fn solve(
         &mut self,
         id: BlockId,
-        trace: &Vec<BlockOp>,
+        trace: &[BlockOp],
         solved_witness: &mut BTreeMap<Witness, FieldElement>,
     ) -> Result<GateResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
@@ -31,6 +31,9 @@ impl Blocks {
     }
 }
 
+/// Maintains the state for solving Block opcode
+/// block_value is the value of the Block at the solved_operations step
+/// solved_operations is the number of solved elements in the block
 #[derive(Default)]
 struct BlockSolver {
     block_value: HashMap<u32, FieldElement>,
@@ -67,25 +70,29 @@ impl BlockSolver {
     pub fn solve(
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        trace: &Vec<BlockOp>,
+        trace: &[BlockOp],
     ) -> Result<GateResolution, OpcodeResolutionError> {
-        let mut unknown = None;
-        while self.solved_operations < trace.len() {
-            let op_idx = self.solved_operations;
-            let op_expr = ArithmeticSolver::evaluate(&trace[op_idx].operation, initial_witness);
+        for block_op in trace.iter().skip(self.solved_operations) {
+            let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
             if let Some(operation) = expression_to_const(&op_expr) {
-                let index_expr = ArithmeticSolver::evaluate(&trace[op_idx].index, initial_witness);
+                let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
                 if let Some(index) = expression_to_const(&index_expr) {
                     let index = index.try_to_u64().unwrap() as u32;
-                    if operation == FieldElement::zero() {
-                        let value =
-                            ArithmeticSolver::evaluate(&trace[op_idx].value, initial_witness);
-                        unknown = value.get_witness();
+                    let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
+                    let value_witness = value.get_witness();
+                    if operation.is_zero() {
+                        let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
                         if value.is_const() {
                             self.insert_value(index, value.q_c)?;
                         } else if value.is_linear() {
                             match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                                GateStatus::GateUnsolvable => break,
+                                GateStatus::GateUnsolvable => {
+                                    return Ok(GateResolution::Skip(
+                                        OpcodeNotSolvable::MissingAssignment(
+                                            value_witness.unwrap().0,
+                                        ),
+                                    ))
+                                }
                                 GateStatus::GateSolvable(sum, (coef, w)) => {
                                     let map_value = self.get_value(index);
                                     if let Some(map_value) = map_value {
@@ -95,8 +102,9 @@ impl BlockSolver {
                                             initial_witness,
                                         )?;
                                     } else {
-                                        unknown = Some(w);
-                                        break;
+                                        return Ok(GateResolution::Skip(
+                                            OpcodeNotSolvable::MissingAssignment(w.0),
+                                        ));
                                     }
                                 }
                                 GateStatus::GateSatisfied(sum) => {
@@ -104,32 +112,30 @@ impl BlockSolver {
                                 }
                             }
                         } else {
-                            break;
+                            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
+                                value_witness.unwrap().0,
+                            )));
                         }
+                    } else if value.is_const() {
+                        self.insert_value(index, value.q_c)?;
                     } else {
-                        let value =
-                            ArithmeticSolver::evaluate(&trace[op_idx].value, initial_witness);
-                        if value.is_const() {
-                            self.insert_value(index, value.q_c)?;
-                        } else {
-                            break;
-                        }
+                        return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
+                            value_witness.unwrap().0,
+                        )));
                     }
                 } else {
-                    unknown = index_expr.get_witness();
-                    break;
+                    return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
+                        index_expr.get_witness().unwrap().0,
+                    )));
                 }
             } else {
-                unknown = op_expr.get_witness();
-                break;
+                return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
+                    op_expr.get_witness().unwrap().0,
+                )));
             }
             self.solved_operations += 1;
         }
-        if self.solved_operations == trace.len() {
-            Ok(GateResolution::Resolved)
-        } else {
-            Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(unknown.unwrap().0)))
-        }
+        Ok(GateResolution::Resolved)
     }
 }
 
