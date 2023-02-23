@@ -23,6 +23,7 @@ pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
+    // Abstract read/write operations on a block of data
     Block(BlockId, Vec<MemOp>),
 }
 

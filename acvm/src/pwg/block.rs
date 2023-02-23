@@ -14,6 +14,7 @@ use super::{
     expression_to_const,
 };
 
+/// Maps a block to its emulated state
 #[derive(Default)]
 pub struct Blocks {
     blocks: HashMap<BlockId, BlockSolver>,
@@ -79,7 +80,7 @@ impl BlockSolver {
                 if let Some(index) = expression_to_const(&index_expr) {
                     let index = index.try_to_u64().unwrap() as u32;
                     let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
-                    let value_witness = value.get_witness();
+                    let value_witness = value.any_witness();
                     if operation.is_zero() {
                         let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
                         if value.is_const() {
@@ -125,12 +126,12 @@ impl BlockSolver {
                     }
                 } else {
                     return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                        index_expr.get_witness().unwrap().0,
+                        index_expr.any_witness().unwrap().0,
                     )));
                 }
             } else {
                 return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                    op_expr.get_witness().unwrap().0,
+                    op_expr.any_witness().unwrap().0,
                 )));
             }
             self.solved_operations += 1;

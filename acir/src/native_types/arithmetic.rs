@@ -153,8 +153,9 @@ impl Expression {
         self.mul_terms.is_empty()
     }
 
-    // Returns a witness belonging to the expression
-    pub fn get_witness(&self) -> Option<Witness> {
+    // Returns one witness belonging to the expression, in no relevant order
+    // Returns None if the expression is const
+    pub fn any_witness(&self) -> Option<Witness> {
         if self.linear_combinations.is_empty() {
             if self.mul_terms.is_empty() {
                 None
