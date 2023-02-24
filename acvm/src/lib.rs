@@ -50,12 +50,6 @@ pub enum OpcodeResolutionError {
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
 }
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum GateResolution {
-    Resolved,                // Gate is solved
-    Skip(OpcodeNotSolvable), // Gate cannot be solved
-}
-
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
 
 /// This component will generate the backend specific output for
@@ -65,15 +59,15 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        mut gates_to_resolve: Vec<Opcode>,
+        mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
-        let mut unresolved_gates: Vec<Opcode> = Vec::new();
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut blocks = Blocks::default();
-        while !gates_to_resolve.is_empty() {
-            unresolved_gates.clear();
+        while !opcode_to_solve.is_empty() {
+            unresolved_opcodes.clear();
 
-            for gate in &gates_to_resolve {
-                let resolution = match gate {
+            for opcode in &opcode_to_solve {
+                let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
                         Self::solve_black_box_function_call(initial_witness, bb_func)
@@ -82,20 +76,21 @@ pub trait PartialWitnessGenerator {
                         Self::solve_directives(initial_witness, directive)
                     }
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
-                }?;
+                };
                 match resolution {
-                    GateResolution::Skip(_) => {
+                    Ok(_) => {
+                        // We do nothing in the happy case
+                    }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         // For opcode not solvable errors, we push those opcodes to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
-                        unresolved_gates.push(gate.clone())
+                        unresolved_opcodes.push(opcode.clone());
                     }
-                    GateResolution::Resolved => {
-                        // We do nothing in the happy case
-                    }
+                    Err(err) => return Err(err),
                 }
             }
-            std::mem::swap(&mut gates_to_resolve, &mut unresolved_gates);
+            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
         Ok(())
     }
@@ -103,7 +98,7 @@ pub trait PartialWitnessGenerator {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<GateResolution, OpcodeResolutionError>;
+    ) -> Result<(), OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
     // Returns true if all of the inputs have been assigned
@@ -119,7 +114,7 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         pwg::directives::solve_directives(initial_witness, directive)
     }
 }

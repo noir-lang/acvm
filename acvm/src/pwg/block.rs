@@ -6,7 +6,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
+use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
@@ -26,7 +26,7 @@ impl Blocks {
         id: BlockId,
         trace: &[MemOp],
         solved_witness: &mut BTreeMap<Witness, FieldElement>,
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
         solver.solve(solved_witness, trace)
     }
@@ -72,71 +72,68 @@ impl BlockSolver {
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            if let Some(operation) = expression_to_const(&op_expr) {
-                let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-                if let Some(index) = expression_to_const(&index_expr) {
-                    let index = index.try_to_u64().unwrap() as u32;
-                    let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
-                    let value_witness = value.any_witness();
-                    if operation.is_zero() {
-                        let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
-                        if value.is_const() {
-                            self.insert_value(index, value.q_c)?;
-                        } else if value.is_linear() {
-                            match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                                GateStatus::GateUnsolvable => {
-                                    return Ok(GateResolution::Skip(
-                                        OpcodeNotSolvable::MissingAssignment(
-                                            value_witness.unwrap().0,
-                                        ),
-                                    ))
-                                }
-                                GateStatus::GateSolvable(sum, (coef, w)) => {
-                                    let map_value = self.get_value(index);
-                                    if let Some(map_value) = map_value {
-                                        insert_witness(
-                                            w,
-                                            (map_value - sum - value.q_c) / coef,
-                                            initial_witness,
-                                        )?;
-                                    } else {
-                                        return Ok(GateResolution::Skip(
-                                            OpcodeNotSolvable::MissingAssignment(w.0),
-                                        ));
-                                    }
-                                }
-                                GateStatus::GateSatisfied(sum) => {
-                                    self.insert_value(index, sum + value.q_c)?;
-                                }
-                            }
-                        } else {
-                            return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                                value_witness.unwrap().0,
-                            )));
+            let operation = expression_to_const(&op_expr).ok_or_else(|| {
+                OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
+                    op_expr.any_witness().unwrap().0,
+                ))
+            })?;
+            let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
+            let index = expression_to_const(&index_expr).ok_or_else(|| {
+                OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
+                    index_expr.any_witness().unwrap().0,
+                ))
+            })?;
+
+            let index = index.try_to_u64().unwrap() as u32;
+            let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
+            let value_witness = value.any_witness();
+            if operation.is_zero() {
+                let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
+                if value.is_const() {
+                    self.insert_value(index, value.q_c)?;
+                } else if value.is_linear() {
+                    match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
+                        GateStatus::GateUnsolvable => {
+                            return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                                OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
+                            ))
                         }
-                    } else if value.is_const() {
-                        self.insert_value(index, value.q_c)?;
-                    } else {
-                        return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                            value_witness.unwrap().0,
-                        )));
+                        GateStatus::GateSolvable(sum, (coef, w)) => {
+                            let map_value = self.get_value(index);
+                            if let Some(map_value) = map_value {
+                                insert_witness(
+                                    w,
+                                    (map_value - sum - value.q_c) / coef,
+                                    initial_witness,
+                                )?;
+                            } else {
+                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                                    OpcodeNotSolvable::MissingAssignment(w.0),
+                                ));
+                            }
+                        }
+                        GateStatus::GateSatisfied(sum) => {
+                            self.insert_value(index, sum + value.q_c)?;
+                        }
                     }
                 } else {
-                    return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                        index_expr.any_witness().unwrap().0,
-                    )));
+                    return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                        OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
+                    ));
                 }
+            } else if value.is_const() {
+                self.insert_value(index, value.q_c)?;
             } else {
-                return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                    op_expr.any_witness().unwrap().0,
-                )));
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
+                ));
             }
             self.solved_operations += 1;
         }
-        Ok(GateResolution::Resolved)
+        Ok(())
     }
 }
 

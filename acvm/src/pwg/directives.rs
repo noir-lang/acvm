@@ -8,55 +8,31 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-use crate::{GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
+use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
-use super::{get_value, insert_value, sorting::route, witness_to_value};
+use super::{get_value_unwrap, insert_value, sorting::route, witness_to_value_unwrap};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     directive: &Directive,
-) -> Result<GateResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
-            let val = witness_to_value(initial_witness, *x);
-            if let Some(val) = val {
-                let inverse = val.inverse();
-                initial_witness.insert(*result, inverse);
-                Ok(GateResolution::Resolved)
-            } else {
-                Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(x.0)))
-            }
+            let val = witness_to_value_unwrap(initial_witness, *x)?;
+            let inverse = val.inverse();
+            initial_witness.insert(*result, inverse);
+            Ok(())
         }
         Directive::Quotient { a, b, q, r, predicate } => {
-            let val_a = get_value(a, initial_witness);
-            let val_b = get_value(b, initial_witness);
-            if val_a.is_none() {
-                return Ok(GateResolution::Skip(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
-                    a.clone(),
-                )));
-            }
-            if val_b.is_none() {
-                return Ok(GateResolution::Skip(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
-                    b.clone(),
-                )));
-            }
-            let val_a = val_a.unwrap();
-            let val_b = val_b.unwrap();
+            let val_a = get_value_unwrap(a, initial_witness)?;
+            let val_b = get_value_unwrap(b, initial_witness)?;
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let int_b = BigUint::from_bytes_be(&val_b.to_be_bytes());
 
             // If the predicate is `None`, then we simply return the value 1
             // If the predicate is `Some` but we cannot find a value, then we return unresolved
             let pred_value = match predicate {
-                Some(pred) => {
-                    if let Some(pred) = get_value(pred, initial_witness) {
-                        pred
-                    } else {
-                        return Ok(GateResolution::Skip(
-                            OpcodeNotSolvable::ExpressionHasTooManyUnknowns(pred.clone()),
-                        ));
-                    }
-                }
+                Some(pred) => get_value_unwrap(pred, initial_witness)?,
                 None => FieldElement::one(),
             };
 
@@ -77,111 +53,102 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(GateResolution::Resolved)
+            Ok(())
         }
         Directive::Truncate { a, b, c, bit_size } => {
-            if let Some(val_a) = get_value(a, initial_witness) {
-                let pow: BigUint = BigUint::one() << bit_size;
+            let val_a = get_value_unwrap(a, initial_witness)?;
+            let pow: BigUint = BigUint::one() << bit_size;
 
-                let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
-                let int_b: BigUint = &int_a % &pow;
-                let int_c: BigUint = (&int_a - &int_b) / &pow;
+            let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
+            let int_b: BigUint = &int_a % &pow;
+            let int_c: BigUint = (&int_a - &int_b) / &pow;
 
-                insert_witness(
-                    *b,
-                    FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                    initial_witness,
-                )?;
-                insert_witness(
-                    *c,
-                    FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
-                    initial_witness,
-                )?;
+            insert_witness(
+                *b,
+                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
+                initial_witness,
+            )?;
+            insert_witness(
+                *c,
+                FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
+                initial_witness,
+            )?;
 
-                Ok(GateResolution::Resolved)
-            } else {
-                Ok(GateResolution::Skip(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(a.clone())))
-            }
+            Ok(())
         }
         Directive::ToRadix { a, b, radix, is_little_endian } => {
-            if let Some(value_a) = get_value(a, initial_witness) {
-                let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
+            let value_a = get_value_unwrap(a, initial_witness)?;
+            let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
 
-                if *is_little_endian {
-                    // Decompose the integer into its radix digits in little endian form.
-                    let decomposed_integer = big_integer.to_radix_le(*radix);
+            if *is_little_endian {
+                // Decompose the integer into its radix digits in little endian form.
+                let decomposed_integer = big_integer.to_radix_le(*radix);
 
-                    if b.len() < decomposed_integer.len() {
-                        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                    }
-
-                    for (i, witness) in b.iter().enumerate() {
-                        // Fetch the `i'th` digit from the decomposed integer list
-                        // and convert it to a field element.
-                        // If it is not available, which can happen when the decomposed integer
-                        // list is shorter than the witness list, we return 0.
-                        let value = match decomposed_integer.get(i) {
-                            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
-                            None => FieldElement::zero(),
-                        };
-
-                        insert_value(witness, value, initial_witness)?
-                    }
-                } else {
-                    // Decompose the integer into its radix digits in big endian form.
-                    let decomposed_integer = big_integer.to_radix_be(*radix);
-
-                    // if it is big endian and the decompoased integer list is shorter
-                    // than the witness list, pad the extra part with 0 first then
-                    // add the decompsed interger list to the witness list.
-                    let padding_len = b.len() - decomposed_integer.len();
-                    let mut value = FieldElement::zero();
-                    for (i, witness) in b.iter().enumerate() {
-                        if i >= padding_len {
-                            value = match decomposed_integer.get(i - padding_len) {
-                                Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
-                                None => {
-                                    return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                                        OpcodeNotSolvable::UnreachableCode,
-                                    ))
-                                }
-                            };
-                        }
-                        insert_value(witness, value, initial_witness)?
-                    }
-                }
-                Ok(GateResolution::Resolved)
-            } else {
-                Ok(GateResolution::Skip(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(a.clone())))
-            }
-        }
-        Directive::OddRange { a, b, r, bit_size } => {
-            if let Some(val_a) = witness_to_value(initial_witness, *a) {
-                let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
-                let pow: BigUint = BigUint::one() << (bit_size - 1);
-                if int_a >= (&pow << 1) {
+                if b.len() < decomposed_integer.len() {
                     return Err(OpcodeResolutionError::UnsatisfiedConstrain);
                 }
 
-                let bb = &int_a & &pow;
-                let int_r = &int_a - &bb;
-                let int_b = &bb >> (bit_size - 1);
+                for (i, witness) in b.iter().enumerate() {
+                    // Fetch the `i'th` digit from the decomposed integer list
+                    // and convert it to a field element.
+                    // If it is not available, which can happen when the decomposed integer
+                    // list is shorter than the witness list, we return 0.
+                    let value = match decomposed_integer.get(i) {
+                        Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                        None => FieldElement::zero(),
+                    };
 
-                insert_witness(
-                    *b,
-                    FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                    initial_witness,
-                )?;
-                insert_witness(
-                    *r,
-                    FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
-                    initial_witness,
-                )?;
-
-                Ok(GateResolution::Resolved)
+                    insert_value(witness, value, initial_witness)?
+                }
             } else {
-                Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(a.0)))
+                // Decompose the integer into its radix digits in big endian form.
+                let decomposed_integer = big_integer.to_radix_be(*radix);
+
+                // if it is big endian and the decompoased integer list is shorter
+                // than the witness list, pad the extra part with 0 first then
+                // add the decompsed interger list to the witness list.
+                let padding_len = b.len() - decomposed_integer.len();
+                let mut value = FieldElement::zero();
+                for (i, witness) in b.iter().enumerate() {
+                    if i >= padding_len {
+                        value = match decomposed_integer.get(i - padding_len) {
+                            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
+                            None => {
+                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                                    OpcodeNotSolvable::UnreachableCode,
+                                ))
+                            }
+                        };
+                    }
+                    insert_value(witness, value, initial_witness)?
+                }
             }
+            Ok(())
+        }
+        Directive::OddRange { a, b, r, bit_size } => {
+            let val_a = witness_to_value_unwrap(initial_witness, *a)?;
+            let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
+            let pow: BigUint = BigUint::one() << (bit_size - 1);
+            if int_a >= (&pow << 1) {
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+            }
+
+            let bb = &int_a & &pow;
+            let int_r = &int_a - &bb;
+            let int_b = &bb >> (bit_size - 1);
+
+            insert_witness(
+                *b,
+                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
+                initial_witness,
+            )?;
+            insert_witness(
+                *r,
+                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
+                initial_witness,
+            )?;
+
+            Ok(())
         }
         Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
             let mut val_a = Vec::new();
@@ -190,13 +157,7 @@ pub fn solve_directives(
                 assert_eq!(element.len(), *tuple as usize);
                 let mut element_val = Vec::with_capacity(*tuple as usize + 1);
                 for e in element {
-                    if let Some(e_val) = get_value(e, initial_witness) {
-                        element_val.push(e_val);
-                    } else {
-                        return Ok(GateResolution::Skip(
-                            OpcodeNotSolvable::ExpressionHasTooManyUnknowns(e.clone()),
-                        ));
-                    }
+                    element_val.push(get_value_unwrap(e, initial_witness)?);
                 }
                 let field_i = FieldElement::from(i as i128);
                 element_val.push(field_i);
@@ -220,27 +181,22 @@ pub fn solve_directives(
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_witness(*w, value, initial_witness)?;
             }
-            Ok(GateResolution::Resolved)
+            Ok(())
         }
         Directive::Log(info) => {
             let witnesses = match info {
                 LogInfo::FinalizedOutput(output_string) => {
                     println!("{output_string}");
-                    return Ok(GateResolution::Resolved);
+                    return Ok(());
                 }
                 LogInfo::WitnessOutput(witnesses) => witnesses,
             };
 
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
-                if let Some(log_value) = witness_to_value(initial_witness, *witness) {
-                    println!("{}", format_field_string(*log_value));
-                    return Ok(GateResolution::Resolved);
-                } else {
-                    return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                        witness.0,
-                    )));
-                }
+                let log_value = witness_to_value_unwrap(initial_witness, *witness)?;
+                println!("{}", format_field_string(*log_value));
+                return Ok(());
             }
 
             // If multiple witnesses are to be fetched for a log directive,
@@ -250,13 +206,8 @@ pub fn solve_directives(
             // and convert them to hex strings.
             let mut elements_as_hex = Vec::with_capacity(witnesses.len());
             for witness in witnesses {
-                if let Some(element) = witness_to_value(initial_witness, *witness) {
-                    elements_as_hex.push(format_field_string(*element));
-                } else {
-                    return Ok(GateResolution::Skip(OpcodeNotSolvable::MissingAssignment(
-                        witness.0,
-                    )));
-                }
+                let element = witness_to_value_unwrap(initial_witness, *witness)?;
+                elements_as_hex.push(format_field_string(*element));
             }
 
             // Join all of the hex strings using a comma
@@ -266,7 +217,7 @@ pub fn solve_directives(
 
             println!("{output_witnesses_string}");
 
-            Ok(GateResolution::Resolved)
+            Ok(())
         }
     }
 }
