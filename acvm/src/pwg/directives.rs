@@ -117,11 +117,11 @@ pub fn solve_directives(
             let zeroes = vec![0u8; padding_len];
 
             let padded_decomposed_integer: Vec<_> = if *is_little_endian {
-                // Pad the beginning with zeroes for little endian
-                zeroes.into_iter().chain(decomposed_integer).collect()
-            } else {
-                // Pad the ending with zeroes for big endian
+                // Pad the ending with zeroes for little endian
                 decomposed_integer.into_iter().chain(zeroes).collect()
+            } else {
+                // Pad the beginning with zeroes for big endian
+                zeroes.into_iter().chain(decomposed_integer).collect()
             };
 
             for (witness_index, digit) in b.iter().zip(padded_decomposed_integer) {
