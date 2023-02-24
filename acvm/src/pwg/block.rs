@@ -73,19 +73,16 @@ impl BlockSolver {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
     ) -> Result<(), OpcodeResolutionError> {
+        let missing_assignment = |witness| {
+            OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(witness))
+        };
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            let operation = expression_to_const(&op_expr).ok_or_else(|| {
-                OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                    op_expr.any_witness().unwrap().0,
-                ))
-            })?;
+            let operation = expression_to_const(&op_expr)
+                .ok_or_else(|| missing_assignment(op_expr.any_witness().unwrap().0))?;
             let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-            let index = expression_to_const(&index_expr).ok_or_else(|| {
-                OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                    index_expr.any_witness().unwrap().0,
-                ))
-            })?;
+            let index = expression_to_const(&index_expr)
+                .ok_or_else(|| missing_assignment(index_expr.any_witness().unwrap().0))?;
             let index = index.try_to_u64().unwrap() as u32;
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
             let value_witness = value.any_witness();
@@ -96,16 +93,10 @@ impl BlockSolver {
                 } else if value.is_linear() {
                     match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
                         GateStatus::GateUnsolvable => {
-                            return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                                OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
-                            ))
+                            return Err(missing_assignment(value_witness.unwrap().0))
                         }
                         GateStatus::GateSolvable(sum, (coef, w)) => {
-                            let map_value = self.get_value(index).ok_or(
-                                OpcodeResolutionError::OpcodeNotSolvable(
-                                    OpcodeNotSolvable::MissingAssignment(w.0),
-                                ),
-                            )?;
+                            let map_value = self.get_value(index).ok_or(missing_assignment(w.0))?;
                             insert_witness(
                                 w,
                                 (map_value - sum - value.q_c) / coef,
@@ -117,16 +108,12 @@ impl BlockSolver {
                         }
                     }
                 } else {
-                    return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                        OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
-                    ));
+                    return Err(missing_assignment(value_witness.unwrap().0));
                 }
             } else if value.is_const() {
                 self.insert_value(index, value.q_c)?;
             } else {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    OpcodeNotSolvable::MissingAssignment(value_witness.unwrap().0),
-                ));
+                return Err(missing_assignment(value_witness.unwrap().0));
             }
             self.solved_operations += 1;
         }
