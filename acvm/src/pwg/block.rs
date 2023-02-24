@@ -86,7 +86,6 @@ impl BlockSolver {
                     index_expr.any_witness().unwrap().0,
                 ))
             })?;
-
             let index = index.try_to_u64().unwrap() as u32;
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
             let value_witness = value.any_witness();
@@ -102,18 +101,16 @@ impl BlockSolver {
                             ))
                         }
                         GateStatus::GateSolvable(sum, (coef, w)) => {
-                            let map_value = self.get_value(index);
-                            if let Some(map_value) = map_value {
-                                insert_witness(
-                                    w,
-                                    (map_value - sum - value.q_c) / coef,
-                                    initial_witness,
-                                )?;
-                            } else {
-                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                            let map_value = self.get_value(index).ok_or(
+                                OpcodeResolutionError::OpcodeNotSolvable(
                                     OpcodeNotSolvable::MissingAssignment(w.0),
-                                ));
-                            }
+                                ),
+                            )?;
+                            insert_witness(
+                                w,
+                                (map_value - sum - value.q_c) / coef,
+                                initial_witness,
+                            )?;
                         }
                         GateStatus::GateSatisfied(sum) => {
                             self.insert_value(index, sum + value.q_c)?;
