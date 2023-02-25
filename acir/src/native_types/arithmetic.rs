@@ -164,6 +164,12 @@ impl Expression {
         self.mul_terms.push((coefficient, lhs, rhs))
     }
 
+    /// Returns `true` if the expression represents a constant polynomial.
+    ///
+    /// Examples:
+    /// -  f(x,y) = x + y would return false
+    /// -  f(x,y) = xy would return false, the degree here is 2
+    /// -  f(x,y) = 5 would return true, the degree is 0
     pub fn is_const(&self) -> bool {
         self.mul_terms.is_empty() && self.linear_combinations.is_empty()
     }
