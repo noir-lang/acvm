@@ -84,6 +84,8 @@ impl Expression {
     pub const fn can_defer_constraint(&self) -> bool {
         false
     }
+
+    /// Returns the number of multiplication terms
     pub fn num_mul_terms(&self) -> usize {
         self.mul_terms.len()
     }
@@ -149,7 +151,16 @@ impl Expression {
         Ok(expr)
     }
 
-    // TODO: possibly rename, since linear can have one mul_term
+    /// Returns true if highest degree term in the expression is one.
+    ///
+    /// - `mul_term` in an expression contains degree-2 terms
+    /// - `linear_combinations` contains degree-1 terms
+    /// Hence, it is sufficient to check that there are no `mul_terms`
+    ///
+    /// Examples:
+    /// -  f(x,y) = x + y would return true
+    /// -  f(x,y) = xy would return false, the degree here is 2
+    /// -  f(x,y) = 0 would return true, the degree is 0
     pub fn is_linear(&self) -> bool {
         self.mul_terms.is_empty()
     }
@@ -323,6 +334,18 @@ impl From<&FieldElement> for Expression {
         Expression { q_c: *constant, linear_combinations: Vec::new(), mul_terms: Vec::new() }
     }
 }
+
+impl From<&Witness> for Expression {
+    /// Creates an Expression from a Witness.
+    ///
+    /// This is infallible since an expression is
+    /// a multi-variate polynomial and a Witness
+    /// can be seen as a univariate polynomial
+    fn from(wit: &Witness) -> Expression {
+        Linear::from(*wit).into()
+    }
+}
+
 impl From<&Linear> for Expression {
     fn from(lin: &Linear) -> Expression {
         Expression {
@@ -335,11 +358,6 @@ impl From<&Linear> for Expression {
 impl From<Linear> for Expression {
     fn from(lin: Linear) -> Expression {
         Expression::from(&lin)
-    }
-}
-impl From<&Witness> for Expression {
-    fn from(wit: &Witness) -> Expression {
-        Linear::from_witness(*wit).into()
     }
 }
 
@@ -371,7 +389,7 @@ impl Sub<&UnknownWitness> for &Expression {
 }
 
 impl Expression {
-    // Checks if this polynomial can fit into one arithmetic identity
+    /// Checks if this polynomial can fit into one arithmetic identity
     pub fn fits_in_one_identity(&self, width: usize) -> bool {
         // A Polynomial with more than one mul term cannot fit into one gate
         if self.mul_terms.len() > 1 {
