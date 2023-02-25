@@ -103,7 +103,7 @@ mod ecdsa_secp256k1 {
     }
 
     /// Verify an ECDSA signature, given the hashed message
-    pub fn verify_prehashed(
+    pub(super) fn verify_prehashed(
         hashed_msg: &[u8],
         public_key_x_bytes: &[u8],
         public_key_y_bytes: &[u8],
