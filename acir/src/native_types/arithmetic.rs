@@ -90,12 +90,13 @@ impl Expression {
         self.mul_terms.len()
     }
 
+    #[deprecated]
     pub fn from_field(q_c: FieldElement) -> Expression {
-        Self { q_c, ..Default::default() }
+        Self::from(&q_c)
     }
 
     pub fn one() -> Expression {
-        Self::from_field(FieldElement::one())
+        Self::from(&FieldElement::one())
     }
 
     pub fn zero() -> Expression {

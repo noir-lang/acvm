@@ -18,9 +18,12 @@ impl Linear {
     pub fn is_unit(&self) -> bool {
         self.mul_scale.is_one() && self.add_scale.is_zero()
     }
+
+    #[deprecated = "use Linear::from<Witness>()"]
     pub fn from_witness(witness: Witness) -> Linear {
-        Linear { mul_scale: FieldElement::one(), witness, add_scale: FieldElement::zero() }
+        Linear::from(witness)
     }
+
     // XXX: This is true for the NPC languages that we use, are there any where this is not true?
     pub const fn can_defer_constraint(&self) -> bool {
         true
@@ -28,10 +31,11 @@ impl Linear {
 }
 
 impl From<Witness> for Linear {
-    fn from(w: Witness) -> Linear {
-        Linear::from_witness(w)
+    fn from(witness: Witness) -> Linear {
+        Linear { mul_scale: FieldElement::one(), witness, add_scale: FieldElement::zero() }
     }
 }
+
 impl From<FieldElement> for Linear {
     fn from(element: FieldElement) -> Linear {
         Linear { add_scale: element, witness: Witness::default(), mul_scale: FieldElement::zero() }
