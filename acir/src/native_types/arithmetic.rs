@@ -41,8 +41,8 @@ impl Default for Expression {
 
 impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.mul_terms.is_empty() && self.linear_combinations.len() == 1 && self.q_c.is_zero() {
-            write!(f, "x{}", self.linear_combinations[0].1.witness_index())
+        if let Some(witness) = self.to_witness() {
+            write!(f, "x{}", witness.witness_index())
         } else {
             write!(f, "%{:?}%", crate::circuit::opcodes::Opcode::Arithmetic(self.clone()))
         }
