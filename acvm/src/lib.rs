@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 // Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
 // Org name is needed because more than one implementation of the same proof system may arise
 

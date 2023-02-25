@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 // Arbitrary Circuit Intermediate Representation
 
 pub mod circuit;
