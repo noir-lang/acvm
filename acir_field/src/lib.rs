@@ -1,3 +1,5 @@
+#![warn(unused_crate_dependencies)]
+
 cfg_if::cfg_if! {
     if #[cfg(feature = "bn254")] {
         mod generic_ark;
