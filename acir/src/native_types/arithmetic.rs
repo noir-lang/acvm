@@ -236,8 +236,7 @@ impl Expression {
             // We want to now restrict ourselves to expressions of the form f(x) = x
             // ie where the constant term is 0 and the coefficient in front of the variable is
             // one.
-            let coefficient = self.linear_combinations[0].0;
-            let variable = self.linear_combinations[0].1;
+            let (coefficient, variable) = self.linear_combinations[0];
             let constant = self.q_c;
 
             let coefficient_is_one = coefficient.is_one();
