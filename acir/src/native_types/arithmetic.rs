@@ -318,11 +318,30 @@ impl Sub<&Expression> for &Expression {
     }
 }
 
-impl From<&FieldElement> for Expression {
-    fn from(constant: &FieldElement) -> Expression {
-        Expression { q_c: *constant, linear_combinations: Vec::new(), mul_terms: Vec::new() }
+impl From<FieldElement> for Expression {
+    fn from(constant: FieldElement) -> Expression {
+        Expression { q_c: constant, linear_combinations: Vec::new(), mul_terms: Vec::new() }
     }
 }
+
+impl From<&FieldElement> for Expression {
+    fn from(constant: &FieldElement) -> Expression {
+        (*constant).into()
+    }
+}
+
+impl From<Witness> for Expression {
+    fn from(wit: Witness) -> Expression {
+        Linear::from_witness(wit).into()
+    }
+}
+
+impl From<&Witness> for Expression {
+    fn from(wit: &Witness) -> Expression {
+        (*wit).into()
+    }
+}
+
 impl From<&Linear> for Expression {
     fn from(lin: &Linear) -> Expression {
         Expression {
@@ -335,11 +354,6 @@ impl From<&Linear> for Expression {
 impl From<Linear> for Expression {
     fn from(lin: Linear) -> Expression {
         Expression::from(&lin)
-    }
-}
-impl From<&Witness> for Expression {
-    fn from(wit: &Witness) -> Expression {
-        Linear::from_witness(*wit).into()
     }
 }
 
