@@ -207,6 +207,7 @@ mod test {
         assert_eq!(circuit, deserialized);
     }
 
+    #[allow(deprecated)]
     #[test]
     fn test_to_byte() {
         let circuit = Circuit {
