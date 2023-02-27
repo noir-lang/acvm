@@ -47,18 +47,12 @@ impl BlockSolver {
         index: u32,
         value: FieldElement,
     ) -> Result<(), OpcodeResolutionError> {
-        let entry = self.block_value.entry(index);
-        match entry {
-            std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(value);
+        match self.block_value.insert(index, value) {
+            Some(existing_value) if value != existing_value => {
+                Err(OpcodeResolutionError::UnsatisfiedConstrain)
             }
-            std::collections::hash_map::Entry::Occupied(e) => {
-                if e.get() != &value {
-                    return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-                }
-            }
+            _ => Ok(()),
         }
-        Ok(())
     }
 
     fn get_value(&self, index: u32) -> Option<FieldElement> {
