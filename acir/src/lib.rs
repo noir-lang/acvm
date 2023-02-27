@@ -1,3 +1,5 @@
+#![warn(unused_crate_dependencies)]
+
 // Arbitrary Circuit Intermediate Representation
 
 pub mod circuit;
