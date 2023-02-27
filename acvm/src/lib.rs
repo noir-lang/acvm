@@ -1,3 +1,4 @@
+#![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
 // Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
