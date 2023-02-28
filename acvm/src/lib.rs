@@ -1,3 +1,6 @@
+#![warn(unused_crate_dependencies)]
+#![warn(unreachable_pub)]
+
 // Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
 // Org name is needed because more than one implementation of the same proof system may arise
 
@@ -38,7 +41,7 @@ pub enum OpcodeNotSolvable {
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
-    OpcodeNotSolvable(OpcodeNotSolvable),
+    OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]

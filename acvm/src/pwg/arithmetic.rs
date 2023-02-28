@@ -37,9 +37,7 @@ impl ArithmeticSolver {
 
         match (mul_result, gate_status) {
             (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
-                Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                ))
+                Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
             }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
@@ -59,9 +57,7 @@ impl ArithmeticSolver {
                     }
                 } else {
                     // TODO: can we be more specific with this error?
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(
-                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                    ))
+                    Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
