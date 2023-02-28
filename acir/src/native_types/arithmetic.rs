@@ -132,13 +132,17 @@ impl Expression {
             let mul_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let mul_term_lhs = read_u32(&mut reader)?;
             let mul_term_rhs = read_u32(&mut reader)?;
-            expr.term_multiplication(mul_term_coeff, Witness(mul_term_lhs), Witness(mul_term_rhs))
+            expr.push_multiplication_term(
+                mul_term_coeff,
+                Witness(mul_term_lhs),
+                Witness(mul_term_rhs),
+            )
         }
 
         for _ in 0..num_lin_comb_terms {
             let lin_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let lin_term_variable = read_u32(&mut reader)?;
-            expr.term_addition(lin_term_coeff, Witness(lin_term_variable))
+            expr.push_addition_term(lin_term_coeff, Witness(lin_term_variable))
         }
 
         let q_c = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
@@ -147,12 +151,15 @@ impl Expression {
         Ok(expr)
     }
 
-    pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
+    /// Adds a new linear term to the `Expression`.
+    pub fn push_addition_term(&mut self, coefficient: FieldElement, variable: Witness) {
         self.linear_combinations.push((coefficient, variable))
     }
-    pub fn term_multiplication(
+
+    /// Adds a new quadratic term to the `Expression`.
+    pub fn push_multiplication_term(
         &mut self,
-        coefficient: acir_field::FieldElement,
+        coefficient: FieldElement,
         lhs: Witness,
         rhs: Witness,
     ) {
@@ -522,8 +529,8 @@ fn serialization_roundtrip() {
 
     //
     let mut expr = Expression::default();
-    expr.term_addition(FieldElement::from(123i128), Witness(20u32));
-    expr.term_multiplication(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
+    expr.push_addition_term(FieldElement::from(123i128), Witness(20u32));
+    expr.push_multiplication_term(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
     expr.q_c = FieldElement::from(789456i128);
 
     let (expr, got_expr) = read_write(expr);
