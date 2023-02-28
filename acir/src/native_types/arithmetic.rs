@@ -171,7 +171,7 @@ impl Expression {
         self.mul_terms.is_empty() && self.linear_combinations.is_empty()
     }
 
-    /// Returns `true` if highest degree term in the expression is one.
+    /// Returns `true` if highest degree term in the expression is one or less.
     ///
     /// - `mul_term` in an expression contains degree-2 terms
     /// - `linear_combinations` contains degree-1 terms

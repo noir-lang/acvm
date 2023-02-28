@@ -6,11 +6,25 @@ use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, w
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
+pub struct BlockId(u32);
+
+/// Operation on a block
+/// We can either write or read at a block index
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemOp {
+    pub operation: Expression,
+    pub index: Expression,
+    pub value: Expression,
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
+    // Abstract read/write operations on a block of data
+    Block(BlockId, Vec<MemOp>),
 }
 
 impl Opcode {
@@ -21,17 +35,18 @@ impl Opcode {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name.name(),
+            Opcode::Block(_, _) => "block",
         }
     }
-    // We have three types of opcodes allowed in the IR
-    // Expression, BlackBoxFuncCall and Directives
-    // When we serialize these opcodes, we use the index
+
+    // When we serialize the opcodes, we use the index
     // to uniquely identify which category of opcode we are dealing with.
     pub(crate) fn to_index(&self) -> u8 {
         match self {
             Opcode::Arithmetic(_) => 0,
             Opcode::BlackBoxFuncCall(_) => 1,
             Opcode::Directive(_) => 2,
+            Opcode::Block(_, _) => 3,
         }
     }
 
@@ -53,6 +68,17 @@ impl Opcode {
             Opcode::Arithmetic(expr) => expr.write(writer),
             Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
             Opcode::Directive(directive) => directive.write(writer),
+            Opcode::Block(id, trace) => {
+                write_u32(&mut writer, id.0)?;
+                write_u32(&mut writer, trace.len() as u32)?;
+
+                for op in trace {
+                    op.operation.write(&mut writer)?;
+                    op.index.write(&mut writer)?;
+                    op.value.write(&mut writer)?;
+                }
+                Ok(())
+            }
         }
     }
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -73,6 +99,18 @@ impl Opcode {
             2 => {
                 let directive = Directive::read(reader)?;
                 Ok(Opcode::Directive(directive))
+            }
+            3 => {
+                let id = read_u32(&mut reader)?;
+                let len = read_u32(&mut reader)?;
+                let mut trace = Vec::with_capacity(len as usize);
+                for _i in 0..len {
+                    let operation = Expression::read(&mut reader)?;
+                    let index = Expression::read(&mut reader)?;
+                    let value = Expression::read(&mut reader)?;
+                    trace.push(MemOp { operation, index, value });
+                }
+                Ok(Opcode::Block(BlockId(id), trace))
             }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -175,6 +213,10 @@ impl std::fmt::Display for Opcode {
                     witnesses.last().unwrap().witness_index()
                 ),
             },
+            Opcode::Block(id, trace) => {
+                write!(f, "BLOCK ")?;
+                write!(f, "(id: {}, len: {}) ", id.0, trace.len())
+            }
         }
     }
 }

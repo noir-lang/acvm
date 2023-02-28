@@ -26,7 +26,6 @@ pub fn solve_directives(
         Directive::Quotient { a, b, q, r, predicate } => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;
-
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let int_b = BigUint::from_bytes_be(&val_b.to_be_bytes());
 
@@ -58,7 +57,6 @@ pub fn solve_directives(
         }
         Directive::Truncate { a, b, c, bit_size } => {
             let val_a = get_value(a, initial_witness)?;
-
             let pow: BigUint = BigUint::one() << bit_size;
 
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
@@ -80,7 +78,6 @@ pub fn solve_directives(
         }
         Directive::ToRadix { a, b, radix, is_little_endian } => {
             let value_a = get_value(a, initial_witness)?;
-
             let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
 
             if *is_little_endian {
@@ -122,12 +119,10 @@ pub fn solve_directives(
                     insert_value(witness, value, initial_witness)?
                 }
             }
-
             Ok(())
         }
         Directive::OddRange { a, b, r, bit_size } => {
             let val_a = witness_to_value(initial_witness, *a)?;
-
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let pow: BigUint = BigUint::one() << (bit_size - 1);
             if int_a >= (&pow << 1) {
@@ -197,7 +192,6 @@ pub fn solve_directives(
                 let witness = &witnesses[0];
                 let log_value = witness_to_value(initial_witness, *witness)?;
                 println!("{}", format_field_string(*log_value));
-
                 return Ok(());
             }
 
@@ -224,7 +218,7 @@ pub fn solve_directives(
     }
 }
 
-fn insert_witness(
+pub fn insert_witness(
     w: Witness,
     value: FieldElement,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,

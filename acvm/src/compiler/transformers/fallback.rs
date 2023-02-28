@@ -22,9 +22,8 @@ impl FallbackTransformer {
 
         for opcode in acir.opcodes {
             let bb_func_call = match &opcode {
-                Opcode::Arithmetic(_) | Opcode::Directive(_) => {
-                    // If it is not a black box function, then it is a directive or
-                    // an arithmetic expression which are always supported
+                Opcode::Arithmetic(_) | Opcode::Directive(_) | Opcode::Block(_, _) => {
+                    // directive, arithmetic expression or block are handled by acvm
                     acir_supported_opcodes.push(opcode);
                     continue;
                 }

@@ -13,6 +13,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use pwg::block::Blocks;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -61,13 +62,14 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        mut opcodes: Vec<Opcode>,
+        mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        while !opcodes.is_empty() {
+        let mut blocks = Blocks::default();
+        while !opcode_to_solve.is_empty() {
             unresolved_opcodes.clear();
 
-            for opcode in &opcodes {
+            for opcode in &opcode_to_solve {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -76,8 +78,8 @@ pub trait PartialWitnessGenerator {
                     Opcode::Directive(directive) => {
                         Self::solve_directives(initial_witness, directive)
                     }
+                    Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 };
-
                 match resolution {
                     Ok(_) => {
                         // We do nothing in the happy case
@@ -91,7 +93,7 @@ pub trait PartialWitnessGenerator {
                     Err(err) => return Err(err),
                 }
             }
-            std::mem::swap(&mut opcodes, &mut unresolved_opcodes);
+            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
         Ok(())
     }

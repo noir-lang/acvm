@@ -28,10 +28,8 @@ pub fn solve_range_opcode(
     let input = func_call.inputs.first().expect("infallible: checked that input size is 1");
 
     let w_value = witness_to_value(initial_witness, input.witness)?;
-
     if w_value.num_bits() > input.num_bits {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
-
     Ok(())
 }
