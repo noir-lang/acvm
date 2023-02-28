@@ -249,7 +249,7 @@ mod test {
     use acir::FieldElement;
     use rand::prelude::*;
 
-    pub fn execute_network(config: Vec<bool>, inputs: Vec<FieldElement>) -> Vec<FieldElement> {
+    fn execute_network(config: Vec<bool>, inputs: Vec<FieldElement>) -> Vec<FieldElement> {
         let n = inputs.len();
         if n == 1 {
             return inputs;
@@ -294,7 +294,7 @@ mod test {
     }
 
     // returns the number of switches in the network
-    pub fn switch_nb(n: usize) -> usize {
+    fn switch_nb(n: usize) -> usize {
         let mut s = 0;
         for i in 0..n {
             s += f64::from((i + 1) as u32).log2().ceil() as usize;

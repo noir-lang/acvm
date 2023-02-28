@@ -39,9 +39,7 @@ pub fn witness_to_value_unwrap(
 ) -> Result<&FieldElement, OpcodeResolutionError> {
     match initial_witness.get(&witness) {
         Some(value) => Ok(value),
-        None => Err(OpcodeResolutionError::OpcodeNotSolvable(
-            OpcodeNotSolvable::MissingAssignment(witness.0),
-        )),
+        None => Err(OpcodeNotSolvable::MissingAssignment(witness.0).into()),
     }
 }
 

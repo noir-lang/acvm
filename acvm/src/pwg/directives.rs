@@ -113,11 +113,7 @@ pub fn solve_directives(
                     if i >= padding_len {
                         value = match decomposed_integer.get(i - padding_len) {
                             Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
-                            None => {
-                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                                    OpcodeNotSolvable::UnreachableCode,
-                                ))
-                            }
+                            None => return Err(OpcodeNotSolvable::UnreachableCode.into()),
                         };
                     }
                     insert_value(witness, value, initial_witness)?
