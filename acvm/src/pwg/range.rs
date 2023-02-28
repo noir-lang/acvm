@@ -1,4 +1,4 @@
-use crate::{pwg::witness_to_value_unwrap, OpcodeResolutionError};
+use crate::{pwg::witness_to_value, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
 
@@ -27,7 +27,7 @@ pub fn solve_range_opcode(
 
     let input = func_call.inputs.first().expect("infallible: checked that input size is 1");
 
-    let w_value = witness_to_value_unwrap(initial_witness, input.witness)?;
+    let w_value = witness_to_value(initial_witness, input.witness)?;
     if w_value.num_bits() > input.num_bits {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }

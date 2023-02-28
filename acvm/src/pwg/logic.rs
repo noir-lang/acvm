@@ -1,4 +1,4 @@
-use super::{directives::insert_witness, witness_to_value_unwrap};
+use super::{directives::insert_witness, witness_to_value};
 use crate::OpcodeResolutionError;
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
@@ -26,8 +26,8 @@ impl LogicSolver {
         num_bits: u32,
         is_xor_gate: bool,
     ) -> Result<(), OpcodeResolutionError> {
-        let w_l_value = witness_to_value_unwrap(initial_witness, *a)?;
-        let w_r_value = witness_to_value_unwrap(initial_witness, *b)?;
+        let w_l_value = witness_to_value(initial_witness, *a)?;
+        let w_r_value = witness_to_value(initial_witness, *b)?;
 
         let assignment = if is_xor_gate {
             w_l_value.xor(w_r_value, num_bits)

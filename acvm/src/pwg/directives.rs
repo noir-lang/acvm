@@ -10,7 +10,7 @@ use num_traits::{One, Zero};
 
 use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 
-use super::{get_value_unwrap, insert_value, sorting::route, witness_to_value_unwrap};
+use super::{get_value, insert_value, sorting::route, witness_to_value};
 
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -18,21 +18,21 @@ pub fn solve_directives(
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
-            let val = witness_to_value_unwrap(initial_witness, *x)?;
+            let val = witness_to_value(initial_witness, *x)?;
             let inverse = val.inverse();
             initial_witness.insert(*result, inverse);
             Ok(())
         }
         Directive::Quotient { a, b, q, r, predicate } => {
-            let val_a = get_value_unwrap(a, initial_witness)?;
-            let val_b = get_value_unwrap(b, initial_witness)?;
+            let val_a = get_value(a, initial_witness)?;
+            let val_b = get_value(b, initial_witness)?;
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let int_b = BigUint::from_bytes_be(&val_b.to_be_bytes());
 
             // If the predicate is `None`, then we simply return the value 1
             // If the predicate is `Some` but we cannot find a value, then we return unresolved
             let pred_value = match predicate {
-                Some(pred) => get_value_unwrap(pred, initial_witness)?,
+                Some(pred) => get_value(pred, initial_witness)?,
                 None => FieldElement::one(),
             };
 
@@ -56,7 +56,7 @@ pub fn solve_directives(
             Ok(())
         }
         Directive::Truncate { a, b, c, bit_size } => {
-            let val_a = get_value_unwrap(a, initial_witness)?;
+            let val_a = get_value(a, initial_witness)?;
             let pow: BigUint = BigUint::one() << bit_size;
 
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
@@ -77,7 +77,7 @@ pub fn solve_directives(
             Ok(())
         }
         Directive::ToRadix { a, b, radix, is_little_endian } => {
-            let value_a = get_value_unwrap(a, initial_witness)?;
+            let value_a = get_value(a, initial_witness)?;
             let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
 
             if *is_little_endian {
@@ -122,7 +122,7 @@ pub fn solve_directives(
             Ok(())
         }
         Directive::OddRange { a, b, r, bit_size } => {
-            let val_a = witness_to_value_unwrap(initial_witness, *a)?;
+            let val_a = witness_to_value(initial_witness, *a)?;
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
             let pow: BigUint = BigUint::one() << (bit_size - 1);
             if int_a >= (&pow << 1) {
@@ -153,7 +153,7 @@ pub fn solve_directives(
                 assert_eq!(element.len(), *tuple as usize);
                 let mut element_val = Vec::with_capacity(*tuple as usize + 1);
                 for e in element {
-                    element_val.push(get_value_unwrap(e, initial_witness)?);
+                    element_val.push(get_value(e, initial_witness)?);
                 }
                 let field_i = FieldElement::from(i as i128);
                 element_val.push(field_i);
@@ -190,7 +190,7 @@ pub fn solve_directives(
 
             if witnesses.len() == 1 {
                 let witness = &witnesses[0];
-                let log_value = witness_to_value_unwrap(initial_witness, *witness)?;
+                let log_value = witness_to_value(initial_witness, *witness)?;
                 println!("{}", format_field_string(*log_value));
                 return Ok(());
             }
@@ -202,7 +202,7 @@ pub fn solve_directives(
             // and convert them to hex strings.
             let mut elements_as_hex = Vec::with_capacity(witnesses.len());
             for witness in witnesses {
-                let element = witness_to_value_unwrap(initial_witness, *witness)?;
+                let element = witness_to_value(initial_witness, *witness)?;
                 elements_as_hex.push(format_field_string(*element));
             }
 

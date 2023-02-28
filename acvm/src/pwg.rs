@@ -22,18 +22,9 @@ pub mod signature;
 pub mod sorting;
 
 // Returns the concrete value for a particular witness
-// Returns None if the witness has no assignment
-pub fn witness_to_value(
-    initial_witness: &BTreeMap<Witness, FieldElement>,
-    witness: Witness,
-) -> Option<&FieldElement> {
-    initial_witness.get(&witness)
-}
-
-// Returns the concrete value for a particular witness
 // If the witness has no assignment, then
 // an error is returned
-pub fn witness_to_value_unwrap(
+pub fn witness_to_value(
     initial_witness: &BTreeMap<Witness, FieldElement>,
     witness: Witness,
 ) -> Result<&FieldElement, OpcodeResolutionError> {
@@ -43,25 +34,14 @@ pub fn witness_to_value_unwrap(
     }
 }
 
-pub fn expression_to_const(expr: &Expression) -> Option<FieldElement> {
-    expr.is_const().then_some(expr.q_c)
-}
-
 // TODO: There is an issue open to decide on whether we need to get values from Expressions
 // TODO versus just getting values from Witness
 pub fn get_value(
     expr: &Expression,
     initial_witness: &BTreeMap<Witness, FieldElement>,
-) -> Option<FieldElement> {
-    expression_to_const(&ArithmeticSolver::evaluate(expr, initial_witness))
-}
-
-pub fn get_value_unwrap(
-    expr: &Expression,
-    initial_witness: &BTreeMap<Witness, FieldElement>,
 ) -> Result<FieldElement, OpcodeResolutionError> {
     let expr = ArithmeticSolver::evaluate(expr, initial_witness);
-    match expression_to_const(&expr) {
+    match expr.to_const() {
         Some(value) => Ok(value),
         None => Err(OpcodeResolutionError::OpcodeNotSolvable(
             OpcodeNotSolvable::MissingAssignment(expr.any_witness().unwrap().0),

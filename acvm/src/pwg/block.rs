@@ -11,7 +11,6 @@ use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
     directives::insert_witness,
-    expression_to_const,
 };
 
 /// Maps a block to its emulated state
@@ -74,10 +73,11 @@ impl BlockSolver {
         };
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            let operation = expression_to_const(&op_expr)
-                .ok_or_else(|| missing_assignment(op_expr.any_witness()))?;
+            let operation =
+                op_expr.to_const().ok_or_else(|| missing_assignment(op_expr.any_witness()))?;
             let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-            let index = expression_to_const(&index_expr)
+            let index = index_expr
+                .to_const()
                 .ok_or_else(|| missing_assignment(index_expr.any_witness()))?;
             let index = index.try_to_u64().unwrap() as u32;
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
