@@ -11,7 +11,7 @@ use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 pub struct ArithmeticSolver;
 
 #[allow(clippy::enum_variant_names)]
-enum GateStatus {
+pub enum GateStatus {
     GateSatisfied(FieldElement),
     GateSolvable(FieldElement, (FieldElement, Witness)),
     GateUnsolvable,
@@ -37,9 +37,7 @@ impl ArithmeticSolver {
 
         match (mul_result, gate_status) {
             (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
-                Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                ))
+                Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
             }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
@@ -59,9 +57,7 @@ impl ArithmeticSolver {
                     }
                 } else {
                     // TODO: can we be more specific with this error?
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(
-                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                    ))
+                    Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
@@ -166,7 +162,7 @@ impl ArithmeticSolver {
     /// Returns the summation of all of the variables, plus the unknown variable
     /// Returns None, if there is more than one unknown variable
     /// We cannot assign
-    fn solve_fan_in_term(
+    pub fn solve_fan_in_term(
         arith_gate: &Expression,
         witness_assignments: &BTreeMap<Witness, FieldElement>,
     ) -> GateStatus {
@@ -232,6 +228,21 @@ impl ArithmeticSolver {
         }
         result.q_c += expr.q_c;
         result
+    }
+
+    // Returns one witness belonging to an expression, in no relevant order
+    // Returns None if the expression is const
+    // The function is used during partial witness generation to report unsolved witness
+    pub fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
+        if expr.linear_combinations.is_empty() {
+            if expr.mul_terms.is_empty() {
+                None
+            } else {
+                Some(expr.mul_terms[0].1)
+            }
+        } else {
+            Some(expr.linear_combinations[0].1)
+        }
     }
 }
 

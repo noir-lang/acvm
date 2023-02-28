@@ -7,11 +7,14 @@ use acir::{
 };
 use std::collections::BTreeMap;
 
+use self::arithmetic::ArithmeticSolver;
+
 // arithmetic
 pub mod arithmetic;
 // Directives
 pub mod directives;
 // black box functions
+pub mod block;
 pub mod hash;
 pub mod logic;
 pub mod range;
@@ -27,42 +30,25 @@ pub fn witness_to_value(
 ) -> Result<&FieldElement, OpcodeResolutionError> {
     match initial_witness.get(&witness) {
         Some(value) => Ok(value),
-        None => Err(OpcodeResolutionError::OpcodeNotSolvable(
-            OpcodeNotSolvable::MissingAssignment(witness.0),
-        )),
+        None => Err(OpcodeNotSolvable::MissingAssignment(witness.0).into()),
     }
 }
+
 // TODO: There is an issue open to decide on whether we need to get values from Expressions
 // TODO versus just getting values from Witness
 pub fn get_value(
     expr: &Expression,
     initial_witness: &BTreeMap<Witness, FieldElement>,
 ) -> Result<FieldElement, OpcodeResolutionError> {
-    let mut result = expr.q_c;
-
-    for term in &expr.linear_combinations {
-        let coefficient = term.0;
-        let variable = term.1;
-
-        // Get the value assigned to that variable
-        let assignment = *witness_to_value(initial_witness, variable)?;
-
-        result += coefficient * assignment;
+    let expr = ArithmeticSolver::evaluate(expr, initial_witness);
+    match expr.to_const() {
+        Some(value) => Ok(value),
+        None => {
+            Err(OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
+                ArithmeticSolver::any_witness_from_expression(&expr).unwrap().0,
+            )))
+        }
     }
-
-    for term in &expr.mul_terms {
-        let coefficient = term.0;
-        let lhs_variable = term.1;
-        let rhs_variable = term.2;
-
-        // Get the values assigned to those variables
-        let lhs_assignment = *witness_to_value(initial_witness, lhs_variable)?;
-        let rhs_assignment = *witness_to_value(initial_witness, rhs_variable)?;
-
-        result += coefficient * lhs_assignment * rhs_assignment;
-    }
-
-    Ok(result)
 }
 
 // Inserts `value` into the initial witness map
