@@ -6,8 +6,6 @@ use std::cmp::Ordering;
 use std::io::{Read, Write};
 use std::ops::{Add, Mul, Neg, Sub};
 
-use super::witness::UnknownWitness;
-
 // In the addition polynomial
 // We can have arbitrary fan-in/out, so we need more than wL,wR and wO
 // When looking at the arithmetic gate for the quotient polynomial in standard plonk
@@ -446,14 +444,6 @@ impl Sub<&Witness> for &Expression {
     type Output = Expression;
     fn sub(self, rhs: &Witness) -> Expression {
         self - &Expression::from(rhs)
-    }
-}
-impl Sub<&UnknownWitness> for &Expression {
-    type Output = Expression;
-    fn sub(self, rhs: &UnknownWitness) -> Expression {
-        let mut cloned = self.clone();
-        cloned.linear_combinations.insert(0, (-FieldElement::one(), rhs.as_witness()));
-        cloned
     }
 }
 

@@ -28,10 +28,6 @@ impl Witness {
         true
     }
 
-    pub fn to_unknown(self) -> UnknownWitness {
-        UnknownWitness(self.0)
-    }
-
     pub fn to_bytes(
         witnesses: &std::collections::BTreeMap<Witness, acir_field::FieldElement>,
     ) -> Vec<u8> {
@@ -49,20 +45,5 @@ impl Witness {
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();
         rmp_serde::from_slice(buf_d.as_slice()).unwrap()
-    }
-}
-
-// This is a witness that is unknown relative to the rest of the witnesses in the arithmetic gate
-// We use this, so that they are pushed to the beginning of the array
-//
-// When they are pushed to the beginning of the array, they are less likely to be used in an intermediate gate
-// by the optimizer, which would mean two unknowns in an equation.
-// See Issue #20
-// TODO: can we find a better solution to this?
-pub struct UnknownWitness(pub u32);
-
-impl UnknownWitness {
-    pub fn as_witness(&self) -> Witness {
-        Witness(self.0)
     }
 }
