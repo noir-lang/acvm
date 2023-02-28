@@ -6,8 +6,6 @@ use std::cmp::Ordering;
 use std::io::{Read, Write};
 use std::ops::{Add, Mul, Neg, Sub};
 
-use super::witness::UnknownWitness;
-
 // In the addition polynomial
 // We can have arbitrary fan-in/out, so we need more than wL,wR and wO
 // When looking at the arithmetic gate for the quotient polynomial in standard plonk
@@ -136,13 +134,17 @@ impl Expression {
             let mul_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let mul_term_lhs = read_u32(&mut reader)?;
             let mul_term_rhs = read_u32(&mut reader)?;
-            expr.term_multiplication(mul_term_coeff, Witness(mul_term_lhs), Witness(mul_term_rhs))
+            expr.push_multiplication_term(
+                mul_term_coeff,
+                Witness(mul_term_lhs),
+                Witness(mul_term_rhs),
+            )
         }
 
         for _ in 0..num_lin_comb_terms {
             let lin_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let lin_term_variable = read_u32(&mut reader)?;
-            expr.term_addition(lin_term_coeff, Witness(lin_term_variable))
+            expr.push_addition_term(lin_term_coeff, Witness(lin_term_variable))
         }
 
         let q_c = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
@@ -151,12 +153,15 @@ impl Expression {
         Ok(expr)
     }
 
-    pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
+    /// Adds a new linear term to the `Expression`.
+    pub fn push_addition_term(&mut self, coefficient: FieldElement, variable: Witness) {
         self.linear_combinations.push((coefficient, variable))
     }
-    pub fn term_multiplication(
+
+    /// Adds a new quadratic term to the `Expression`.
+    pub fn push_multiplication_term(
         &mut self,
-        coefficient: acir_field::FieldElement,
+        coefficient: FieldElement,
         lhs: Witness,
         rhs: Witness,
     ) {
@@ -173,7 +178,7 @@ impl Expression {
         self.mul_terms.is_empty() && self.linear_combinations.is_empty()
     }
 
-    /// Returns `true` if the expression contains no terms of degree greater than one.
+    /// Returns `true` if highest degree term in the expression is one or less.
     ///
     /// - `mul_term` in an expression contains degree-2 terms
     /// - `linear_combinations` contains degree-1 terms
@@ -455,14 +460,6 @@ impl Sub<&Witness> for &Expression {
         self - &Expression::from(rhs)
     }
 }
-impl Sub<&UnknownWitness> for &Expression {
-    type Output = Expression;
-    fn sub(self, rhs: &UnknownWitness) -> Expression {
-        let mut cloned = self.clone();
-        cloned.linear_combinations.insert(0, (-FieldElement::one(), rhs.as_witness()));
-        cloned
-    }
-}
 
 impl Expression {
     /// Checks if this polynomial can fit into one arithmetic identity
@@ -539,8 +536,8 @@ fn serialization_roundtrip() {
 
     //
     let mut expr = Expression::default();
-    expr.term_addition(FieldElement::from(123i128), Witness(20u32));
-    expr.term_multiplication(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
+    expr.push_addition_term(FieldElement::from(123i128), Witness(20u32));
+    expr.push_multiplication_term(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
     expr.q_c = FieldElement::from(789456i128);
 
     let (expr, got_expr) = read_write(expr);
