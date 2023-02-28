@@ -62,7 +62,7 @@ impl BlockSolver {
     // Try to solve block operations from the trace
     // As long as operations are resolved, we update/read from the block_value
     // We stop when an operation cannot be resolved
-    pub fn solve(
+    pub(crate) fn solve(
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
