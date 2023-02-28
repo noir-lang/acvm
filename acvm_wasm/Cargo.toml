@@ -1,0 +1,16 @@
+[package]
+name = "acvm_wasm"
+version = "0.3.1"
+authors = ["Joss <joss@aztecprotocol.com>"]
+edition = "2021"
+license = "MIT"
+description = "A wasm wrapper for exposing ACVM utilities in a JS context."
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+acvm = { version = "0.3.1", path = "../acvm" }
+lazy_static = "1.4.0"
+wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", version = "0.3.0" }
+
+[lib]
+crate-type = ['cdylib']
