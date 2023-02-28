@@ -173,7 +173,7 @@ impl Expression {
         self.mul_terms.is_empty() && self.linear_combinations.is_empty()
     }
 
-    /// Returns true if the expression contains no terms of degree greater than one.
+    /// Returns `true` if the expression contains no terms of degree greater than one.
     ///
     /// - `mul_term` in an expression contains degree-2 terms
     /// - `linear_combinations` contains degree-1 terms
