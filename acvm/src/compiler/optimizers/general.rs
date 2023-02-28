@@ -14,7 +14,7 @@ impl GeneralOpt {
 }
 
 // Remove all terms with zero as a coefficient
-pub fn remove_zero_coefficients(mut gate: Expression) -> Expression {
+fn remove_zero_coefficients(mut gate: Expression) -> Expression {
     // Check the mul terms
     gate.mul_terms.retain(|(scale, _, _)| !scale.is_zero());
     // Check the linear combination terms
@@ -23,7 +23,7 @@ pub fn remove_zero_coefficients(mut gate: Expression) -> Expression {
 }
 
 // Simplifies all mul terms with the same bi-variate variables
-pub fn simplify_mul_terms(mut gate: Expression) -> Expression {
+fn simplify_mul_terms(mut gate: Expression) -> Expression {
     let mut hash_map: IndexMap<(Witness, Witness), FieldElement> = IndexMap::new();
 
     // Canonicalize the ordering of the multiplication, lets just order by variable name
