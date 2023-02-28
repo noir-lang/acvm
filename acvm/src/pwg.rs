@@ -43,9 +43,11 @@ pub fn get_value(
     let expr = ArithmeticSolver::evaluate(expr, initial_witness);
     match expr.to_const() {
         Some(value) => Ok(value),
-        None => Err(OpcodeResolutionError::OpcodeNotSolvable(
-            OpcodeNotSolvable::MissingAssignment(expr.any_witness().unwrap().0),
-        )),
+        None => {
+            Err(OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
+                ArithmeticSolver::any_witness_from_expression(&expr).unwrap().0,
+            )))
+        }
     }
 }
 

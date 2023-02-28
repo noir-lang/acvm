@@ -149,21 +149,6 @@ impl Expression {
         Ok(expr)
     }
 
-    // Returns one witness belonging to the expression, in no relevant order
-    // Returns None if the expression is const
-    // The function is used during partial witness generation to report unsolved witness
-    pub fn any_witness(&self) -> Option<Witness> {
-        if self.linear_combinations.is_empty() {
-            if self.mul_terms.is_empty() {
-                None
-            } else {
-                Some(self.mul_terms[0].1)
-            }
-        } else {
-            Some(self.linear_combinations[0].1)
-        }
-    }
-
     pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
         self.linear_combinations.push((coefficient, variable))
     }
