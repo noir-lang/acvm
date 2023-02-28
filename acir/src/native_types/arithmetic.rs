@@ -151,6 +151,7 @@ impl Expression {
 
     // Returns one witness belonging to the expression, in no relevant order
     // Returns None if the expression is const
+    // The function is used during partial witness generation to report unsolved witness
     pub fn any_witness(&self) -> Option<Witness> {
         if self.linear_combinations.is_empty() {
             if self.mul_terms.is_empty() {
