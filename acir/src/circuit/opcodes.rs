@@ -103,7 +103,7 @@ impl Opcode {
             3 => {
                 let id = read_u32(&mut reader)?;
                 let len = read_u32(&mut reader)?;
-                let mut trace = Vec::with_capacity(len);
+                let mut trace = Vec::with_capacity(len as usize);
                 for _i in 0..len {
                     let operation = Expression::read(&mut reader)?;
                     let index = Expression::read(&mut reader)?;
