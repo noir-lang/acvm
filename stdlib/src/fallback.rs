@@ -38,11 +38,10 @@ pub(crate) fn bit_decomposition(
     }
 
     // Next create a directive which computes those bits.
-    new_gates.push(Opcode::Directive(Directive::ToRadix {
+    new_gates.push(Opcode::Directive(Directive::ToRadixLe {
         a: gate.clone(),
         b: bit_vector.clone(),
         radix: 2,
-        is_little_endian: true,
     }));
 
     // Now apply constraints to the bits such that they are the bit decomposition

@@ -178,17 +178,16 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToRadix { a, b, radix: _, is_little_endian }) => {
+            Opcode::Directive(Directive::ToRadixLe { a, b, radix: _ }) => {
                 write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
                     // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}], endianness: {})",
+                    "(_{}, [_{}..._{}] )",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
-                    if *is_little_endian { "little" } else { "big" }
                 )
             }
             Opcode::Directive(Directive::PermutationSort { inputs: a, tuple, bits, sort_by }) => {
