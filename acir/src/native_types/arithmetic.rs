@@ -82,6 +82,8 @@ impl Expression {
     pub const fn can_defer_constraint(&self) -> bool {
         false
     }
+
+    /// Returns the number of multiplication terms
     pub fn num_mul_terms(&self) -> usize {
         self.mul_terms.len()
     }
@@ -409,6 +411,11 @@ impl From<&FieldElement> for Expression {
 }
 
 impl From<Witness> for Expression {
+    /// Creates an Expression from a Witness.
+    ///
+    /// This is infallible since an `Expression` is
+    /// a multi-variate polynomial and a `Witness`
+    /// can be seen as a univariate polynomial
     fn from(wit: Witness) -> Expression {
         Linear::from_witness(wit).into()
     }
@@ -455,7 +462,7 @@ impl Sub<&Witness> for &Expression {
 }
 
 impl Expression {
-    // Checks if this polynomial can fit into one arithmetic identity
+    /// Checks if this polynomial can fit into one arithmetic identity
     pub fn fits_in_one_identity(&self, width: usize) -> bool {
         // A Polynomial with more than one mul term cannot fit into one gate
         if self.mul_terms.len() > 1 {
