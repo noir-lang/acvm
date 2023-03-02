@@ -1,4 +1,4 @@
-use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc, FieldElement};
+use acvm::acir::{circuit::Circuit, native_types::Witness, FieldElement};
 use lazy_static::lazy_static;
 use spwg_manager::StepwisePwgManager;
 use std::{
@@ -21,29 +21,10 @@ impl Singleton {
 
 wit_bindgen::generate!("acvm-wasm");
 
-impl From<BlackBoxFunc> for BlackBoxName {
-    fn from(value: BlackBoxFunc) -> Self {
-        match value {
-            BlackBoxFunc::AES => BlackBoxName::AES,
-            BlackBoxFunc::AND => BlackBoxName::AND,
-            BlackBoxFunc::XOR => BlackBoxName::XOR,
-            BlackBoxFunc::RANGE => BlackBoxName::RANGE,
-            BlackBoxFunc::SHA256 => BlackBoxName::SHA256,
-            BlackBoxFunc::Blake2s => BlackBoxName::Blake2s,
-            BlackBoxFunc::MerkleMembership => BlackBoxName::MerkleMembership,
-            BlackBoxFunc::SchnorrVerify => BlackBoxName::SchnorrVerify,
-            BlackBoxFunc::Pedersen => BlackBoxName::Pedersen,
-            BlackBoxFunc::HashToField128Security => BlackBoxName::HashToField128Security,
-            BlackBoxFunc::EcdsaSecp256k1 => BlackBoxName::EcdsaSecp256k1,
-            BlackBoxFunc::FixedBaseScalarMul => BlackBoxName::FixedBaseScalarMul,
-        }
-    }
-}
-
 pub struct ConcreteAcvmWasm;
 
 impl AcvmWasm for ConcreteAcvmWasm {
-    fn open_task(acir_bytes: Vec<u8>, initial_witness: Vec<(u32, String)>) -> TaskId {
+    fn open_task(acir_bytes: Vec<u8>, initial_witness: Vec<(u32, String)>) -> u32 {
         let acir = Circuit::read(&*acir_bytes).unwrap();
         let initial_witness: BTreeMap<Witness, FieldElement> = initial_witness
             .iter()
@@ -52,19 +33,17 @@ impl AcvmWasm for ConcreteAcvmWasm {
         Singleton::instance().open_task(initial_witness, acir.opcodes)
     }
 
-    fn step_task(task_id: TaskId) -> bool {
+    fn step_task(task_id: u32) -> bool {
         Singleton::instance().step_task(task_id)
     }
 
-    fn get_blocker(task_id: TaskId) -> Blocker {
+    fn get_blocker(task_id: u32) -> (u32, Vec<String>) {
         let blocker = Singleton::instance().blocker(task_id);
-        Blocker {
-            name: BlackBoxName::from(blocker.name),
-            inputs: blocker.inputs.iter().map(|input| input.to_hex()).collect(),
-        }
+        let inputs = blocker.inputs.iter().map(|input| input.to_hex()).collect();
+        (blocker.name as u32, inputs)
     }
 
-    fn unblock_task(task_id: TaskId, solution: Vec<String>) {
+    fn unblock_task(task_id: u32, solution: Vec<String>) {
         let solution = solution
             .iter()
             .map(|hex_str| FieldElement::from_hex(hex_str).unwrap())
@@ -72,7 +51,7 @@ impl AcvmWasm for ConcreteAcvmWasm {
         Singleton::instance().unblock_task(task_id, solution);
     }
 
-    fn close_task(task_id: TaskId) -> Vec<(u32, String)> {
+    fn close_task(task_id: u32) -> Vec<(u32, String)> {
         let intermediate_witness = Singleton::instance().close_task(task_id);
         intermediate_witness
             .into_iter()

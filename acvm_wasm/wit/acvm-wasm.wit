@@ -1,35 +1,14 @@
 default world acvm-wasm {
-    type witness-values = list<tuple<u32, string>>
-    type task-id = u32
-    enum black-box-name {
-        a-e-s,
-        a-n-d,
-        x-o-r,
-        r-a-n-g-e,
-        s-h-a256,
-        blake2s,
-        merkle-membership,
-        schnorr-verify,
-        pedersen,
-        hash-to-field128-security,
-        ecdsa-secp256k1,
-        fixed-base-scalar-mul,
-    }
-    record blocker {
-        name: black-box-name,
-        inputs: list<string>,
-    }
-
     export open-task: func(
         acir-bytes: list<u8>,
-        initial-witness: witness-values,
-    ) -> task-id
+        initial-witness: list<tuple<u32, string>>,
+    ) -> u32
 
-    export step-task: func(task-id: task-id) -> bool
+    export step-task: func(task-id: u32) -> bool
 
-    export get-blocker: func(task-id:task-id) -> blocker
+    export get-blocker: func(task-id: u32) -> tuple<u32, list<string>>
 
-    export unblock-task: func(task-id: task-id, solution: list<string>)
+    export unblock-task: func(task-id: u32, solution: list<string>)
 
-    export close-task: func(task-id: task-id) -> witness-values
+    export close-task: func(task-id: u32) -> list<tuple<u32, string>>
 }
