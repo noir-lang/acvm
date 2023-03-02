@@ -67,7 +67,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
-            Directive::ToRadixLe { .. } => "to_radix",
+            Directive::ToRadixLe { .. } => "to_radix_le",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
         }
