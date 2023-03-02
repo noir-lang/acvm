@@ -37,10 +37,11 @@ impl AcvmWasm for ConcreteAcvmWasm {
         Singleton::instance().step_task(task_id)
     }
 
-    fn get_blocker(task_id: u32) -> (u32, Vec<String>) {
+    fn get_blocker(task_id: u32) -> (String, Vec<String>) {
         let blocker = Singleton::instance().blocker(task_id);
+        let name: String = blocker.name.name().into();
         let inputs = blocker.inputs.iter().map(|input| input.to_hex()).collect();
-        (blocker.name as u32, inputs)
+        (name, inputs)
     }
 
     fn unblock_task(task_id: u32, solution: Vec<String>) {
