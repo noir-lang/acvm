@@ -5,14 +5,23 @@ default world acvm-wasm {
         initial-witness: list<tuple<u32, string>>,
     ) -> u32
 
-    // Returns: True if done
-    export step-task: func(task-id: u32) -> bool
+    // Result::Ok: True if done
+    export step-task: func(
+        task-id: u32,
+    ) -> result<bool, string>
 
-    // Returns: Name of black box with list of inputs
-    export get-blocker: func(task-id: u32) -> tuple<string, list<string>>
+    // Result::Ok: Name of black box with list of inputs
+    export get-blocker: func(
+        task-id: u32,
+    ) -> option<tuple<string, list<string>>>
 
-    export unblock-task: func(task-id: u32, solution: list<string>)
+    export unblock-task: func(
+        task-id: u32,
+        solution: list<string>
+    ) -> result<_, string>
 
-    // Returns: The solved intermediate witness
-    export close-task: func(task-id: u32) -> list<tuple<u32, string>>
+    // Result::Ok: The solved intermediate witness
+    export close-task: func(
+        task-id: u32
+    ) -> result<list<tuple<u32, string>>, string>
 }

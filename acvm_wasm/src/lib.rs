@@ -33,31 +33,48 @@ impl AcvmWasm for ConcreteAcvmWasm {
         Singleton::instance().open_task(initial_witness, acir.opcodes)
     }
 
-    fn step_task(task_id: u32) -> bool {
-        Singleton::instance().step_task(task_id)
+    fn step_task(task_id: u32) -> Result<bool, String> {
+        match Singleton::instance().step_task(task_id) {
+            Ok(done) => Ok(done),
+            Err(err) => Err(err.to_string()),
+        }
     }
 
-    fn get_blocker(task_id: u32) -> (String, Vec<String>) {
-        let blocker = Singleton::instance().blocker(task_id);
-        let name: String = blocker.name.name().into();
-        let inputs = blocker.inputs.iter().map(|input| input.to_hex()).collect();
-        (name, inputs)
+    fn get_blocker(task_id: u32) -> Option<(String, Vec<String>)> {
+        match Singleton::instance().blocker(task_id) {
+            None => None,
+            Some(blocker) => {
+                let name: String = blocker.name.name().into();
+                let inputs = blocker.inputs.iter().map(|input| input.to_hex()).collect();
+                Some((name, inputs))
+            }
+        }
     }
 
-    fn unblock_task(task_id: u32, solution: Vec<String>) {
+    fn unblock_task(task_id: u32, solution: Vec<String>) -> Result<(), String> {
         let solution = solution
             .iter()
             .map(|hex_str| FieldElement::from_hex(hex_str).unwrap())
             .collect();
-        Singleton::instance().unblock_task(task_id, solution);
+        match Singleton::instance().unblock_task(task_id, solution) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err.to_string()),
+        }
     }
 
-    fn close_task(task_id: u32) -> Vec<(u32, String)> {
-        let intermediate_witness = Singleton::instance().close_task(task_id);
-        intermediate_witness
-            .into_iter()
-            .map(|(Witness(witness_idx), field_element)| (witness_idx, field_element.to_hex()))
-            .collect()
+    fn close_task(task_id: u32) -> Result<Vec<(u32, String)>, String> {
+        match Singleton::instance().close_task(task_id) {
+            Ok(intermediate_witness) => {
+                let pairs = intermediate_witness
+                    .into_iter()
+                    .map(|(Witness(witness_idx), field_element)| {
+                        (witness_idx, field_element.to_hex())
+                    })
+                    .collect();
+                Ok(pairs)
+            }
+            Err(err) => Err(err.to_string()),
+        }
     }
 }
 
