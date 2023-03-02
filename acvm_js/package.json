@@ -4,13 +4,13 @@
   "description": "JS tooling for ACIR",
   "main": "dist/acvm.cjs.js",
   "module": "dist/acvm.esm.js",
-  "types": "dist/types/index.d.ts",
+  "types": "dist/types/index_es.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "wrap:component": "rm -rf src/acvm_wasm/generated; jsct transpile -I -o src/acvm_wasm/generated ../target/wasm32-unknown-unknown/debug/acvm.component.wasm"
+    "wrap:component": "rm -rf src/acvm_wasm/generated; jsct transpile -O -I -o src/acvm_wasm/generated ../target/wasm32-unknown-unknown/release/acvm.component.wasm"
   },
   "author": "",
   "license": "ISC",
