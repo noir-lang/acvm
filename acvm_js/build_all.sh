@@ -8,6 +8,7 @@ function build_for_curve() {
     CURVE=$1
 
     # TODO: Pull and compile ACVM with appropriate field element build config
+    npm run wrap:component
 
     cat $main_dir/package.json \
         | jq '.name = "@noir-lang/acvm-bn254"' \
@@ -15,7 +16,9 @@ function build_for_curve() {
         | jq '.repository = { "type" : "git", "url" : "https://github.com/noir-lang/acvm-js.git" }' \
         | tee $main_dir/package-$CURVE.json
 
+    rm -rf dist
     npx rollup -c --bundleConfigAsCjs
+    cp src/acvm_wasm/generated/*.wasm dist/
 
     mkdir -p $main_dir/build/$CURVE
     mv $main_dir/dist $main_dir/build/$CURVE/
@@ -24,4 +27,5 @@ function build_for_curve() {
 
 rm -rf $main_dir/build
 build_for_curve bn254
-build_for_curve bls12_381
+# TODO: support more curves by building over multiple configs
+# build_for_curve bls12_381
