@@ -1,3 +1,5 @@
+mod attempt_blackbox;
+mod attempt_opcode;
 mod blocking_solver;
 use acir::{
     circuit::{opcodes::BlackBoxFuncCall, Opcode},
