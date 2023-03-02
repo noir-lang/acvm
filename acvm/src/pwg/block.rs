@@ -58,40 +58,29 @@ impl BlockSolver {
         self.block_value.get(&index).copied()
     }
 
-    // Try to solve block operations from the trace
+    // Helper function which tries to solve a Block opcode
     // As long as operations are resolved, we update/read from the block_value
     // We stop when an operation cannot be resolved
-    pub(crate) fn solve(
+    fn solve_helper(
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
-    ) -> Result<GateResolution, OpcodeResolutionError> {
-        let mut result = None;
-        let compute_result = |witness: Option<Witness>, result: Option<GateResolution>| {
-            if let Some(result) = result {
-                return Ok(result);
-            }
-            Ok(GateResolution::Stalled(OpcodeNotSolvable::MissingAssignment(witness.unwrap().0)))
+    ) -> Result<(), OpcodeResolutionError> {
+        let missing_assignment = |witness: Option<Witness>| {
+            OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
+                witness.unwrap().0,
+            ))
         };
+
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            let operation = op_expr.to_const();
-            if operation.is_none() {
-                return compute_result(
-                    ArithmeticSolver::any_witness_from_expression(&op_expr),
-                    result,
-                );
-            }
-            let operation = operation.unwrap();
+            let operation = op_expr.to_const().ok_or_else(|| {
+                missing_assignment(ArithmeticSolver::any_witness_from_expression(&op_expr))
+            })?;
             let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-            let index = index_expr.to_const();
-            if index.is_none() {
-                return compute_result(
-                    ArithmeticSolver::any_witness_from_expression(&index_expr),
-                    result,
-                );
-            }
-            let index = index.unwrap();
+            let index = index_expr.to_const().ok_or_else(|| {
+                missing_assignment(ArithmeticSolver::any_witness_from_expression(&index_expr))
+            })?;
             let index = index.try_to_u64().unwrap() as u32;
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
             let value_witness = ArithmeticSolver::any_witness_from_expression(&value);
@@ -99,13 +88,9 @@ impl BlockSolver {
                 self.insert_value(index, value.q_c)?;
             } else if operation.is_zero() && value.is_linear() {
                 match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                    GateStatus::GateUnsolvable => return compute_result(value_witness, result),
+                    GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
                     GateStatus::GateSolvable(sum, (coef, w)) => {
-                        let map_value = self.get_value(index);
-                        if map_value.is_none() {
-                            return compute_result(Some(w), result);
-                        }
-                        let map_value = map_value.unwrap();
+                        let map_value = self.get_value(index).ok_or(missing_assignment(Some(w)))?;
                         insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
@@ -113,12 +98,34 @@ impl BlockSolver {
                     }
                 }
             } else {
-                return compute_result(value_witness, result);
+                return Err(missing_assignment(value_witness));
             }
             self.solved_operations += 1;
-            result = Some(GateResolution::InProgress);
         }
-        Ok(GateResolution::Solved)
+        Ok(())
+    }
+
+    // Try to solve block operations from the trace
+    // The function calls solve_helper() for solving the opcode
+    // and converts its result into GateResolution
+    pub(crate) fn solve(
+        &mut self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        trace: &[MemOp],
+    ) -> Result<GateResolution, OpcodeResolutionError> {
+        let initial_solved_operations = self.solved_operations;
+
+        match self.solve_helper(initial_witness, trace) {
+            Ok(()) => Ok(GateResolution::Solved),
+            Err(OpcodeResolutionError::OpcodeNotSolvable(err)) => {
+                if self.solved_operations > initial_solved_operations {
+                    Ok(GateResolution::InProgress)
+                } else {
+                    Ok(GateResolution::Stalled(err))
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
