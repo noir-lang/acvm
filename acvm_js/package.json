@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "wrap:component": "rm -rf src/acvm_wasm; jsct transpile -I -o src/acvm_wasm ../acvm_wasm/acvm.wasm"
+    "wrap:component": "rm -rf src/acvm_wasm/generated; jsct transpile -I -o src/acvm_wasm/generated ../target/wasm32-unknown-unknown/debug/acvm.component.wasm"
   },
   "author": "",
   "license": "ISC",
