@@ -1,14 +1,18 @@
 default world acvm-wasm {
+    // Returns: The task id of the new task
     export open-task: func(
         acir-bytes: list<u8>,
         initial-witness: list<tuple<u32, string>>,
     ) -> u32
 
+    // Returns: True if done
     export step-task: func(task-id: u32) -> bool
 
-    export get-blocker: func(task-id: u32) -> tuple<u32, list<string>>
+    // Returns: Name of black box with list of inputs
+    export get-blocker: func(task-id: u32) -> tuple<string, list<string>>
 
     export unblock-task: func(task-id: u32, solution: list<string>)
 
+    // Returns: The solved intermediate witness
     export close-task: func(task-id: u32) -> list<tuple<u32, string>>
 }

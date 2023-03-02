@@ -1,4 +1,4 @@
-import { instantiate } from "./generated/acvm";
+import { instantiate } from "./generated/acvm.component";
 import { readFile } from "fs/promises";
 import { resolve as pathResolve } from "path";
 import { resolveAcvmWasm } from "./loader_proxy";

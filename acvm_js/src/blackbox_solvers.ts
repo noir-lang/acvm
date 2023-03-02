@@ -1,40 +1,33 @@
-import { BlackBoxFunc } from "./blackbox_func";
+import { BlackBoxFuncName } from "./blackbox_func";
 import { FieldElement } from "./field_element";
 
 export interface BlackboxSolvers {
-  [BlackBoxFunc.AND]?: (
-    x1: FieldElement,
-    x2: FieldElement
-  ) => Promise<FieldElement>;
+  // The following black boxes are already solved deterministically in
+  // ACVM's acvm/acvm/src/stepwise_pwg/attempt_blackbox.rs:
+  // - SHA256
+  // - Blake2s
+  // - EcdsaSecp256k1
+  // - AND
+  // - XOR
+  // - RANGE
 
-  [BlackBoxFunc.XOR]?: (
-    x1: FieldElement,
-    x2: FieldElement
-  ) => Promise<FieldElement>;
-
-  [BlackBoxFunc.RANGE]?: () => Promise<[]>;
-
-  [BlackBoxFunc.SHA256]?: (xs: FieldElement[]) => Promise<FieldElement[]>;
-
-  [BlackBoxFunc.Blake2s]?: (xs: FieldElement[]) => Promise<FieldElement[]>;
-
-  [BlackBoxFunc.MerkleMembership]?: (
+  [BlackBoxFuncName.MerkleMembership]?: (
     xs: FieldElement[]
   ) => Promise<FieldElement>;
 
-  [BlackBoxFunc.SchnorrVerify]?: (xs: FieldElement[]) => Promise<FieldElement>;
+  [BlackBoxFuncName.SchnorrVerify]?: (
+    xs: FieldElement[]
+  ) => Promise<FieldElement>;
 
-  [BlackBoxFunc.Pedersen]?: (
+  [BlackBoxFuncName.Pedersen]?: (
     xs: FieldElement[]
   ) => Promise<[FieldElement, FieldElement]>;
 
-  [BlackBoxFunc.HashToField128Security]?: (
+  [BlackBoxFuncName.HashToField128Security]?: (
     xs: FieldElement[]
   ) => Promise<FieldElement>;
 
-  [BlackBoxFunc.EcdsaSecp256k1]?: (xs: FieldElement[]) => Promise<FieldElement>;
-
-  [BlackBoxFunc.FixedBaseScalarMul]?: (
+  [BlackBoxFuncName.FixedBaseScalarMul]?: (
     xs: FieldElement
   ) => Promise<[FieldElement, FieldElement]>;
 }

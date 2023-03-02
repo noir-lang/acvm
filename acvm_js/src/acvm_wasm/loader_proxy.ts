@@ -1,4 +1,5 @@
-declare type AcvmWasmModule = typeof import("./generated/acvm")["Acvm"];
+declare type AcvmWasmModule =
+  typeof import("./generated/acvm.component")["Acvm"]["component"];
 
 let resolve: (acvmWasmModule: AcvmWasmModule) => void;
 const acvmWasmModuleProm: Promise<AcvmWasmModule> = new Promise((r) => {

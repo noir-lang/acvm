@@ -1,4 +1,4 @@
-import { instantiate } from "./generated/acvm";
+import { instantiate } from "./generated/acvm.component";
 import { resolveAcvmWasm } from "./loader_proxy";
 
 export async function loadAcvmWasmModule_byImportMeta() {
