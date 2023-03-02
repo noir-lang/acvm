@@ -111,7 +111,10 @@ pub trait PartialWitnessGenerator {
                 }
             }
             if stalled && !unresolved_opcodes.is_empty() {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(opcode_not_solvable.unwrap()));
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    opcode_not_solvable
+                        .expect("infallible: cannot be stalled and none at the same time"),
+                ));
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
