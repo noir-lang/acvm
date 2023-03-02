@@ -51,6 +51,7 @@ pub enum OpcodeResolutionError {
     IncorrectNumFunctionArguments(usize, String, usize),
 }
 
+#[derive(Debug, PartialEq)]
 pub enum GateResolution {
     Solved,                     // The gate is resolved
     Stalled(OpcodeNotSolvable), // The gate is not solvable

@@ -283,8 +283,8 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), Ok(()));
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), Ok(()));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), Ok(GateResolution::Solved));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), Ok(GateResolution::Solved));
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }
