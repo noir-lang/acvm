@@ -4,7 +4,7 @@ use acir::{
 };
 use std::collections::BTreeMap;
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError};
+use crate::{GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
@@ -28,7 +28,7 @@ impl ArithmeticSolver {
     pub fn solve(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &Expression,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<GateResolution, OpcodeResolutionError> {
         let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
         // Evaluate multiplication term
         let mul_result = ArithmeticSolver::solve_mul_term(gate, initial_witness);
@@ -47,17 +47,19 @@ impl ArithmeticSolver {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain)
                         } else {
-                            Ok(())
+                            Ok(GateResolution::Solved)
                         }
                     } else {
                         let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
                         initial_witness.insert(w1, assignment);
-                        Ok(())
+                        Ok(GateResolution::Solved)
                     }
                 } else {
                     // TODO: can we be more specific with this error?
-                    Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
+                    Ok(GateResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
+                        gate.clone(),
+                    )))
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
@@ -70,13 +72,13 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain)
                     } else {
-                        Ok(())
+                        Ok(GateResolution::Solved)
                     }
                 } else {
                     let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    Ok(())
+                    Ok(GateResolution::Solved)
                 }
             }
             (MulTerm::Solved(a), GateStatus::GateSatisfied(b)) => {
@@ -85,7 +87,7 @@ impl ArithmeticSolver {
                 if !(a + b + gate.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain)
                 } else {
-                    Ok(())
+                    Ok(GateResolution::Solved)
                 }
             }
             (
@@ -100,13 +102,13 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain)
                     } else {
-                        Ok(())
+                        Ok(GateResolution::Solved)
                     }
                 } else {
                     let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
                     initial_witness.insert(unknown_var, assignment);
-                    Ok(())
+                    Ok(GateResolution::Solved)
                 }
             }
         }

@@ -8,7 +8,7 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::{One, Zero};
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError};
+use crate::OpcodeResolutionError;
 
 use super::{get_value, insert_value, sorting::route, witness_to_value};
 
@@ -103,7 +103,13 @@ pub fn solve_directives(
             } else {
                 // Decompose the integer into its radix digits in big endian form.
                 let decomposed_integer = big_integer.to_radix_be(*radix);
-
+                if b.len() < decomposed_integer.len() {
+                    return Err(OpcodeResolutionError::IncorrectNumFunctionArguments(
+                        decomposed_integer.len(),
+                        directive.name().to_string(),
+                        b.len(),
+                    ));
+                }
                 // if it is big endian and the decompoased integer list is shorter
                 // than the witness list, pad the extra part with 0 first then
                 // add the decompsed interger list to the witness list.
@@ -111,10 +117,9 @@ pub fn solve_directives(
                 let mut value = FieldElement::zero();
                 for (i, witness) in b.iter().enumerate() {
                     if i >= padding_len {
-                        value = match decomposed_integer.get(i - padding_len) {
-                            Some(digit) => FieldElement::from_be_bytes_reduce(&[*digit]),
-                            None => return Err(OpcodeNotSolvable::UnreachableCode.into()),
-                        };
+                        value = FieldElement::from_be_bytes_reduce(&[
+                            decomposed_integer[i - padding_len]
+                        ]);
                     }
                     insert_value(witness, value, initial_witness)?
                 }

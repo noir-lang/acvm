@@ -35,8 +35,6 @@ pub enum OpcodeNotSolvable {
     MissingAssignment(u32),
     #[error("expression has too many unknowns {0}")]
     ExpressionHasTooManyUnknowns(Expression),
-    #[error("compiler error: unreachable code")]
-    UnreachableCode,
 }
 
 #[derive(PartialEq, Eq, Debug, Error)]
@@ -50,7 +48,13 @@ pub enum OpcodeResolutionError {
     #[error("unexpected opcode, expected {0}, but got {1}")]
     UnexpectedOpcode(&'static str, BlackBoxFunc),
     #[error("expected {0} inputs for function {1}, but got {2}")]
-    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
+    IncorrectNumFunctionArguments(usize, String, usize),
+}
+
+pub enum GateResolution {
+    Solved,                     // The gate is resolved
+    Stalled(OpcodeNotSolvable), // The gate is not solvable
+    InProgress,                 // The gate is not solvable but could resolved some witness
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
@@ -68,7 +72,8 @@ pub trait PartialWitnessGenerator {
         let mut blocks = Blocks::default();
         while !opcode_to_solve.is_empty() {
             unresolved_opcodes.clear();
-
+            let mut stalled = true;
+            let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
@@ -81,17 +86,31 @@ pub trait PartialWitnessGenerator {
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 };
                 match resolution {
-                    Ok(_) => {
-                        // We do nothing in the happy case
+                    Ok(GateResolution::Solved) => {
+                        stalled = false;
                     }
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                        // For opcode not solvable errors, we push those opcodes to the back as
+                    Ok(GateResolution::InProgress) => {
+                        stalled = false;
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Ok(GateResolution::Stalled(not_solvable)) => {
+                        if opcode_not_solvable.is_none() {
+                            // we keep track of the first unsolvable opcode
+                            opcode_not_solvable = Some(not_solvable);
+                        }
+                        // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
                         unresolved_opcodes.push(opcode.clone());
                     }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        unreachable!("ICE - Result should have been converted to GateResolution")
+                    }
                     Err(err) => return Err(err),
                 }
+            }
+            if stalled && !unresolved_opcodes.is_empty() {
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(opcode_not_solvable.unwrap()));
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
@@ -101,7 +120,7 @@ pub trait PartialWitnessGenerator {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<(), OpcodeResolutionError>;
+    ) -> Result<GateResolution, OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
     // Returns true if all of the inputs have been assigned
@@ -117,8 +136,14 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<(), OpcodeResolutionError> {
-        pwg::directives::solve_directives(initial_witness, directive)
+    ) -> Result<GateResolution, OpcodeResolutionError> {
+        match pwg::directives::solve_directives(initial_witness, directive) {
+            Ok(_) => Ok(GateResolution::Solved),
+            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+                Ok(GateResolution::Stalled(unsolved))
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 

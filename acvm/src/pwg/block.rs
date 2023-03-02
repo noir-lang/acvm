@@ -6,7 +6,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError};
+use crate::{GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
@@ -25,7 +25,7 @@ impl Blocks {
         id: BlockId,
         trace: &[MemOp],
         solved_witness: &mut BTreeMap<Witness, FieldElement>,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<GateResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
         solver.solve(solved_witness, trace)
     }
@@ -65,21 +65,33 @@ impl BlockSolver {
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
-    ) -> Result<(), OpcodeResolutionError> {
-        let missing_assignment = |witness: Option<Witness>| {
-            OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                witness.unwrap().0,
-            ))
+    ) -> Result<GateResolution, OpcodeResolutionError> {
+        let mut result = None;
+        let compute_result = |witness: Option<Witness>, result: Option<GateResolution>| {
+            if let Some(result) = result {
+                return Ok(result);
+            }
+            Ok(GateResolution::Stalled(OpcodeNotSolvable::MissingAssignment(witness.unwrap().0)))
         };
         for block_op in trace.iter().skip(self.solved_operations) {
             let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            let operation = op_expr.to_const().ok_or_else(|| {
-                missing_assignment(ArithmeticSolver::any_witness_from_expression(&op_expr))
-            })?;
+            let operation = op_expr.to_const();
+            if operation.is_none() {
+                return compute_result(
+                    ArithmeticSolver::any_witness_from_expression(&op_expr),
+                    result,
+                );
+            }
+            let operation = operation.unwrap();
             let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-            let index = index_expr.to_const().ok_or_else(|| {
-                missing_assignment(ArithmeticSolver::any_witness_from_expression(&index_expr))
-            })?;
+            let index = index_expr.to_const();
+            if index.is_none() {
+                return compute_result(
+                    ArithmeticSolver::any_witness_from_expression(&index_expr),
+                    result,
+                );
+            }
+            let index = index.unwrap();
             let index = index.try_to_u64().unwrap() as u32;
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
             let value_witness = ArithmeticSolver::any_witness_from_expression(&value);
@@ -87,9 +99,13 @@ impl BlockSolver {
                 self.insert_value(index, value.q_c)?;
             } else if operation.is_zero() && value.is_linear() {
                 match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                    GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
+                    GateStatus::GateUnsolvable => return compute_result(value_witness, result),
                     GateStatus::GateSolvable(sum, (coef, w)) => {
-                        let map_value = self.get_value(index).ok_or(missing_assignment(Some(w)))?;
+                        let map_value = self.get_value(index);
+                        if map_value.is_none() {
+                            return compute_result(Some(w), result);
+                        }
+                        let map_value = map_value.unwrap();
                         insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
@@ -97,11 +113,12 @@ impl BlockSolver {
                     }
                 }
             } else {
-                return Err(missing_assignment(value_witness));
+                return compute_result(value_witness, result);
             }
             self.solved_operations += 1;
+            result = Some(GateResolution::InProgress);
         }
-        Ok(())
+        Ok(GateResolution::Solved)
     }
 }
 
