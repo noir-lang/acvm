@@ -1,0 +1,8 @@
+.vscode
+node_modules
+dist
+build
+.DS_Store
+
+# build product of npm run wrap:component
+/src/acvm_wasm/generated

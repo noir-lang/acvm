@@ -6,6 +6,7 @@
 
 pub mod compiler;
 pub mod pwg;
+pub mod stepwise_pwg;
 
 use crate::pwg::arithmetic::ArithmeticSolver;
 use acir::{
@@ -20,6 +21,10 @@ use thiserror::Error;
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
+
+// export stepwise pwg
+pub use stepwise_pwg::StepwisePartialWitnessGenerator;
+pub use stepwise_pwg::StepwisePwgError;
 
 // This enum represents the different cases in which an
 // opcode can be unsolvable.
