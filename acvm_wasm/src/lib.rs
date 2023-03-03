@@ -8,7 +8,7 @@ use std::{
 mod spwg_manager;
 
 lazy_static! {
-    static ref SINGLETON: Mutex<StepwisePwgManager> = Mutex::new(StepwisePwgManager::new());
+    static ref SINGLETON: Mutex<StepwisePwgManager> = Mutex::new(StepwisePwgManager::default());
 }
 
 pub struct Singleton;
@@ -52,10 +52,8 @@ impl AcvmWasm for ConcreteAcvmWasm {
     }
 
     fn unblock_task(task_id: u32, solution: Vec<String>) -> Result<(), String> {
-        let solution = solution
-            .iter()
-            .map(|hex_str| FieldElement::from_hex(hex_str).unwrap())
-            .collect();
+        let solution =
+            solution.iter().map(|hex_str| FieldElement::from_hex(hex_str).unwrap()).collect();
         match Singleton::instance().unblock_task(task_id, solution) {
             Ok(_) => Ok(()),
             Err(err) => Err(err.to_string()),

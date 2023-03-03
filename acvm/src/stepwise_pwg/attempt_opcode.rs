@@ -7,22 +7,23 @@ use acir::{
 };
 
 use crate::{
-    pwg::{self, arithmetic::ArithmeticSolver},
+    pwg::{self, arithmetic::ArithmeticSolver, block::Blocks},
     OpcodeResolutionError,
 };
 
 use super::attempt_blackbox::{attempt_black_box, AttemptBlackBoxOutcome};
 
-pub enum AttemptOpcodeOutcome {
+pub(super) enum AttemptOpcodeOutcome {
     Solved,
     Skipped(Opcode),
     Blocked(BlackBoxFuncCall),
     Err(OpcodeResolutionError),
 }
 
-pub fn attempt_opcode(
+pub(super) fn attempt_opcode(
     witness_skeleton: &mut BTreeMap<Witness, FieldElement>,
     opcode: Opcode,
+    blocks: &mut Blocks,
 ) -> AttemptOpcodeOutcome {
     if let Opcode::BlackBoxFuncCall(bb_func_call) = opcode {
         return match attempt_black_box(witness_skeleton, &bb_func_call) {
@@ -35,10 +36,11 @@ pub fn attempt_opcode(
         };
     }
     let result = match &opcode {
-        Opcode::Arithmetic(expr) => ArithmeticSolver::solve(witness_skeleton, &expr),
+        Opcode::Arithmetic(expr) => ArithmeticSolver::solve(witness_skeleton, expr),
         Opcode::Directive(directive) => {
-            pwg::directives::solve_directives(witness_skeleton, &directive)
+            pwg::directives::solve_directives(witness_skeleton, directive)
         }
+        Opcode::Block(id, trace) => blocks.solve(*id, trace, witness_skeleton),
         Opcode::BlackBoxFuncCall(_) => panic!("Handled by above `if let`"),
     };
     match result {

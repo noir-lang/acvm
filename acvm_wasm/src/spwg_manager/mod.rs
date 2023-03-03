@@ -13,12 +13,15 @@ pub struct StepwisePwgManager {
     tasks: BTreeMap<u32, StepwisePartialWitnessGenerator>,
 }
 
+impl Default for StepwisePwgManager {
+    fn default() -> Self {
+        StepwisePwgManager::new()
+    }
+}
+
 impl StepwisePwgManager {
     pub fn new() -> Self {
-        StepwisePwgManager {
-            task_id_gen: TaskIdGen::new(),
-            tasks: BTreeMap::new(),
-        }
+        StepwisePwgManager { task_id_gen: TaskIdGen::new(), tasks: BTreeMap::new() }
     }
 
     pub fn open_task(
@@ -39,10 +42,7 @@ impl StepwisePwgManager {
     }
 
     pub fn blocker(&self, task_id: TaskId) -> Option<BlackBoxCallResolvedInputs> {
-        self.tasks
-            .get(&task_id)
-            .unwrap()
-            .required_black_box_func_call()
+        self.tasks.get(&task_id).unwrap().required_black_box_func_call()
     }
 
     pub fn unblock_task(
@@ -50,10 +50,7 @@ impl StepwisePwgManager {
         task_id: TaskId,
         solution: Vec<FieldElement>,
     ) -> Result<(), StepwisePwgError> {
-        self.tasks
-            .get_mut(&task_id)
-            .unwrap()
-            .apply_blackbox_call_solution(solution)
+        self.tasks.get_mut(&task_id).unwrap().apply_blackbox_call_solution(solution)
     }
 
     pub fn close_task(

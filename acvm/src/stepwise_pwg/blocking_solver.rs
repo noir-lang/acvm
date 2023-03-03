@@ -1,5 +1,5 @@
 use super::attempt_opcode::{attempt_opcode, AttemptOpcodeOutcome};
-use crate::OpcodeResolutionError;
+use crate::{pwg::block::Blocks, OpcodeResolutionError};
 use acir::{
     circuit::{opcodes::BlackBoxFuncCall, Opcode},
     native_types::Witness,
@@ -7,22 +7,23 @@ use acir::{
 };
 use std::collections::BTreeMap;
 
-pub struct BlockedByBlackBoxFuncCall {
-    pub black_box_func_call: BlackBoxFuncCall,
-    pub unsolved_opcodes: Vec<Opcode>,
+pub(super) struct BlockedByBlackBoxFuncCall {
+    pub(super) black_box_func_call: BlackBoxFuncCall,
+    pub(super) unsolved_opcodes: Vec<Opcode>,
 }
 
-pub enum StepOutcome {
+pub(super) enum StepOutcome {
     BlockedByBlackBoxFuncCall(BlockedByBlackBoxFuncCall),
     Done,
 }
 
-pub struct BlockingSolver;
+pub(super) struct BlockingSolver;
 
 impl BlockingSolver {
-    pub fn solve_until_blocked(
+    pub(super) fn solve_until_blocked(
         witness_skeleton: &mut BTreeMap<Witness, FieldElement>,
         opcodes: &mut Vec<Opcode>,
+        blocks: &mut Blocks,
     ) -> Result<StepOutcome, OpcodeResolutionError> {
         if opcodes.is_empty() {
             return Ok(StepOutcome::Done);
@@ -35,7 +36,7 @@ impl BlockingSolver {
                 // Skipping remaining opcodes since we are now blocked
                 unsolved_opcodes.push(opcode);
             } else {
-                match attempt_opcode(witness_skeleton, opcode) {
+                match attempt_opcode(witness_skeleton, opcode, blocks) {
                     AttemptOpcodeOutcome::Solved => {
                         // We do nothing in the happy case
                     }
@@ -53,15 +54,13 @@ impl BlockingSolver {
             }
         }
         if let Some(black_box_func_call) = blocking_blackbox_call {
-            Ok(StepOutcome::BlockedByBlackBoxFuncCall(
-                BlockedByBlackBoxFuncCall {
-                    black_box_func_call,
-                    unsolved_opcodes,
-                },
-            ))
+            Ok(StepOutcome::BlockedByBlackBoxFuncCall(BlockedByBlackBoxFuncCall {
+                black_box_func_call,
+                unsolved_opcodes,
+            }))
         } else {
             // Recurse to reattempt skipped opcodes
-            Self::solve_until_blocked(witness_skeleton, &mut unsolved_opcodes)
+            Self::solve_until_blocked(witness_skeleton, &mut unsolved_opcodes, blocks)
         }
     }
 }
@@ -78,6 +77,8 @@ mod tests {
     };
     use std::collections::BTreeMap;
 
+    use crate::pwg::block::Blocks;
+
     use super::{BlockingSolver, StepOutcome};
 
     #[test]
@@ -86,10 +87,7 @@ mod tests {
             // Deliberately ordered incorrectly
             Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
                 name: BlackBoxFunc::Pedersen,
-                inputs: vec![FunctionInput {
-                    witness: Witness(1),
-                    num_bits: 32,
-                }],
+                inputs: vec![FunctionInput { witness: Witness(1), num_bits: 32 }],
                 outputs: vec![Witness(2)],
             }),
             Opcode::Arithmetic(Expression {
@@ -101,8 +99,10 @@ mod tests {
                 q_c: FieldElement::zero(),
             }),
         ];
+        let mut blocks = Blocks::default();
         let mut witness_skeleton = BTreeMap::from([(Witness(0), FieldElement::one())]);
-        let outcome = BlockingSolver::solve_until_blocked(&mut witness_skeleton, &mut opcodes0);
+        let outcome =
+            BlockingSolver::solve_until_blocked(&mut witness_skeleton, &mut opcodes0, &mut blocks);
         match outcome {
             Ok(StepOutcome::BlockedByBlackBoxFuncCall(blocked_by)) => {
                 assert!(

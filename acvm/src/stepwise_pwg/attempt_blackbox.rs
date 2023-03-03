@@ -4,13 +4,13 @@ use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFu
 
 use crate::{pwg, OpcodeResolutionError};
 
-pub enum AttemptBlackBoxOutcome {
+pub(super) enum AttemptBlackBoxOutcome {
     Solved,
     Skipped,
     Blocked,
 }
 
-pub fn attempt_black_box(
+pub(super) fn attempt_black_box(
     witness_skeleton: &mut BTreeMap<Witness, FieldElement>,
     bb_func_call: &BlackBoxFuncCall,
 ) -> Result<AttemptBlackBoxOutcome, OpcodeResolutionError> {
@@ -24,7 +24,7 @@ pub fn attempt_black_box(
             AttemptBlackBoxOutcome::Solved
         }
         BlackBoxFunc::EcdsaSecp256k1 => {
-            match pwg::signature::ecdsa::secp256k1_prehashed(witness_skeleton, &bb_func_call) {
+            match pwg::signature::ecdsa::secp256k1_prehashed(witness_skeleton, bb_func_call) {
                 Ok(_) => AttemptBlackBoxOutcome::Solved,
                 Err(err) => return Err(err),
             }
@@ -46,7 +46,8 @@ pub fn attempt_black_box(
         | BlackBoxFunc::SchnorrVerify
         | BlackBoxFunc::Pedersen
         | BlackBoxFunc::HashToField128Security
-        | BlackBoxFunc::FixedBaseScalarMul => {
+        | BlackBoxFunc::FixedBaseScalarMul
+        | BlackBoxFunc::Keccak256 => {
             // TODO: Which of the above can also be solved deterministicly
             if inputs_are_ready(witness_skeleton, bb_func_call) {
                 AttemptBlackBoxOutcome::Blocked
@@ -62,8 +63,5 @@ fn inputs_are_ready(
     witness_skeleton: &mut BTreeMap<Witness, FieldElement>,
     bb_func_call: &BlackBoxFuncCall,
 ) -> bool {
-    bb_func_call
-        .inputs
-        .iter()
-        .all(|input| witness_skeleton.contains_key(&input.witness))
+    bb_func_call.inputs.iter().all(|input| witness_skeleton.contains_key(&input.witness))
 }

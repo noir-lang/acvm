@@ -2,6 +2,7 @@ mod attempt_blackbox;
 mod attempt_opcode;
 mod blocking_solver;
 use crate::{
+    pwg::block::Blocks,
     stepwise_pwg::blocking_solver::{BlockingSolver, StepOutcome},
     OpcodeResolutionError,
 };
@@ -16,6 +17,7 @@ use thiserror::Error;
 pub struct StepwisePartialWitnessGenerator {
     partial_witness: BTreeMap<Witness, FieldElement>,
     unsolved_opcodes: Vec<Opcode>,
+    blocks: Blocks,
     blocking_blackbox_func_call: Option<BlackBoxFuncCall>,
 }
 
@@ -43,6 +45,7 @@ impl StepwisePartialWitnessGenerator {
         Self {
             partial_witness: initial_witness,
             unsolved_opcodes: opcodes,
+            blocks: Blocks::default(),
             blocking_blackbox_func_call: None,
         }
     }
@@ -57,10 +60,7 @@ impl StepwisePartialWitnessGenerator {
                 let expected_len = bb_func_call.outputs.len();
                 let actual_len = solution.len();
                 if expected_len != actual_len {
-                    Err(StepwisePwgError::BadSolutionLength(
-                        expected_len,
-                        actual_len,
-                    ))
+                    Err(StepwisePwgError::BadSolutionLength(expected_len, actual_len))
                 } else {
                     for (value, witness) in solution.iter().zip(bb_func_call.outputs.iter()) {
                         self.partial_witness.insert(*witness, *value);
@@ -79,6 +79,7 @@ impl StepwisePartialWitnessGenerator {
         let result = BlockingSolver::solve_until_blocked(
             &mut self.partial_witness,
             &mut self.unsolved_opcodes,
+            &mut self.blocks,
         );
 
         match result {
@@ -105,17 +106,14 @@ impl StepwisePartialWitnessGenerator {
     }
 
     pub fn required_black_box_func_call(&self) -> Option<BlackBoxCallResolvedInputs> {
-        match &self.blocking_blackbox_func_call {
-            Some(bb_call) => Some(BlackBoxCallResolvedInputs {
-                name: bb_call.name,
-                inputs: bb_call
-                    .inputs
-                    .iter()
-                    .map(|input| self.partial_witness.get(&input.witness).unwrap().clone())
-                    .collect(),
-            }),
-            None => None,
-        }
+        self.blocking_blackbox_func_call.as_ref().map(|bb_call| BlackBoxCallResolvedInputs {
+            name: bb_call.name,
+            inputs: bb_call
+                .inputs
+                .iter()
+                .map(|input| *self.partial_witness.get(&input.witness).unwrap())
+                .collect(),
+        })
     }
 }
 
@@ -139,10 +137,7 @@ mod tests {
             // Deliberately ordered incorrectly
             Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
                 name: BlackBoxFunc::Pedersen,
-                inputs: vec![FunctionInput {
-                    witness: Witness(1),
-                    num_bits: 32,
-                }],
+                inputs: vec![FunctionInput { witness: Witness(1), num_bits: 32 }],
                 outputs: vec![Witness(2), Witness(3)],
             }),
             Opcode::Arithmetic(Expression {
@@ -161,11 +156,7 @@ mod tests {
         assert!(!spwg.is_done(), "Hits backbox");
         let required_call = spwg.required_black_box_func_call().unwrap();
         assert_eq!(required_call.name, BlackBoxFunc::Pedersen);
-        assert_eq!(
-            required_call.inputs.len(),
-            1,
-            "This acir hashes a single field"
-        );
+        assert_eq!(required_call.inputs.len(), 1, "This acir hashes a single field");
         spwg.apply_blackbox_call_solution(vec![FieldElement::zero(), FieldElement::zero()])
             .unwrap();
         assert!(spwg.is_done(), "Nothing left to solve");
@@ -175,10 +166,6 @@ mod tests {
             (Witness(2), FieldElement::zero()),
             (Witness(3), FieldElement::zero()),
         ]);
-        assert_eq!(
-            spwg.intermediate_witness().unwrap(),
-            expected_solution,
-            "Solution is complete"
-        )
+        assert_eq!(spwg.intermediate_witness().unwrap(), expected_solution, "Solution is complete")
     }
 }
