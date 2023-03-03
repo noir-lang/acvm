@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/noir-lang/acvm/compare/acvm-v0.5.0...acvm-v0.6.0) (2023-03-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* add block opcode ([#114](https://github.com/noir-lang/acvm/issues/114))
+
+### Features
+
+* add block opcode ([#114](https://github.com/noir-lang/acvm/issues/114)) ([097cfb0](https://github.com/noir-lang/acvm/commit/097cfb069291705ddb4bf1fca77ddcef21dbbd08))
+
 ## [0.5.0](https://github.com/noir-lang/acvm/compare/acvm-v0.4.1...acvm-v0.5.0) (2023-02-22)
 
 
