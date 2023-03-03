@@ -1,7 +1,7 @@
 [package]
 name = "acir"
 description = "ACIR is the IR that the VM processes, it is analogous to LLVM IR"
-version = "0.5.0"
+version = "0.6.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
