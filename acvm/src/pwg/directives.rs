@@ -76,7 +76,7 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::ToRadixLe { a, b, radix } => {
+        Directive::ToLeRadix { a, b, radix } => {
             let value_a = get_value(a, initial_witness)?;
             let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
 

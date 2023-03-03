@@ -178,7 +178,7 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToRadixLe { a, b, radix: _ }) => {
+            Opcode::Directive(Directive::ToLeRadix { a, b, radix: _ }) => {
                 write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,

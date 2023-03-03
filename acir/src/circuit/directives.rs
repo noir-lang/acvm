@@ -43,7 +43,7 @@ pub enum Directive {
     },
 
     //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in little endian form
-    ToRadixLe {
+    ToLeRadix {
         a: Expression,
         b: Vec<Witness>,
         radix: u32,
@@ -67,7 +67,7 @@ impl Directive {
             Directive::Quotient { .. } => "quotient",
             Directive::Truncate { .. } => "truncate",
             Directive::OddRange { .. } => "odd_range",
-            Directive::ToRadixLe { .. } => "to_radix_le",
+            Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
         }
@@ -78,7 +78,7 @@ impl Directive {
             Directive::Quotient { .. } => 1,
             Directive::Truncate { .. } => 2,
             Directive::OddRange { .. } => 3,
-            Directive::ToRadixLe { .. } => 4,
+            Directive::ToLeRadix { .. } => 4,
             Directive::Log { .. } => 5,
             Directive::PermutationSort { .. } => 6,
         }
@@ -116,7 +116,7 @@ impl Directive {
                 write_u32(&mut writer, r.witness_index())?;
                 write_u32(&mut writer, *bit_size)?;
             }
-            Directive::ToRadixLe { a, b, radix } => {
+            Directive::ToLeRadix { a, b, radix } => {
                 a.write(&mut writer)?;
                 write_u32(&mut writer, b.len() as u32)?;
                 for bit in b {
@@ -206,7 +206,7 @@ impl Directive {
 
                 let radix = read_u32(&mut reader)?;
 
-                Ok(Directive::ToRadixLe { a, b, radix })
+                Ok(Directive::ToLeRadix { a, b, radix })
             }
             6 => {
                 let tuple = read_u32(&mut reader)?;
@@ -285,14 +285,14 @@ fn serialization_roundtrip() {
     let odd_range =
         Directive::OddRange { a: Witness(1u32), b: Witness(2u32), r: Witness(3u32), bit_size: 32 };
 
-    let to_radix_le = Directive::ToRadixLe {
+    let to_le_radix = Directive::ToLeRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
     };
 
     let directives =
-        vec![invert, quotient_none, quotient_predicate, truncate, odd_range, to_radix_le];
+        vec![invert, quotient_none, quotient_predicate, truncate, odd_range, to_le_radix];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);

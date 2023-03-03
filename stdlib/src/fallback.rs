@@ -38,7 +38,7 @@ pub(crate) fn bit_decomposition(
     }
 
     // Next create a directive which computes those bits.
-    new_gates.push(Opcode::Directive(Directive::ToRadixLe {
+    new_gates.push(Opcode::Directive(Directive::ToLeRadix {
         a: gate.clone(),
         b: bit_vector.clone(),
         radix: 2,
