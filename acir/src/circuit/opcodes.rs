@@ -1,16 +1,30 @@
 use std::io::{Read, Write};
 
-use super::directives::Directive;
+use super::directives::{Directive, LogInfo};
 use crate::native_types::{Expression, Witness};
-use crate::serialisation::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
+use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
+pub struct BlockId(u32);
+
+/// Operation on a block
+/// We can either write or read at a block index
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemOp {
+    pub operation: Expression,
+    pub index: Expression,
+    pub value: Expression,
+}
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
+    // Abstract read/write operations on a block of data
+    Block(BlockId, Vec<MemOp>),
 }
 
 impl Opcode {
@@ -21,17 +35,18 @@ impl Opcode {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name.name(),
+            Opcode::Block(_, _) => "block",
         }
     }
-    // We have three types of opcodes allowed in the IR
-    // Expression, BlackBoxFuncCall and Directives
-    // When we serialise these opcodes, we use the index
+
+    // When we serialize the opcodes, we use the index
     // to uniquely identify which category of opcode we are dealing with.
     pub(crate) fn to_index(&self) -> u8 {
         match self {
             Opcode::Arithmetic(_) => 0,
             Opcode::BlackBoxFuncCall(_) => 1,
             Opcode::Directive(_) => 2,
+            Opcode::Block(_, _) => 3,
         }
     }
 
@@ -53,6 +68,17 @@ impl Opcode {
             Opcode::Arithmetic(expr) => expr.write(writer),
             Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
             Opcode::Directive(directive) => directive.write(writer),
+            Opcode::Block(id, trace) => {
+                write_u32(&mut writer, id.0)?;
+                write_u32(&mut writer, trace.len() as u32)?;
+
+                for op in trace {
+                    op.operation.write(&mut writer)?;
+                    op.index.write(&mut writer)?;
+                    op.value.write(&mut writer)?;
+                }
+                Ok(())
+            }
         }
     }
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -74,6 +100,18 @@ impl Opcode {
                 let directive = Directive::read(reader)?;
                 Ok(Opcode::Directive(directive))
             }
+            3 => {
+                let id = read_u32(&mut reader)?;
+                let len = read_u32(&mut reader)?;
+                let mut trace = Vec::with_capacity(len as usize);
+                for _i in 0..len {
+                    let operation = Expression::read(&mut reader)?;
+                    let index = Expression::read(&mut reader)?;
+                    let value = Expression::read(&mut reader)?;
+                    trace.push(MemOp { operation, index, value });
+                }
+                Ok(Opcode::Block(BlockId(id), trace))
+            }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }
@@ -85,13 +123,7 @@ impl std::fmt::Display for Opcode {
             Opcode::Arithmetic(expr) => {
                 write!(f, "EXPR [ ")?;
                 for i in &expr.mul_terms {
-                    write!(
-                        f,
-                        "({}, _{}, _{}) ",
-                        i.0,
-                        i.1.witness_index(),
-                        i.2.witness_index()
-                    )?;
+                    write!(f, "({}, _{}, _{}) ", i.0, i.1.witness_index(), i.2.witness_index())?;
                 }
                 for i in &expr.linear_combinations {
                     write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
@@ -118,13 +150,7 @@ impl std::fmt::Display for Opcode {
                     bit_size
                 )
             }
-            Opcode::Directive(Directive::Quotient {
-                a,
-                b,
-                q,
-                r,
-                predicate,
-            }) => {
+            Opcode::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
                     writeln!(f, "PREDICATE = {pred}")?;
@@ -152,17 +178,44 @@ impl std::fmt::Display for Opcode {
                 )
             }
             Opcode::BlackBoxFuncCall(g) => write!(f, "{g}"),
-            Opcode::Directive(Directive::ToRadix { a, b, radix: _ }) => {
+            Opcode::Directive(Directive::ToRadix { a, b, radix: _, is_little_endian }) => {
                 write!(f, "DIR::TORADIX ")?;
                 write!(
                     f,
                     // TODO (Note): this assumes that the decomposed bits have contiguous witness indices
                     // This should be the case, however, we can also have a function which checks this
-                    "(_{}, [_{}..._{}])",
+                    "(_{}, [_{}..._{}], endianness: {})",
                     a,
                     b.first().unwrap().witness_index(),
                     b.last().unwrap().witness_index(),
+                    if *is_little_endian { "little" } else { "big" }
                 )
+            }
+            Opcode::Directive(Directive::PermutationSort { inputs: a, tuple, bits, sort_by }) => {
+                write!(f, "DIR::PERMUTATIONSORT ")?;
+                write!(
+                    f,
+                    "(permutation size: {} {}-tuples, sort_by: {:#?}, bits: [_{}..._{}]))",
+                    a.len(),
+                    tuple,
+                    sort_by,
+                    // (Note): the bits do not have contiguous index but there are too many for display
+                    bits.first().unwrap().witness_index(),
+                    bits.last().unwrap().witness_index(),
+                )
+            }
+            Opcode::Directive(Directive::Log(info)) => match info {
+                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
+                LogInfo::WitnessOutput(witnesses) => write!(
+                    f,
+                    "Log: _{}..._{}",
+                    witnesses.first().unwrap().witness_index(),
+                    witnesses.last().unwrap().witness_index()
+                ),
+            },
+            Opcode::Block(id, trace) => {
+                write!(f, "BLOCK ")?;
+                write!(f, "(id: {}, len: {}) ", id.0, trace.len())
             }
         }
     }
@@ -230,11 +283,7 @@ impl BlackBoxFuncCall {
             outputs.push(witness)
         }
 
-        Ok(BlackBoxFuncCall {
-            name,
-            inputs,
-            outputs,
-        })
+        Ok(BlackBoxFuncCall { name, inputs, outputs })
     }
 }
 
@@ -258,11 +307,8 @@ impl std::fmt::Display for BlackBoxFuncCall {
         let inputs_str = if should_abbreviate_inputs {
             let mut result = String::new();
             for (index, inp) in self.inputs.iter().enumerate() {
-                result += &format!(
-                    "(_{}, num_bits: {})",
-                    inp.witness.witness_index(),
-                    inp.num_bits
-                );
+                result +=
+                    &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
                 // Add a comma, unless it is the last entry
                 if index != self.inputs.len() - 1 {
                     result += ", "
@@ -326,7 +372,7 @@ impl std::fmt::Debug for BlackBoxFuncCall {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
         opcode.write(&mut bytes).unwrap();
@@ -336,27 +382,19 @@ fn serialisation_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_blackbox_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
+    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
         name: BlackBoxFunc::AES,
         inputs: vec![
-            FunctionInput {
-                witness: Witness(1u32),
-                num_bits: 12,
-            },
-            FunctionInput {
-                witness: Witness(24u32),
-                num_bits: 32,
-            },
+            FunctionInput { witness: Witness(1u32), num_bits: 12 },
+            FunctionInput { witness: Witness(24u32), num_bits: 32 },
         ],
         outputs: vec![Witness(123u32), Witness(245u32)],
     });
 
-    let opcode_directive = Opcode::Directive(Directive::Invert {
-        x: Witness(1234u32),
-        result: Witness(56789u32),
-    });
+    let opcode_directive =
+        Opcode::Directive(Directive::Invert { x: Witness(1234u32), result: Witness(56789u32) });
 
-    let opcodes = vec![opcode_arith, opcode_blackbox_func, opcode_directive];
+    let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
 
     for opcode in opcodes {
         let (op, got_op) = read_write(opcode);

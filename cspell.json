@@ -1,0 +1,45 @@
+{
+    "version": "0.2",
+    "words": [
+        "blackbox",
+        // In code
+        //
+        "acir",
+        "ACIR",
+        "ACVM",
+        "Axyz",
+        "arithmetization",
+        "bivariate",
+        "canonicalize",
+        "coeff",
+        "consts",
+        "csat",
+        "decomp",
+        "deflater",
+        "endianness",
+        "euclidian",
+        "hasher",
+        "keccak",
+        "Merkle",
+        "OddRange",
+        "Pedersen",
+        "PLONKC",
+        "prehashed",
+        "pubkey",
+        "repr",
+        "secp",
+        "Schnorr",
+        "Shleft",
+        "Shright",
+        "stdlib",
+        "struct",
+        "TORADIX",
+        // Dependencies
+        //
+        "bufread",
+        "flate",
+        "indexmap",
+        "thiserror",
+        "typenum"
+    ]
+}

@@ -1,0 +1,59 @@
+{
+  "bootstrap-sha": "97149adb99f53e1f78de6d7ad938f4af262483e6",
+  "release-type": "rust",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "group-pull-request-title-pattern": "chore: Release ${version}",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "component": "root",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.acir.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.acir_field.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.stdlib.version"
+        }
+      ]
+    },
+    "acir": {
+      "component": "acir"
+    },
+    "acir_field": {
+      "component": "acir_field"
+    },
+    "acvm": {
+      "component": "acvm"
+    },
+    "stdlib": {
+      "component": "acvm_stdlib"
+    }
+  },
+  "plugins": [
+    {
+      "type": "cargo-workspace",
+      "merge": false
+    },
+    {
+      "type": "linked-versions",
+      "group-name": "acvm",
+      "components": [
+        "root",
+        "acir",
+        "acir_field",
+        "acvm",
+        "acvm_stdlib"
+      ]
+    }
+  ]
+}

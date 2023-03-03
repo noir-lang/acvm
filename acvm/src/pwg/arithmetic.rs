@@ -11,7 +11,7 @@ use crate::{OpcodeNotSolvable, OpcodeResolutionError};
 pub struct ArithmeticSolver;
 
 #[allow(clippy::enum_variant_names)]
-enum GateStatus {
+pub enum GateStatus {
     GateSatisfied(FieldElement),
     GateSolvable(FieldElement, (FieldElement, Witness)),
     GateUnsolvable,
@@ -29,6 +29,7 @@ impl ArithmeticSolver {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &Expression,
     ) -> Result<(), OpcodeResolutionError> {
+        let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
         // Evaluate multiplication term
         let mul_result = ArithmeticSolver::solve_mul_term(gate, initial_witness);
         // Evaluate the fan-in terms
@@ -36,9 +37,7 @@ impl ArithmeticSolver {
 
         match (mul_result, gate_status) {
             (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
-                Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                ))
+                Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
             }
             (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
                 if w1 == w2 {
@@ -58,9 +57,7 @@ impl ArithmeticSolver {
                     }
                 } else {
                     // TODO: can we be more specific with this error?
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(
-                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
-                    ))
+                    Err(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()).into())
                 }
             }
             (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
@@ -124,33 +121,48 @@ impl ArithmeticSolver {
         witness_assignments: &BTreeMap<Witness, FieldElement>,
     ) -> MulTerm {
         // First note that the mul term can only contain one/zero term
-        // We are assuming it has been optimised.
+        // We are assuming it has been optimized.
         match arith_gate.mul_terms.len() {
             0 => MulTerm::Solved(FieldElement::zero()),
-            1 => {
-                let q_m = &arith_gate.mul_terms[0].0;
-                let w_l = &arith_gate.mul_terms[0].1;
-                let w_r = &arith_gate.mul_terms[0].2;
-
-                // Check if these values are in the witness assignments
-                let w_l_value = witness_assignments.get(w_l);
-                let w_r_value = witness_assignments.get(w_r);
-
-                match (w_l_value, w_r_value) {
-                    (None, None) => MulTerm::TooManyUnknowns,
-                    (Some(w_l), Some(w_r)) => MulTerm::Solved(*q_m * *w_l * *w_r),
-                    (None, Some(w_r)) => MulTerm::OneUnknown(*q_m * *w_r, *w_l),
-                    (Some(w_l), None) => MulTerm::OneUnknown(*q_m * *w_l, *w_r),
-                }
-            }
+            1 => ArithmeticSolver::solve_mul_term_helper(
+                &arith_gate.mul_terms[0],
+                witness_assignments,
+            ),
             _ => panic!("Mul term in the arithmetic gate must contain either zero or one term"),
         }
+    }
+
+    fn solve_mul_term_helper(
+        term: &(FieldElement, Witness, Witness),
+        witness_assignments: &BTreeMap<Witness, FieldElement>,
+    ) -> MulTerm {
+        let (q_m, w_l, w_r) = term;
+        // Check if these values are in the witness assignments
+        let w_l_value = witness_assignments.get(w_l);
+        let w_r_value = witness_assignments.get(w_r);
+
+        match (w_l_value, w_r_value) {
+            (None, None) => MulTerm::TooManyUnknowns,
+            (Some(w_l), Some(w_r)) => MulTerm::Solved(*q_m * *w_l * *w_r),
+            (None, Some(w_r)) => MulTerm::OneUnknown(*q_m * *w_r, *w_l),
+            (Some(w_l), None) => MulTerm::OneUnknown(*q_m * *w_l, *w_r),
+        }
+    }
+
+    fn solve_fan_in_term_helper(
+        term: &(FieldElement, Witness),
+        witness_assignments: &BTreeMap<Witness, FieldElement>,
+    ) -> Option<FieldElement> {
+        let (q_l, w_l) = term;
+        // Check if we have w_l
+        let w_l_value = witness_assignments.get(w_l);
+        w_l_value.map(|a| *q_l * *a)
     }
 
     /// Returns the summation of all of the variables, plus the unknown variable
     /// Returns None, if there is more than one unknown variable
     /// We cannot assign
-    fn solve_fan_in_term(
+    pub fn solve_fan_in_term(
         arith_gate: &Expression,
         witness_assignments: &BTreeMap<Witness, FieldElement>,
     ) -> GateStatus {
@@ -163,19 +175,14 @@ impl ArithmeticSolver {
         let mut result = FieldElement::zero();
 
         for term in arith_gate.linear_combinations.iter() {
-            let q_l = term.0;
-            let w_l = &term.1;
-
-            // Check if we have w_l
-            let w_l_value = witness_assignments.get(w_l);
-
-            match w_l_value {
-                Some(a) => result += q_l * *a,
+            let value = ArithmeticSolver::solve_fan_in_term_helper(term, witness_assignments);
+            match value {
+                Some(a) => result += a,
                 None => {
                     unknown_variable = *term;
                     num_unknowns += 1;
                 }
-            };
+            }
 
             // If we have more than 1 unknown, then we cannot solve this equation
             if num_unknowns > 1 {
@@ -188,6 +195,54 @@ impl ArithmeticSolver {
         }
 
         GateStatus::GateSolvable(result, unknown_variable)
+    }
+
+    // Partially evaluate the gate using the known witnesses
+    pub fn evaluate(
+        expr: &Expression,
+        initial_witness: &BTreeMap<Witness, FieldElement>,
+    ) -> Expression {
+        let mut result = Expression::default();
+        for &(c, w1, w2) in &expr.mul_terms {
+            let mul_result = ArithmeticSolver::solve_mul_term_helper(&(c, w1, w2), initial_witness);
+            match mul_result {
+                MulTerm::OneUnknown(v, w) => {
+                    if !v.is_zero() {
+                        result.linear_combinations.push((v, w));
+                    }
+                }
+                MulTerm::TooManyUnknowns => {
+                    if !c.is_zero() {
+                        result.mul_terms.push((c, w1, w2));
+                    }
+                }
+                MulTerm::Solved(f) => result.q_c += f,
+            }
+        }
+        for &(c, w) in &expr.linear_combinations {
+            if let Some(f) = ArithmeticSolver::solve_fan_in_term_helper(&(c, w), initial_witness) {
+                result.q_c += f;
+            } else if !c.is_zero() {
+                result.linear_combinations.push((c, w));
+            }
+        }
+        result.q_c += expr.q_c;
+        result
+    }
+
+    // Returns one witness belonging to an expression, in no relevant order
+    // Returns None if the expression is const
+    // The function is used during partial witness generation to report unsolved witness
+    pub fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
+        if expr.linear_combinations.is_empty() {
+            if expr.mul_terms.is_empty() {
+                None
+            } else {
+                Some(expr.mul_terms[0].1)
+            }
+        } else {
+            Some(expr.linear_combinations[0].1)
+        }
     }
 }
 

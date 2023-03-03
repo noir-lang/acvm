@@ -21,6 +21,7 @@ pub enum BlackBoxFunc {
     HashToField128Security,
     EcdsaSecp256k1,
     FixedBaseScalarMul,
+    Keccak256,
 }
 
 impl std::fmt::Display for BlackBoxFunc {
@@ -44,6 +45,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::AND => 9,
             BlackBoxFunc::XOR => 10,
             BlackBoxFunc::RANGE => 11,
+            BlackBoxFunc::Keccak256 => 12,
         }
     }
     pub fn from_u16(index: u16) -> Option<Self> {
@@ -60,6 +62,7 @@ impl BlackBoxFunc {
             9 => BlackBoxFunc::AND,
             10 => BlackBoxFunc::XOR,
             11 => BlackBoxFunc::RANGE,
+            12 => BlackBoxFunc::Keccak256,
             _ => return None,
         };
         Some(function)
@@ -78,6 +81,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::AND => "and",
             BlackBoxFunc::XOR => "xor",
             BlackBoxFunc::RANGE => "range",
+            BlackBoxFunc::Keccak256 => "keccak256",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -94,6 +98,7 @@ impl BlackBoxFunc {
             "and" => Some(BlackBoxFunc::AND),
             "xor" => Some(BlackBoxFunc::XOR),
             "range" => Some(BlackBoxFunc::RANGE),
+            "keccak256" => Some(BlackBoxFunc::Keccak256),
             _ => None,
         }
     }
@@ -114,16 +119,12 @@ impl BlackBoxFunc {
                 input_size: InputSize::Variable,
                 output_size: OutputSize(32),
             },
-            BlackBoxFunc::HashToField128Security => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(1),
-            },
-            BlackBoxFunc::MerkleMembership => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(1),
-            },
+            BlackBoxFunc::HashToField128Security => {
+                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
+            }
+            BlackBoxFunc::MerkleMembership => {
+                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
+            }
             BlackBoxFunc::SchnorrVerify => FuncDefinition {
                 name,
                 // XXX: input_size can be changed to fixed, once we hash
@@ -132,35 +133,28 @@ impl BlackBoxFunc {
                 input_size: InputSize::Variable,
                 output_size: OutputSize(1),
             },
-            BlackBoxFunc::Pedersen => FuncDefinition {
+            BlackBoxFunc::Pedersen => {
+                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(2) }
+            }
+            BlackBoxFunc::EcdsaSecp256k1 => {
+                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
+            }
+            BlackBoxFunc::FixedBaseScalarMul => {
+                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(2) }
+            }
+            BlackBoxFunc::AND => {
+                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
+            }
+            BlackBoxFunc::XOR => {
+                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
+            }
+            BlackBoxFunc::RANGE => {
+                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(0) }
+            }
+            BlackBoxFunc::Keccak256 => FuncDefinition {
                 name,
                 input_size: InputSize::Variable,
-                output_size: OutputSize(2),
-            },
-            BlackBoxFunc::EcdsaSecp256k1 => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(1),
-            },
-            BlackBoxFunc::FixedBaseScalarMul => FuncDefinition {
-                name,
-                input_size: InputSize::Fixed(1),
-                output_size: OutputSize(2),
-            },
-            BlackBoxFunc::AND => FuncDefinition {
-                name,
-                input_size: InputSize::Fixed(2),
-                output_size: OutputSize(1),
-            },
-            BlackBoxFunc::XOR => FuncDefinition {
-                name,
-                input_size: InputSize::Fixed(2),
-                output_size: OutputSize(1),
-            },
-            BlackBoxFunc::RANGE => FuncDefinition {
-                name,
-                input_size: InputSize::Fixed(1),
-                output_size: OutputSize(0),
+                output_size: OutputSize(32),
             },
         }
     }
@@ -207,10 +201,7 @@ mod test {
     fn consistent_function_names() {
         for bb_func in BlackBoxFunc::iter() {
             let resolved_func = BlackBoxFunc::lookup(bb_func.name()).unwrap_or_else(|| {
-                panic!(
-                    "BlackBoxFunc::lookup couldn't find black box function {}",
-                    bb_func
-                )
+                panic!("BlackBoxFunc::lookup couldn't find black box function {}", bb_func)
             });
             assert_eq!(
                 resolved_func, bb_func,
@@ -224,10 +215,7 @@ mod test {
             let func_index = bb_func.to_u16();
             let got_bb_func =
                 BlackBoxFunc::from_u16(func_index).expect("blackbox function should have an index");
-            assert_eq!(
-                got_bb_func, bb_func,
-                "BlackBox function index lookup is inconsistent"
-            )
+            assert_eq!(got_bb_func, bb_func, "BlackBox function index lookup is inconsistent")
         }
     }
 }

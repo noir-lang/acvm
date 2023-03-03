@@ -1,3 +1,6 @@
+#![warn(unused_crate_dependencies)]
+#![warn(unreachable_pub)]
+
 // Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
 // Org name is needed because more than one implementation of the same proof system may arise
 
@@ -11,6 +14,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use pwg::block::Blocks;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -36,12 +40,14 @@ pub enum OpcodeNotSolvable {
     MissingAssignment(u32),
     #[error("expression has too many unknowns {0}")]
     ExpressionHasTooManyUnknowns(Expression),
+    #[error("compiler error: unreachable code")]
+    UnreachableCode,
 }
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
-    OpcodeNotSolvable(OpcodeNotSolvable),
+    OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
@@ -61,39 +67,43 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        opcodes: Vec<Opcode>,
+        mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
-        if opcodes.is_empty() {
-            return Ok(());
-        }
-        let mut unsolved_opcodes: Vec<Opcode> = Vec::new();
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        let mut blocks = Blocks::default();
+        while !opcode_to_solve.is_empty() {
+            unresolved_opcodes.clear();
 
-        for opcode in opcodes.into_iter() {
-            let resolution = match &opcode {
-                Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                Opcode::BlackBoxFuncCall(bb_func) => {
-                    Self::solve_blackbox_function_call(initial_witness, bb_func)
+            for opcode in &opcode_to_solve {
+                let resolution = match opcode {
+                    Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
+                    Opcode::BlackBoxFuncCall(bb_func) => {
+                        Self::solve_black_box_function_call(initial_witness, bb_func)
+                    }
+                    Opcode::Directive(directive) => {
+                        Self::solve_directives(initial_witness, directive)
+                    }
+                    Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
+                };
+                match resolution {
+                    Ok(_) => {
+                        // We do nothing in the happy case
+                    }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        // For opcode not solvable errors, we push those opcodes to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Err(err) => return Err(err),
                 }
-                Opcode::Directive(directive) => Self::solve_directives(initial_witness, directive),
-            };
-
-            match resolution {
-                Ok(_) => {
-                    // We do nothing in the happy case
-                }
-                Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                    // For opcode not solvable errors, we push those opcodes to the back as
-                    // it could be because the opcodes are out of order, ie this assignment
-                    // relies on a later opcodes's results
-                    unsolved_opcodes.push(opcode);
-                }
-                Err(err) => return Err(err),
             }
+            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
-        self.solve(initial_witness, unsolved_opcodes)
+        Ok(())
     }
 
-    fn solve_blackbox_function_call(
+    fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<(), OpcodeResolutionError>;
@@ -106,10 +116,7 @@ pub trait PartialWitnessGenerator {
     ) -> bool {
         // This call to .any returns true, if any of the witnesses do not have assignments
         // We then use `!`, so it returns false if any of the witnesses do not have assignments
-        !func_call
-            .inputs
-            .iter()
-            .any(|input| !initial_witness.contains_key(&input.witness))
+        !func_call.inputs.iter().any(|input| !initial_witness.contains_key(&input.witness))
     }
 
     fn solve_directives(
@@ -121,12 +128,7 @@ pub trait PartialWitnessGenerator {
 }
 
 pub trait SmartContract {
-    // Takes a verification  key and produces a smart contract
-    // The platform indicator allows a backend to support multiple smart contract platforms
-    //
-    // fn verification_key(&self, platform: u8, vk: &[u8]) -> &[u8] {
-    //     todo!("currently the backend is not configured to use this.")
-    // }
+    // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
     /// Then returns an Ethereum smart contract
@@ -135,7 +137,11 @@ pub trait SmartContract {
     /// This deprecation may happen in two stages:
     /// The first stage will remove `num_witnesses` and `num_public_inputs` parameters.
     /// If we cannot avoid `num_witnesses`, it can be added into the Circuit struct.
+    #[deprecated]
     fn eth_contract_from_cs(&self, circuit: Circuit) -> String;
+
+    /// Returns an Ethereum smart contract to verify proofs against a given verification key.
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
 }
 
 pub trait ProofSystemCompiler {
@@ -144,27 +150,17 @@ pub trait ProofSystemCompiler {
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
-    // Returns true if the backend supports the selected blackbox function
-    fn blackbox_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
+    // Returns true if the backend supports the selected black box function
+    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
-    /// Creates a Proof given the circuit description and the witness values.
-    /// It is important to note that the intermediate witnesses for blackbox functions will not generated
-    /// This is the responsibility of the proof system.
-    ///
-    /// See `SmartContract` regarding the removal of `num_witnesses` and `num_public_inputs`
+    #[deprecated]
     fn prove_with_meta(
         &self,
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8>;
 
-    /// Verifies a Proof, given the circuit description.
-    ///
-    /// XXX: This will be changed in the future to accept a VerifierKey.
-    /// At the moment, the Aztec backend API only accepts a constraint system,
-    /// which is why this is here.
-    ///
-    /// See `SmartContract` regarding the removal of `num_witnesses` and `num_public_inputs`
+    #[deprecated]
     fn verify_from_cs(
         &self,
         proof: &[u8],
@@ -172,7 +168,31 @@ pub trait ProofSystemCompiler {
         circuit: Circuit,
     ) -> bool;
 
-    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32;
+    /// Returns the number of gates in a circuit
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
+
+    /// Generates a proving and verification key given the circuit description
+    /// These keys can then be used to construct a proof and for its verification
+    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>);
+
+    /// Creates a Proof given the circuit description, the initial witness values, and the proving key
+    /// It is important to note that the intermediate witnesses for black box functions will not generated
+    /// This is the responsibility of the proof system.
+    fn prove_with_pk(
+        &self,
+        circuit: &Circuit,
+        witness_values: BTreeMap<Witness, FieldElement>,
+        proving_key: &[u8],
+    ) -> Vec<u8>;
+
+    /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
+    fn verify_with_vk(
+        &self,
+        proof: &[u8],
+        public_inputs: BTreeMap<Witness, FieldElement>,
+        circuit: &Circuit,
+        verification_key: &[u8],
+    ) -> bool;
 }
 
 /// Supported NP complete languages
@@ -185,7 +205,7 @@ pub enum Language {
 
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialise circuit");
+    cs.write(&mut bytes).expect("could not serialize circuit");
 
     use sha2::{digest::FixedOutput, Digest, Sha256};
     let mut hasher = Sha256::new();
@@ -195,31 +215,26 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
 }
 
 #[deprecated(
-    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for blackbox function support based on the np language. \n Backends should simply specify what they support."
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
 )]
 // This is set to match the previous functionality that we had
-// Where we could deduce what blackbox functions were supported
+// Where we could deduce what black box functions were supported
 // by knowing the np complete language
-pub fn default_is_blackbox_supported(
+pub fn default_is_black_box_supported(
     language: Language,
-) -> compiler::fallback::IsBlackBoxSupported {
-    // R1CS does not support any of the blackbox functions by default.
+) -> compiler::transformers::IsBlackBoxSupported {
+    // R1CS does not support any of the black box functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
-    fn r1cs_is_supported(opcode: &BlackBoxFunc) -> bool {
-        match opcode {
-            _ => false,
-        }
+    fn r1cs_is_supported(_opcode: &BlackBoxFunc) -> bool {
+        false
     }
 
-    // PLONK supports most of the blackbox functions by default
+    // PLONK supports most of the black box functions by default
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &BlackBoxFunc) -> bool {
-        match opcode {
-            BlackBoxFunc::AES => false,
-            _ => true,
-        }
+        !matches!(opcode, BlackBoxFunc::AES)
     }
 
     match language {

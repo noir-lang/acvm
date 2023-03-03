@@ -1,16 +1,18 @@
 [package]
 name = "acir"
-version = "0.3.1"
-authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
-edition = "2021"
-license = "MIT"
 description = "ACIR is the IR that the VM processes, it is analogous to LLVM IR"
+version = "0.5.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acir_field = { version = "0.3.1", path = "../acir_field" }
-serde = { version = "1.0.136", features = ["derive"] }
+acir_field.workspace = true
+serde.workspace = true
+
 rmp-serde = "1.1.0"
 flate2 = "1.0.24"
 
@@ -18,3 +20,7 @@ flate2 = "1.0.24"
 serde_json = "1.0"
 strum = "0.24"
 strum_macros = "0.24"
+
+[features]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]

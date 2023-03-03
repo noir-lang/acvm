@@ -1,24 +1,16 @@
 name: Rust
 
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-env:
-  CARGO_TERM_COLOR: always
+on: [push, pull_request]
 
 jobs:
-  build:
+  check_n_test:
+    name: cargo check & test
+    uses: noir-lang/.github/.github/workflows/rust-test.yml@main
 
-    runs-on: ubuntu-latest
+  clippy:
+    name: cargo clippy
+    uses: noir-lang/.github/.github/workflows/rust-clippy.yml@main
 
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose
-    - name: Clippy
-      run: cargo clippy --verbose
-    - name: Run tests
-      run: cargo test --verbose
+  format:
+    name: cargo fmt
+    uses: noir-lang/.github/.github/workflows/rust-format.yml@main

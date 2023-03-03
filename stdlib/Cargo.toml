@@ -1,11 +1,10 @@
 [package]
 name = "acvm_stdlib"
-version = "0.3.1"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 description = "The ACVM standard library."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acir = { version = "0.3.1", path = "../acir" }
-acir_field = { version = "0.3.1", path = "../acir_field", default-features = true }
+acir = { version = "0.5.0", path = "../acir", features = ["bn254"] }

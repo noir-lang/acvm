@@ -1,4 +1,4 @@
-use super::witness_to_value;
+use super::{directives::insert_witness, witness_to_value};
 use crate::OpcodeResolutionError;
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
@@ -10,10 +10,7 @@ pub fn solve_logic_opcode(
     match func_call.name {
         BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
         BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
-        _ => Err(OpcodeResolutionError::UnexpectedOpcode(
-            "logic opcode",
-            func_call.name,
-        )),
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.name)),
     }
 }
 
@@ -32,13 +29,12 @@ impl LogicSolver {
         let w_l_value = witness_to_value(initial_witness, *a)?;
         let w_r_value = witness_to_value(initial_witness, *b)?;
 
-        if is_xor_gate {
-            let assignment = w_l_value.xor(w_r_value, num_bits);
-            initial_witness.insert(result, assignment);
+        let assignment = if is_xor_gate {
+            w_l_value.xor(w_r_value, num_bits)
         } else {
-            let assignment = w_l_value.and(w_r_value, num_bits);
-            initial_witness.insert(result, assignment);
-        }
+            w_l_value.and(w_r_value, num_bits)
+        };
+        insert_witness(result, assignment, initial_witness)?;
         Ok(())
     }
 
@@ -59,16 +55,15 @@ impl LogicSolver {
 }
 // TODO: Is there somewhere else that we can put this?
 // TODO: extraction methods are needed for some opcodes like logic and range
-pub(crate) fn extract_input_output(gc: &BlackBoxFuncCall) -> (Witness, Witness, Witness, u32) {
-    let a = &gc.inputs[0];
-    let b = &gc.inputs[1];
-    let result = &gc.outputs[0];
+pub(crate) fn extract_input_output(
+    bb_func_call: &BlackBoxFuncCall,
+) -> (Witness, Witness, Witness, u32) {
+    let a = &bb_func_call.inputs[0];
+    let b = &bb_func_call.inputs[1];
+    let result = &bb_func_call.outputs[0];
 
     // The num_bits variable should be the same for all witnesses
-    assert_eq!(
-        a.num_bits, b.num_bits,
-        "number of bits specified for each input must be the same"
-    );
+    assert_eq!(a.num_bits, b.num_bits, "number of bits specified for each input must be the same");
 
     let num_bits = a.num_bits;
 
