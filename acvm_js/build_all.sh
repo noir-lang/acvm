@@ -13,7 +13,6 @@ function build_for_curve() {
     cat $main_dir/package.json \
         | jq '.name = "@noir-lang/acvm-bn254"' \
         | jq ".version += \"-$ACIR_REV_SHORT-$ACIRJS_REV_SHORT\"" \
-        | jq '.repository = { "type" : "git", "url" : "https://github.com/noir-lang/acvm-js.git" }' \
         | tee $main_dir/package-$CURVE.json
 
     rm -rf dist

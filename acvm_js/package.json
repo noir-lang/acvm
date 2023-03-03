@@ -2,6 +2,10 @@
   "name": "acvm",
   "version": "1.0.0",
   "description": "JS tooling for ACIR",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noir-lang/acvm.git"
+  },
   "main": "dist/acvm.cjs.js",
   "module": "dist/acvm.esm.js",
   "types": "dist/types/index_es.d.ts",
