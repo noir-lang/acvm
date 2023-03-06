@@ -93,7 +93,7 @@ pub fn compile(
     Ok(Circuit {
         current_witness_index,
         opcodes: transformed_gates,
-        public_inputs: fallback.public_inputs, // The optimiser does not add public inputs
-        public_outputs: fallback.public_outputs,
+        public_inputs: acir.public_inputs, // The optimizer does not add public inputs/outputs
+        public_outputs: acir.public_outputs,
     })
 }
