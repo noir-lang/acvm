@@ -1,3 +1,22 @@
 [workspace]
 
 members = ["acir_field", "acir", "acvm", "stdlib"]
+
+[workspace.package]
+authors = ["The Noir Team <kevtheappdev@gmail.com>"]
+edition = "2021"
+license = "MIT"
+rust-version = "1.66"
+
+[workspace.dependencies]
+acir = { version = "0.6.0", path = "acir" }
+acir_field = { version = "0.6.0", path = "acir_field" }
+stdlib = { package = "acvm_stdlib", version = "0.6.0", path = "stdlib" }
+
+hex = "0.4.2"
+num-bigint = "0.4"
+num-traits = "0.2"
+
+blake2 = "0.9.1"
+
+serde = { version = "1.0.136", features = ["derive"] }

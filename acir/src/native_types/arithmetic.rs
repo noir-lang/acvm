@@ -1,12 +1,10 @@
 use crate::native_types::{Linear, Witness};
-use crate::serialisation::{read_field_element, read_u32, write_bytes, write_u32};
+use crate::serialization::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::io::{Read, Write};
 use std::ops::{Add, Mul, Neg, Sub};
-
-use super::witness::UnknownWitness;
 
 // In the addition polynomial
 // We can have arbitrary fan-in/out, so we need more than wL,wR and wO
@@ -17,7 +15,7 @@ use super::witness::UnknownWitness;
 // XXX: If we allow the degree of the quotient polynomial to be arbitrary, then we will need a vector of wire values
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Expression {
-    // To avoid having to create intermediate variables pre-optimisation
+    // To avoid having to create intermediate variables pre-optimization
     // We collect all of the multiplication terms in the arithmetic gate
     // A multiplication term if of the form q_M * wL * wR
     // Hence this vector represents the following sum: q_M1 * wL1 * wR1 + q_M2 * wL2 * wR2 + .. +
@@ -41,14 +39,10 @@ impl Default for Expression {
 
 impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        if self.mul_terms.is_empty() && self.linear_combinations.len() == 1 && self.q_c.is_zero() {
-            write!(f, "x{}", self.linear_combinations[0].1.witness_index())
+        if let Some(witness) = self.to_witness() {
+            write!(f, "x{}", witness.witness_index())
         } else {
-            write!(
-                f,
-                "%{:?}%",
-                crate::circuit::opcodes::Opcode::Arithmetic(self.clone())
-            )
+            write!(f, "%{:?}%", crate::circuit::opcodes::Opcode::Arithmetic(self.clone()))
         }
     }
 }
@@ -88,15 +82,14 @@ impl Expression {
     pub const fn can_defer_constraint(&self) -> bool {
         false
     }
+
+    /// Returns the number of multiplication terms
     pub fn num_mul_terms(&self) -> usize {
         self.mul_terms.len()
     }
 
     pub fn from_field(q_c: FieldElement) -> Expression {
-        Self {
-            q_c,
-            ..Default::default()
-        }
+        Self { q_c, ..Default::default() }
     }
 
     pub fn one() -> Expression {
@@ -141,13 +134,17 @@ impl Expression {
             let mul_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let mul_term_lhs = read_u32(&mut reader)?;
             let mul_term_rhs = read_u32(&mut reader)?;
-            expr.term_multiplication(mul_term_coeff, Witness(mul_term_lhs), Witness(mul_term_rhs))
+            expr.push_multiplication_term(
+                mul_term_coeff,
+                Witness(mul_term_lhs),
+                Witness(mul_term_rhs),
+            )
         }
 
         for _ in 0..num_lin_comb_terms {
             let lin_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
             let lin_term_variable = read_u32(&mut reader)?;
-            expr.term_addition(lin_term_coeff, Witness(lin_term_variable))
+            expr.push_addition_term(lin_term_coeff, Witness(lin_term_variable))
         }
 
         let q_c = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
@@ -156,25 +153,101 @@ impl Expression {
         Ok(expr)
     }
 
-    // TODO: possibly rename, since linear can have one mul_term
-    pub fn is_linear(&self) -> bool {
-        self.mul_terms.is_empty()
-    }
-
-    pub fn term_addition(&mut self, coefficient: acir_field::FieldElement, variable: Witness) {
+    /// Adds a new linear term to the `Expression`.
+    pub fn push_addition_term(&mut self, coefficient: FieldElement, variable: Witness) {
         self.linear_combinations.push((coefficient, variable))
     }
-    pub fn term_multiplication(
+
+    /// Adds a new quadratic term to the `Expression`.
+    pub fn push_multiplication_term(
         &mut self,
-        coefficient: acir_field::FieldElement,
+        coefficient: FieldElement,
         lhs: Witness,
         rhs: Witness,
     ) {
         self.mul_terms.push((coefficient, lhs, rhs))
     }
 
+    /// Returns `true` if the expression represents a constant polynomial.
+    ///
+    /// Examples:
+    /// -  f(x,y) = x + y would return false
+    /// -  f(x,y) = xy would return false, the degree here is 2
+    /// -  f(x,y) = 5 would return true, the degree is 0
     pub fn is_const(&self) -> bool {
         self.mul_terms.is_empty() && self.linear_combinations.is_empty()
+    }
+
+    /// Returns `true` if highest degree term in the expression is one or less.
+    ///
+    /// - `mul_term` in an expression contains degree-2 terms
+    /// - `linear_combinations` contains degree-1 terms
+    /// Hence, it is sufficient to check that there are no `mul_terms`
+    ///
+    /// Examples:
+    /// -  f(x,y) = x + y would return true
+    /// -  f(x,y) = xy would return false, the degree here is 2
+    /// -  f(x,y) = 0 would return true, the degree is 0
+    pub fn is_linear(&self) -> bool {
+        self.mul_terms.is_empty()
+    }
+
+    /// Returns `true` if the expression can be seen as a degree-1 univariate polynomial
+    ///
+    /// - `mul_terms` in an expression can be univariate, however unless the coefficient
+    /// is zero, it is always degree-2.
+    /// - `linear_combinations` contains the sum of degree-1 terms, these terms do not
+    /// need to contain the same variable and so it can be multivariate. However, we
+    /// have thus far only checked if `linear_combinations` contains one term, so this
+    /// method will return false, if the `Expression` has not been simplified.
+    ///
+    /// Hence, we check in the simplest case if an expression is a degree-1 univariate,
+    /// by checking if it contains no `mul_terms` and it contains one `linear_combination` term.
+    ///
+    /// Examples:
+    /// - f(x,y) = x would return true
+    /// - f(x,y) = x + 6 would return true
+    /// - f(x,y) = 2*y + 6 would return true
+    /// - f(x,y) = x + y would return false
+    /// - f(x,y) = x + x should return true, but we return false *** (we do not simplify)
+    /// - f(x,y) = 5 would return false
+    pub fn is_degree_one_univariate(&self) -> bool {
+        self.is_linear() && self.linear_combinations.len() == 1
+    }
+
+    /// Returns a `FieldElement` if the expression represents a constant polynomial.
+    /// Otherwise returns `None`.
+    ///
+    /// Examples:
+    /// - f(x,y) = x would return `None`
+    /// - f(x,y) = x + 6 would return `None`
+    /// - f(x,y) = 2*y + 6 would return `None`
+    /// - f(x,y) = x + y would return `None`
+    /// - f(x,y) = 5 would return `FieldElement(5)`
+    pub fn to_const(&self) -> Option<FieldElement> {
+        self.is_const().then_some(self.q_c)
+    }
+
+    /// Returns a `Witness` if the `Expression` can be represented as a degree-1
+    /// univariate polynomial. Otherwise returns `None`.
+    ///
+    /// Note that `Witness` is only capable of expressing polynomials of the form
+    /// f(x) = x and not polynomials of the form f(x) = mx+c , so this method has
+    /// extra checks to ensure that m=1 and c=0
+    pub fn to_witness(&self) -> Option<Witness> {
+        if self.is_degree_one_univariate() {
+            // If we get here, we know that our expression is of the form `f(x) = mx+c`
+            // We want to now restrict ourselves to expressions of the form f(x) = x
+            // ie where the constant term is 0 and the coefficient in front of the variable is
+            // one.
+            let (coefficient, variable) = self.linear_combinations[0];
+            let constant = self.q_c;
+
+            if coefficient.is_one() && constant.is_zero() {
+                return Some(variable);
+            }
+        }
+        None
     }
 
     fn get_max_idx(&self) -> WitnessIdx {
@@ -241,8 +314,7 @@ impl Expression {
     /// Sorts gate in a deterministic order
     /// XXX: We can probably make this more efficient by sorting on each phase. We only care if it is deterministic
     pub fn sort(&mut self) {
-        self.mul_terms
-            .sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+        self.mul_terms.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
         self.linear_combinations.sort_by(|a, b| a.1.cmp(&b.1));
     }
 }
@@ -251,27 +323,17 @@ impl Mul<&FieldElement> for &Expression {
     type Output = Expression;
     fn mul(self, rhs: &FieldElement) -> Self::Output {
         // Scale the mul terms
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .map(|(q_m, w_l, w_r)| (*q_m * *rhs, *w_l, *w_r))
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().map(|(q_m, w_l, w_r)| (*q_m * *rhs, *w_l, *w_r)).collect();
 
         // Scale the linear combinations terms
-        let lin_combinations: Vec<_> = self
-            .linear_combinations
-            .iter()
-            .map(|(q_l, w_l)| (*q_l * *rhs, *w_l))
-            .collect();
+        let lin_combinations: Vec<_> =
+            self.linear_combinations.iter().map(|(q_l, w_l)| (*q_l * *rhs, *w_l)).collect();
 
         // Scale the constant
         let q_c = self.q_c * *rhs;
 
-        Expression {
-            mul_terms,
-            q_c,
-            linear_combinations: lin_combinations,
-        }
+        Expression { mul_terms, q_c, linear_combinations: lin_combinations }
     }
 }
 impl Add<&FieldElement> for Expression {
@@ -280,11 +342,7 @@ impl Add<&FieldElement> for Expression {
         // Increase the constant
         let q_c = self.q_c + *rhs;
 
-        Expression {
-            mul_terms: self.mul_terms,
-            q_c,
-            linear_combinations: self.linear_combinations,
-        }
+        Expression { mul_terms: self.mul_terms, q_c, linear_combinations: self.linear_combinations }
     }
 }
 impl Sub<&FieldElement> for Expression {
@@ -293,11 +351,7 @@ impl Sub<&FieldElement> for Expression {
         // Increase the constant
         let q_c = self.q_c - *rhs;
 
-        Expression {
-            mul_terms: self.mul_terms,
-            q_c,
-            linear_combinations: self.linear_combinations,
-        }
+        Expression { mul_terms: self.mul_terms, q_c, linear_combinations: self.linear_combinations }
     }
 }
 
@@ -306,12 +360,8 @@ impl Add<&Expression> for &Expression {
     fn add(self, rhs: &Expression) -> Expression {
         // XXX(med) : Implement an efficient way to do this
 
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .cloned()
-            .chain(rhs.mul_terms.iter().cloned())
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().cloned().chain(rhs.mul_terms.iter().cloned()).collect();
 
         let linear_combinations: Vec<_> = self
             .linear_combinations
@@ -321,11 +371,7 @@ impl Add<&Expression> for &Expression {
             .collect();
         let q_c = self.q_c + rhs.q_c;
 
-        Expression {
-            mul_terms,
-            linear_combinations,
-            q_c,
-        }
+        Expression { mul_terms, linear_combinations, q_c }
     }
 }
 
@@ -334,24 +380,14 @@ impl Neg for &Expression {
     fn neg(self) -> Self::Output {
         // XXX(med) : Implement an efficient way to do this
 
-        let mul_terms: Vec<_> = self
-            .mul_terms
-            .iter()
-            .map(|(q_m, w_l, w_r)| (-*q_m, *w_l, *w_r))
-            .collect();
+        let mul_terms: Vec<_> =
+            self.mul_terms.iter().map(|(q_m, w_l, w_r)| (-*q_m, *w_l, *w_r)).collect();
 
-        let linear_combinations: Vec<_> = self
-            .linear_combinations
-            .iter()
-            .map(|(q_k, w_k)| (-*q_k, *w_k))
-            .collect();
+        let linear_combinations: Vec<_> =
+            self.linear_combinations.iter().map(|(q_k, w_k)| (-*q_k, *w_k)).collect();
         let q_c = -self.q_c;
 
-        Expression {
-            mul_terms,
-            linear_combinations,
-            q_c,
-        }
+        Expression { mul_terms, linear_combinations, q_c }
     }
 }
 
@@ -362,15 +398,35 @@ impl Sub<&Expression> for &Expression {
     }
 }
 
-impl From<&FieldElement> for Expression {
-    fn from(constant: &FieldElement) -> Expression {
-        Expression {
-            q_c: *constant,
-            linear_combinations: Vec::new(),
-            mul_terms: Vec::new(),
-        }
+impl From<FieldElement> for Expression {
+    fn from(constant: FieldElement) -> Expression {
+        Expression { q_c: constant, linear_combinations: Vec::new(), mul_terms: Vec::new() }
     }
 }
+
+impl From<&FieldElement> for Expression {
+    fn from(constant: &FieldElement) -> Expression {
+        (*constant).into()
+    }
+}
+
+impl From<Witness> for Expression {
+    /// Creates an Expression from a Witness.
+    ///
+    /// This is infallible since an `Expression` is
+    /// a multi-variate polynomial and a `Witness`
+    /// can be seen as a univariate polynomial
+    fn from(wit: Witness) -> Expression {
+        Linear::from_witness(wit).into()
+    }
+}
+
+impl From<&Witness> for Expression {
+    fn from(wit: &Witness) -> Expression {
+        (*wit).into()
+    }
+}
+
 impl From<&Linear> for Expression {
     fn from(lin: &Linear) -> Expression {
         Expression {
@@ -383,11 +439,6 @@ impl From<&Linear> for Expression {
 impl From<Linear> for Expression {
     fn from(lin: Linear) -> Expression {
         Expression::from(&lin)
-    }
-}
-impl From<&Witness> for Expression {
-    fn from(wit: &Witness) -> Expression {
-        Linear::from_witness(*wit).into()
     }
 }
 
@@ -409,19 +460,9 @@ impl Sub<&Witness> for &Expression {
         self - &Expression::from(rhs)
     }
 }
-impl Sub<&UnknownWitness> for &Expression {
-    type Output = Expression;
-    fn sub(self, rhs: &UnknownWitness) -> Expression {
-        let mut cloned = self.clone();
-        cloned
-            .linear_combinations
-            .insert(0, (-FieldElement::one(), rhs.as_witness()));
-        cloned
-    }
-}
 
 impl Expression {
-    // Checks if this polynomial can fit into one arithmetic identity
+    /// Checks if this polynomial can fit into one arithmetic identity
     pub fn fits_in_one_identity(&self, width: usize) -> bool {
         // A Polynomial with more than one mul term cannot fit into one gate
         if self.mul_terms.len() > 1 {
@@ -448,7 +489,7 @@ impl Expression {
         // A polynomial whose mul terms are non zero which do not match up with two terms in the fan-in cannot fit into one gate
         // An example of this is: Axy + Bx + Cy + ...
         // Notice how the bivariate monomial xy has two univariate monomials with their respective coefficients
-        // XXX: note that if x or y is zero, then we could apply a further optimisation, but this would be done in another algorithm.
+        // XXX: note that if x or y is zero, then we could apply a further optimization, but this would be done in another algorithm.
         // It would be the same as when we have zero coefficients - Can only work if wire is constrained to be zero publicly
         let mul_term = &self.mul_terms[0];
 
@@ -478,7 +519,7 @@ impl Expression {
 }
 
 #[test]
-fn serialisation_roundtrip() {
+fn serialization_roundtrip() {
     // Empty expression
     //
     let expr = Expression::default();
@@ -495,8 +536,8 @@ fn serialisation_roundtrip() {
 
     //
     let mut expr = Expression::default();
-    expr.term_addition(FieldElement::from(123i128), Witness(20u32));
-    expr.term_multiplication(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
+    expr.push_addition_term(FieldElement::from(123i128), Witness(20u32));
+    expr.push_multiplication_term(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
     expr.q_c = FieldElement::from(789456i128);
 
     let (expr, got_expr) = read_write(expr);

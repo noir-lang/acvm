@@ -5,13 +5,98 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0](https://github.com/noir-lang/acvm/compare/root-v0.5.0...root-v0.6.0) (2023-03-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** rename `term_addition` to `push_addition_term`
+* **acir:** rename `term_multiplication` to `push_multiplication_term` ([#122](https://github.com/noir-lang/acvm/issues/122))
+* **acir:** remove `UnknownWitness` ([#123](https://github.com/noir-lang/acvm/issues/123))
+* add block opcode ([#114](https://github.com/noir-lang/acvm/issues/114))
+
+### Features
+
+* **acir:** add useful methods from `noirc_evaluator` onto `Expression` ([#125](https://github.com/noir-lang/acvm/issues/125)) ([d3d5f89](https://github.com/noir-lang/acvm/commit/d3d5f8917482ce5649602695829862a5df4ea712))
+* add block opcode ([#114](https://github.com/noir-lang/acvm/issues/114)) ([097cfb0](https://github.com/noir-lang/acvm/commit/097cfb069291705ddb4bf1fca77ddcef21dbbd08))
+
+
+### Bug Fixes
+
+* **acir:** correctly display expressions with non-unit coefficients ([d3d5f89](https://github.com/noir-lang/acvm/commit/d3d5f8917482ce5649602695829862a5df4ea712))
+* **ci:** publish acvm_stdlib before acvm ([#117](https://github.com/noir-lang/acvm/issues/117)) ([ca6defc](https://github.com/noir-lang/acvm/commit/ca6defc9bb5f51241b2fc4d9cd732f9678b4688f))
+
+
+### Miscellaneous Chores
+
+* **acir:** remove `UnknownWitness` ([#123](https://github.com/noir-lang/acvm/issues/123)) ([9f002c7](https://github.com/noir-lang/acvm/commit/9f002c7b49a5cf222d4a01732cc4917a47690863))
+* **acir:** rename `term_addition` to `push_addition_term` ([d389385](https://github.com/noir-lang/acvm/commit/d38938542851a97dc01727438391e6a65e44c689))
+* **acir:** rename `term_multiplication` to `push_multiplication_term` ([#122](https://github.com/noir-lang/acvm/issues/122)) ([d389385](https://github.com/noir-lang/acvm/commit/d38938542851a97dc01727438391e6a65e44c689))
+
+## [0.5.0](https://github.com/noir-lang/acvm/compare/root-v0.4.1...root-v0.5.0) (2023-02-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** switch to accepting public inputs as a map ([#96](https://github.com/noir-lang/acvm/issues/96))
+* **acvm:** add `eth_contract_from_vk` to `SmartContract
+* update `ProofSystemCompiler` to not take ownership of keys ([#111](https://github.com/noir-lang/acvm/issues/111))
+* update `ProofSystemCompiler` methods to take `&Circuit` ([#108](https://github.com/noir-lang/acvm/issues/108))
+* **acir:** make PublicInputs use a BTreeSet rather than Vec ([#99](https://github.com/noir-lang/acvm/issues/99))
+* refactor ToRadix to ToRadixLe and ToRadixBe ([#58](https://github.com/noir-lang/acvm/issues/58))
+* **acir:** Add keccak256 Opcode ([#91](https://github.com/noir-lang/acvm/issues/91))
+* reorganise compiler in terms of optimisers and transformers ([#88](https://github.com/noir-lang/acvm/issues/88))
+
+### Features
+
+* **acir:** Add keccak256 Opcode ([#91](https://github.com/noir-lang/acvm/issues/91)) ([b909146](https://github.com/noir-lang/acvm/commit/b9091461e199bacdd073cc9b31f03dade0b4fb2d))
+* **acir:** make PublicInputs use a BTreeSet rather than Vec ([#99](https://github.com/noir-lang/acvm/issues/99)) ([53666b7](https://github.com/noir-lang/acvm/commit/53666b782d89c65cd755f9e4ded2c9cf5a141e46))
+* **acvm:** add `eth_contract_from_vk` to `SmartContract ([#113](https://github.com/noir-lang/acvm/issues/113)) ([373c18f](https://github.com/noir-lang/acvm/commit/373c18fc05edf673cfec9e8bbb78bd7d7514999e))
+* **acvm:** switch to accepting public inputs as a map ([#96](https://github.com/noir-lang/acvm/issues/96)) ([f57ba57](https://github.com/noir-lang/acvm/commit/f57ba57c2bb2597edf2b02fb1321c69cf11993ee))
+* **ci:** Add release workflow ([#89](https://github.com/noir-lang/acvm/issues/89)) ([db8e828](https://github.com/noir-lang/acvm/commit/db8e828341f59241ef7f437c908277fb8fbca9e3))
+* **ci:** Publish crates upon release ([#104](https://github.com/noir-lang/acvm/issues/104)) ([b265920](https://github.com/noir-lang/acvm/commit/b265920bc1b0c776d20326a0b74fc635c22af4b9))
+* update `ProofSystemCompiler` methods to take `&Circuit` ([#108](https://github.com/noir-lang/acvm/issues/108)) ([af56ca9](https://github.com/noir-lang/acvm/commit/af56ca9da06068c650c66e76bfd09e65eb0ec213))
+* update `ProofSystemCompiler` to not take ownership of keys ([#111](https://github.com/noir-lang/acvm/issues/111)) ([39b8a41](https://github.com/noir-lang/acvm/commit/39b8a41293e567971f700f61103852cb987a8d16))
+* Update Arkworks' dependencies on `acir_field` ([#69](https://github.com/noir-lang/acvm/issues/69)) ([65d6130](https://github.com/noir-lang/acvm/commit/65d61307a12f25e04afad2d50e4c4db5ce97dd8c))
+
+
+### Bug Fixes
+
+* **ci:** Update dependency versions in the workspace file ([#103](https://github.com/noir-lang/acvm/issues/103)) ([9acc266](https://github.com/noir-lang/acvm/commit/9acc266c7dc5a6ad2fa9c466cc82cb81d984b7ed))
+* Clean up Log Directive hex output  ([#97](https://github.com/noir-lang/acvm/issues/97)) ([d23c735](https://github.com/noir-lang/acvm/commit/d23c7352523ffb42f3e8f4229b61f9803ab78a7e))
+
+
+### Miscellaneous Chores
+
+* refactor ToRadix to ToRadixLe and ToRadixBe ([#58](https://github.com/noir-lang/acvm/issues/58)) ([2427a27](https://github.com/noir-lang/acvm/commit/2427a275048e598c6d651cce8348a4c55148f235))
+* reorganise compiler in terms of optimisers and transformers ([#88](https://github.com/noir-lang/acvm/issues/88)) ([9329307](https://github.com/noir-lang/acvm/commit/9329307e054de202cfc55207162ad952b70d515e))
+
+## [0.4.1] - 2023-02-08
 
 ### Added
 
 ### Fixed
 
+- Removed duplicated logic in match branch
+
 ### Changed
+
+### Removed
+
+## [0.4.0] - 2023-02-08
+
+### Added
+
+- Add log directive
+- Expose `acir_field` through `acir` crate
+- Add permutation directive
+- Add preprocess methods to ACVM interface
+
+### Fixed
+
+### Changed
+
+- Changed spellings of many functions to be correct using spellchecker
 
 ### Removed
 
@@ -42,7 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - XOR, Range and AND gates are no longer special case. They are now another opcode in the GadgetCall
 - Move fallback module to `stdlib`
-- optimiser code and any other passes will live in acvm. acir is solely for defining the IR now.
+- Optimizer code and any other passes will live in acvm. acir is solely for defining the IR now.
 - ACIR passes now live under the compiler parent module
 - Moved opcode module in acir crate to circuit/opcode
 - Rename GadgetCall to BlackBoxFuncCall

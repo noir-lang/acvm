@@ -1,9 +1,9 @@
 use crate::helpers::VariableStore;
 use acir::{
+    acir_field::FieldElement,
     circuit::{directives::Directive, Opcode},
     native_types::{Expression, Witness},
 };
-use acir_field::FieldElement;
 
 // Perform bit decomposition on the provided expression
 #[deprecated(note = "use bit_decomposition function instead")]
@@ -38,7 +38,7 @@ pub(crate) fn bit_decomposition(
     }
 
     // Next create a directive which computes those bits.
-    new_gates.push(Opcode::Directive(Directive::ToRadix {
+    new_gates.push(Opcode::Directive(Directive::ToLeRadix {
         a: gate.clone(),
         b: bit_vector.clone(),
         radix: 2,
@@ -53,14 +53,14 @@ pub(crate) fn bit_decomposition(
     for &bit in &bit_vector {
         // Bit constraint to ensure each bit is a zero or one; bit^2 - bit = 0
         let mut expr = Expression::default();
-        expr.term_multiplication(FieldElement::one(), bit, bit);
-        expr.term_addition(-FieldElement::one(), bit);
+        expr.push_multiplication_term(FieldElement::one(), bit, bit);
+        expr.push_addition_term(-FieldElement::one(), bit);
         binary_exprs.push(Opcode::Arithmetic(expr));
 
         // Constraint to ensure that the bits are constrained to be a bit decomposition
         // of the input
         // ie \sum 2^i * x_i = input
-        bit_decomp_constraint.term_addition(-two_pow, bit);
+        bit_decomp_constraint.push_addition_term(-two_pow, bit);
         two_pow = two * two_pow;
     }
 
@@ -68,7 +68,7 @@ pub(crate) fn bit_decomposition(
     bit_decomp_constraint.sort(); // TODO: we have an issue open to check if this is needed. Ideally, we remove it.
     new_gates.push(Opcode::Arithmetic(bit_decomp_constraint));
 
-    (new_gates, bit_vector, variables.finalise())
+    (new_gates, bit_vector, variables.finalize())
 }
 
 // Range constraint
@@ -104,10 +104,10 @@ pub fn and(
     // expected output; ie result = \sum 2^i x_i * y_i
     let mut and_expr = Expression::default();
     for (a_bit, b_bit) in a_bits.into_iter().zip(b_bits) {
-        and_expr.term_multiplication(two_pow, a_bit, b_bit);
+        and_expr.push_multiplication_term(two_pow, a_bit, b_bit);
         two_pow = two * two_pow;
     }
-    and_expr.term_addition(-FieldElement::one(), result);
+    and_expr.push_addition_term(-FieldElement::one(), result);
 
     and_expr.sort();
 
@@ -140,15 +140,15 @@ pub fn xor(
     let two = FieldElement::from(2_i128);
 
     // Build an xor expression
-    // TODO: check this is the correct arithmetisation
+    // TODO: check this is the correct arithmetization
     let mut xor_expr = Expression::default();
     for (a_bit, b_bit) in a_bits.into_iter().zip(b_bits) {
-        xor_expr.term_addition(two_pow, a_bit);
-        xor_expr.term_addition(two_pow, b_bit);
+        xor_expr.push_addition_term(two_pow, a_bit);
+        xor_expr.push_addition_term(two_pow, b_bit);
         two_pow = two * two_pow;
-        xor_expr.term_multiplication(-two_pow, a_bit, b_bit);
+        xor_expr.push_multiplication_term(-two_pow, a_bit, b_bit);
     }
-    xor_expr.term_addition(-FieldElement::one(), result);
+    xor_expr.push_addition_term(-FieldElement::one(), result);
 
     xor_expr.sort();
     let mut new_gates = Vec::new();

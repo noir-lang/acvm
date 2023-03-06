@@ -1,21 +1,24 @@
-pub mod blackbox_functions;
+pub mod black_box_functions;
 pub mod directives;
 pub mod opcodes;
 pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
-use crate::serialisation::{read_u32, write_u32};
+use crate::serialization::{read_u32, write_u32};
 use rmp_serde;
 use serde::{Deserialize, Serialize};
 
 use flate2::bufread::{DeflateDecoder, DeflateEncoder};
 use flate2::Compression;
+use std::collections::BTreeSet;
 use std::io::prelude::*;
 
 const VERSION_NUMBER: u32 = 0;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
+    // current_witness_index is the highest witness index in the circuit. The next witness to be added to this circuit
+    // will take on this value. (The value is cached here as an optimization.)
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
     pub public_inputs: PublicInputs,
@@ -32,7 +35,7 @@ impl Circuit {
     }
 
     #[deprecated(
-        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi). use `read` instead"
+        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi). use `read` instead"
     )]
     pub fn from_bytes(bytes: &[u8]) -> Circuit {
         let mut deflater = DeflateDecoder::new(bytes);
@@ -42,7 +45,7 @@ impl Circuit {
     }
 
     #[deprecated(
-        note = "we want to use a serialisation strategy that is easy to implement in many languages (without ffi).use `write` instead"
+        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi).use `write` instead"
     )]
     pub fn to_bytes(&self) -> Vec<u8> {
         let buf = rmp_serde::to_vec(&self).unwrap();
@@ -80,7 +83,7 @@ impl Circuit {
         // TODO (Note): we could use semver versioning from the Cargo.toml
         // here and then reject anything that has a major bump
         //
-        // We may also not want to do that if we do not want to couple serialisation
+        // We may also not want to do that if we do not want to couple serialization
         // with other breaking changes
         if version_number != VERSION_NUMBER {
             return Err(std::io::ErrorKind::InvalidData.into());
@@ -89,16 +92,16 @@ impl Circuit {
         let current_witness_index = read_u32(&mut reader)?;
 
         let num_public_inputs = read_u32(&mut reader)?;
-        let mut public_inputs = PublicInputs(Vec::with_capacity(num_public_inputs as usize));
+        let mut public_inputs = PublicInputs(BTreeSet::new());
         for _ in 0..num_public_inputs {
             let public_input_index = Witness(read_u32(&mut reader)?);
-            public_inputs.0.push(public_input_index)
+            public_inputs.0.insert(public_input_index);
         }
         let num_public_outputs = read_u32(&mut reader)?;
-        let mut public_outputs = PublicInputs(Vec::with_capacity(num_public_outputs as usize));
+        let mut public_outputs = PublicInputs(BTreeSet::new());
         for _ in 0..num_public_outputs {
             let public_output_index = Witness(read_u32(&mut reader)?);
-            public_outputs.0.push(public_output_index)
+            public_outputs.0.insert(public_output_index);
         }
 
         let num_opcodes = read_u32(&mut reader)?;
@@ -108,12 +111,7 @@ impl Circuit {
             opcodes.push(opcode)
         }
 
-        Ok(Self {
-            current_witness_index,
-            opcodes,
-            public_inputs,
-            public_outputs,
-        })
+        Ok(Self { current_witness_index, opcodes, public_inputs, public_outputs })
     }
 }
 
@@ -143,15 +141,12 @@ impl std::fmt::Debug for Circuit {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct PublicInputs(pub Vec<Witness>);
+pub struct PublicInputs(pub BTreeSet<Witness>);
 
 impl PublicInputs {
     /// Returns the witness index of each public input
     pub fn indices(&self) -> Vec<u32> {
-        self.0
-            .iter()
-            .map(|witness| witness.witness_index())
-            .collect()
+        self.0.iter().map(|witness| witness.witness_index()).collect()
     }
 
     pub fn contains(&self, index: usize) -> bool {
@@ -161,6 +156,8 @@ impl PublicInputs {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeSet;
+
     use super::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode, PublicInputs,
@@ -172,14 +169,8 @@ mod test {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::AND,
             inputs: vec![
-                FunctionInput {
-                    witness: Witness(1),
-                    num_bits: 4,
-                },
-                FunctionInput {
-                    witness: Witness(2),
-                    num_bits: 4,
-                },
+                FunctionInput { witness: Witness(1), num_bits: 4 },
+                FunctionInput { witness: Witness(2), num_bits: 4 },
             ],
             outputs: vec![Witness(3)],
         })
@@ -187,21 +178,18 @@ mod test {
     fn range_opcode() -> Opcode {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
             name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![FunctionInput {
-                witness: Witness(1),
-                num_bits: 8,
-            }],
+            inputs: vec![FunctionInput { witness: Witness(1), num_bits: 8 }],
             outputs: vec![],
         })
     }
 
     #[test]
-    fn serialisation_roundtrip() {
+    fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode()],
-            public_inputs: PublicInputs(vec![Witness(2), Witness(12)]),
-            public_outputs: PublicInputs(vec![Witness(4), Witness(12)]),
+            public_inputs: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
+            public_outputs: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -223,13 +211,13 @@ mod test {
                 Opcode::Arithmetic(crate::native_types::Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![],
-                    q_c: FieldElement::from_hex("FFFF").unwrap(),
+                    q_c: FieldElement::from(8u128),
                 }),
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(vec![Witness(2)]),
-            public_outputs: PublicInputs(vec![Witness(2)]),
+            public_inputs: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            public_outputs: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
@@ -238,6 +226,7 @@ mod test {
         assert_eq!(circuit, deserialized);
     }
 
+    #[allow(deprecated)]
     #[test]
     fn test_to_byte() {
         let circuit = Circuit {
@@ -251,8 +240,8 @@ mod test {
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(vec![Witness(2)]),
-            public_outputs: PublicInputs(vec![Witness(2)]),
+            public_inputs: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            public_outputs: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
         };
 
         let bytes = circuit.to_bytes();
