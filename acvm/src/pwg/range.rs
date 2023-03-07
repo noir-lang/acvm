@@ -17,7 +17,7 @@ pub fn solve_range_opcode(
     if num_arguments != defined_input_size as usize {
         return Err(OpcodeResolutionError::IncorrectNumFunctionArguments(
             defined_input_size as usize,
-            BlackBoxFunc::RANGE.name().to_string(),
+            BlackBoxFunc::RANGE,
             num_arguments,
         ));
     }

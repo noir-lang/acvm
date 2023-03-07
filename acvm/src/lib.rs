@@ -48,7 +48,7 @@ pub enum OpcodeResolutionError {
     #[error("unexpected opcode, expected {0}, but got {1}")]
     UnexpectedOpcode(&'static str, BlackBoxFunc),
     #[error("expected {0} inputs for function {1}, but got {2}")]
-    IncorrectNumFunctionArguments(usize, String, usize),
+    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
 }
 
 #[derive(Debug, PartialEq)]
