@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use super::directives::{Directive, LogInfo};
+use super::directives::{Directive, LogOutputInfo};
 use crate::native_types::{Expression, Witness};
 use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
@@ -203,15 +203,22 @@ impl std::fmt::Display for Opcode {
                     bits.last().unwrap().witness_index(),
                 )
             }
-            Opcode::Directive(Directive::Log(info)) => match info {
-                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
-                LogInfo::WitnessOutput(witnesses) => write!(
-                    f,
-                    "Log: _{}..._{}",
-                    witnesses.first().unwrap().witness_index(),
-                    witnesses.last().unwrap().witness_index()
-                ),
-            },
+            Opcode::Directive(Directive::Log { is_trace, output_info }) => {
+                let is_trace_display = if *is_trace { "trace" } else { "println" };
+                match output_info {
+                    LogOutputInfo::FinalizedOutput(output_string) => {
+                        write!(f, "Log: {output_string}, log type {is_trace_display}")
+                    }
+                    // Note: This assumes that the witnesses have contiguous indices.
+                    // This may not always be the case however we don't want to print out the full vec.
+                    LogOutputInfo::WitnessOutput(witnesses) => write!(
+                        f,
+                        "Log: _{}..._{}, log type: {is_trace_display}",
+                        witnesses.first().unwrap().witness_index(),
+                        witnesses.last().unwrap().witness_index(),
+                    ),
+                }
+            }
             Opcode::Block(id, trace) => {
                 write!(f, "BLOCK ")?;
                 write!(f, "(id: {}, len: {}) ", id.0, trace.len())
