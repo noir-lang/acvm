@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use acir::{
-    circuit::directives::{Directive, LogInfo},
+    circuit::directives::{Directive, LogOutputInfo, SolvedLog, SolvedLogOutputInfo},
     native_types::Witness,
     FieldElement,
 };
@@ -15,13 +15,13 @@ use super::{get_value, insert_value, sorting::route, witness_to_value};
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     directive: &Directive,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<Option<SolvedLog>, OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
             let inverse = val.inverse();
             initial_witness.insert(*result, inverse);
-            Ok(())
+            Ok(None)
         }
         Directive::Quotient { a, b, q, r, predicate } => {
             let val_a = get_value(a, initial_witness)?;
@@ -53,7 +53,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::Truncate { a, b, c, bit_size } => {
             let val_a = get_value(a, initial_witness)?;
@@ -74,7 +74,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::ToLeRadix { a, b, radix } => {
             let value_a = get_value(a, initial_witness)?;
@@ -100,7 +100,7 @@ pub fn solve_directives(
                 insert_value(witness, value, initial_witness)?
             }
 
-            Ok(())
+            Ok(None)
         }
         Directive::OddRange { a, b, r, bit_size } => {
             let val_a = witness_to_value(initial_witness, *a)?;
@@ -125,7 +125,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(())
+            Ok(None)
         }
         Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
             let mut val_a = Vec::new();
@@ -158,43 +158,31 @@ pub fn solve_directives(
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_witness(*w, value, initial_witness)?;
             }
-            Ok(())
+            Ok(None)
         }
-        Directive::Log(info) => {
-            let witnesses = match info {
-                LogInfo::FinalizedOutput(output_string) => {
-                    println!("{output_string}");
-                    return Ok(());
+        Directive::Log { is_trace, output_info } => {
+            let witnesses = match output_info {
+                LogOutputInfo::FinalizedOutput(final_string) => {
+                    return Ok(Some(SolvedLog {
+                        is_trace: *is_trace,
+                        output_info: SolvedLogOutputInfo::FinalizedOutput(final_string.clone()),
+                    }))
                 }
-                LogInfo::WitnessOutput(witnesses) => witnesses,
+                LogOutputInfo::WitnessOutput(witnesses) => witnesses,
             };
 
-            if witnesses.len() == 1 {
-                let witness = &witnesses[0];
-                let log_value = witness_to_value(initial_witness, *witness)?;
-                println!("{}", format_field_string(*log_value));
-                return Ok(());
-            }
-
-            // If multiple witnesses are to be fetched for a log directive,
-            // it assumed that an array is meant to be printed to standard output
-            //
-            // Collect all field element values corresponding to the given witness indices
-            // and convert them to hex strings.
-            let mut elements_as_hex = Vec::with_capacity(witnesses.len());
+            let mut elements = Vec::with_capacity(witnesses.len());
             for witness in witnesses {
                 let element = witness_to_value(initial_witness, *witness)?;
-                elements_as_hex.push(format_field_string(*element));
+                elements.push(*element);
             }
 
-            // Join all of the hex strings using a comma
-            let comma_separated_elements = elements_as_hex.join(", ");
+            let solved_log = SolvedLog {
+                is_trace: *is_trace,
+                output_info: SolvedLogOutputInfo::WitnessValues(elements),
+            };
 
-            let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
-
-            println!("{output_witnesses_string}");
-
-            Ok(())
+            Ok(Some(solved_log))
         }
     }
 }

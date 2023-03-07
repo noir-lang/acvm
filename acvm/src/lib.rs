@@ -9,7 +9,11 @@ pub mod pwg;
 
 use crate::pwg::arithmetic::ArithmeticSolver;
 use acir::{
-    circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{
+        directives::{Directive, SolvedLog},
+        opcodes::BlackBoxFuncCall,
+        Circuit, Opcode,
+    },
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
@@ -61,6 +65,7 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         mut opcode_to_solve: Vec<Opcode>,
+        logs: &mut Vec<SolvedLog>,
     ) -> Result<(), OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut blocks = Blocks::default();
@@ -74,7 +79,11 @@ pub trait PartialWitnessGenerator {
                         Self::solve_black_box_function_call(initial_witness, bb_func)
                     }
                     Opcode::Directive(directive) => {
-                        Self::solve_directives(initial_witness, directive)
+                        Self::solve_directives(initial_witness, directive).map(|possible_log| {
+                            if let Some(solved_log) = possible_log {
+                                logs.push(solved_log)
+                            }
+                        })
                     }
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 };
@@ -115,7 +124,7 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<Option<SolvedLog>, OpcodeResolutionError> {
         pwg::directives::solve_directives(initial_witness, directive)
     }
 }
