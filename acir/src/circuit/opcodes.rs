@@ -7,7 +7,7 @@ use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
-pub struct BlockId(u32);
+pub struct BlockId(pub u32);
 
 /// Operation on a block
 /// We can either write or read at a block index
