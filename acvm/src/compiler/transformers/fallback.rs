@@ -52,8 +52,8 @@ impl FallbackTransformer {
         Ok(Circuit {
             current_witness_index: witness_idx,
             opcodes: acir_supported_opcodes,
-            public_inputs: acir.public_inputs,
-            public_outputs: acir.public_outputs,
+            public_parameters: acir.public_parameters,
+            return_values: acir.return_values,
         })
     }
 
