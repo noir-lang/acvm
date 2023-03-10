@@ -126,15 +126,27 @@ impl Circuit {
 impl std::fmt::Display for Circuit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "current witness index : {}", self.current_witness_index)?;
-        write!(f, "public input indices : [")?;
-        let indices = self.public_inputs().indices();
-        for (index, public_input) in indices.iter().enumerate() {
-            write!(f, "{public_input}")?;
-            if index != indices.len() - 1 {
-                write!(f, ", ")?;
+
+        let write_public_inputs = |f: &mut std::fmt::Formatter<'_>,
+                                   public_inputs: &PublicInputs|
+         -> Result<(), std::fmt::Error> {
+            write!(f, "[")?;
+            let public_input_indices = public_inputs.indices();
+            for (index, public_input) in public_input_indices.iter().enumerate() {
+                write!(f, "{public_input}")?;
+                if index != public_input_indices.len() - 1 {
+                    write!(f, ", ")?;
+                }
             }
-        }
-        writeln!(f, "]")?;
+            writeln!(f, "]")
+        };
+
+        write!(f, "public parameters indices : ")?;
+        write_public_inputs(f, &self.public_parameters)?;
+
+        write!(f, "return value indices : ")?;
+        write_public_inputs(f, &self.return_values)?;
+
         for opcode in &self.opcodes {
             writeln!(f, "{opcode}")?
         }
