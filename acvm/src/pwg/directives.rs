@@ -160,11 +160,11 @@ pub fn solve_directives(
             }
             Ok(None)
         }
-        Directive::Log { is_trace, output_info } => {
+        Directive::Log { trace_label, output_info } => {
             let witnesses = match output_info {
                 LogOutputInfo::FinalizedOutput(final_string) => {
                     return Ok(Some(SolvedLog {
-                        is_trace: *is_trace,
+                        trace_label: trace_label.clone(),
                         output_info: SolvedLogOutputInfo::FinalizedOutput(final_string.clone()),
                     }))
                 }
@@ -178,7 +178,7 @@ pub fn solve_directives(
             }
 
             let solved_log = SolvedLog {
-                is_trace: *is_trace,
+                trace_label: trace_label.clone(),
                 output_info: SolvedLogOutputInfo::WitnessValues(elements),
             };
 

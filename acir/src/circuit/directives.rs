@@ -60,7 +60,7 @@ pub enum Directive {
     },
 
     Log {
-        is_trace: bool, // This field states whether the log should be further manipulated or simply displayed to standard output. It is simply passed along for the caller of the PWG to implement
+        trace_label: Option<String>, // This field states whether the log should be further manipulated or simply displayed to standard output. It is simply passed along for the caller of the PWG to implement
         output_info: LogOutputInfo,
     },
 }
@@ -146,8 +146,10 @@ impl Directive {
                     write_u32(&mut writer, *i)?;
                 }
             }
-            Directive::Log { is_trace, output_info } => {
-                write_u32(&mut writer, *is_trace as u32)?;
+            Directive::Log { trace_label, output_info } => {
+                if let Some(trace_label) = trace_label {
+                    write_bytes(&mut writer, trace_label.as_bytes())?;
+                }
                 match output_info {
                     LogOutputInfo::FinalizedOutput(output_string) => {
                         write_bytes(&mut writer, output_string.as_bytes())?;
@@ -258,7 +260,7 @@ pub enum LogOutputInfo {
 }
 
 pub struct SolvedLog {
-    pub is_trace: bool,
+    pub trace_label: Option<String>,
     pub output_info: SolvedLogOutputInfo,
 }
 

@@ -203,8 +203,8 @@ impl std::fmt::Display for Opcode {
                     bits.last().unwrap().witness_index(),
                 )
             }
-            Opcode::Directive(Directive::Log { is_trace, output_info }) => {
-                let is_trace_display = if *is_trace { "trace" } else { "println" };
+            Opcode::Directive(Directive::Log { trace_label, output_info }) => {
+                let is_trace_display = if trace_label.is_some() { "trace" } else { "println" };
                 match output_info {
                     LogOutputInfo::FinalizedOutput(output_string) => {
                         write!(f, "Log: {output_string}, log type {is_trace_display}")
