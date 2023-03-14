@@ -143,23 +143,9 @@ pub trait ProofSystemCompiler {
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
+
     // Returns true if the backend supports the selected black box function
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
-
-    #[deprecated]
-    fn prove_with_meta(
-        &self,
-        circuit: Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
-    ) -> Vec<u8>;
-
-    #[deprecated]
-    fn verify_from_cs(
-        &self,
-        proof: &[u8],
-        public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
-    ) -> bool;
 
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
