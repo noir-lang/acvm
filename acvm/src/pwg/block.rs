@@ -89,7 +89,8 @@ impl BlockSolver {
                 match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
                     GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
                     GateStatus::GateSolvable(sum, (coef, w)) => {
-                        let map_value = self.get_value(index).ok_or(missing_assignment(Some(w)))?;
+                        let map_value =
+                            self.get_value(index).ok_or_else(|| missing_assignment(Some(w)))?;
                         insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
@@ -153,7 +154,7 @@ mod test {
         value = value + value;
         insert_witness(Witness(3), value, &mut initial_witness).unwrap();
         let mut blocks = Blocks::default();
-        blocks.solve(id, &mut trace, &mut initial_witness).unwrap();
+        blocks.solve(id, &trace, &mut initial_witness).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
     }
 }
