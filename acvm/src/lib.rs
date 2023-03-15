@@ -52,10 +52,13 @@ pub enum OpcodeResolutionError {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum GateResolution {
-    Solved,                     // The gate is resolved
-    Stalled(OpcodeNotSolvable), // The gate is not solvable
-    InProgress,                 // The gate is not solvable but could resolved some witness
+pub enum OpcodeResolution {
+    /// The opcode is resolved
+    Solved,
+    /// The opcode is not solvable             
+    Stalled(OpcodeNotSolvable),
+    /// The opcode is not solvable but could resolved some witness
+    InProgress,
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
@@ -87,14 +90,14 @@ pub trait PartialWitnessGenerator {
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
                 };
                 match resolution {
-                    Ok(GateResolution::Solved) => {
+                    Ok(OpcodeResolution::Solved) => {
                         stalled = false;
                     }
-                    Ok(GateResolution::InProgress) => {
+                    Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
                         unresolved_opcodes.push(opcode.clone());
                     }
-                    Ok(GateResolution::Stalled(not_solvable)) => {
+                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
                         if opcode_not_solvable.is_none() {
                             // we keep track of the first unsolvable opcode
                             opcode_not_solvable = Some(not_solvable);
@@ -124,7 +127,7 @@ pub trait PartialWitnessGenerator {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<GateResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
     // Returns true if all of the inputs have been assigned
@@ -140,11 +143,11 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         match pwg::directives::solve_directives(initial_witness, directive) {
-            Ok(_) => Ok(GateResolution::Solved),
+            Ok(_) => Ok(OpcodeResolution::Solved),
             Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
-                Ok(GateResolution::Stalled(unsolved))
+                Ok(OpcodeResolution::Stalled(unsolved))
             }
             Err(err) => Err(err),
         }

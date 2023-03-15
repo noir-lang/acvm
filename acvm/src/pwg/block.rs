@@ -6,7 +6,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{GateResolution, OpcodeNotSolvable, OpcodeResolutionError};
+use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
@@ -25,7 +25,7 @@ impl Blocks {
         id: BlockId,
         trace: &[MemOp],
         solved_witness: &mut BTreeMap<Witness, FieldElement>,
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
         solver.solve(solved_witness, trace)
     }
@@ -112,16 +112,16 @@ impl BlockSolver {
         &mut self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         trace: &[MemOp],
-    ) -> Result<GateResolution, OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let initial_solved_operations = self.solved_operations;
 
         match self.solve_helper(initial_witness, trace) {
-            Ok(()) => Ok(GateResolution::Solved),
+            Ok(()) => Ok(OpcodeResolution::Solved),
             Err(OpcodeResolutionError::OpcodeNotSolvable(err)) => {
                 if self.solved_operations > initial_solved_operations {
-                    Ok(GateResolution::InProgress)
+                    Ok(OpcodeResolution::InProgress)
                 } else {
-                    Ok(GateResolution::Stalled(err))
+                    Ok(OpcodeResolution::Stalled(err))
                 }
             }
             Err(err) => Err(err),
