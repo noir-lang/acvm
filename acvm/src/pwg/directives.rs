@@ -6,7 +6,7 @@ use acir::{
     FieldElement,
 };
 use num_bigint::BigUint;
-use num_traits::{One, Zero};
+use num_traits::{Zero};
 
 use crate::OpcodeResolutionError;
 
@@ -55,27 +55,6 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::Truncate { a, b, c, bit_size } => {
-            let val_a = get_value(a, initial_witness)?;
-            let pow: BigUint = BigUint::one() << bit_size;
-
-            let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let int_b: BigUint = &int_a % &pow;
-            let int_c: BigUint = (&int_a - &int_b) / &pow;
-
-            insert_witness(
-                *b,
-                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                initial_witness,
-            )?;
-            insert_witness(
-                *c,
-                FieldElement::from_be_bytes_reduce(&int_c.to_bytes_be()),
-                initial_witness,
-            )?;
-
-            Ok(())
-        }
         Directive::ToLeRadix { a, b, radix } => {
             let value_a = get_value(a, initial_witness)?;
             let big_integer = BigUint::from_bytes_be(&value_a.to_be_bytes());
@@ -99,31 +78,6 @@ pub fn solve_directives(
 
                 insert_value(witness, value, initial_witness)?
             }
-
-            Ok(())
-        }
-        Directive::OddRange { a, b, r, bit_size } => {
-            let val_a = witness_to_value(initial_witness, *a)?;
-            let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
-            let pow: BigUint = BigUint::one() << (bit_size - 1);
-            if int_a >= (&pow << 1) {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-
-            let bb = &int_a & &pow;
-            let int_r = &int_a - &bb;
-            let int_b = &bb >> (bit_size - 1);
-
-            insert_witness(
-                *b,
-                FieldElement::from_be_bytes_reduce(&int_b.to_bytes_be()),
-                initial_witness,
-            )?;
-            insert_witness(
-                *r,
-                FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
-                initial_witness,
-            )?;
 
             Ok(())
         }
