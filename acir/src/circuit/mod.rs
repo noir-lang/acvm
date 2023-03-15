@@ -22,7 +22,7 @@ pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
 
-    // ACIR distinguishes between the public inputs which are provided externally or calculated within the circuit.
+    // ACIR distinguishes between the public inputs which are provided externally or calculated within the circuit and returned.
     // The elements of these sets may not be mutually exclusive, i.e. a parameter may be returned from the circuit.
     // All public inputs (parameters and return values) must be provided to the verifier at verification time.
     /// The set of public inputs provided by the prover.
