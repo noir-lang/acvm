@@ -235,8 +235,7 @@ fn serialization_roundtrip() {
         radix: 4,
     };
 
-    let directives =
-        vec![invert, quotient_none, quotient_predicate, to_le_radix];
+    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);
