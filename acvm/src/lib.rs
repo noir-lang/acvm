@@ -76,7 +76,9 @@ pub trait PartialWitnessGenerator {
                     Opcode::Directive(directive) => {
                         Self::solve_directives(initial_witness, directive)
                     }
-                    Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
+                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
+                        blocks.solve(block.id, &block.trace, initial_witness)
+                    }
                 };
                 match resolution {
                     Ok(_) => {
