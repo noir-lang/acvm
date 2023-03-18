@@ -1,4 +1,4 @@
-use crate::native_types::{Linear, Witness};
+use crate::native_types::Witness;
 use crate::serialization::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
@@ -417,7 +417,11 @@ impl From<Witness> for Expression {
     /// a multi-variate polynomial and a `Witness`
     /// can be seen as a univariate polynomial
     fn from(wit: Witness) -> Expression {
-        Linear::from_witness(wit).into()
+        Expression {
+            q_c: FieldElement::zero(),
+            linear_combinations: vec![(FieldElement::one(), wit)],
+            mul_terms: Vec::new(),
+        }
     }
 }
 
@@ -427,33 +431,6 @@ impl From<&Witness> for Expression {
     }
 }
 
-impl From<&Linear> for Expression {
-    fn from(lin: &Linear) -> Expression {
-        Expression {
-            q_c: lin.add_scale,
-            linear_combinations: vec![(lin.mul_scale, lin.witness)],
-            mul_terms: Vec::new(),
-        }
-    }
-}
-impl From<Linear> for Expression {
-    fn from(lin: Linear) -> Expression {
-        Expression::from(&lin)
-    }
-}
-
-impl Add<&Expression> for &Linear {
-    type Output = Expression;
-    fn add(self, rhs: &Expression) -> Expression {
-        &Expression::from(self) + rhs
-    }
-}
-impl Add<&Linear> for &Expression {
-    type Output = Expression;
-    fn add(self, rhs: &Linear) -> Expression {
-        &Expression::from(rhs) + self
-    }
-}
 impl Sub<&Witness> for &Expression {
     type Output = Expression;
     fn sub(self, rhs: &Witness) -> Expression {
