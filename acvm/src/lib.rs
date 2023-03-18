@@ -216,15 +216,15 @@ pub enum Language {
     PLONKCSat { width: usize },
 }
 
-pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
+pub fn hash_constraint_system(cs: &Circuit) -> u32 {
     let mut bytes = Vec::new();
     cs.write(&mut bytes).expect("could not serialize circuit");
 
-    use sha2::{digest::FixedOutput, Digest, Sha256};
-    let mut hasher = Sha256::new();
+    use crc32fast::Hasher;
+    let mut hasher = Hasher::new();
 
-    hasher.update(bytes);
-    hasher.finalize_fixed().into()
+    hasher.update(&bytes);
+    hasher.finalize()
 }
 
 #[deprecated(
