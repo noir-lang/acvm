@@ -11,7 +11,7 @@ use acir::{
 use indexmap::IndexMap;
 use optimizers::GeneralOptimizer;
 use thiserror::Error;
-use transformers::{CSatTransformer, FallbackTransformer, IsBlackBoxSupported, R1CSTransformer};
+use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -22,14 +22,14 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_black_box_supported: IsBlackBoxSupported,
+    is_opcode_supported: IsOpcodeSupported,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Fallback transformer pass
-    let acir = FallbackTransformer::transform(acir, is_black_box_supported)?;
+    let acir = FallbackTransformer::transform(acir, is_opcode_supported)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();

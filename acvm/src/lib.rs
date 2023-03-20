@@ -215,12 +215,12 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
 // This is set to match the previous functionality that we had
 // Where we could deduce what black box functions were supported
 // by knowing the np complete language
-pub fn default_is_black_box_supported(
+pub fn default_is_opcode_supported(
     language: Language,
-) -> compiler::transformers::IsBlackBoxSupported {
+) -> compiler::transformers::IsOpcodeSupported {
     // R1CS does not support any of the black box functions by default.
     // The compiler will replace those that it can -- ie range, xor, and
-    fn r1cs_is_supported(_opcode: &BlackBoxFunc) -> bool {
+    fn r1cs_is_supported(_opcode: &Opcode) -> bool {
         false
     }
 
@@ -228,8 +228,12 @@ pub fn default_is_black_box_supported(
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
-    fn plonk_is_supported(opcode: &BlackBoxFunc) -> bool {
-        !matches!(opcode, BlackBoxFunc::AES)
+    fn plonk_is_supported(opcode: &Opcode) -> bool {
+        !matches!(
+            opcode,
+            Opcode::BlackBoxFuncCall(BlackBoxFuncCall { name: BlackBoxFunc::AES, .. })
+                | Opcode::Block(_)
+        )
     }
 
     match language {

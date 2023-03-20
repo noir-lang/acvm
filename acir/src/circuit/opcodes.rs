@@ -4,6 +4,7 @@ use super::directives::{Directive, LogInfo};
 use crate::native_types::{Expression, Witness};
 use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
+use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default, Debug)]
@@ -23,14 +24,12 @@ pub struct MemoryBlock {
     pub id: BlockId,
     pub len: u32,          //length of the memory block
     pub trace: Vec<MemOp>, //trace of memory operations
-    pub init: u32,         //part of the trace dedicated to initialisation of the block
 }
 
 impl MemoryBlock {
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
         let id = read_u32(&mut reader)?;
         let len = read_u32(&mut reader)?;
-        let init = read_u32(&mut reader)?;
         let trace_len = read_u32(&mut reader)?;
         let mut trace = Vec::with_capacity(len as usize);
         for _i in 0..trace_len {
@@ -39,13 +38,12 @@ impl MemoryBlock {
             let value = Expression::read(&mut reader)?;
             trace.push(MemOp { operation, index, value });
         }
-        Ok(MemoryBlock { id: BlockId(id), len, trace, init })
+        Ok(MemoryBlock { id: BlockId(id), len, trace })
     }
 
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
         write_u32(&mut writer, self.id.0)?;
         write_u32(&mut writer, self.len)?;
-        write_u32(&mut writer, self.init)?;
         write_u32(&mut writer, self.trace.len() as u32)?;
 
         for op in &self.trace {
@@ -54,6 +52,31 @@ impl MemoryBlock {
             op.value.write(&mut writer)?;
         }
         Ok(())
+    }
+
+    /// Returns the initialisation vector of the MemoryBlock
+    pub fn init_phase(&self) -> Vec<Expression> {
+        let mut init = Vec::new();
+        for i in 0..self.len as usize {
+            assert_eq!(
+                self.trace[i].operation,
+                Expression::one(),
+                "Block initialisation require a write"
+            );
+            let index = self.trace[i]
+                .index
+                .to_const()
+                .expect("Non-const index during Block initialisation");
+            if index != FieldElement::from(i as i128) {
+                todo!(
+                    "invalid index when initialising a block, we could try to sort the init phase"
+                );
+            }
+            let value = self.trace[i].value.clone();
+            assert!(value.is_degree_one_univariate(), "Block initialisation requires a witness");
+            init.push(value);
+        }
+        init
     }
 }
 
@@ -114,17 +137,7 @@ impl Opcode {
             Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
             Opcode::Directive(directive) => directive.write(writer),
             Opcode::Block(mem_block) | Opcode::ROM(mem_block) | Opcode::RAM(mem_block) => {
-                write_u32(&mut writer, mem_block.id.0)?;
-                write_u32(&mut writer, mem_block.len)?;
-                write_u32(&mut writer, mem_block.init)?;
-                write_u32(&mut writer, mem_block.trace.len() as u32)?;
-
-                for op in &mem_block.trace {
-                    op.operation.write(&mut writer)?;
-                    op.index.write(&mut writer)?;
-                    op.value.write(&mut writer)?;
-                }
-                Ok(())
+                mem_block.write(writer)
             }
         }
     }
