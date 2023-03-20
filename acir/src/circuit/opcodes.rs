@@ -25,6 +25,7 @@ pub enum Opcode {
     Directive(Directive),
     // Abstract read/write operations on a block of data
     Block(BlockId, Vec<MemOp>),
+    Load(Witness),
 }
 
 impl Opcode {
@@ -36,6 +37,7 @@ impl Opcode {
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name.name(),
             Opcode::Block(_, _) => "block",
+            Opcode::Load(_) => todo!("Unimplemented"),
         }
     }
 
@@ -47,6 +49,7 @@ impl Opcode {
             Opcode::BlackBoxFuncCall(_) => 1,
             Opcode::Directive(_) => 2,
             Opcode::Block(_, _) => 3,
+            Opcode::Load(_) => todo!("Unimplemented"),
         }
     }
 
@@ -58,6 +61,10 @@ impl Opcode {
             Opcode::Arithmetic(expr) => Some(expr),
             _ => None,
         }
+    }
+
+    pub fn is_load(&self) -> bool {
+        matches!(self, Opcode::Load(_))
     }
 
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
@@ -79,6 +86,7 @@ impl Opcode {
                 }
                 Ok(())
             }
+            Opcode::Load(_) => todo!("Unimplemented"),
         }
     }
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -189,6 +197,9 @@ impl std::fmt::Display for Opcode {
             Opcode::Block(id, trace) => {
                 write!(f, "BLOCK ")?;
                 write!(f, "(id: {}, len: {}) ", id.0, trace.len())
+            }
+            Opcode::Load(_) => {
+                todo!("Unimplemented");
             }
         }
     }

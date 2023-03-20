@@ -61,24 +61,62 @@ pub enum OpcodeResolution {
     InProgress,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum SolvingProgress {
+    LoadCalled(Witness),
+    Finished,
+}
+
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
 /// Returns an Error if the backend does not support that OPCODE
 pub trait PartialWitnessGenerator {
+    // Cannot be used with circuits containing opcodes that call for external
+    // input, such as loading data.
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        mut opcode_to_solve: Vec<Opcode>,
+        opcodes_to_solve: &mut Vec<Opcode>,
     ) -> Result<(), OpcodeResolutionError> {
-        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        let contains_load_opcode = opcodes_to_solve.iter().any(|op| op.is_load());
+        assert!(
+            !contains_load_opcode,
+            "solve doesn't support load opcodes - use progress_solution instead."
+        );
         let mut blocks = Blocks::default();
-        while !opcode_to_solve.is_empty() {
+        self.progress_solution(initial_witness, &mut blocks, opcodes_to_solve).map(
+            |solving_progress| match solving_progress {
+                SolvingProgress::Finished => {
+                    // Happy path
+                    ()
+                }
+                SolvingProgress::LoadCalled(_) => {
+                    // Shouldn't have happened - above assert should prevent
+                    panic!("solve encountered load opcodes")
+                }
+            },
+        )
+    }
+
+    fn progress_solution(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        blocks: &mut Blocks,
+        opcodes_to_solve: &mut Vec<Opcode>,
+    ) -> Result<SolvingProgress, OpcodeResolutionError> {
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        while !opcodes_to_solve.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
+            let mut load_called: Option<Witness> = None;
             let mut opcode_not_solvable = None;
-            for opcode in &opcode_to_solve {
+            for opcode in opcodes_to_solve.iter() {
+                if load_called.is_some() {
+                    unresolved_opcodes.push(opcode.clone());
+                    continue;
+                }
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -88,6 +126,10 @@ pub trait PartialWitnessGenerator {
                         Self::solve_directives(initial_witness, directive)
                     }
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
+                    Opcode::Load(witness) => {
+                        load_called = Some(*witness);
+                        continue;
+                    }
                 };
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {
@@ -119,9 +161,19 @@ pub trait PartialWitnessGenerator {
                         .expect("infallible: cannot be stalled and None at the same time"),
                 ));
             }
-            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
+            std::mem::swap(opcodes_to_solve, &mut unresolved_opcodes);
+
+            match load_called {
+                Some(witness) => {
+                    // Exit early to request data
+                    return Ok(SolvingProgress::LoadCalled(witness));
+                }
+                None => {
+                    // Loop uninterrupted.
+                }
+            }
         }
-        Ok(())
+        Ok(SolvingProgress::Finished)
     }
 
     fn solve_black_box_function_call(
