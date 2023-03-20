@@ -14,16 +14,21 @@ pub struct BlockId(pub u32);
 /// We can either write or read at a block index
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct MemOp {
+    /// Can be 0 (read) or 1 (write)
     pub operation: Expression,
     pub index: Expression,
     pub value: Expression,
 }
 
+/// Represents operations on a block of length len of data
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemoryBlock {
+    /// Id of the block
     pub id: BlockId,
-    pub len: u32,          //length of the memory block
-    pub trace: Vec<MemOp>, //trace of memory operations
+    /// Length of the memory block
+    pub len: u32,
+    /// Trace of memory operations
+    pub trace: Vec<MemOp>,
 }
 
 impl MemoryBlock {
@@ -54,26 +59,26 @@ impl MemoryBlock {
         Ok(())
     }
 
-    /// Returns the initialisation vector of the MemoryBlock
+    /// Returns the initialization vector of the MemoryBlock
     pub fn init_phase(&self) -> Vec<Expression> {
         let mut init = Vec::new();
         for i in 0..self.len as usize {
             assert_eq!(
                 self.trace[i].operation,
                 Expression::one(),
-                "Block initialisation require a write"
+                "Block initialization require a write"
             );
             let index = self.trace[i]
                 .index
                 .to_const()
-                .expect("Non-const index during Block initialisation");
+                .expect("Non-const index during Block initialization");
             if index != FieldElement::from(i as i128) {
                 todo!(
-                    "invalid index when initialising a block, we could try to sort the init phase"
+                    "invalid index when initializing a block, we could try to sort the init phase"
                 );
             }
             let value = self.trace[i].value.clone();
-            assert!(value.is_degree_one_univariate(), "Block initialisation requires a witness");
+            assert!(value.is_degree_one_univariate(), "Block initialization requires a witness");
             init.push(value);
         }
         init
@@ -85,9 +90,19 @@ pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
-    // Abstract read/write operations on a block of data
+    /// Abstract read/write operations on a block of data. In particular;
+    /// It does not require an initialisation phase
+    /// Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
     Block(MemoryBlock),
+    /// Same as Block, but it starts with an initialisation phase and then have only read operation
+    /// - init: write operations with index from 0..MemoryBlock.len
+    /// - after MemoryBlock.len; all operations are read
+    /// ROM can be more efficiently handled because we do not need to check for the operation value (which is always 0).
     ROM(MemoryBlock),
+    /// Same as ROM, but can have read or write operations
+    /// - init = write operations with index 0..MemoryBlock.len
+    /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
+    /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
     RAM(MemoryBlock),
 }
 
