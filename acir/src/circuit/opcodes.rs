@@ -13,6 +13,15 @@ pub struct BlockId(pub u32);
 /// We can either write or read at a block index
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemOp {
+    /// A read is represented by a `0` and a write is represented
+    /// by a `1`. This means that when `operation` evaluates to `0`
+    /// a read is being done.
+    /// Since whether a read or write happens, can be depend
+    /// on the provers witness value, the number of reads or writes
+    /// being done is not a program constant.
+    /// To see this, consider an if statement whose condition depends
+    /// on a prover value, and in one branch, there is a read operation, while in
+    /// the other branch there is a write operation.
     pub operation: Expression,
     pub index: Expression,
     pub value: Expression,
@@ -23,7 +32,23 @@ pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
-    // Abstract read/write operations on a block of data
+    /// Abstract read/write operations on a block of data.
+    ///
+    /// A `Block` can be seen as a `Vector/Array` in modern programming
+    /// and the `BlockId` can be seen as a pointer to that vector.
+    ///
+    /// The Vector of memory operations contains the list of all of
+    /// memory operations being done on this vector.
+    ///
+    /// Note however that in a program, all memory operations on
+    /// a vector are usually not done one after the other.
+    /// This means that solving a `Block` cannot be done with
+    /// one call to `block.solve`. We will only be able to partially solve
+    /// some of the memory operations. If a memory operation contains
+    /// a witness which relies on another opcode, then the solver
+    /// will stop processing the `Block` and attempt to solve the other
+    /// opcodes before returning back to continue progress on the
+    /// partially solved `Block`.
     Block(BlockId, Vec<MemOp>),
 }
 
