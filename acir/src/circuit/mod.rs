@@ -35,7 +35,8 @@ impl Circuit {
     pub fn num_vars(&self) -> u32 {
         self.current_witness_index + 1
     }
-
+/// Returns all public inputs. This includes those provided as parameters to the circuit and those 
+/// computed as return values. 
     pub fn public_inputs(&self) -> PublicInputs {
         let public_inputs =
             self.public_parameters.0.union(&self.return_values.0).cloned().collect();
