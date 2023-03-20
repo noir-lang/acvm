@@ -51,6 +51,16 @@ pub enum OpcodeResolutionError {
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
 }
 
+#[derive(Debug, PartialEq)]
+pub enum OpcodeResolution {
+    /// The opcode is resolved
+    Solved,
+    /// The opcode is not solvable             
+    Stalled(OpcodeNotSolvable),
+    /// The opcode is not solvable but could resolved some witness
+    InProgress,
+}
+
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
 
 /// This component will generate the backend specific output for
@@ -66,7 +76,8 @@ pub trait PartialWitnessGenerator {
         let mut blocks = Blocks::default();
         while !opcode_to_solve.is_empty() {
             unresolved_opcodes.clear();
-
+            let mut stalled = true;
+            let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
@@ -81,17 +92,34 @@ pub trait PartialWitnessGenerator {
                     }
                 };
                 match resolution {
-                    Ok(_) => {
-                        // We do nothing in the happy case
+                    Ok(OpcodeResolution::Solved) => {
+                        stalled = false;
                     }
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                        // For opcode not solvable errors, we push those opcodes to the back as
+                    Ok(OpcodeResolution::InProgress) => {
+                        stalled = false;
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
+                        if opcode_not_solvable.is_none() {
+                            // we keep track of the first unsolvable opcode
+                            opcode_not_solvable = Some(not_solvable);
+                        }
+                        // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
                         unresolved_opcodes.push(opcode.clone());
                     }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        unreachable!("ICE - Result should have been converted to GateResolution")
+                    }
                     Err(err) => return Err(err),
                 }
+            }
+            if stalled && !unresolved_opcodes.is_empty() {
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    opcode_not_solvable
+                        .expect("infallible: cannot be stalled and None at the same time"),
+                ));
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
@@ -101,7 +129,7 @@ pub trait PartialWitnessGenerator {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<(), OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
     // Returns true if all of the inputs have been assigned
@@ -117,8 +145,14 @@ pub trait PartialWitnessGenerator {
     fn solve_directives(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         directive: &Directive,
-    ) -> Result<(), OpcodeResolutionError> {
-        pwg::directives::solve_directives(initial_witness, directive)
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        match pwg::directives::solve_directives(initial_witness, directive) {
+            Ok(_) => Ok(OpcodeResolution::Solved),
+            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+                Ok(OpcodeResolution::Stalled(unsolved))
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -145,23 +179,9 @@ pub trait ProofSystemCompiler {
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
+
     // Returns true if the backend supports the selected black box function
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
-
-    #[deprecated]
-    fn prove_with_meta(
-        &self,
-        circuit: Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
-    ) -> Vec<u8>;
-
-    #[deprecated]
-    fn verify_from_cs(
-        &self,
-        proof: &[u8],
-        public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
-    ) -> bool;
 
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
