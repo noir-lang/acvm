@@ -21,12 +21,27 @@ pub struct Circuit {
     // will take on this value. (The value is cached here as an optimization.)
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
-    pub public_inputs: PublicInputs,
+
+    // ACIR distinguishes between the public inputs which are provided externally or calculated within the circuit and returned.
+    // The elements of these sets may not be mutually exclusive, i.e. a parameter may be returned from the circuit.
+    // All public inputs (parameters and return values) must be provided to the verifier at verification time.
+    /// The set of public inputs provided by the prover.
+    pub public_parameters: PublicInputs,
+    /// The set of public inputs calculated within the circuit.
+    pub return_values: PublicInputs,
 }
 
 impl Circuit {
     pub fn num_vars(&self) -> u32 {
         self.current_witness_index + 1
+    }
+
+    /// Returns all public inputs. This includes those provided as parameters to the circuit and those
+    /// computed as return values.
+    pub fn public_inputs(&self) -> PublicInputs {
+        let public_inputs =
+            self.public_parameters.0.union(&self.return_values.0).cloned().collect();
+        PublicInputs(public_inputs)
     }
 
     #[deprecated(
@@ -55,10 +70,16 @@ impl Circuit {
 
         write_u32(&mut writer, self.current_witness_index)?;
 
-        let public_input_indices = self.public_inputs.indices();
+        let public_input_indices = self.public_parameters.indices();
         write_u32(&mut writer, public_input_indices.len() as u32)?;
         for public_input_index in public_input_indices {
             write_u32(&mut writer, public_input_index)?;
+        }
+
+        let public_output_indices = self.return_values.indices();
+        write_u32(&mut writer, public_output_indices.len() as u32)?;
+        for public_output_index in public_output_indices {
+            write_u32(&mut writer, public_output_index)?;
         }
 
         write_u32(&mut writer, self.opcodes.len() as u32)?;
@@ -80,11 +101,17 @@ impl Circuit {
 
         let current_witness_index = read_u32(&mut reader)?;
 
-        let num_public_inputs = read_u32(&mut reader)?;
-        let mut public_inputs = PublicInputs(BTreeSet::new());
-        for _ in 0..num_public_inputs {
-            let public_input_index = Witness(read_u32(&mut reader)?);
-            public_inputs.0.insert(public_input_index);
+        let num_public_parameters = read_u32(&mut reader)?;
+        let mut public_parameters = PublicInputs(BTreeSet::new());
+        for _ in 0..num_public_parameters {
+            let public_parameter_index = Witness(read_u32(&mut reader)?);
+            public_parameters.0.insert(public_parameter_index);
+        }
+        let num_return_values = read_u32(&mut reader)?;
+        let mut return_values = PublicInputs(BTreeSet::new());
+        for _ in 0..num_return_values {
+            let return_value_index = Witness(read_u32(&mut reader)?);
+            return_values.0.insert(return_value_index);
         }
 
         let num_opcodes = read_u32(&mut reader)?;
@@ -94,22 +121,34 @@ impl Circuit {
             opcodes.push(opcode)
         }
 
-        Ok(Self { current_witness_index, opcodes, public_inputs })
+        Ok(Self { current_witness_index, opcodes, public_parameters, return_values })
     }
 }
 
 impl std::fmt::Display for Circuit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "current witness index : {}", self.current_witness_index)?;
-        write!(f, "public input indices : [")?;
-        let indices = self.public_inputs.indices();
-        for (index, public_input) in indices.iter().enumerate() {
-            write!(f, "{public_input}")?;
-            if index != indices.len() - 1 {
-                write!(f, ", ")?;
+
+        let write_public_inputs = |f: &mut std::fmt::Formatter<'_>,
+                                   public_inputs: &PublicInputs|
+         -> Result<(), std::fmt::Error> {
+            write!(f, "[")?;
+            let public_input_indices = public_inputs.indices();
+            for (index, public_input) in public_input_indices.iter().enumerate() {
+                write!(f, "{public_input}")?;
+                if index != public_input_indices.len() - 1 {
+                    write!(f, ", ")?;
+                }
             }
-        }
-        writeln!(f, "]")?;
+            writeln!(f, "]")
+        };
+
+        write!(f, "public parameters indices : ")?;
+        write_public_inputs(f, &self.public_parameters)?;
+
+        write!(f, "return value indices : ")?;
+        write_public_inputs(f, &self.return_values)?;
+
         for opcode in &self.opcodes {
             writeln!(f, "{opcode}")?
         }
@@ -171,7 +210,8 @@ mod test {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode()],
-            public_inputs: PublicInputs(BTreeSet::from([Witness(2), Witness(12)])),
+            public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
+            return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -198,7 +238,8 @@ mod test {
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(BTreeSet::from([Witness(2)])),
+            public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
@@ -221,7 +262,8 @@ mod test {
                 range_opcode(),
                 and_opcode(),
             ],
-            public_inputs: PublicInputs(BTreeSet::from([Witness(2)])),
+            public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
         };
 
         let bytes = circuit.to_bytes();

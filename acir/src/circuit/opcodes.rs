@@ -7,7 +7,7 @@ use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
-pub struct BlockId(u32);
+pub struct BlockId(pub u32);
 
 /// Operation on a block
 /// We can either write or read at a block index
@@ -136,20 +136,6 @@ impl std::fmt::Display for Opcode {
                 write!(f, "DIR::INVERT ")?;
                 write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
             }
-            Opcode::Directive(Directive::Truncate { a, b, c, bit_size }) => {
-                write!(f, "DIR::TRUNCATE ")?;
-                write!(
-                    f,
-                    "(out: _{}, _{}, _{}, bit_size: {})",
-                    // TODO: Modify Noir to switch a and b
-                    b.witness_index(),
-                    a,
-                    // TODO: check why c was unused before, and check when directive is being processed
-                    // TODO: and if it is used
-                    c.witness_index(),
-                    bit_size
-                )
-            }
             Opcode::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
@@ -162,18 +148,6 @@ impl std::fmt::Display for Opcode {
                     a,
                     q.witness_index(),
                     b,
-                    r.witness_index()
-                )
-            }
-            Opcode::Directive(Directive::OddRange { a, b, r, bit_size }) => {
-                write!(f, "DIR::ODDRANGE ")?;
-
-                write!(
-                    f,
-                    "(out: _{}, (_{}, bit_size: {}), _{})",
-                    a.witness_index(),
-                    b.witness_index(),
-                    bit_size,
                     r.witness_index()
                 )
             }

@@ -27,22 +27,6 @@ pub enum Directive {
         predicate: Option<Expression>,
     },
 
-    //Reduces the value of a modulo 2^bit_size and stores the result in b: a= c*2^bit_size + b
-    Truncate {
-        a: Expression,
-        b: Witness,
-        c: Witness,
-        bit_size: u32,
-    },
-
-    //Computes the highest bit b of a: a = b*2^(bit_size-1) + r, where a<2^bit_size, b is 0 or 1 and r<2^(bit_size-1)
-    OddRange {
-        a: Witness,
-        b: Witness,
-        r: Witness,
-        bit_size: u32,
-    },
-
     //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in little endian form
     ToLeRadix {
         a: Expression,
@@ -70,8 +54,6 @@ impl Directive {
         match self {
             Directive::Invert { .. } => "invert",
             Directive::Quotient { .. } => "quotient",
-            Directive::Truncate { .. } => "truncate",
-            Directive::OddRange { .. } => "odd_range",
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
@@ -81,11 +63,9 @@ impl Directive {
         match self {
             Directive::Invert { .. } => 0,
             Directive::Quotient { .. } => 1,
-            Directive::Truncate { .. } => 2,
-            Directive::OddRange { .. } => 3,
-            Directive::ToLeRadix { .. } => 4,
-            Directive::Log { .. } => 5,
-            Directive::PermutationSort { .. } => 6,
+            Directive::ToLeRadix { .. } => 2,
+            Directive::Log { .. } => 3,
+            Directive::PermutationSort { .. } => 4,
         }
     }
 
@@ -108,18 +88,6 @@ impl Directive {
                 if let Some(pred) = predicate {
                     pred.write(&mut writer)?;
                 }
-            }
-            Directive::Truncate { a, b, c, bit_size } => {
-                a.write(&mut writer)?;
-                write_u32(&mut writer, b.witness_index())?;
-                write_u32(&mut writer, c.witness_index())?;
-                write_u32(&mut writer, *bit_size)?;
-            }
-            Directive::OddRange { a, b, r, bit_size } => {
-                write_u32(&mut writer, a.witness_index())?;
-                write_u32(&mut writer, b.witness_index())?;
-                write_u32(&mut writer, r.witness_index())?;
-                write_u32(&mut writer, *bit_size)?;
             }
             Directive::ToLeRadix { a, b, radix } => {
                 a.write(&mut writer)?;
@@ -193,20 +161,6 @@ impl Directive {
             }
             2 => {
                 let a = Expression::read(&mut reader)?;
-                let b = Witness(read_u32(&mut reader)?);
-                let c = Witness(read_u32(&mut reader)?);
-                let bit_size = read_u32(&mut reader)?;
-                Ok(Directive::Truncate { a, b, c, bit_size })
-            }
-            3 => {
-                let a = Witness(read_u32(&mut reader)?);
-                let b = Witness(read_u32(&mut reader)?);
-                let r = Witness(read_u32(&mut reader)?);
-                let bit_size = read_u32(&mut reader)?;
-                Ok(Directive::OddRange { a, b, r, bit_size })
-            }
-            4 => {
-                let a = Expression::read(&mut reader)?;
                 let b_len = read_u32(&mut reader)?;
                 let mut b = Vec::with_capacity(b_len as usize);
                 for _ in 0..b_len {
@@ -218,7 +172,7 @@ impl Directive {
 
                 Ok(Directive::ToLeRadix { a, b, radix })
             }
-            6 => {
+            3 => {
                 let tuple = read_u32(&mut reader)?;
                 let a_len = read_u32(&mut reader)?;
                 let mut a = Vec::with_capacity(a_len as usize);
@@ -296,24 +250,13 @@ fn serialization_roundtrip() {
         predicate: Some(Expression::default()),
     };
 
-    let truncate = Directive::Truncate {
-        a: Expression::default(),
-        b: Witness(2u32),
-        c: Witness(3u32),
-        bit_size: 123,
-    };
-
-    let odd_range =
-        Directive::OddRange { a: Witness(1u32), b: Witness(2u32), r: Witness(3u32), bit_size: 32 };
-
     let to_le_radix = Directive::ToLeRadix {
         a: Expression::default(),
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
     };
 
-    let directives =
-        vec![invert, quotient_none, quotient_predicate, truncate, odd_range, to_le_radix];
+    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);
