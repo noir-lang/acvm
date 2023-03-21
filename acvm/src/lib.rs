@@ -7,7 +7,7 @@
 pub mod compiler;
 pub mod pwg;
 
-use crate::pwg::arithmetic::ArithmeticSolver;
+use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
 use acir::{
     circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::{Expression, Witness},
@@ -71,14 +71,16 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<(Vec<Opcode>, Vec<Opcode>), OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut blocks = Blocks::default();
-        while !opcode_to_solve.is_empty() {
+        let mut unresolved_oracles = Vec::new();
+        while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
+                let mut solved_oracle = None;
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -90,8 +92,11 @@ pub trait PartialWitnessGenerator {
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                         blocks.solve(block.id, &block.trace, initial_witness)
                     }
-                    Opcode::Oracle { .. } => {
-                        todo!("oracle opcode cannot be processed inside solve without extra information")
+                    Opcode::Oracle(data) => {
+                        let mut data_clone = data.clone();
+                        let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
+                        solved_oracle = Some(Opcode::Oracle(data_clone));
+                        Ok(result)
                     }
                 };
                 match resolution {
@@ -100,17 +105,22 @@ pub trait PartialWitnessGenerator {
                     }
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
-                        unresolved_opcodes.push(opcode.clone());
+                        unresolved_opcodes.push(solved_oracle.unwrap_or(opcode.clone()));
                     }
                     Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                        if opcode_not_solvable.is_none() {
-                            // we keep track of the first unsolvable opcode
-                            opcode_not_solvable = Some(not_solvable);
+                        // Stalled oracles must be externally re-solved
+                        if let Some(oracle) = solved_oracle {
+                            unresolved_oracles.push(oracle);
+                        } else {
+                            if opcode_not_solvable.is_none() {
+                                // we keep track of the first unsolvable opcode
+                                opcode_not_solvable = Some(not_solvable);
+                            }
+                            // We push those opcodes not solvable to the back as
+                            // it could be because the opcodes are out of order, i.e. this assignment
+                            // relies on a later opcodes' results
+                            unresolved_opcodes.push(opcode.clone());
                         }
-                        // We push those opcodes not solvable to the back as
-                        // it could be because the opcodes are out of order, i.e. this assignment
-                        // relies on a later opcodes' results
-                        unresolved_opcodes.push(opcode.clone());
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -118,6 +128,11 @@ pub trait PartialWitnessGenerator {
                     Err(err) => return Err(err),
                 }
             }
+            // We are stalled because of an oracle opcode
+            if stalled && !unresolved_oracles.is_empty() {
+                return Ok((unresolved_opcodes, unresolved_oracles));
+            }
+            // We are stalled because of an opcode being bad
             if stalled && !unresolved_opcodes.is_empty() {
                 return Err(OpcodeResolutionError::OpcodeNotSolvable(
                     opcode_not_solvable
@@ -126,7 +141,7 @@ pub trait PartialWitnessGenerator {
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
-        Ok(())
+        Ok((Vec::new(), Vec::new()))
     }
 
     fn solve_black_box_function_call(
