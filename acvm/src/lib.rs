@@ -87,7 +87,9 @@ pub trait PartialWitnessGenerator {
                     Opcode::Directive(directive) => {
                         Self::solve_directives(initial_witness, directive)
                     }
-                    Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
+                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
+                        blocks.solve(block.id, &block.trace, initial_witness)
+                    }
                     Opcode::Oracle { .. } => {
                         todo!("oracle opcode cannot be processed inside solve without extra information")
                     }
@@ -245,23 +247,27 @@ pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
     note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
 )]
 // This is set to match the previous functionality that we had
-// Where we could deduce what black box functions were supported
+// Where we could deduce what opcodes were supported
 // by knowing the np complete language
-pub fn default_is_black_box_supported(
+pub fn default_is_opcode_supported(
     language: Language,
-) -> compiler::transformers::IsBlackBoxSupported {
-    // R1CS does not support any of the black box functions by default.
+) -> compiler::transformers::IsOpcodeSupported {
+    // R1CS does not support any of the opcode except Arithmetic by default.
     // The compiler will replace those that it can -- ie range, xor, and
-    fn r1cs_is_supported(_opcode: &BlackBoxFunc) -> bool {
-        false
+    fn r1cs_is_supported(opcode: &Opcode) -> bool {
+        matches!(opcode, Opcode::Arithmetic(_))
     }
 
-    // PLONK supports most of the black box functions by default
+    // PLONK supports most of the opcodes by default
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
-    fn plonk_is_supported(opcode: &BlackBoxFunc) -> bool {
-        !matches!(opcode, BlackBoxFunc::AES)
+    fn plonk_is_supported(opcode: &Opcode) -> bool {
+        !matches!(
+            opcode,
+            Opcode::BlackBoxFuncCall(BlackBoxFuncCall { name: BlackBoxFunc::AES, .. })
+                | Opcode::Block(_)
+        )
     }
 
     match language {

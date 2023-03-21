@@ -41,17 +41,8 @@ struct BlockSolver {
 }
 
 impl BlockSolver {
-    fn insert_value(
-        &mut self,
-        index: u32,
-        value: FieldElement,
-    ) -> Result<(), OpcodeResolutionError> {
-        match self.block_value.insert(index, value) {
-            Some(existing_value) if value != existing_value => {
-                Err(OpcodeResolutionError::UnsatisfiedConstrain)
-            }
-            _ => Ok(()),
-        }
+    fn insert_value(&mut self, index: u32, value: FieldElement) {
+        self.block_value.insert(index, value);
     }
 
     fn get_value(&self, index: u32) -> Option<FieldElement> {
@@ -85,7 +76,7 @@ impl BlockSolver {
             let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
             let value_witness = ArithmeticSolver::any_witness_from_expression(&value);
             if value.is_const() {
-                self.insert_value(index, value.q_c)?;
+                self.insert_value(index, value.q_c);
             } else if operation.is_zero() && value.is_linear() {
                 match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
                     GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
@@ -95,7 +86,7 @@ impl BlockSolver {
                         insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
-                        self.insert_value(index, sum + value.q_c)?;
+                        self.insert_value(index, sum + value.q_c);
                     }
                 }
             } else {
