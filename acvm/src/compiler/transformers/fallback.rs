@@ -22,7 +22,10 @@ impl FallbackTransformer {
 
         for opcode in acir.opcodes {
             let bb_func_call = match &opcode {
-                Opcode::Arithmetic(_) | Opcode::Directive(_) | Opcode::Block(_, _) => {
+                Opcode::Arithmetic(_)
+                | Opcode::Directive(_)
+                | Opcode::Block(_, _)
+                | Opcode::Load(_) => {
                     // directive, arithmetic expression or block are handled by acvm
                     acir_supported_opcodes.push(opcode);
                     continue;
