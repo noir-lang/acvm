@@ -4,6 +4,7 @@ use super::directives::{Directive, LogOutputInfo};
 use crate::native_types::{Expression, Witness};
 use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
+use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
@@ -11,11 +12,77 @@ pub struct BlockId(pub u32);
 
 /// Operation on a block
 /// We can either write or read at a block index
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct MemOp {
+    /// Can be 0 (read) or 1 (write)
     pub operation: Expression,
     pub index: Expression,
     pub value: Expression,
+}
+
+/// Represents operations on a block of length len of data
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MemoryBlock {
+    /// Id of the block
+    pub id: BlockId,
+    /// Length of the memory block
+    pub len: u32,
+    /// Trace of memory operations
+    pub trace: Vec<MemOp>,
+}
+
+impl MemoryBlock {
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let id = read_u32(&mut reader)?;
+        let len = read_u32(&mut reader)?;
+        let trace_len = read_u32(&mut reader)?;
+        let mut trace = Vec::with_capacity(len as usize);
+        for _i in 0..trace_len {
+            let operation = Expression::read(&mut reader)?;
+            let index = Expression::read(&mut reader)?;
+            let value = Expression::read(&mut reader)?;
+            trace.push(MemOp { operation, index, value });
+        }
+        Ok(MemoryBlock { id: BlockId(id), len, trace })
+    }
+
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        write_u32(&mut writer, self.id.0)?;
+        write_u32(&mut writer, self.len)?;
+        write_u32(&mut writer, self.trace.len() as u32)?;
+
+        for op in &self.trace {
+            op.operation.write(&mut writer)?;
+            op.index.write(&mut writer)?;
+            op.value.write(&mut writer)?;
+        }
+        Ok(())
+    }
+
+    /// Returns the initialization vector of the MemoryBlock
+    pub fn init_phase(&self) -> Vec<Expression> {
+        let mut init = Vec::new();
+        for i in 0..self.len as usize {
+            assert_eq!(
+                self.trace[i].operation,
+                Expression::one(),
+                "Block initialization require a write"
+            );
+            let index = self.trace[i]
+                .index
+                .to_const()
+                .expect("Non-const index during Block initialization");
+            if index != FieldElement::from(i as i128) {
+                todo!(
+                    "invalid index when initializing a block, we could try to sort the init phase"
+                );
+            }
+            let value = self.trace[i].value.clone();
+            assert!(value.is_degree_one_univariate(), "Block initialization requires a witness");
+            init.push(value);
+        }
+        init
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,8 +90,20 @@ pub enum Opcode {
     Arithmetic(Expression),
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
-    // Abstract read/write operations on a block of data
-    Block(BlockId, Vec<MemOp>),
+    /// Abstract read/write operations on a block of data. In particular;
+    /// It does not require an initialisation phase
+    /// Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
+    Block(MemoryBlock),
+    /// Same as Block, but it starts with an initialisation phase and then have only read operation
+    /// - init: write operations with index from 0..MemoryBlock.len
+    /// - after MemoryBlock.len; all operations are read
+    /// ROM can be more efficiently handled because we do not need to check for the operation value (which is always 0).
+    ROM(MemoryBlock),
+    /// Same as ROM, but can have read or write operations
+    /// - init = write operations with index 0..MemoryBlock.len
+    /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
+    /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
+    RAM(MemoryBlock),
 }
 
 impl Opcode {
@@ -35,7 +114,9 @@ impl Opcode {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name.name(),
-            Opcode::Block(_, _) => "block",
+            Opcode::Block(_) => "block",
+            Opcode::RAM(_) => "ram",
+            Opcode::ROM(_) => "rom",
         }
     }
 
@@ -46,7 +127,9 @@ impl Opcode {
             Opcode::Arithmetic(_) => 0,
             Opcode::BlackBoxFuncCall(_) => 1,
             Opcode::Directive(_) => 2,
-            Opcode::Block(_, _) => 3,
+            Opcode::Block(_) => 3,
+            Opcode::ROM(_) => 4,
+            Opcode::RAM(_) => 5,
         }
     }
 
@@ -68,16 +151,8 @@ impl Opcode {
             Opcode::Arithmetic(expr) => expr.write(writer),
             Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
             Opcode::Directive(directive) => directive.write(writer),
-            Opcode::Block(id, trace) => {
-                write_u32(&mut writer, id.0)?;
-                write_u32(&mut writer, trace.len() as u32)?;
-
-                for op in trace {
-                    op.operation.write(&mut writer)?;
-                    op.index.write(&mut writer)?;
-                    op.value.write(&mut writer)?;
-                }
-                Ok(())
+            Opcode::Block(mem_block) | Opcode::ROM(mem_block) | Opcode::RAM(mem_block) => {
+                mem_block.write(writer)
             }
         }
     }
@@ -101,16 +176,16 @@ impl Opcode {
                 Ok(Opcode::Directive(directive))
             }
             3 => {
-                let id = read_u32(&mut reader)?;
-                let len = read_u32(&mut reader)?;
-                let mut trace = Vec::with_capacity(len as usize);
-                for _i in 0..len {
-                    let operation = Expression::read(&mut reader)?;
-                    let index = Expression::read(&mut reader)?;
-                    let value = Expression::read(&mut reader)?;
-                    trace.push(MemOp { operation, index, value });
-                }
-                Ok(Opcode::Block(BlockId(id), trace))
+                let block = MemoryBlock::read(reader)?;
+                Ok(Opcode::Block(block))
+            }
+            4 => {
+                let block = MemoryBlock::read(reader)?;
+                Ok(Opcode::ROM(block))
+            }
+            5 => {
+                let block = MemoryBlock::read(reader)?;
+                Ok(Opcode::RAM(block))
             }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -193,9 +268,17 @@ impl std::fmt::Display for Opcode {
                     ),
                 }
             }
-            Opcode::Block(id, trace) => {
+            Opcode::Block(block) => {
                 write!(f, "BLOCK ")?;
-                write!(f, "(id: {}, len: {}) ", id.0, trace.len())
+                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
+            }
+            Opcode::ROM(block) => {
+                write!(f, "ROM ")?;
+                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
+            }
+            Opcode::RAM(block) => {
+                write!(f, "RAM ")?;
+                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
             }
         }
     }
