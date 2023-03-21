@@ -105,22 +105,22 @@ pub trait PartialWitnessGenerator {
                     }
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
-                        unresolved_opcodes.push(solved_oracle.unwrap_or(opcode.clone()));
-                    }
-                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                        // Stalled oracles must be externally re-solved
+                        // InProgress Oracles must be externally re-solved
                         if let Some(oracle) = solved_oracle {
                             unresolved_oracles.push(oracle);
                         } else {
-                            if opcode_not_solvable.is_none() {
-                                // we keep track of the first unsolvable opcode
-                                opcode_not_solvable = Some(not_solvable);
-                            }
-                            // We push those opcodes not solvable to the back as
-                            // it could be because the opcodes are out of order, i.e. this assignment
-                            // relies on a later opcodes' results
                             unresolved_opcodes.push(opcode.clone());
                         }
+                    }
+                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
+                        if opcode_not_solvable.is_none() {
+                            // we keep track of the first unsolvable opcode
+                            opcode_not_solvable = Some(not_solvable);
+                        }
+                        // We push those opcodes not solvable to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_opcodes.push(solved_oracle.unwrap_or(opcode.clone()));
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -128,8 +128,8 @@ pub trait PartialWitnessGenerator {
                     Err(err) => return Err(err),
                 }
             }
-            // We are stalled because of an oracle opcode
-            if stalled && !unresolved_oracles.is_empty() {
+            // We have oracles that must be externally resolved
+            if !unresolved_oracles.is_empty() {
                 return Ok((unresolved_opcodes, unresolved_oracles));
             }
             // We are stalled because of an opcode being bad

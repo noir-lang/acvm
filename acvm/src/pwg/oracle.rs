@@ -40,15 +40,15 @@ impl OracleSolver {
                 Ok(OpcodeResolution::Solved)
             } else {
                 // Missing output values
-                Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                    data.outputs
-                        .first()
-                        .expect("Infallible: if there is not output, the opcode must be solved")
-                        .0,
-                )))
+                Ok(OpcodeResolution::InProgress)
             }
         } else {
-            Ok(OpcodeResolution::InProgress)
+            Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
+                data.inputs
+                    .last()
+                    .expect("Infallible: cannot reach this point is no inputs")
+                    .clone(),
+            )))
         }
     }
 }
