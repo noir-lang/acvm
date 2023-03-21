@@ -184,7 +184,7 @@ mod test {
         opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode, PublicInputs,
     };
-    use crate::native_types::Witness;
+    use crate::native_types::{Expression, Witness};
     use acir_field::FieldElement;
 
     fn and_opcode() -> Opcode {
@@ -204,12 +204,23 @@ mod test {
             outputs: vec![],
         })
     }
+    fn oracle_opcode() -> Opcode {
+        Opcode::Oracle {
+            name: String::from("oracle-name"),
+            inputs: vec![Expression {
+                mul_terms: vec![(FieldElement::from(123u128), Witness(1), Witness(2))],
+                linear_combinations: vec![(FieldElement::from(456u128), Witness(34))],
+                q_c: FieldElement::from(12345678u128),
+            }],
+            outputs: vec![Witness(1), Witness(2), Witness(3)],
+        }
+    }
 
     #[test]
     fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
-            opcodes: vec![and_opcode(), range_opcode()],
+            opcodes: vec![and_opcode(), range_opcode(), oracle_opcode()],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
         };
@@ -237,6 +248,7 @@ mod test {
                 }),
                 range_opcode(),
                 and_opcode(),
+                oracle_opcode(),
             ],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
@@ -261,6 +273,7 @@ mod test {
                 }),
                 range_opcode(),
                 and_opcode(),
+                oracle_opcode(),
             ],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),

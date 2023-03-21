@@ -88,6 +88,9 @@ pub trait PartialWitnessGenerator {
                         Self::solve_directives(initial_witness, directive)
                     }
                     Opcode::Block(id, trace) => blocks.solve(*id, trace, initial_witness),
+                    Opcode::Oracle { .. } => {
+                        todo!("oracle opcode cannot be processed inside solve without extra information")
+                    }
                 };
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {

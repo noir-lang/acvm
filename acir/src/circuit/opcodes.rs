@@ -2,7 +2,9 @@ use std::io::{Read, Write};
 
 use super::directives::{Directive, LogInfo};
 use crate::native_types::{Expression, Witness};
-use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
+use crate::serialization::{
+    read_bytes, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32,
+};
 use crate::BlackBoxFunc;
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +27,7 @@ pub enum Opcode {
     Directive(Directive),
     // Abstract read/write operations on a block of data
     Block(BlockId, Vec<MemOp>),
+    Oracle { name: String, inputs: Vec<Expression>, outputs: Vec<Witness> },
 }
 
 impl Opcode {
@@ -36,6 +39,7 @@ impl Opcode {
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name.name(),
             Opcode::Block(_, _) => "block",
+            Opcode::Oracle { name, .. } => name,
         }
     }
 
@@ -47,6 +51,7 @@ impl Opcode {
             Opcode::BlackBoxFuncCall(_) => 1,
             Opcode::Directive(_) => 2,
             Opcode::Block(_, _) => 3,
+            Opcode::Oracle { .. } => 4,
         }
     }
 
@@ -76,6 +81,25 @@ impl Opcode {
                     op.operation.write(&mut writer)?;
                     op.index.write(&mut writer)?;
                     op.value.write(&mut writer)?;
+                }
+                Ok(())
+            }
+            Opcode::Oracle { name, inputs, outputs } => {
+                let name_as_bytes = name.as_bytes();
+                let name_len = name_as_bytes.len();
+                write_u32(&mut writer, name_len as u32)?;
+                write_bytes(&mut writer, name_as_bytes)?;
+
+                let inputs_len = inputs.len() as u32;
+                write_u32(&mut writer, inputs_len)?;
+                for input in inputs {
+                    input.write(&mut writer)?
+                }
+
+                let outputs_len = outputs.len() as u32;
+                write_u32(&mut writer, outputs_len)?;
+                for output in outputs {
+                    write_u32(&mut writer, output.witness_index())?;
                 }
                 Ok(())
             }
@@ -111,6 +135,28 @@ impl Opcode {
                     trace.push(MemOp { operation, index, value });
                 }
                 Ok(Opcode::Block(BlockId(id), trace))
+            }
+            4 => {
+                let name_len = read_u32(&mut reader)?;
+                let name_as_bytes = read_bytes(&mut reader, name_len as usize)?;
+                let name: String = String::from_utf8(name_as_bytes)
+                    .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+
+                let inputs_len = read_u32(&mut reader)?;
+                let mut inputs = Vec::with_capacity(inputs_len as usize);
+                for _ in 0..inputs_len {
+                    let input = Expression::read(&mut reader)?;
+                    inputs.push(input);
+                }
+
+                let outputs_len = read_u32(&mut reader)?;
+                let mut outputs = Vec::with_capacity(outputs_len as usize);
+                for _ in 0..outputs_len {
+                    let witness_index = read_u32(&mut reader)?;
+                    outputs.push(Witness(witness_index));
+                }
+
+                Ok(Opcode::Oracle { name, inputs, outputs })
             }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -189,6 +235,16 @@ impl std::fmt::Display for Opcode {
             Opcode::Block(id, trace) => {
                 write!(f, "BLOCK ")?;
                 write!(f, "(id: {}, len: {}) ", id.0, trace.len())
+            }
+            Opcode::Oracle { name, inputs, outputs } => {
+                write!(f, "ORACLE: {}", name)?;
+                write!(f, "Inputs: _{}..._{}", inputs.first().unwrap(), inputs.last().unwrap())?;
+                write!(
+                    f,
+                    "Outputs: _{}..._{}",
+                    outputs.first().unwrap().witness_index(),
+                    outputs.last().unwrap().witness_index()
+                )
             }
         }
     }
