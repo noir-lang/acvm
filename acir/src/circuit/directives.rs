@@ -119,8 +119,11 @@ impl Directive {
                     write_bytes(&mut writer, trace_label.as_bytes())?;
                 }
                 match output_info {
-                    LogOutputInfo::FinalizedOutput(output_string) => {
-                        write_bytes(&mut writer, output_string.as_bytes())?;
+                    LogOutputInfo::FinalizedOutput(fields) => {
+                        write_u32(&mut writer, fields.len() as u32)?;
+                        for f in fields {
+                            write_bytes(&mut writer, &f.to_be_bytes())?;
+                        }
                     }
                     LogOutputInfo::WitnessOutput(witnesses) => {
                         write_u32(&mut writer, witnesses.len() as u32)?;
@@ -209,7 +212,7 @@ impl Directive {
 /// Otherwise, we must store witnesses whose values will
 /// be fetched during the PWG stage.
 pub enum LogOutputInfo {
-    FinalizedOutput(String),
+    FinalizedOutput(Vec<FieldElement>),
     WitnessOutput(Vec<Witness>),
 }
 

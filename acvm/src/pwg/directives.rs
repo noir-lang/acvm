@@ -15,13 +15,13 @@ use super::{get_value, insert_value, sorting::route, witness_to_value};
 pub fn solve_directives(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     directive: &Directive,
-) -> Result<Option<SolvedLog>, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
             let inverse = val.inverse();
             initial_witness.insert(*result, inverse);
-            Ok(None)
+            Ok(())
         }
         Directive::Quotient { a, b, q, r, predicate } => {
             let val_a = get_value(a, initial_witness)?;
@@ -53,7 +53,7 @@ pub fn solve_directives(
                 initial_witness,
             )?;
 
-            Ok(None)
+            Ok(())
         }
         Directive::ToLeRadix { a, b, radix } => {
             let value_a = get_value(a, initial_witness)?;
@@ -79,7 +79,7 @@ pub fn solve_directives(
                 insert_value(witness, value, initial_witness)?
             }
 
-            Ok(None)
+            Ok(())
         }
         Directive::PermutationSort { inputs: a, tuple, bits, sort_by } => {
             let mut val_a = Vec::new();
@@ -112,31 +112,32 @@ pub fn solve_directives(
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_witness(*w, value, initial_witness)?;
             }
-            Ok(None)
+            Ok(())
         }
-        Directive::Log { trace_label, output_info } => {
-            let witnesses = match output_info {
-                LogOutputInfo::FinalizedOutput(final_string) => {
-                    return Ok(Some(SolvedLog {
-                        trace_label: trace_label.clone(),
-                        output_info: SolvedLogOutputInfo::FinalizedOutput(final_string.clone()),
-                    }))
-                }
-                LogOutputInfo::WitnessOutput(witnesses) => witnesses,
-            };
+        Directive::Log { .. } => {
+            // let witnesses = match output_info {
+            //     LogOutputInfo::FinalizedOutput(final_string) => {
+            //         return Ok(Some(SolvedLog {
+            //             trace_label: trace_label.clone(),
+            //             output_info: SolvedLogOutputInfo::FinalizedOutput(final_string.clone()),
+            //         }))
+            //     }
+            //     LogOutputInfo::WitnessOutput(witnesses) => witnesses,
+            // };
 
-            let mut elements = Vec::with_capacity(witnesses.len());
-            for witness in witnesses {
-                let element = witness_to_value(initial_witness, *witness)?;
-                elements.push(*element);
-            }
+            // let mut elements = Vec::with_capacity(witnesses.len());
+            // for witness in witnesses {
+            //     let element = witness_to_value(initial_witness, *witness)?;
+            //     elements.push(*element);
+            // }
 
-            let solved_log = SolvedLog {
-                trace_label: trace_label.clone(),
-                output_info: SolvedLogOutputInfo::WitnessValues(elements),
-            };
+            // let solved_log = SolvedLog {
+            //     trace_label: trace_label.clone(),
+            //     output_info: SolvedLogOutputInfo::WitnessValues(elements),
+            // };
 
-            Ok(Some(solved_log))
+            // Ok(Some(solved_log))
+            Ok(())
         }
     }
 }

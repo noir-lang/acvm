@@ -90,11 +90,6 @@ pub trait PartialWitnessGenerator {
                         Self::solve_black_box_function_call(initial_witness, bb_func)
                     }
                     Opcode::Directive(directive) => {
-                        // Self::solve_directives(initial_witness, directive).map(|possible_log| {
-                        //     if let Some(solved_log) = possible_log {
-                        //         logs.push(solved_log)
-                        //     }
-                        // })
                         Self::solve_directives(initial_witness, directive)
                     }
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
