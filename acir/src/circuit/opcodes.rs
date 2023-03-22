@@ -97,7 +97,7 @@ pub struct OracleData {
     pub input_values: Vec<FieldElement>,
     /// Output witness
     pub outputs: Vec<Witness>,
-    /// Output values - they are computed by the (external) oracle once the input_values are kwown
+    /// Output values - they are computed by the (external) oracle once the input_values are known
     pub output_values: Vec<FieldElement>,
 }
 

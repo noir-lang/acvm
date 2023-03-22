@@ -290,3 +290,85 @@ pub fn default_is_opcode_supported(
         Language::PLONKCSat { .. } => plonk_is_supported,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::BTreeMap;
+
+    use acir::{
+        circuit::{
+            directives::Directive,
+            opcodes::{BlackBoxFuncCall, OracleData},
+            Opcode,
+        },
+        native_types::{Expression, Witness},
+        FieldElement,
+    };
+
+    use crate::{OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator};
+
+    struct StubbedPwg;
+
+    impl PartialWitnessGenerator for StubbedPwg {
+        fn solve_black_box_function_call(
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _func_call: &BlackBoxFuncCall,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+    }
+
+    #[test]
+    fn inversion_oracle_equivalence() {
+        let initial_witness = BTreeMap::from([(Witness(0), FieldElement::from(2u128))]);
+        let pwg = StubbedPwg;
+
+        let opcodes_with_inversion_directive =
+            vec![Opcode::Directive(Directive::Invert { x: Witness(0), result: Witness(1) })];
+        let mut witness_assignments_1 = initial_witness.clone();
+        let (unsolved_opcodes, unresolved_oracles) = pwg
+            .solve(&mut witness_assignments_1, opcodes_with_inversion_directive)
+            .expect("should be solvable");
+        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
+        assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+        let ret_value_1 =
+            witness_assignments_1.get(&Witness(1)).expect("return value should exist");
+
+        let opcode_with_inversion_oracle = vec![Opcode::Oracle(OracleData {
+            name: "invert".into(),
+            inputs: vec![Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(FieldElement::one(), Witness(0))],
+                q_c: FieldElement::zero(),
+            }],
+            input_values: vec![],
+            outputs: vec![Witness(1)],
+            output_values: vec![],
+        })];
+        let mut witness_assignments_2 = BTreeMap::from([(Witness(0), FieldElement::from(2u128))]);
+        let (unsolved_opcodes, mut unresolved_oracles) = pwg
+            .solve(&mut witness_assignments_2, opcode_with_inversion_oracle)
+            .expect("should stall on oracle");
+        assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
+        assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
+        let mut oracle_data = match unresolved_oracles.remove(0) {
+            Opcode::Oracle(oracle_data) => oracle_data,
+            _ => panic!("Wrong opcode type"),
+        };
+        assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
+
+        // Filling data request and continue solving
+        oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
+        let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
+        next_opcodes_for_solving.extend_from_slice(&unresolved_oracles[..]);
+        let (unsolved_opcodes, unresolved_oracles) = pwg
+            .solve(&mut witness_assignments_2, next_opcodes_for_solving)
+            .expect("should be solvable");
+        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
+        assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+        let ret_value_2 =
+            witness_assignments_2.get(&Witness(1)).expect("return value should exist");
+
+        assert_eq!(ret_value_1, ret_value_2, "Solving should be equivalent");
+    }
+}
