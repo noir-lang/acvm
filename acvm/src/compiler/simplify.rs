@@ -99,15 +99,14 @@ impl CircuitSimplifier {
         self.solved.contains_key(&w)
     }
 
-    // generate a gate which set witness to its value
+    // Generate a gate which set witness to its value
     pub fn define(&self, w: &Witness) -> Opcode {
         let mut a = Expression::from(w);
         a.q_c = -self.solved[w];
         Opcode::Arithmetic(a)
     }
 
-    // simplify a gate and propagate the solved witness onto the previous gates, as long as it can solve some witness
-    // returns false if a constraint is not satisfied
+    // Simplify a gate and propagate the solved witness onto the previous gates, as long as it can solve some witness
     pub fn simplify(&mut self, gates: &mut Vec<Opcode>) -> SimplifyResult {
         let mut first = true;
         let mut solved = true;
@@ -357,7 +356,7 @@ impl CircuitSimplifier {
         gate_idx: usize,
         first: bool,
     ) -> SimplifyResult {
-        //evaluate expressions
+        // evaluate expressions
         let a_expr = self.evaluate_arith(&quotient.a, gate_idx, first);
         let b_expr = self.evaluate_arith(&quotient.b, gate_idx, first);
         let default = Box::new(Expression::one());
