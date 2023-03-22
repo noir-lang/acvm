@@ -430,3 +430,59 @@ impl CircuitSimplifier {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use acir::{
+        circuit::{Circuit, Opcode},
+        native_types::{Expression, Witness},
+        FieldElement,
+    };
+
+    use crate::compiler::{
+        simplify::CircuitSimplifier,
+        transformers::{FallbackTransformer, IsOpcodeSupported},
+    };
+
+    #[test]
+    fn simplify_test() {
+        let a = Witness(0);
+        let b = Witness(1);
+        let c = Witness(2);
+        let d = Witness(3);
+
+        let one = FieldElement::one();
+        // b = c * d ;
+        let gate_b = Expression {
+            mul_terms: vec![(one, b, c)],
+            linear_combinations: vec![(-one, a)],
+            q_c: FieldElement::zero(),
+        };
+        // d = 3;
+        let gate_d = Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![(one, d)],
+            q_c: FieldElement::from(-3_i128),
+        };
+        // a = 0;
+        let gate_a = Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![(one, a)],
+            q_c: FieldElement::zero(),
+        };
+        let mut simplifier = CircuitSimplifier::new(1);
+        let mut circuit = vec![
+            Opcode::Arithmetic(gate_a),
+            Opcode::Arithmetic(gate_b),
+            Opcode::Arithmetic(gate_d),
+        ];
+        simplifier.simplify(&mut circuit);
+        assert_eq!(circuit.len(), 3);
+        assert_eq!(simplifier.solved_gates.len(), 1);
+        let support_all: IsOpcodeSupported = |_| true;
+        let mut acir = Circuit::default();
+        acir.opcodes = circuit;
+        let acir = FallbackTransformer::transform(acir, support_all, &simplifier).unwrap();
+        assert_eq!(acir.opcodes.len(), 2);
+    }
+}
