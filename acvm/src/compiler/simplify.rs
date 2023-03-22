@@ -99,7 +99,7 @@ impl CircuitSimplifier {
         self.solved.contains_key(&w)
     }
 
-    // Generate a gate which set witness to its value
+    // Generate an Arithmetic gate which set witness to its value
     pub fn define(&self, w: &Witness) -> Opcode {
         let mut a = Expression::from(w);
         a.q_c = -self.solved[w];
