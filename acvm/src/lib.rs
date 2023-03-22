@@ -70,10 +70,10 @@ pub trait PartialWitnessGenerator {
     fn solve(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<(Vec<Opcode>, Vec<Opcode>), OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        let mut blocks = Blocks::default();
         let mut unresolved_oracles = Vec::new();
         while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
             unresolved_opcodes.clear();
@@ -305,7 +305,9 @@ mod test {
         FieldElement,
     };
 
-    use crate::{OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator};
+    use crate::{
+        pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
+    };
 
     struct StubbedPwg;
 
@@ -368,8 +370,10 @@ mod test {
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
         ]);
-        let (unsolved_opcodes, mut unresolved_oracles) =
-            pwg.solve(&mut witness_assignments, opcodes).expect("should stall on oracle");
+        let mut blocks = Blocks::default();
+        let (unsolved_opcodes, mut unresolved_oracles) = pwg
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
         assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
         assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
         let mut oracle_data = match unresolved_oracles.remove(0) {
@@ -383,7 +387,7 @@ mod test {
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unresolved_oracles[..]);
         let (unsolved_opcodes, unresolved_oracles) = pwg
-            .solve(&mut witness_assignments, next_opcodes_for_solving)
+            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should be solvable");
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
