@@ -320,35 +320,56 @@ mod test {
 
     #[test]
     fn inversion_oracle_equivalence() {
-        let initial_witness = BTreeMap::from([(Witness(0), FieldElement::from(2u128))]);
+        // Opcodes below describe the following:
+        // fn main(x : Field, y : pub Field) {
+        //     let z = x + y;
+        //     constrain 1/z == Oracle("inverse", x + y);
+        // }
+        let fe_0 = FieldElement::zero();
+        let fe_1 = FieldElement::one();
+        let w_x = Witness(1);
+        let w_y = Witness(2);
+        let w_oracle = Witness(3);
+        let w_z = Witness(4);
+        let w_z_inverse = Witness(5);
+        let opcodes = vec![
+            Opcode::Oracle(OracleData {
+                name: "invert".into(),
+                inputs: vec![Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                    q_c: fe_0,
+                }],
+                input_values: vec![],
+                outputs: vec![w_oracle],
+                output_values: vec![],
+            }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
+                q_c: fe_0,
+            }),
+            Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![(fe_1, w_z, w_z_inverse)],
+                linear_combinations: vec![],
+                q_c: -fe_1,
+            }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(-fe_1, w_oracle), (fe_1, w_z_inverse)],
+                q_c: fe_0,
+            }),
+        ];
+
         let pwg = StubbedPwg;
 
-        let opcodes_with_inversion_directive =
-            vec![Opcode::Directive(Directive::Invert { x: Witness(0), result: Witness(1) })];
-        let mut witness_assignments_1 = initial_witness.clone();
-        let (unsolved_opcodes, unresolved_oracles) = pwg
-            .solve(&mut witness_assignments_1, opcodes_with_inversion_directive)
-            .expect("should be solvable");
-        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
-        assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
-        let ret_value_1 =
-            witness_assignments_1.get(&Witness(1)).expect("return value should exist");
-
-        let opcode_with_inversion_oracle = vec![Opcode::Oracle(OracleData {
-            name: "invert".into(),
-            inputs: vec![Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![(FieldElement::one(), Witness(0))],
-                q_c: FieldElement::zero(),
-            }],
-            input_values: vec![],
-            outputs: vec![Witness(1)],
-            output_values: vec![],
-        })];
-        let mut witness_assignments_2 = BTreeMap::from([(Witness(0), FieldElement::from(2u128))]);
-        let (unsolved_opcodes, mut unresolved_oracles) = pwg
-            .solve(&mut witness_assignments_2, opcode_with_inversion_oracle)
-            .expect("should stall on oracle");
+        let mut witness_assignments = BTreeMap::from([
+            (Witness(1), FieldElement::from(2u128)),
+            (Witness(2), FieldElement::from(3u128)),
+        ]);
+        let (unsolved_opcodes, mut unresolved_oracles) =
+            pwg.solve(&mut witness_assignments, opcodes).expect("should stall on oracle");
         assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
         assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
         let mut oracle_data = match unresolved_oracles.remove(0) {
@@ -362,13 +383,9 @@ mod test {
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unresolved_oracles[..]);
         let (unsolved_opcodes, unresolved_oracles) = pwg
-            .solve(&mut witness_assignments_2, next_opcodes_for_solving)
+            .solve(&mut witness_assignments, next_opcodes_for_solving)
             .expect("should be solvable");
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
-        let ret_value_2 =
-            witness_assignments_2.get(&Witness(1)).expect("return value should exist");
-
-        assert_eq!(ret_value_1, ret_value_2, "Solving should be equivalent");
     }
 }
