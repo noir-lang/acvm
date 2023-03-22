@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use super::directives::{Directive, LogInfo};
+use super::directives::{Directive, LogInfo, QuotientDirective};
 use crate::native_types::{Expression, Witness};
 use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
 use crate::BlackBoxFunc;
@@ -211,7 +211,7 @@ impl std::fmt::Display for Opcode {
                 write!(f, "DIR::INVERT ")?;
                 write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
             }
-            Opcode::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
+            Opcode::Directive(Directive::Quotient(QuotientDirective { a, b, q, r, predicate })) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
                     writeln!(f, "PREDICATE = {pred}")?;

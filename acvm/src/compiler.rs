@@ -1,5 +1,6 @@
 // The various passes that we can use over ACIR
 pub mod optimizers;
+pub mod simplify;
 pub mod transformers;
 
 use crate::Language;
