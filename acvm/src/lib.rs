@@ -9,7 +9,11 @@ pub mod pwg;
 
 use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
 use acir::{
-    circuit::{directives::Directive, opcodes::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{
+        directives::Directive,
+        opcodes::{BlackBoxFuncCall, OracleData},
+        Circuit, Opcode,
+    },
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
@@ -72,15 +76,15 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<(Vec<Opcode>, Vec<Opcode>), OpcodeResolutionError> {
+    ) -> Result<(Vec<Opcode>, Vec<OracleData>), OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        let mut unresolved_oracles = Vec::new();
+        let mut unresolved_oracles: Vec<OracleData> = Vec::new();
         while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
-                let mut solved_oracle = None;
+                let mut solved_oracle_data = None;
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -95,7 +99,7 @@ pub trait PartialWitnessGenerator {
                     Opcode::Oracle(data) => {
                         let mut data_clone = data.clone();
                         let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
-                        solved_oracle = Some(Opcode::Oracle(data_clone));
+                        solved_oracle_data = Some(data_clone);
                         Ok(result)
                     }
                 };
@@ -106,7 +110,7 @@ pub trait PartialWitnessGenerator {
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
                         // InProgress Oracles must be externally re-solved
-                        if let Some(oracle) = solved_oracle {
+                        if let Some(oracle) = solved_oracle_data {
                             unresolved_oracles.push(oracle);
                         } else {
                             unresolved_opcodes.push(opcode.clone());
@@ -120,7 +124,10 @@ pub trait PartialWitnessGenerator {
                         // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
-                        unresolved_opcodes.push(solved_oracle.unwrap_or(opcode.clone()));
+                        unresolved_opcodes.push(match solved_oracle_data {
+                            Some(oracle_data) => Opcode::Oracle(oracle_data),
+                            None => opcode.clone(),
+                        });
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -376,16 +383,13 @@ mod test {
             .expect("should stall on oracle");
         assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
         assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
-        let mut oracle_data = match unresolved_oracles.remove(0) {
-            Opcode::Oracle(oracle_data) => oracle_data,
-            _ => panic!("Wrong opcode type"),
-        };
+        let mut oracle_data = unresolved_oracles.remove(0);
         assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
 
         // Filling data request and continue solving
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
-        next_opcodes_for_solving.extend_from_slice(&unresolved_oracles[..]);
+        next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         let (unsolved_opcodes, unresolved_oracles) = pwg
             .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should be solvable");
