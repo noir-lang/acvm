@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.0](https://github.com/noir-lang/acvm/compare/acvm-v0.6.0...acvm-v0.7.0) (2023-03-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add initial oracle opcode ([#149](https://github.com/noir-lang/acvm/issues/149))
+* **acir:** Add RAM and ROM opcodes
+* **acir:** Add a public outputs field ([#56](https://github.com/noir-lang/acvm/issues/56))
+* **acvm:** remove `prove_with_meta` and `verify_from_cs` from `ProofSystemCompiler` ([#140](https://github.com/noir-lang/acvm/issues/140))
+* **acvm:** Remove truncate and oddrange directives ([#142](https://github.com/noir-lang/acvm/issues/142))
+
+### Features
+
+* **acir:** Add a public outputs field ([#56](https://github.com/noir-lang/acvm/issues/56)) ([5f358a9](https://github.com/noir-lang/acvm/commit/5f358a97aaa81d87956e182cd8a6d60de75f9752))
+* **acir:** Add RAM and ROM opcodes ([73e9f25](https://github.com/noir-lang/acvm/commit/73e9f25dd87b2ca91245e93d2445eadc0f522fac))
+* Add initial oracle opcode ([#149](https://github.com/noir-lang/acvm/issues/149)) ([88ee2f8](https://github.com/noir-lang/acvm/commit/88ee2f89f37abf5dd1d9f91b4d2eed44dc651348))
+
+
+### Miscellaneous Chores
+
+* **acvm:** remove `prove_with_meta` and `verify_from_cs` from `ProofSystemCompiler` ([#140](https://github.com/noir-lang/acvm/issues/140)) ([35dd181](https://github.com/noir-lang/acvm/commit/35dd181102203df17eef510666b327ef41f4b036))
+* **acvm:** Remove truncate and oddrange directives ([#142](https://github.com/noir-lang/acvm/issues/142)) ([85dd6e8](https://github.com/noir-lang/acvm/commit/85dd6e85bfba85bfb97651f7e30e1f75deb986d5))
+
 ## [0.6.0](https://github.com/noir-lang/acvm/compare/acvm-v0.5.0...acvm-v0.6.0) (2023-03-03)
 
 
