@@ -17,6 +17,7 @@ pub mod directives;
 pub mod block;
 pub mod hash;
 pub mod logic;
+pub mod oracle;
 pub mod range;
 pub mod signature;
 pub mod sorting;

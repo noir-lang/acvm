@@ -20,6 +20,11 @@ pub(crate) fn write_n<const NUM_BYTES: usize, W: Write>(
 pub(crate) fn write_bytes<W: Write>(mut w: W, bytes: &[u8]) -> std::io::Result<usize> {
     w.write(bytes)
 }
+pub(crate) fn read_bytes<R: Read>(mut r: R, num_bytes: usize) -> std::io::Result<Vec<u8>> {
+    let mut bytes = vec![0u8; num_bytes];
+    r.read_exact(&mut bytes[..])?;
+    Ok(bytes)
+}
 
 pub(crate) fn write_u16<W: Write>(w: W, num: u16) -> std::io::Result<usize> {
     let bytes = num.to_le_bytes();
