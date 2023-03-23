@@ -181,7 +181,7 @@ mod test {
     use std::collections::BTreeSet;
 
     use super::{
-        opcodes::{BlackBoxFuncCall, FunctionInput},
+        opcodes::{BlackBoxFuncCall, FunctionInput, OracleData},
         Circuit, Opcode, PublicInputs,
     };
     use crate::native_types::{Expression, Witness};
@@ -205,15 +205,17 @@ mod test {
         })
     }
     fn oracle_opcode() -> Opcode {
-        Opcode::Oracle {
+        Opcode::Oracle(OracleData {
             name: String::from("oracle-name"),
             inputs: vec![Expression {
                 mul_terms: vec![(FieldElement::from(123u128), Witness(1), Witness(2))],
                 linear_combinations: vec![(FieldElement::from(456u128), Witness(34))],
                 q_c: FieldElement::from(12345678u128),
             }],
+            input_values: vec![],
             outputs: vec![Witness(1), Witness(2), Witness(3)],
-        }
+            output_values: vec![],
+        })
     }
 
     #[test]
