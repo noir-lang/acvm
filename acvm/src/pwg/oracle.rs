@@ -39,7 +39,7 @@ impl OracleSolver {
             Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
                 data.inputs
                     .last()
-                    .expect("Infallible: cannot reach this point is no inputs")
+                    .expect("Infallible: cannot reach this point if no inputs")
                     .clone(),
             )))
         }
