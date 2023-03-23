@@ -8,12 +8,6 @@ use super::{arithmetic::ArithmeticSolver, directives::insert_witness};
 
 pub struct OracleSolver;
 
-pub enum GateStatus {
-    GateSatisfied(FieldElement),
-    GateSolvable(FieldElement, (FieldElement, Witness)),
-    GateUnsolvable,
-}
-
 impl OracleSolver {
     /// Derives the rest of the witness based on the initial low level variables
     pub fn solve(
