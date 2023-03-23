@@ -8,7 +8,6 @@ use super::{arithmetic::ArithmeticSolver, directives::insert_witness};
 
 pub struct OracleSolver;
 
-#[allow(clippy::enum_variant_names)]
 pub enum GateStatus {
     GateSatisfied(FieldElement),
     GateSolvable(FieldElement, (FieldElement, Witness)),
