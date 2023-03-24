@@ -1,0 +1,14 @@
+[package]
+name = "brillig_bytecode"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+acir.workspace = true
+
+
+[features]
+bn254 = ["acir/bn254"]
+bls12_381 = ["acir/bls12_381"]
