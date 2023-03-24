@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["acir_field", "acir", "acvm", "stdlib"]
+members = ["acir_field", "acir", "acvm", "stdlib", "brillig_bytecode"]
 
 [workspace.package]
 authors = ["The Noir Team <kevtheappdev@gmail.com>"]
