@@ -80,7 +80,7 @@ impl VM {
         if self.program_counter >= self.bytecode.len() {
             self.status = VMStatus::Halted;
         }
-        return self.status;
+        self.status
     }
 
     /// Process a binary operation.
