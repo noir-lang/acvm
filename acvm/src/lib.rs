@@ -88,7 +88,15 @@ pub trait PartialWitnessGenerator {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
-                        Self::solve_black_box_function_call(initial_witness, bb_func)
+                        if let Some(unassigned_idx) =
+                            Self::first_missing_assignment(initial_witness, bb_func)
+                        {
+                            Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
+                                unassigned_idx,
+                            )))
+                        } else {
+                            Self::solve_black_box_function_call(initial_witness, bb_func)
+                        }
                     }
                     Opcode::Directive(directive) => {
                         Self::solve_directives(initial_witness, directive)
@@ -157,14 +165,18 @@ pub trait PartialWitnessGenerator {
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
-    // Returns true if all of the inputs have been assigned
-    fn all_func_inputs_assigned(
+    // Returns the first missing asignment if any are missing
+    fn first_missing_assignment(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> bool {
-        // This call to .any returns true, if any of the witnesses do not have assignments
-        // We then use `!`, so it returns false if any of the witnesses do not have assignments
-        !func_call.inputs.iter().any(|input| !initial_witness.contains_key(&input.witness))
+    ) -> Option<u32> {
+        func_call.inputs.iter().find_map(|input| {
+            if initial_witness.contains_key(&input.witness) {
+                None
+            } else {
+                Some(input.witness.0)
+            }
+        })
     }
 
     fn solve_directives(
