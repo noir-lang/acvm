@@ -165,7 +165,7 @@ pub trait PartialWitnessGenerator {
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 
     // Check if all of the inputs to the function have assignments
-    // Returns the first missing asignment if any are missing
+    // Returns the first missing assignment if any are missing
     fn first_missing_assignment(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
