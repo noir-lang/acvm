@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1](https://github.com/noir-lang/acvm/compare/root-v0.7.0...root-v0.7.1) (2023-03-27)
+
+
+### Bug Fixes
+
+* **pwg:** stall instead of fail for unassigned black box ([#154](https://github.com/noir-lang/acvm/issues/154)) ([412a1a6](https://github.com/noir-lang/acvm/commit/412a1a60b434bef53e12d37c3b2bb3d51a317994))
+
 ## [0.7.0](https://github.com/noir-lang/acvm/compare/root-v0.6.0...root-v0.7.0) (2023-03-23)
 
 
