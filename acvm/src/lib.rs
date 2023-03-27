@@ -88,11 +88,11 @@ pub trait PartialWitnessGenerator {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
-                        if let Some(unassigned_idx) =
-                            Self::first_missing_assignment(initial_witness, bb_func)
+                        if let Some(unassigned_witness) =
+                            Self::any_missing_assignment(initial_witness, bb_func)
                         {
                             Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                                unassigned_idx,
+                                unassigned_witness.0,
                             )))
                         } else {
                             Self::solve_black_box_function_call(initial_witness, bb_func)
@@ -166,15 +166,15 @@ pub trait PartialWitnessGenerator {
 
     // Check if all of the inputs to the function have assignments
     // Returns the first missing assignment if any are missing
-    fn first_missing_assignment(
+    fn any_missing_assignment(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Option<u32> {
+    ) -> Option<Witness> {
         func_call.inputs.iter().find_map(|input| {
             if initial_witness.contains_key(&input.witness) {
                 None
             } else {
-                Some(input.witness.0)
+                Some(input.witness)
             }
         })
     }
