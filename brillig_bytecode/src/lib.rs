@@ -8,7 +8,7 @@ mod opcodes;
 mod registers;
 mod value;
 
-pub use opcodes::{BinaryOp, Opcode, UnaryOp};
+pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Value;
 
@@ -41,10 +41,6 @@ impl VM {
         match opcode {
             Opcode::BinaryOp { op, lhs, rhs, result } => {
                 self.process_binary_op(*op, *lhs, *rhs, *result);
-                self.increment_program_counter()
-            }
-            Opcode::UnaryOp { op, input, result } => {
-                self.process_unary_op(*op, *input, *result);
                 self.increment_program_counter()
             }
             Opcode::JMP { destination } => self.set_program_counter(destination.inner()),

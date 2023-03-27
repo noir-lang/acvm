@@ -11,14 +11,6 @@ pub enum Opcode {
         rhs: RegisterIndex,
         result: RegisterIndex,
     },
-    /// Takes the value in register `input`
-    /// Performs the specified unary operation
-    /// and stores the value in `result` register.
-    UnaryOp {
-        op: UnaryOp,
-        input: RegisterIndex,
-        result: RegisterIndex,
-    },
     /// Sets the program counter to the value located at `destination`
     /// If the value at condition is non-zero
     JMPIF {
@@ -37,22 +29,12 @@ pub enum Opcode {
     // TODO:This will be used to get data from an outside source
     Oracle,
     // TODO: This will be used to store a value at a particular index
-    Store,
+    RegisterStore,
     // TODO: This will be used to explicitly load a value at a particular index
-    Load,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum UnaryOp {
-    Inv,
-}
-
-impl UnaryOp {
-    pub fn function(&self) -> fn(Value) -> Value {
-        match self {
-            UnaryOp::Inv => |a: Value| a.inverse(),
-        }
-    }
+    RegisterLoad,
+    //
+    ArrayStore,
+    ArrayLoad,
 }
 
 #[derive(Debug, Clone, Copy)]
