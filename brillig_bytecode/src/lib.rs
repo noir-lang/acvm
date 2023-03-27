@@ -10,6 +10,7 @@ mod value;
 
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
+use value::Typ;
 pub use value::Value;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -39,8 +40,8 @@ impl VM {
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
         match opcode {
-            Opcode::BinaryOp { op, lhs, rhs, result } => {
-                self.process_binary_op(*op, *lhs, *rhs, *result);
+            Opcode::BinaryOp { op, lhs, rhs, result, result_type } => {
+                self.process_binary_op(*op, *lhs, *rhs, *result, *result_type);
                 self.increment_program_counter()
             }
             Opcode::JMP { destination } => self.set_program_counter(destination.inner()),
@@ -56,9 +57,8 @@ impl VM {
             }
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
-            Opcode::Oracle => todo!(),
-            Opcode::Store => todo!(),
-            Opcode::Load => todo!(),
+            Opcode::Oracle { inputs, destination } => todo!(),
+            Opcode::Mov { destination, source } => todo!(),
         }
     }
 
@@ -87,6 +87,7 @@ impl VM {
         lhs: RegisterIndex,
         rhs: RegisterIndex,
         result: RegisterIndex,
+        result_type: Typ,
     ) {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
@@ -96,15 +97,6 @@ impl VM {
         self.registers.set(result, result_value)
     }
 
-    /// Process a unary operation.
-    /// This method will not modify the program counter.
-    fn process_unary_op(&mut self, op: UnaryOp, input: RegisterIndex, result: RegisterIndex) {
-        let input_value = self.registers.get(input);
-
-        let result_value = op.function()(input_value);
-
-        self.registers.set(result, result_value)
-    }
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
@@ -127,6 +119,7 @@ fn add_single_step_smoke() {
         lhs: RegisterIndex(0),
         rhs: RegisterIndex(1),
         result: RegisterIndex(2),
+        result_type: Typ::Field,
     };
 
     // Start VM
