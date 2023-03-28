@@ -65,7 +65,7 @@ pub enum Opcode {
         source: RegisterMemIndex,
     },
     /// Used if execution fails during evaluation
-    Trap
+    Trap,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
