@@ -15,6 +15,7 @@ num-traits.workspace = true
 blake2.workspace = true
 
 acir.workspace = true
+brillig_bytecode = { version = "0.1.0", path = "../brillig_bytecode" }
 stdlib.workspace = true
 
 sha2 = "0.9.3"

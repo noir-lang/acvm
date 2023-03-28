@@ -150,7 +150,26 @@ pub fn solve_directives(
 
             Ok(())
         }
-        Directive::Brillig { inputs, outputs, bytecode } => todo!("Maxim"),
+        Directive::Brillig { inputs, outputs, bytecode } => {
+            let mut input_register_values: Vec<brillig_bytecode::Value> = Vec::new();
+            for expr in inputs {
+                let expr_value = get_value(expr, initial_witness)?;
+                input_register_values.push(expr_value.into())
+            };
+            let input_registers = brillig_bytecode::Registers { inner: input_register_values };
+
+            let vm = brillig_bytecode::VM::new(input_registers, bytecode.clone());
+
+            let output_registers = vm.process_opcodes();
+
+            let output_register_values: Vec<FieldElement> = output_registers.inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
+
+            for (witness, value) in outputs.into_iter().zip(output_register_values) {
+                initial_witness.insert(*witness, value);
+            }
+
+            Ok(())
+        }
     }
 }
 
