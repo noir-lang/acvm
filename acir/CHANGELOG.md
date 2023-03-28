@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/noir-lang/acvm/compare/acir-v0.7.1...acir-v0.8.0) (2023-03-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156))
+
+### Bug Fixes
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156)) ([1cc2b7f](https://github.com/noir-lang/acvm/commit/1cc2b7f2179cecc338fe0def72bb2dd17eaed0cd))
+
 ## [0.7.1](https://github.com/noir-lang/acvm/compare/acir-v0.7.0...acir-v0.7.1) (2023-03-27)
 
 
