@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Opcode, Comparison};
+pub use opcodes::{BinaryOp, Comparison, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -67,7 +67,10 @@ impl VM {
                 let source_value = self.registers.get(*source);
 
                 match (destination, source) {
-                    (RegisterMemIndex::Register(dest_index), RegisterMemIndex::Register(source_index)) => {
+                    (
+                        RegisterMemIndex::Register(dest_index),
+                        RegisterMemIndex::Register(source_index),
+                    ) => {
                         self.registers.set(*dest_index, source_value);
                         self.registers.set(*source_index, destination_value);
                     }
@@ -75,7 +78,7 @@ impl VM {
                 }
 
                 self.increment_program_counter()
-            },
+            }
             Opcode::Trap => VMStatus::Failure,
             Opcode::JMPIFNOT { condition, destination } => todo!(),
         }
@@ -202,13 +205,13 @@ fn test_jmpif_opcode() {
 
 #[test]
 fn test_mov_opcode() {
-    let input_registers = Registers::load(vec![
-        Value::from(1u128),
-        Value::from(2u128),
-        Value::from(3u128),
-    ]);
+    let input_registers =
+        Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
-    let mov_opcode = Opcode::Mov { destination: RegisterMemIndex::Register(RegisterIndex(2)), source: RegisterMemIndex::Register(RegisterIndex(0)) };
+    let mov_opcode = Opcode::Mov {
+        destination: RegisterMemIndex::Register(RegisterIndex(2)),
+        source: RegisterMemIndex::Register(RegisterIndex(0)),
+    };
 
     let mut vm = VM::new(input_registers, vec![mov_opcode]);
 
