@@ -41,12 +41,6 @@ impl From<u128> for Value {
     }
 }
 
-// impl Into<u128> for Value {
-//     fn into(self) -> u128 {
-//         self.inner.to_u128()
-//     }
-// }
-
 impl From<FieldElement> for Value {
     fn from(value: FieldElement) -> Self {
         Value { typ: Typ::Field, inner: value }
