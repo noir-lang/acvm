@@ -36,6 +36,10 @@ pub enum Opcode {
         rhs: RegisterMemIndex,
         result: RegisterIndex,
     },
+    JMPIFNOT {
+        condition: RegisterMemIndex,
+        destination: Label,
+    },
     /// Sets the program counter to the value located at `destination`
     /// If the value at condition is non-zero
     JMPIF {

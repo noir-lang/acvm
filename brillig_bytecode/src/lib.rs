@@ -62,6 +62,7 @@ impl VM {
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
+            Opcode::JMPIFNOT { condition, destination } => todo!(),
         }
     }
 
