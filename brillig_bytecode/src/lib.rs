@@ -212,8 +212,10 @@ fn test_jmpifnot_opcode() {
         result: RegisterIndex(2),
     };
 
+    let jump_opcode = Opcode::JMP { destination: 2 };
+
     let jump_if_not_opcode =
-        Opcode::JMPIFNOT { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 3 };
+        Opcode::JMPIFNOT { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 1 };
 
     let add_opcode = Opcode::BinaryOp {
         op: BinaryOp::Add,
@@ -223,7 +225,10 @@ fn test_jmpifnot_opcode() {
         result_type: Typ::Field,
     };
 
-    let mut vm = VM::new(input_registers, vec![not_equal_cmp_opcode, jump_if_not_opcode, add_opcode, trap_opcode]);
+    let mut vm = VM::new(input_registers, vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode]);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
