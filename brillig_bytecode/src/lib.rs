@@ -63,16 +63,11 @@ impl VM {
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => {
-                let destination_value = self.registers.get(*destination);
                 let source_value = self.registers.get(*source);
 
-                match (destination, source) {
-                    (
-                        RegisterMemIndex::Register(dest_index),
-                        RegisterMemIndex::Register(source_index),
-                    ) => {
-                        self.registers.set(*dest_index, source_value);
-                        self.registers.set(*source_index, destination_value);
+                match destination {
+                    RegisterMemIndex::Register(dest_index) => {
+                        self.registers.set(*dest_index, source_value)
                     }
                     _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
                 }
@@ -224,5 +219,5 @@ fn test_mov_opcode() {
     assert_eq!(destination_value, Value::from(1u128));
 
     let source_value = registers.get(RegisterMemIndex::Register(RegisterIndex(0)));
-    assert_eq!(source_value, Value::from(3u128));
+    assert_eq!(source_value, Value::from(1u128));
 }
