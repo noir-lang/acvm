@@ -150,6 +150,7 @@ pub fn solve_directives(
 
             Ok(())
         }
+        Directive::Brillig { inputs, outputs, bytecode } => todo!("Maxim"),
     }
 }
 
