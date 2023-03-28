@@ -331,9 +331,7 @@ fn serialization_roundtrip() {
     let brillig = Directive::Brillig {
         inputs: vec![Expression::default()],
         outputs: vec![Witness(2), Witness(3)],
-        bytecode: vec![brillig_bytecode::Opcode::JMP {
-            destination: brillig_bytecode::RegisterIndex(10),
-        }],
+        bytecode: vec![brillig_bytecode::Opcode::JMP { destination: 10 }],
     };
 
     let directives = vec![

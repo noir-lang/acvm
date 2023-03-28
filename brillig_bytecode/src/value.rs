@@ -47,6 +47,16 @@ impl From<FieldElement> for Value {
     }
 }
 
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        if value {
+            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::one() }
+        } else {
+            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::zero() }
+        }
+    }
+}
+
 impl Add for Value {
     type Output = Value;
 

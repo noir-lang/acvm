@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Opcode};
+pub use opcodes::{BinaryOp, Opcode, Comparison};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -23,6 +23,7 @@ pub enum VMStatus {
     Failure,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VM {
     registers: Registers,
     program_counter: usize,
@@ -48,15 +49,14 @@ impl VM {
                 self.process_binary_op(*op, *lhs, *rhs, *result, *result_type);
                 self.increment_program_counter()
             }
-            Opcode::JMP { destination } => todo!(),
+            Opcode::JMP { destination } => self.set_program_counter(*destination),
             Opcode::JMPIF { condition, destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
-
-                // let condition_value = self.registers.get(*condition);
-                // if !condition_value.is_zero() {
-                //     return self.set_program_counter(destination.inner());
-                // }
+                let condition_value = self.registers.get(*condition);
+                if !condition_value.is_zero() {
+                    return self.set_program_counter(*destination);
+                }
                 self.status
             }
             Opcode::Call => todo!(),
@@ -144,4 +144,45 @@ fn add_single_step_smoke() {
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
+}
+
+#[test]
+fn test_jmpif_opcode() {
+    let input_registers = Registers::load(vec![
+        Value::from(2u128),
+        Value::from(2u128),
+        Value::from(0u128),
+        Value::from(5u128),
+        Value::from(6u128),
+        Value::from(10u128),
+    ]);
+
+    let equal_cmp_opcode = Opcode::BinaryOp {
+        result_type: Typ::Field,
+        op: BinaryOp::Cmp(Comparison::Equal),
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        result: RegisterIndex(2),
+    };
+
+    let jump_opcode = Opcode::JMP { destination: 2 };
+
+    let jump_if_opcode =
+        Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 3 };
+
+    let mut vm = VM::new(input_registers, vec![equal_cmp_opcode, jump_opcode, jump_if_opcode]);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_cmp_value, Value::from(true));
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::Halted);
+
+    vm.finish();
 }
