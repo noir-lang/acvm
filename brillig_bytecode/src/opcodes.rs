@@ -23,19 +23,19 @@ pub enum Opcode {
     BinaryOp {
         result_type: Typ,
         op: BinaryOp,
-        lhs: RegisterIndex,
-        rhs: RegisterIndex,
+        lhs: RegisterMemIndex,
+        rhs: RegisterMemIndex,
         result: RegisterIndex,
     },
     /// Sets the program counter to the value located at `destination`
     /// If the value at condition is non-zero
     JMPIF {
-        condition: RegisterIndex,
-        destination: RegisterIndex,
+        condition: RegisterMemIndex,
+        destination: Label,
     },
     /// Sets the program counter to the label.
     JMP {
-        destination: RegisterIndex,
+        destination: Label,
     },
     // TODO:This is used to call functions and setup things like
     // TODO execution contexts.
@@ -44,7 +44,7 @@ pub enum Opcode {
     Intrinsics,
     // TODO:This will be used to get data from an outside source
     Oracle {
-        inputs: Vec<RegisterIndex>,
+        inputs: Vec<RegisterMemIndex>,
         destination: Vec<RegisterIndex>,
     },
     Mov {
