@@ -190,12 +190,16 @@ impl OracleData {
 
 impl std::fmt::Display for OracleData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ORACLE: {}", self.name)?;
+        write!(f, "ORACLE: {} ", self.name)?;
         let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
+
+        if let Some(pred) = &self.predicate {
+            writeln!(f, "Predicate = {}", pred)?;
+        }
 
         write!(
             f,
-            "Inputs: _{}..._{}{solved}",
+            "Inputs: _{}..._{}{solved} ",
             self.inputs.first().unwrap(),
             self.inputs.last().unwrap()
         )?;
