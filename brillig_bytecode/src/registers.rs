@@ -1,12 +1,12 @@
 use crate::Value;
-
+use serde::{Deserialize, Serialize};
 /// Registers will store field element values during the
 /// duration of the execution of the bytecode.
 pub struct Registers {
     inner: Vec<Value>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RegisterIndex(pub usize);
 
 impl RegisterIndex {

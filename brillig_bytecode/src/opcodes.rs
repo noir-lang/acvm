@@ -1,24 +1,21 @@
-use acir::FieldElement;
-
 use crate::{
+    memory::ArrayIndex,
     value::{Typ, Value},
     RegisterIndex,
 };
+use acir_field::FieldElement;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy)]
-pub struct ArrayIndex {
-    pointer: usize,
-    index: usize,
-}
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RegisterMemIndex {
     Register(RegisterIndex),
+    Constant(FieldElement),
     Memory(ArrayIndex),
-    Value(FieldElement),
 }
 
-#[derive(Debug, Clone)]
+pub type Label = usize;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     /// Takes the values in registers `lhs` and `rhs`
     /// Performs the specified binary operation
@@ -36,7 +33,7 @@ pub enum Opcode {
         condition: RegisterIndex,
         destination: RegisterIndex,
     },
-    /// Sets the program counter to the value located at `destination`
+    /// Sets the program counter to the label.
     JMP {
         destination: RegisterIndex,
     },
@@ -56,7 +53,7 @@ pub enum Opcode {
     },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -65,7 +62,7 @@ pub enum BinaryOp {
     Cmp(Comparison),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Comparison {}
 
 impl BinaryOp {

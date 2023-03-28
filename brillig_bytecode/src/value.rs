@@ -1,13 +1,16 @@
-use acir::FieldElement;
+use acir_field::FieldElement;
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// Types of values allowed in the VM
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Typ {
     Field,
     Unsigned { bit_size: u32 },
     Signed { bit_size: u32 },
 }
 
+/// Value represents a Value in the VM
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Value {
     typ: Typ,
@@ -23,7 +26,9 @@ impl Value {
     pub fn inverse(&self) -> Value {
         let value = match self.typ {
             Typ::Field => self.inner.inverse(),
-            Typ::Unsigned { bit_size } => todo!("TODO"),
+            Typ::Unsigned { bit_size } => {
+                todo!("TODO")
+            }
             Typ::Signed { bit_size } => todo!("TODO"),
         };
         Value { typ: self.typ, inner: value }

@@ -4,9 +4,11 @@
 // This is a generalization over the fixed directives
 // that we have in ACVM.
 
+mod memory;
 mod opcodes;
 mod registers;
 mod value;
+mod builder;
 
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
