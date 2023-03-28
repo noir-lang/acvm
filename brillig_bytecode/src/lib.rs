@@ -10,7 +10,7 @@ mod opcodes;
 mod registers;
 mod value;
 
-use opcodes::RegisterMemIndex;
+pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
@@ -64,6 +64,7 @@ impl VM {
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
             Opcode::Trap => VMStatus::Failure,
+            Opcode::JMPIFNOT { condition, destination } => todo!(),
         }
     }
 
