@@ -41,9 +41,25 @@ impl From<u128> for Value {
     }
 }
 
+// impl Into<u128> for Value {
+//     fn into(self) -> u128 {
+//         self.inner.to_u128()
+//     }
+// }
+
 impl From<FieldElement> for Value {
     fn from(value: FieldElement) -> Self {
         Value { typ: Typ::Field, inner: value }
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        if value {
+            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::one() }
+        } else {
+            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::zero() }
+        }
     }
 }
 

@@ -10,6 +10,7 @@ mod opcodes;
 mod registers;
 mod value;
 
+use opcodes::Comparison;
 use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
@@ -51,7 +52,6 @@ impl VM {
             Opcode::JMPIF { condition, destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
-
                 let condition_value = self.registers.get(*condition);
                 if !condition_value.is_zero() {
                     return self.set_program_counter(*destination);

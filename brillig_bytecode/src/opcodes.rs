@@ -63,7 +63,10 @@ pub enum BinaryOp {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Comparison {}
+pub enum Comparison {
+    NotEqual,
+    Equal,
+}
 
 impl BinaryOp {
     pub fn function(&self) -> fn(Value, Value) -> Value {
@@ -72,7 +75,8 @@ impl BinaryOp {
             BinaryOp::Sub => |a: Value, b: Value| a - b,
             BinaryOp::Mul => |a: Value, b: Value| a * b,
             BinaryOp::Div => |a: Value, b: Value| a / b,
-            BinaryOp::Cmp(_) => todo!(),
+            // TODO: only support equal and not equal, need less than, greater than, etc.
+            BinaryOp::Cmp(_) => |a: Value, b: Value| (a == b).into(),
         }
     }
 }
