@@ -356,6 +356,7 @@ mod test {
         let opcodes = vec![
             Opcode::Oracle(OracleData {
                 name: "invert".into(),
+                predicate: None,
                 inputs: vec![Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],

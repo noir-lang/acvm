@@ -4,7 +4,7 @@ use acir::{circuit::opcodes::OracleData, native_types::Witness, FieldElement};
 
 use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
-use super::{arithmetic::ArithmeticSolver, directives::insert_witness};
+use super::{arithmetic::ArithmeticSolver, directives::insert_witness, get_value};
 
 pub struct OracleSolver;
 
@@ -14,6 +14,28 @@ impl OracleSolver {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         data: &mut OracleData,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        // If the predicate is `None`, then we simply return the value 1
+        // If the predicate is `Some` but we cannot find a value, then we return stalled
+        let pred_value = match &data.predicate {
+            Some(pred) => get_value(pred, initial_witness),
+            None => Ok(FieldElement::one()),
+        };
+        let pred_value = match pred_value {
+            Ok(pred_value) => pred_value,
+            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+                return Ok(OpcodeResolution::Stalled(unsolved))
+            }
+            Err(err) => return Err(err),
+        };
+
+        // A zero predicate indicates the oracle should be skipped, and its ouputs zeroed.
+        if pred_value.is_zero() {
+            for output in &data.outputs {
+                insert_witness(*output, FieldElement::zero(), initial_witness)?;
+            }
+            return Ok(OpcodeResolution::Solved);
+        }
+
         // Set input values
         for input in data.inputs.iter().skip(data.input_values.len()) {
             let solve = ArithmeticSolver::evaluate(input, initial_witness);

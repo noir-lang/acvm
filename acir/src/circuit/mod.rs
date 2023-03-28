@@ -207,6 +207,7 @@ mod test {
     fn oracle_opcode() -> Opcode {
         Opcode::Oracle(OracleData {
             name: String::from("oracle-name"),
+            predicate: None,
             inputs: vec![Expression {
                 mul_terms: vec![(FieldElement::from(123u128), Witness(1), Witness(2))],
                 linear_combinations: vec![(FieldElement::from(456u128), Witness(34))],

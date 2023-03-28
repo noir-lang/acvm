@@ -91,6 +91,8 @@ impl MemoryBlock {
 pub struct OracleData {
     /// Name of the oracle
     pub name: String,
+    /// Predicate of the oracle - indicates if it should be skipped
+    pub predicate: Option<Expression>,
     /// Inputs
     pub inputs: Vec<Expression>,
     /// Input values - they are progressively computed by the pwg
@@ -107,6 +109,12 @@ impl OracleData {
         let name_len = name_as_bytes.len();
         write_u32(&mut writer, name_len as u32)?;
         write_bytes(&mut writer, name_as_bytes)?;
+
+        let predicate_is_some = vec![self.predicate.is_some() as u8];
+        write_bytes(&mut writer, &predicate_is_some)?;
+        if let Some(pred) = &self.predicate {
+            pred.write(&mut writer)?;
+        }
 
         let inputs_len = self.inputs.len() as u32;
         write_u32(&mut writer, inputs_len)?;
@@ -140,6 +148,13 @@ impl OracleData {
         let name: String = String::from_utf8(name_as_bytes)
             .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
 
+        // Read byte to figure out if there is a predicate
+        let predicate_is_some = read_n::<1, _>(&mut reader)?[0] != 0;
+        let predicate = match predicate_is_some {
+            true => Some(Expression::read(&mut reader)?),
+            false => None,
+        };
+
         let inputs_len = read_u32(&mut reader)?;
         let mut inputs = Vec::with_capacity(inputs_len as usize);
         for _ in 0..inputs_len {
@@ -169,7 +184,7 @@ impl OracleData {
             output_values.push(value);
         }
 
-        Ok(OracleData { name, inputs, outputs, input_values, output_values })
+        Ok(OracleData { name, predicate, inputs, outputs, input_values, output_values })
     }
 }
 
