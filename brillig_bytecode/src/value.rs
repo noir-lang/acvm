@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// Types of values allowed in the VM
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialOrd, Ord)]
 pub enum Typ {
     Field,
     Unsigned { bit_size: u32 },
@@ -11,7 +11,7 @@ pub enum Typ {
 }
 
 /// Value represents a Value in the VM
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Value {
     pub typ: Typ,
     pub inner: FieldElement,

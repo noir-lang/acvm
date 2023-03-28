@@ -79,8 +79,9 @@ pub enum BinaryOp {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Comparison {
-    NotEqual,
-    Equal,
+    Eq,  //(==) equal
+    Lt,  //(<) field less
+    Lte, //(<=) field less or equal
 }
 
 impl BinaryOp {
@@ -90,8 +91,11 @@ impl BinaryOp {
             BinaryOp::Sub => |a: Value, b: Value| a - b,
             BinaryOp::Mul => |a: Value, b: Value| a * b,
             BinaryOp::Div => |a: Value, b: Value| a / b,
-            // TODO: only support equal and not equal, need less than, greater than, etc.
-            BinaryOp::Cmp(_) => |a: Value, b: Value| (a == b).into(),
+            BinaryOp::Cmp(comparison) => match comparison {
+                Comparison::Eq => |a: Value, b: Value| (a == b).into(),
+                Comparison::Lt => |a: Value, b: Value| (a.inner < b.inner).into(),
+                Comparison::Lte => |a: Value, b: Value| (a.inner <= b.inner).into(),
+            },
         }
     }
 }
