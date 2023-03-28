@@ -167,7 +167,7 @@ pub fn solve_directives(
                 output_registers.inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
 
             for (witness, value) in outputs.into_iter().zip(output_register_values) {
-                initial_witness.insert(*witness, value);
+                insert_witness(*witness, value, initial_witness)?;
             }
 
             Ok(())
