@@ -10,9 +10,8 @@ mod opcodes;
 mod registers;
 mod value;
 
-use opcodes::Comparison;
-use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Opcode};
+pub use opcodes::RegisterMemIndex;
+pub use opcodes::{BinaryOp, Opcode, Comparison};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -21,6 +20,7 @@ pub use value::Value;
 pub enum VMStatus {
     Halted,
     InProgress,
+    Failure,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -63,6 +63,8 @@ impl VM {
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
+            Opcode::Trap => VMStatus::Failure,
+            Opcode::JMPIFNOT { condition, destination } => todo!(),
         }
     }
 

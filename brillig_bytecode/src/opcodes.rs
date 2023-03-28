@@ -13,6 +13,15 @@ pub enum RegisterMemIndex {
     Memory(ArrayIndex),
 }
 
+impl RegisterMemIndex {
+    pub fn to_register_index(self) -> Option<RegisterIndex> {
+        match self {
+            RegisterMemIndex::Register(register) => Some(register),
+            RegisterMemIndex::Constant(_) | RegisterMemIndex::Memory(_) => None,
+        }
+    }
+}
+
 pub type Label = usize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,6 +35,10 @@ pub enum Opcode {
         lhs: RegisterMemIndex,
         rhs: RegisterMemIndex,
         result: RegisterIndex,
+    },
+    JMPIFNOT {
+        condition: RegisterMemIndex,
+        destination: Label,
     },
     /// Sets the program counter to the value located at `destination`
     /// If the value at condition is non-zero
@@ -51,6 +64,8 @@ pub enum Opcode {
         destination: RegisterMemIndex,
         source: RegisterMemIndex,
     },
+    /// Used if execution fails during evaluation
+    Trap
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
