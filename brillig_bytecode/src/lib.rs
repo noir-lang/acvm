@@ -154,11 +154,8 @@ fn add_single_step_smoke() {
 
 #[test]
 fn test_jmpif_opcode() {
-    let input_registers = Registers::load(vec![
-        Value::from(2u128),
-        Value::from(2u128),
-        Value::from(0u128),
-    ]);
+    let input_registers =
+        Registers::load(vec![Value::from(2u128), Value::from(2u128), Value::from(0u128)]);
 
     let equal_cmp_opcode = Opcode::BinaryOp {
         result_type: Typ::Field,
