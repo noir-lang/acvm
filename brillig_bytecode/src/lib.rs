@@ -10,7 +10,7 @@ mod opcodes;
 mod registers;
 mod value;
 
-use opcodes::RegisterMemIndex;
+pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
