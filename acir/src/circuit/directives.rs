@@ -4,6 +4,7 @@ use crate::{
     native_types::{Expression, Witness},
     serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
+use flate2::{bufread::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,6 +34,12 @@ pub enum Directive {
         radix: u32,
     },
 
+    Brillig {
+        inputs: Vec<Expression>,
+        outputs: Vec<Witness>,
+        bytecode: Vec<brillig_bytecode::Opcode>,
+    },
+
     // Sort directive, using a sorting network
     // This directive is used to generate the values of the control bits for the sorting network such that its outputs are properly sorted according to sort_by
     PermutationSort {
@@ -52,6 +59,7 @@ impl Directive {
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
+            Directive::Brillig { .. } => "brillig",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -61,6 +69,7 @@ impl Directive {
             Directive::ToLeRadix { .. } => 2,
             Directive::Log { .. } => 3,
             Directive::PermutationSort { .. } => 4,
+            Directive::Brillig { .. } => 5,
         }
     }
 
@@ -120,6 +129,25 @@ impl Directive {
                     }
                 }
             },
+            Directive::Brillig { inputs, outputs, bytecode } => {
+                let inputs_len = inputs.len() as u32;
+                write_u32(&mut writer, inputs_len)?;
+                for input in inputs {
+                    input.write(&mut writer)?
+                }
+
+                let outputs_len = outputs.len() as u32;
+                write_u32(&mut writer, outputs_len)?;
+                for output in outputs {
+                    write_u32(&mut writer, output.witness_index())?;
+                }
+
+                let buf = rmp_serde::to_vec(&bytecode).unwrap();
+                let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
+                let mut buf_c = Vec::new();
+                deflater.read_to_end(&mut buf_c).unwrap();
+                write_bytes(&mut writer, &buf_c)?;
+            }
         };
 
         Ok(())
@@ -234,8 +262,9 @@ fn serialization_roundtrip() {
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
     };
+    let log = Directive::Log(LogInfo::FinalizedOutput("foo".to_owned()));
 
-    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix];
+    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix, log];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);

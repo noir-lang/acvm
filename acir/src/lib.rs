@@ -9,4 +9,5 @@ mod serialization;
 
 pub use acir_field;
 pub use acir_field::FieldElement;
+pub use brillig_bytecode;
 pub use circuit::black_box_functions::BlackBoxFunc;

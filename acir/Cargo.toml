@@ -12,6 +12,7 @@ rust-version.workspace = true
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
+brillig_bytecode = { version = "0.1.0", path = "../brillig_bytecode" }
 
 rmp-serde = "1.1.0"
 flate2 = "1.0.24"

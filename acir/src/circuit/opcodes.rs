@@ -379,6 +379,11 @@ impl std::fmt::Display for Opcode {
                     witnesses.last().unwrap().witness_index()
                 ),
             },
+            Opcode::Directive(Directive::Brillig { inputs, outputs, bytecode }) => {
+                writeln!(f, "inputs: {:?}", inputs)?;
+                writeln!(f, "outputs: {:?}", outputs)?;
+                writeln!(f, "{:?}", bytecode)
+            }
             Opcode::Block(block) => {
                 write!(f, "BLOCK ")?;
                 write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
