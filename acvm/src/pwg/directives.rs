@@ -155,14 +155,16 @@ pub fn solve_directives(
             for expr in inputs {
                 let expr_value = get_value(expr, initial_witness)?;
                 input_register_values.push(expr_value.into())
-            };
-            let input_registers = acir::brillig_bytecode::Registers { inner: input_register_values };
+            }
+            let input_registers =
+                acir::brillig_bytecode::Registers { inner: input_register_values };
 
             let vm = acir::brillig_bytecode::VM::new(input_registers, bytecode.clone());
 
             let output_registers = vm.process_opcodes();
 
-            let output_register_values: Vec<FieldElement> = output_registers.inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
+            let output_register_values: Vec<FieldElement> =
+                output_registers.inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
 
             for (witness, value) in outputs.into_iter().zip(output_register_values) {
                 initial_witness.insert(*witness, value);
