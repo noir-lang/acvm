@@ -16,7 +16,6 @@ blake2.workspace = true
 
 acir.workspace = true
 stdlib.workspace = true
-brillig_bytecode = { version = "0.1.0", path = "../brillig_bytecode" }
 
 sha2 = "0.9.3"
 crc32fast = "1.3.2"

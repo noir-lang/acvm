@@ -24,7 +24,6 @@ use thiserror::Error;
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
-pub use brillig_bytecode;
 // This enum represents the different cases in which an
 // opcode can be unsolvable.
 // The most common being that one of its input has not been
