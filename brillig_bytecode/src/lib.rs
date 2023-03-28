@@ -10,9 +10,10 @@ mod opcodes;
 mod registers;
 mod value;
 
+use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Opcode};
 pub use registers::{RegisterIndex, Registers};
-use value::Typ;
+pub use value::Typ;
 pub use value::Value;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -46,15 +47,15 @@ impl VM {
                 self.process_binary_op(*op, *lhs, *rhs, *result, *result_type);
                 self.increment_program_counter()
             }
-            Opcode::JMP { destination } => self.set_program_counter(destination.inner()),
+            Opcode::JMP { destination } => todo!(),
             Opcode::JMPIF { condition, destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
 
-                let condition_value = self.registers.get(*condition);
-                if !condition_value.is_zero() {
-                    return self.set_program_counter(destination.inner());
-                }
+                // let condition_value = self.registers.get(*condition);
+                // if !condition_value.is_zero() {
+                //     return self.set_program_counter(destination.inner());
+                // }
                 self.status
             }
             Opcode::Call => todo!(),
@@ -86,8 +87,8 @@ impl VM {
     fn process_binary_op(
         &mut self,
         op: BinaryOp,
-        lhs: RegisterIndex,
-        rhs: RegisterIndex,
+        lhs: RegisterMemIndex,
+        rhs: RegisterMemIndex,
         result: RegisterIndex,
         result_type: Typ,
     ) {
@@ -118,8 +119,8 @@ fn add_single_step_smoke() {
     // and place the output in register `2`
     let opcode = Opcode::BinaryOp {
         op: BinaryOp::Add,
-        lhs: RegisterIndex(0),
-        rhs: RegisterIndex(1),
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
         result: RegisterIndex(2),
         result_type: Typ::Field,
     };
@@ -137,7 +138,7 @@ fn add_single_step_smoke() {
     // The register at index `2` should have the value of 3 since we had an
     // add opcode
     let registers = vm.finish();
-    let output_value = registers.get(RegisterIndex(2));
+    let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
 }

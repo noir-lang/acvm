@@ -13,7 +13,7 @@ pub enum Typ {
 /// Value represents a Value in the VM
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Value {
-    typ: Typ,
+    pub typ: Typ,
     pub inner: FieldElement,
 }
 

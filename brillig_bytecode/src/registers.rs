@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::{opcodes::RegisterMemIndex, Typ, Value};
 use serde::{Deserialize, Serialize};
 /// Registers will store field element values during the
 /// duration of the execution of the bytecode.
@@ -21,8 +21,12 @@ impl Registers {
         Self { inner: values }
     }
     /// Gets the values at register with address `index`
-    pub fn get(&self, index: RegisterIndex) -> Value {
-        self.inner[index.inner()]
+    pub fn get(&self, index: RegisterMemIndex) -> Value {
+        match index {
+            RegisterMemIndex::Register(register) => self.inner[register.inner()],
+            RegisterMemIndex::Constant(constant) => Value { typ: Typ::Field, inner: constant },
+            RegisterMemIndex::Memory(_) => todo!("we will implement memory later"),
+        }
     }
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
