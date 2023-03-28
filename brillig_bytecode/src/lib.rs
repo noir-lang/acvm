@@ -158,9 +158,6 @@ fn test_jmpif_opcode() {
         Value::from(2u128),
         Value::from(2u128),
         Value::from(0u128),
-        Value::from(5u128),
-        Value::from(6u128),
-        Value::from(10u128),
     ]);
 
     let equal_cmp_opcode = Opcode::BinaryOp {
