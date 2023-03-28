@@ -51,12 +51,9 @@ impl VM {
             }
             Opcode::JMP { destination } => self.set_program_counter(*destination),
             Opcode::JMPIF { condition, destination } => {
-                dbg!(condition);
-                dbg!(destination);
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
                 let condition_value = self.registers.get(*condition);
-                dbg!(condition_value);
                 if !condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
@@ -67,10 +64,6 @@ impl VM {
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
         }
-    }
-
-    fn program_counter(self) -> usize {
-        self.program_counter
     }
 
     /// Increments the program counter by 1.
