@@ -14,7 +14,7 @@ pub enum Typ {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Value {
     typ: Typ,
-    inner: FieldElement,
+    pub inner: FieldElement,
 }
 
 impl Value {
@@ -38,6 +38,12 @@ impl Value {
 impl From<u128> for Value {
     fn from(value: u128) -> Self {
         Value { typ: Typ::Field, inner: FieldElement::from(value) }
+    }
+}
+
+impl From<FieldElement> for Value {
+    fn from(value: FieldElement) -> Self {
+        Value { typ: Typ::Field, inner: value }
     }
 }
 
