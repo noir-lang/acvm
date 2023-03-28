@@ -4,7 +4,6 @@ use crate::{
     native_types::{Expression, Witness},
     serialization::{read_bytes, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
-use flate2::{bufread::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,11 +145,10 @@ impl Directive {
                     write_u32(&mut writer, output.witness_index())?;
                 }
 
-                let buf = rmp_serde::to_vec(&bytecode).unwrap();
-                let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
-                let mut buf_c = Vec::new();
-                deflater.read_to_end(&mut buf_c).unwrap();
-                write_bytes(&mut writer, &buf_c)?;
+                // TODO: We use rmp_serde as its easier than doing it manually
+                let buffer = rmp_serde::to_vec(&bytecode).unwrap();
+                write_u32(&mut writer, buffer.len() as u32)?;
+                write_bytes(&mut writer, &buffer)?;
             }
         };
 
@@ -240,6 +238,27 @@ impl Directive {
                 };
                 Ok(Directive::Log(log_info))
             }
+            5 => {
+                let inputs_len = read_u32(&mut reader)?;
+                let mut inputs = Vec::with_capacity(inputs_len as usize);
+                for _ in 0..inputs_len {
+                    inputs.push(Expression::read(&mut reader)?);
+                }
+
+                let outputs_len = read_u32(&mut reader)?;
+                let mut outputs = Vec::with_capacity(outputs_len as usize);
+                for _ in 0..outputs_len {
+                    outputs.push(Witness(read_u32(&mut reader)?));
+                }
+
+                let buffer_len = read_u32(&mut reader)?;
+                let mut buffer = vec![0u8; buffer_len as usize];
+                reader.read_exact(&mut buffer)?;
+                let opcodes: Vec<brillig_bytecode::Opcode> =
+                    rmp_serde::from_slice(&buffer).unwrap();
+
+                Ok(Directive::Brillig { inputs, outputs, bytecode: opcodes })
+            }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -297,7 +316,6 @@ fn serialization_roundtrip() {
         b: vec![Witness(1u32), Witness(2u32), Witness(3u32), Witness(4u32)],
         radix: 4,
     };
-    let log = Directive::Log(LogInfo::FinalizedOutput("foo".to_owned()));
 
     let permutation_sort = Directive::PermutationSort {
         inputs: vec![vec![Expression::default()], vec![Expression::default()]],
@@ -310,6 +328,14 @@ fn serialization_roundtrip() {
     let log_witnesses =
         Directive::Log(LogInfo::WitnessOutput(vec![Witness(1u32), Witness(2u32), Witness(3u32)]));
 
+    let brillig = Directive::Brillig {
+        inputs: vec![Expression::default()],
+        outputs: vec![Witness(2), Witness(3)],
+        bytecode: vec![brillig_bytecode::Opcode::JMP {
+            destination: brillig_bytecode::RegisterIndex(10),
+        }],
+    };
+
     let directives = vec![
         invert,
         quotient_none,
@@ -318,6 +344,7 @@ fn serialization_roundtrip() {
         log_string,
         log_witnesses,
         permutation_sort,
+        brillig,
     ];
 
     for directive in directives {
