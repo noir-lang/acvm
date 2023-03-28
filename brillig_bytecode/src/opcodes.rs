@@ -13,6 +13,15 @@ pub enum RegisterMemIndex {
     Memory(ArrayIndex),
 }
 
+impl RegisterMemIndex {
+    pub fn to_register_index(self) -> Option<RegisterIndex> {
+        match self {
+            RegisterMemIndex::Register(register) => Some(register),
+            RegisterMemIndex::Constant(_) | RegisterMemIndex::Memory(_) => None,
+        }
+    }
+}
+
 pub type Label = usize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
