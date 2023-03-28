@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Opcode, Comparison};
+pub use opcodes::{BinaryOp, Comparison, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -193,14 +193,10 @@ fn test_jmpif_opcode() {
     vm.finish();
 }
 
-
 #[test]
 fn test_jmpifnot_opcode() {
-    let input_registers = Registers::load(vec![
-        Value::from(1u128),
-        Value::from(2u128),
-        Value::from(0u128),
-    ]);
+    let input_registers =
+        Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(0u128)]);
 
     let trap_opcode = Opcode::Trap;
 
@@ -214,8 +210,10 @@ fn test_jmpifnot_opcode() {
 
     let jump_opcode = Opcode::JMP { destination: 2 };
 
-    let jump_if_not_opcode =
-        Opcode::JMPIFNOT { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 1 };
+    let jump_if_not_opcode = Opcode::JMPIFNOT {
+        condition: RegisterMemIndex::Register(RegisterIndex(2)),
+        destination: 1,
+    };
 
     let add_opcode = Opcode::BinaryOp {
         op: BinaryOp::Add,
@@ -225,7 +223,10 @@ fn test_jmpifnot_opcode() {
         result_type: Typ::Field,
     };
 
-    let mut vm = VM::new(input_registers, vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode]);
+    let mut vm = VM::new(
+        input_registers,
+        vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
+    );
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
@@ -241,7 +242,7 @@ fn test_jmpifnot_opcode() {
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Failure);
-    
+
     // The register at index `2` should have not changed as we jumped over the add opcode
     let registers = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
