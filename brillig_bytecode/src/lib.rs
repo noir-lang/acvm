@@ -277,4 +277,3 @@ fn test_mov_opcode() {
     let source_value = registers.get(RegisterMemIndex::Register(RegisterIndex(0)));
     assert_eq!(source_value, Value::from(1u128));
 }
-
