@@ -236,7 +236,9 @@ fn test_jmpifnot_opcode() {
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Failure);
-
-    vm.finish();
+    
+    // The register at index `2` should have not changed as we jumped over the add opcode
+    let registers = vm.finish();
+    let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_value, Value::from(false));
 }
-
