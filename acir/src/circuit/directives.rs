@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::{
     native_types::{Expression, Witness},
-    serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32, read_bytes},
+    serialization::{read_bytes, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
 use serde::{Deserialize, Serialize};
 
@@ -123,7 +123,7 @@ impl Directive {
                         }
                     }
                 }
-            },
+            }
         };
 
         Ok(())
@@ -196,7 +196,8 @@ impl Directive {
                 let log_info = match log_info_index {
                     0 => {
                         let output_bytes = read_bytes(&mut reader, output_len as usize)?;
-                        let output_string = String::from_utf8(output_bytes).or::<std::io::Error>(Err(std::io::ErrorKind::InvalidData.into()))?;
+                        let output_string = String::from_utf8(output_bytes)
+                            .or::<std::io::Error>(Err(std::io::ErrorKind::InvalidData.into()))?;
                         LogInfo::FinalizedOutput(output_string)
                     }
                     1 => {
@@ -269,12 +270,26 @@ fn serialization_roundtrip() {
         radix: 4,
     };
 
-    let permutation_sort = Directive::PermutationSort { inputs: vec![vec![Expression::default()], vec![Expression::default()]], tuple: 1, bits: vec![Witness(1u32), Witness(2u32)], sort_by: vec![0, 1] };
+    let permutation_sort = Directive::PermutationSort {
+        inputs: vec![vec![Expression::default()], vec![Expression::default()]],
+        tuple: 1,
+        bits: vec![Witness(1u32), Witness(2u32)],
+        sort_by: vec![0, 1],
+    };
 
     let log_string = Directive::Log(LogInfo::FinalizedOutput("test string to log".to_owned()));
-    let log_witnesses = Directive::Log(LogInfo::WitnessOutput(vec![Witness(1u32), Witness(2u32), Witness(3u32)]));
+    let log_witnesses =
+        Directive::Log(LogInfo::WitnessOutput(vec![Witness(1u32), Witness(2u32), Witness(3u32)]));
 
-    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix, log_string, log_witnesses, permutation_sort];
+    let directives = vec![
+        invert,
+        quotient_none,
+        quotient_predicate,
+        to_le_radix,
+        log_string,
+        log_witnesses,
+        permutation_sort,
+    ];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);
