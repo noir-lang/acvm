@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0](https://github.com/noir-lang/acvm/compare/root-v0.7.1...root-v0.8.0) (2023-03-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156))
+
+### Bug Fixes
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156)) ([1cc2b7f](https://github.com/noir-lang/acvm/commit/1cc2b7f2179cecc338fe0def72bb2dd17eaed0cd))
+
 ## [0.7.1](https://github.com/noir-lang/acvm/compare/root-v0.7.0...root-v0.7.1) (2023-03-27)
 
 
