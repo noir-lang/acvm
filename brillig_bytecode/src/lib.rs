@@ -20,6 +20,7 @@ pub use value::Value;
 pub enum VMStatus {
     Halted,
     InProgress,
+    Failure,
 }
 
 pub struct VM {
@@ -62,6 +63,7 @@ impl VM {
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
+            Opcode::Trap => VMStatus::Failure,
         }
     }
 
