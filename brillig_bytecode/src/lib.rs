@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Opcode, Comparison};
+pub use opcodes::{BinaryOp, Comparison, Opcode};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -59,12 +59,18 @@ impl VM {
                 }
                 self.status
             }
+            Opcode::JMPIFNOT { condition, destination } => {
+                let condition_value = self.registers.get(*condition);
+                if condition_value.is_zero() {
+                    return self.set_program_counter(*destination);
+                }
+                self.status
+            }
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
             Opcode::Mov { destination, source } => todo!(),
             Opcode::Trap => VMStatus::Failure,
-            Opcode::JMPIFNOT { condition, destination } => todo!(),
         }
     }
 
@@ -148,14 +154,8 @@ fn add_single_step_smoke() {
 
 #[test]
 fn test_jmpif_opcode() {
-    let input_registers = Registers::load(vec![
-        Value::from(2u128),
-        Value::from(2u128),
-        Value::from(0u128),
-        Value::from(5u128),
-        Value::from(6u128),
-        Value::from(10u128),
-    ]);
+    let input_registers =
+        Registers::load(vec![Value::from(2u128), Value::from(2u128), Value::from(0u128)]);
 
     let equal_cmp_opcode = Opcode::BinaryOp {
         result_type: Typ::Field,
@@ -185,4 +185,60 @@ fn test_jmpif_opcode() {
     assert_eq!(status, VMStatus::Halted);
 
     vm.finish();
+}
+
+#[test]
+fn test_jmpifnot_opcode() {
+    let input_registers =
+        Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(0u128)]);
+
+    let trap_opcode = Opcode::Trap;
+
+    let not_equal_cmp_opcode = Opcode::BinaryOp {
+        result_type: Typ::Field,
+        op: BinaryOp::Cmp(Comparison::Equal),
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        result: RegisterIndex(2),
+    };
+
+    let jump_opcode = Opcode::JMP { destination: 2 };
+
+    let jump_if_not_opcode = Opcode::JMPIFNOT {
+        condition: RegisterMemIndex::Register(RegisterIndex(2)),
+        destination: 1,
+    };
+
+    let add_opcode = Opcode::BinaryOp {
+        op: BinaryOp::Add,
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        result: RegisterIndex(2),
+        result_type: Typ::Field,
+    };
+
+    let mut vm = VM::new(
+        input_registers,
+        vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
+    );
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_cmp_value, Value::from(false));
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::Failure);
+
+    // The register at index `2` should have not changed as we jumped over the add opcode
+    let registers = vm.finish();
+    let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_value, Value::from(false));
 }
