@@ -142,3 +142,12 @@ fn add_single_step_smoke() {
 
     assert_eq!(output_value, Value::from(3u128))
 }
+
+#[test]
+fn test_jmp_opcodes() {
+
+    let input_registers = Registers::load(vec!(Value::from(1u128), Value::from(2u128), Value::from(3u128)));
+
+    let equal_cmp_opcode = Opcode::BinaryOp { result_type: Typ::Field, op: BinaryOp::Cmp(Comparison::Equal), lhs: , rhs: (), result: () }
+
+}
