@@ -69,7 +69,18 @@ impl VM {
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle { inputs, destination } => todo!(),
-            Opcode::Mov { destination, source } => todo!(),
+            Opcode::Mov { destination, source } => {
+                let source_value = self.registers.get(*source);
+
+                match destination {
+                    RegisterMemIndex::Register(dest_index) => {
+                        self.registers.set(*dest_index, source_value)
+                    }
+                    _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
+                }
+
+                self.increment_program_counter()
+            }
             Opcode::Trap => VMStatus::Failure,
         }
     }
@@ -241,4 +252,28 @@ fn test_jmpifnot_opcode() {
     let registers = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(output_value, Value::from(false));
+}
+
+#[test]
+fn test_mov_opcode() {
+    let input_registers =
+        Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
+
+    let mov_opcode = Opcode::Mov {
+        destination: RegisterMemIndex::Register(RegisterIndex(2)),
+        source: RegisterMemIndex::Register(RegisterIndex(0)),
+    };
+
+    let mut vm = VM::new(input_registers, vec![mov_opcode]);
+
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::Halted);
+
+    let registers = vm.finish();
+
+    let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(destination_value, Value::from(1u128));
+
+    let source_value = registers.get(RegisterMemIndex::Register(RegisterIndex(0)));
+    assert_eq!(source_value, Value::from(1u128));
 }
