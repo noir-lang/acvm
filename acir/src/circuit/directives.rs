@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use crate::{
     native_types::{Expression, Witness},
-    serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
+    serialization::{read_bytes, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32},
 };
 use flate2::{bufread::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
@@ -67,8 +67,8 @@ impl Directive {
             Directive::Invert { .. } => 0,
             Directive::Quotient { .. } => 1,
             Directive::ToLeRadix { .. } => 2,
-            Directive::Log { .. } => 3,
-            Directive::PermutationSort { .. } => 4,
+            Directive::PermutationSort { .. } => 3,
+            Directive::Log { .. } => 4,
             Directive::Brillig { .. } => 5,
         }
     }
@@ -118,17 +118,21 @@ impl Directive {
                     write_u32(&mut writer, *i)?;
                 }
             }
-            Directive::Log(info) => match info {
-                LogInfo::FinalizedOutput(output_string) => {
-                    write_bytes(&mut writer, output_string.as_bytes())?;
-                }
-                LogInfo::WitnessOutput(witnesses) => {
-                    write_u32(&mut writer, witnesses.len() as u32)?;
-                    for w in witnesses {
-                        write_u32(&mut writer, w.witness_index())?;
+            Directive::Log(info) => {
+                write_u16(&mut writer, info.to_u16())?;
+                match info {
+                    LogInfo::FinalizedOutput(output_string) => {
+                        write_u32(&mut writer, output_string.len() as u32)?;
+                        write_bytes(&mut writer, output_string.as_bytes())?;
+                    }
+                    LogInfo::WitnessOutput(witnesses) => {
+                        write_u32(&mut writer, witnesses.len() as u32)?;
+                        for w in witnesses {
+                            write_u32(&mut writer, w.witness_index())?;
+                        }
                     }
                 }
-            },
+            }
             Directive::Brillig { inputs, outputs, bytecode } => {
                 let inputs_len = inputs.len() as u32;
                 write_u32(&mut writer, inputs_len)?;
@@ -214,6 +218,28 @@ impl Directive {
                 }
                 Ok(Directive::PermutationSort { inputs: a, tuple, bits, sort_by })
             }
+            4 => {
+                let log_info_index = read_u16(&mut reader)?;
+                let output_len = read_u32(&mut reader)?;
+                let log_info = match log_info_index {
+                    0 => {
+                        let output_bytes = read_bytes(&mut reader, output_len as usize)?;
+                        let output_string = String::from_utf8(output_bytes)
+                            .or::<std::io::Error>(Err(std::io::ErrorKind::InvalidData.into()))?;
+                        LogInfo::FinalizedOutput(output_string)
+                    }
+                    1 => {
+                        let mut output_witnesses = Vec::with_capacity(output_len as usize);
+                        for _ in 0..output_len {
+                            let witness = Witness(read_u32(&mut reader)?);
+                            output_witnesses.push(witness)
+                        }
+                        LogInfo::WitnessOutput(output_witnesses)
+                    }
+                    _ => return Err(std::io::ErrorKind::InvalidData.into()),
+                };
+                Ok(Directive::Log(log_info))
+            }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -228,6 +254,15 @@ impl Directive {
 pub enum LogInfo {
     FinalizedOutput(String),
     WitnessOutput(Vec<Witness>),
+}
+
+impl LogInfo {
+    fn to_u16(&self) -> u16 {
+        match self {
+            LogInfo::FinalizedOutput(_) => 0,
+            LogInfo::WitnessOutput(_) => 1,
+        }
+    }
 }
 
 #[test]
@@ -264,7 +299,26 @@ fn serialization_roundtrip() {
     };
     let log = Directive::Log(LogInfo::FinalizedOutput("foo".to_owned()));
 
-    let directives = vec![invert, quotient_none, quotient_predicate, to_le_radix, log];
+    let permutation_sort = Directive::PermutationSort {
+        inputs: vec![vec![Expression::default()], vec![Expression::default()]],
+        tuple: 1,
+        bits: vec![Witness(1u32), Witness(2u32)],
+        sort_by: vec![0, 1],
+    };
+
+    let log_string = Directive::Log(LogInfo::FinalizedOutput("test string to log".to_owned()));
+    let log_witnesses =
+        Directive::Log(LogInfo::WitnessOutput(vec![Witness(1u32), Witness(2u32), Witness(3u32)]));
+
+    let directives = vec![
+        invert,
+        quotient_none,
+        quotient_predicate,
+        to_le_radix,
+        log_string,
+        log_witnesses,
+        permutation_sort,
+    ];
 
     for directive in directives {
         let (dir, got_dir) = read_write(directive);
