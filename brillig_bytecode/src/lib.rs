@@ -38,7 +38,7 @@ impl VM {
 
     /// Loop over the bytecode and update the program counter
     pub fn process_opcodes(mut self) -> Registers {
-        while self.process_opcode() != VMStatus::Halted {}
+        while !matches!(self.process_opcode(), VMStatus::Halted | VMStatus::Failure) {}
         self.finish()
     }
     // Process a single opcode and modify the program counter
