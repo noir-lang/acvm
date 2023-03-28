@@ -47,15 +47,15 @@ impl VM {
                 self.process_binary_op(*op, *lhs, *rhs, *result, *result_type);
                 self.increment_program_counter()
             }
-            Opcode::JMP { destination } => todo!(),
+            Opcode::JMP { destination } => self.set_program_counter(*destination),
             Opcode::JMPIF { condition, destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
 
-                // let condition_value = self.registers.get(*condition);
-                // if !condition_value.is_zero() {
-                //     return self.set_program_counter(destination.inner());
-                // }
+                let condition_value = self.registers.get(*condition);
+                if !condition_value.is_zero() {
+                    return self.set_program_counter(*destination);
+                }
                 self.status
             }
             Opcode::Call => todo!(),
