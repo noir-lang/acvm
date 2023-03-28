@@ -243,7 +243,6 @@ fn test_jmpifnot_opcode() {
     assert_eq!(output_value, Value::from(false));
 }
 
-
 #[test]
 fn test_cmp_binary_ops() {
     let input_registers = Registers::load(vec![
@@ -318,4 +317,3 @@ fn test_cmp_binary_ops() {
 
     vm.finish();
 }
-
