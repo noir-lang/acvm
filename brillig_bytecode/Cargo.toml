@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acir.workspace = true
+acir_field.workspace = true
+serde.workspace = true
 
 
 [features]
-bn254 = ["acir/bn254"]
-bls12_381 = ["acir/bls12_381"]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]
