@@ -88,6 +88,7 @@ pub trait PartialWitnessGenerator {
             let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
                 let mut solved_oracle_data = None;
+                let mut solved_brillig_data = None;
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -116,6 +117,7 @@ pub trait PartialWitnessGenerator {
                     Opcode::Brillig(brillig) => {
                         let mut brillig_clone = brillig.clone();
                         let result = BrilligSolver::solve(initial_witness, &mut brillig_clone)?;
+                        solved_brillig_data = Some(brillig_clone);
                         Ok(result)
                     }
                 };
@@ -149,6 +151,10 @@ pub trait PartialWitnessGenerator {
                             Some(oracle_data) => Opcode::Oracle(oracle_data),
                             None => opcode.clone(),
                         });
+                        unresolved_opcodes.push(match solved_brillig_data {
+                            Some(brillig) => Opcode::Brillig(brillig),
+                            None => opcode.clone(),
+                        })
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -158,7 +164,6 @@ pub trait PartialWitnessGenerator {
             }
             // We have oracles that must be externally resolved
             if !unresolved_oracles.is_empty() | !unresolved_brillig_oracles.is_empty() {
-                // return Ok((unresolved_opcodes, unresolved_oracles));
                 return Ok(UnresolvedData {
                     unresolved_opcodes,
                     unresolved_oracles,
