@@ -9,7 +9,6 @@ edition = "2021"
 acir_field.workspace = true
 serde.workspace = true
 
-
 [features]
 bn254 = ["acir_field/bn254"]
 bls12_381 = ["acir_field/bls12_381"]

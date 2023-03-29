@@ -33,12 +33,6 @@ pub enum Directive {
         radix: u32,
     },
 
-    Brillig {
-        inputs: Vec<Expression>,
-        outputs: Vec<Witness>,
-        bytecode: Vec<brillig_bytecode::Opcode>,
-    },
-
     // Sort directive, using a sorting network
     // This directive is used to generate the values of the control bits for the sorting network such that its outputs are properly sorted according to sort_by
     PermutationSort {
@@ -58,7 +52,6 @@ impl Directive {
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
-            Directive::Brillig { .. } => "brillig",
         }
     }
     fn to_u16(&self) -> u16 {
@@ -68,7 +61,6 @@ impl Directive {
             Directive::ToLeRadix { .. } => 2,
             Directive::PermutationSort { .. } => 3,
             Directive::Log { .. } => 4,
-            Directive::Brillig { .. } => 5,
         }
     }
 
@@ -131,24 +123,6 @@ impl Directive {
                         }
                     }
                 }
-            }
-            Directive::Brillig { inputs, outputs, bytecode } => {
-                let inputs_len = inputs.len() as u32;
-                write_u32(&mut writer, inputs_len)?;
-                for input in inputs {
-                    input.write(&mut writer)?
-                }
-
-                let outputs_len = outputs.len() as u32;
-                write_u32(&mut writer, outputs_len)?;
-                for output in outputs {
-                    write_u32(&mut writer, output.witness_index())?;
-                }
-
-                // TODO: We use rmp_serde as its easier than doing it manually
-                let buffer = rmp_serde::to_vec(&bytecode).unwrap();
-                write_u32(&mut writer, buffer.len() as u32)?;
-                write_bytes(&mut writer, &buffer)?;
             }
         };
 
@@ -238,27 +212,6 @@ impl Directive {
                 };
                 Ok(Directive::Log(log_info))
             }
-            5 => {
-                let inputs_len = read_u32(&mut reader)?;
-                let mut inputs = Vec::with_capacity(inputs_len as usize);
-                for _ in 0..inputs_len {
-                    inputs.push(Expression::read(&mut reader)?);
-                }
-
-                let outputs_len = read_u32(&mut reader)?;
-                let mut outputs = Vec::with_capacity(outputs_len as usize);
-                for _ in 0..outputs_len {
-                    outputs.push(Witness(read_u32(&mut reader)?));
-                }
-
-                let buffer_len = read_u32(&mut reader)?;
-                let mut buffer = vec![0u8; buffer_len as usize];
-                reader.read_exact(&mut buffer)?;
-                let opcodes: Vec<brillig_bytecode::Opcode> =
-                    rmp_serde::from_slice(&buffer).unwrap();
-
-                Ok(Directive::Brillig { inputs, outputs, bytecode: opcodes })
-            }
 
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -328,12 +281,6 @@ fn serialization_roundtrip() {
     let log_witnesses =
         Directive::Log(LogInfo::WitnessOutput(vec![Witness(1u32), Witness(2u32), Witness(3u32)]));
 
-    let brillig = Directive::Brillig {
-        inputs: vec![Expression::default()],
-        outputs: vec![Witness(2), Witness(3)],
-        bytecode: vec![brillig_bytecode::Opcode::JMP { destination: 10 }],
-    };
-
     let directives = vec![
         invert,
         quotient_none,
@@ -342,7 +289,6 @@ fn serialization_roundtrip() {
         log_string,
         log_witnesses,
         permutation_sort,
-        brillig,
     ];
 
     for directive in directives {

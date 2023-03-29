@@ -7,7 +7,7 @@
 pub mod compiler;
 pub mod pwg;
 
-use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
+use crate::pwg::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, oracle::OracleSolver};
 use acir::{
     circuit::{
         directives::Directive,
@@ -107,6 +107,12 @@ pub trait PartialWitnessGenerator {
                         let mut data_clone = data.clone();
                         let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
                         solved_oracle_data = Some(data_clone);
+                        Ok(result)
+                    }
+                    Opcode::Brillig(brillig) => {
+                        let mut brillig_clone = brillig.clone();
+                        let result = BrilligSolver::solve(initial_witness, &mut brillig_clone)?;
+                        // TODO: add oracle logic
                         Ok(result)
                     }
                 };

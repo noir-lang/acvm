@@ -11,6 +11,8 @@ use self::arithmetic::ArithmeticSolver;
 
 // arithmetic
 pub mod arithmetic;
+// Brillig bytecode
+pub mod brillig;
 // Directives
 pub mod directives;
 // black box functions

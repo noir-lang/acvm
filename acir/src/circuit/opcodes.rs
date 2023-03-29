@@ -9,6 +9,57 @@ use crate::BlackBoxFunc;
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub struct Brillig {
+    pub inputs: Vec<Expression>,
+    pub outputs: Vec<Witness>,
+    pub bytecode: Vec<brillig_bytecode::Opcode>,
+}
+
+impl Brillig {
+    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        let inputs_len = self.inputs.len() as u32;
+        write_u32(&mut writer, inputs_len)?;
+        for input in &self.inputs {
+            input.write(&mut writer)?
+        }
+
+        let outputs_len = self.outputs.len() as u32;
+        write_u32(&mut writer, outputs_len)?;
+        for output in &self.outputs {
+            write_u32(&mut writer, output.witness_index())?;
+        }
+
+        // TODO: We use rmp_serde as its easier than doing it manually
+        let buffer = rmp_serde::to_vec(&self.bytecode).unwrap();
+        write_u32(&mut writer, buffer.len() as u32)?;
+        write_bytes(&mut writer, &buffer)?;
+
+        Ok(())
+    }
+
+    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let inputs_len = read_u32(&mut reader)?;
+        let mut inputs = Vec::with_capacity(inputs_len as usize);
+        for _ in 0..inputs_len {
+            inputs.push(Expression::read(&mut reader)?);
+        }
+
+        let outputs_len = read_u32(&mut reader)?;
+        let mut outputs = Vec::with_capacity(outputs_len as usize);
+        for _ in 0..outputs_len {
+            outputs.push(Witness(read_u32(&mut reader)?));
+        }
+
+        let buffer_len = read_u32(&mut reader)?;
+        let mut buffer = vec![0u8; buffer_len as usize];
+        reader.read_exact(&mut buffer)?;
+        let opcodes: Vec<brillig_bytecode::Opcode> = rmp_serde::from_slice(&buffer).unwrap();
+
+        Ok(Brillig { inputs, outputs, bytecode: opcodes })
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
 pub struct BlockId(pub u32);
 
@@ -215,6 +266,7 @@ pub enum Opcode {
     /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
+    Brillig(Brillig),
 }
 
 impl Opcode {
@@ -229,6 +281,7 @@ impl Opcode {
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
             Opcode::Oracle(data) => &data.name,
+            Opcode::Brillig(_) => "brillig",
         }
     }
 
@@ -243,6 +296,7 @@ impl Opcode {
             Opcode::ROM(_) => 4,
             Opcode::RAM(_) => 5,
             Opcode::Oracle { .. } => 6,
+            Opcode::Brillig { .. } => 7,
         }
     }
 
@@ -268,6 +322,7 @@ impl Opcode {
                 mem_block.write(writer)
             }
             Opcode::Oracle(data) => data.write(writer),
+            Opcode::Brillig(brillig) => brillig.write(writer),
         }
     }
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -304,6 +359,10 @@ impl Opcode {
             6 => {
                 let data = OracleData::read(reader)?;
                 Ok(Opcode::Oracle(data))
+            }
+            7 => {
+                let brillig = Brillig::read(reader)?;
+                Ok(Opcode::Brillig(brillig))
             }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -379,11 +438,6 @@ impl std::fmt::Display for Opcode {
                     witnesses.last().unwrap().witness_index()
                 ),
             },
-            Opcode::Directive(Directive::Brillig { inputs, outputs, bytecode }) => {
-                writeln!(f, "inputs: {:?}", inputs)?;
-                writeln!(f, "outputs: {:?}", outputs)?;
-                writeln!(f, "{:?}", bytecode)
-            }
             Opcode::Block(block) => {
                 write!(f, "BLOCK ")?;
                 write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
@@ -399,6 +453,12 @@ impl std::fmt::Display for Opcode {
             Opcode::Oracle(data) => {
                 write!(f, "ORACLE: ")?;
                 write!(f, "{data}")
+            }
+            Opcode::Brillig(brillig) => {
+                write!(f, "BRILLIG: ")?;
+                writeln!(f, "inputs: {:?}", brillig.inputs)?;
+                writeln!(f, "outputs: {:?}", brillig.outputs)?;
+                writeln!(f, "{:?}", brillig.bytecode)
             }
         }
     }
