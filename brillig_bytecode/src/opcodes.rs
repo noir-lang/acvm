@@ -63,6 +63,10 @@ pub enum Opcode {
     },
     /// Used if execution fails during evaluation
     Trap,
+    /// Hack
+    Bootstrap {
+        register_allocation_indices: Vec<u32>,
+    },
 }
 
 impl Opcode {

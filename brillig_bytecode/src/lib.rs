@@ -10,6 +10,7 @@ mod opcodes;
 mod registers;
 mod value;
 
+use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
 pub use registers::{RegisterIndex, Registers};
@@ -33,8 +34,25 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(inputs: Registers, bytecode: Vec<Opcode>) -> VM {
-        Self { registers: inputs, program_counter: 0, bytecode, status: VMStatus::InProgress }
+    pub fn new(mut inputs: Registers, mut bytecode: Vec<Opcode>) -> VM {
+        let last_opcode = bytecode.last().expect("need at least one opcode");
+
+        if let Opcode::Bootstrap { register_allocation_indices } = last_opcode {
+            let mut registers_modified =
+                Registers::load(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }]);
+
+            for i in 0..register_allocation_indices.len() {
+                let register_index = register_allocation_indices[i];
+                let register_value = inputs.get(RegisterMemIndex::Register(RegisterIndex(i)));
+                registers_modified.set(RegisterIndex(register_index as usize), register_value)
+            }
+
+            bytecode.pop();
+            inputs = registers_modified;
+        }
+        let vm =
+            Self { registers: inputs, program_counter: 0, bytecode, status: VMStatus::InProgress };
+        vm
     }
 
     /// Loop over the bytecode and update the program counter
@@ -61,14 +79,14 @@ impl VM {
                 if !condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
-                self.status
+                self.increment_program_counter()
             }
             Opcode::JMPIFNOT { condition, destination } => {
                 let condition_value = self.registers.get(*condition);
                 if condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
-                self.status
+                self.increment_program_counter()
             }
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
@@ -96,6 +114,9 @@ impl VM {
                 self.increment_program_counter()
             }
             Opcode::Trap => VMStatus::Failure,
+            Opcode::Bootstrap { .. } => unreachable!(
+                "should only be at end of opcodes and popped off when initializing the vm"
+            ),
         }
     }
 

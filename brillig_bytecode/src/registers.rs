@@ -1,4 +1,5 @@
 use crate::{opcodes::RegisterMemIndex, Typ, Value};
+use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 /// Registers will store field element values during the
@@ -32,6 +33,11 @@ impl Registers {
     }
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
+        if index.inner() >= self.inner.len() {
+            let diff = index.inner() - self.inner.len() + 1;
+            self.inner
+                .extend(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }; diff])
+        }
         self.inner[index.inner()] = value
     }
     /// Returns all of the values in the register
