@@ -75,14 +75,14 @@ impl VM {
                 if !condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
-                self.status
+                self.increment_program_counter()
             }
             Opcode::JMPIFNOT { condition, destination } => {
                 let condition_value = self.registers.get(*condition);
                 if condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
-                self.status
+                self.increment_program_counter()
             }
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
