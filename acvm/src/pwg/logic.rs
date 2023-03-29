@@ -10,7 +10,7 @@ pub fn solve_logic_opcode(
     match func_call.name {
         BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
         BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
-        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.name)),
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.name.name())),
     }
 }
 

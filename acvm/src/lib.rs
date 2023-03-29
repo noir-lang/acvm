@@ -9,9 +9,10 @@ pub mod pwg;
 
 use crate::pwg::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, oracle::OracleSolver};
 use acir::{
+    brillig_bytecode,
     circuit::{
         directives::Directive,
-        opcodes::{BlackBoxFuncCall, OracleData},
+        opcodes::{BlackBoxFuncCall, Brillig, OracleData},
         Circuit, Opcode,
     },
     native_types::{Expression, Witness},
@@ -49,7 +50,7 @@ pub enum OpcodeResolutionError {
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
     #[error("unexpected opcode, expected {0}, but got {1}")]
-    UnexpectedOpcode(&'static str, BlackBoxFunc),
+    UnexpectedOpcode(&'static str, &'static str),
     #[error("expected {0} inputs for function {1}, but got {2}")]
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
 }
@@ -62,6 +63,8 @@ pub enum OpcodeResolution {
     Stalled(OpcodeNotSolvable),
     /// The opcode is not solvable but could resolved some witness
     InProgress,
+    /// The brillig oracle opcode is not solved but could be resolved given some values
+    InProgessBrillig(brillig_bytecode::OracleData),
 }
 
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
@@ -75,15 +78,17 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<(Vec<Opcode>, Vec<OracleData>), OpcodeResolutionError> {
+    ) -> Result<UnresolvedData, OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut unresolved_oracles: Vec<OracleData> = Vec::new();
+        let mut unresolved_brillig_oracles: Vec<brillig_bytecode::OracleData> = Vec::new();
         while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
             for opcode in &opcode_to_solve {
                 let mut solved_oracle_data = None;
+                let mut solved_brillig_data = None;
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
@@ -112,7 +117,7 @@ pub trait PartialWitnessGenerator {
                     Opcode::Brillig(brillig) => {
                         let mut brillig_clone = brillig.clone();
                         let result = BrilligSolver::solve(initial_witness, &mut brillig_clone)?;
-                        // TODO: add oracle logic
+                        solved_brillig_data = Some(brillig_clone);
                         Ok(result)
                     }
                 };
@@ -129,6 +134,11 @@ pub trait PartialWitnessGenerator {
                             unresolved_opcodes.push(opcode.clone());
                         }
                     }
+                    Ok(OpcodeResolution::InProgessBrillig(oracle_data)) => {
+                        stalled = false;
+                        // InProgressBrillig Oracles must be externally re-solved
+                        unresolved_brillig_oracles.push(oracle_data);
+                    }
                     Ok(OpcodeResolution::Stalled(not_solvable)) => {
                         if opcode_not_solvable.is_none() {
                             // we keep track of the first unsolvable opcode
@@ -141,6 +151,10 @@ pub trait PartialWitnessGenerator {
                             Some(oracle_data) => Opcode::Oracle(oracle_data),
                             None => opcode.clone(),
                         });
+                        unresolved_opcodes.push(match solved_brillig_data {
+                            Some(brillig) => Opcode::Brillig(brillig),
+                            None => opcode.clone(),
+                        })
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -149,8 +163,12 @@ pub trait PartialWitnessGenerator {
                 }
             }
             // We have oracles that must be externally resolved
-            if !unresolved_oracles.is_empty() {
-                return Ok((unresolved_opcodes, unresolved_oracles));
+            if !unresolved_oracles.is_empty() | !unresolved_brillig_oracles.is_empty() {
+                return Ok(UnresolvedData {
+                    unresolved_opcodes,
+                    unresolved_oracles,
+                    unresolved_brillig_oracles,
+                });
             }
             // We are stalled because of an opcode being bad
             if stalled && !unresolved_opcodes.is_empty() {
@@ -161,7 +179,11 @@ pub trait PartialWitnessGenerator {
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
-        Ok((Vec::new(), Vec::new()))
+        Ok(UnresolvedData {
+            unresolved_opcodes: Vec::new(),
+            unresolved_oracles: Vec::new(),
+            unresolved_brillig_oracles: Vec::new(),
+        })
     }
 
     fn solve_black_box_function_call(
@@ -196,6 +218,12 @@ pub trait PartialWitnessGenerator {
             Err(err) => Err(err),
         }
     }
+}
+
+pub struct UnresolvedData {
+    pub unresolved_opcodes: Vec<Opcode>,
+    pub unresolved_oracles: Vec<OracleData>,
+    pub unresolved_brillig_oracles: Vec<brillig_bytecode::OracleData>,
 }
 
 pub trait SmartContract {
@@ -320,9 +348,11 @@ mod test {
     use std::collections::BTreeMap;
 
     use acir::{
+        brillig_bytecode,
+        brillig_bytecode::{RegisterIndex, RegisterMemIndex},
         circuit::{
             directives::Directive,
-            opcodes::{BlackBoxFuncCall, OracleData},
+            opcodes::{BlackBoxFuncCall, Brillig, OracleData},
             Opcode,
         },
         native_types::{Expression, Witness},
@@ -331,6 +361,7 @@ mod test {
 
     use crate::{
         pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
+        UnresolvedData,
     };
 
     struct StubbedPwg;
@@ -395,10 +426,10 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let (unsolved_opcodes, mut unresolved_oracles) = pwg
+        let UnresolvedData { unresolved_opcodes, mut unresolved_oracles, .. } = pwg
             .solve(&mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
-        assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
+        assert!(unresolved_opcodes.is_empty(), "oracle should be removed");
         assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
         let mut oracle_data = unresolved_oracles.remove(0);
         assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
@@ -406,11 +437,112 @@ mod test {
         // Filling data request and continue solving
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
-        next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-        let (unsolved_opcodes, unresolved_oracles) = pwg
+        next_opcodes_for_solving.extend_from_slice(&unresolved_opcodes[..]);
+        let UnresolvedData { unresolved_opcodes, .. } = pwg
             .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should be solvable");
-        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
+            .expect("should not stall on oracle");
+        assert!(unresolved_opcodes.is_empty(), "should be fully solved");
         assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+    }
+
+    #[test]
+    fn inversion_brillig_oracle_equivalence() {
+        // Opcodes below describe the following:
+        // fn main(x : Field, y : pub Field) {
+        //     let z = x + y;
+        //     constrain 1/z == Oracle("inverse", x + y);
+        // }
+        let fe_0 = FieldElement::zero();
+        let fe_1 = FieldElement::one();
+        let w_x = Witness(1);
+        let w_y = Witness(2);
+        let w_oracle = Witness(3);
+        let w_z = Witness(4);
+        let w_z_inverse = Witness(5);
+        let w_x_plus_y = Witness(6);
+
+        let brillig_bytecode = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
+            name: "invert".into(),
+            inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
+            input_values: vec![],
+            outputs: vec![RegisterIndex(1)],
+            output_values: vec![],
+        });
+
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![
+                Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                    q_c: fe_0,
+                },
+                Expression::default(),
+            ],
+            outputs: vec![w_x_plus_y, w_oracle],
+            bytecode: vec![brillig_bytecode],
+        });
+
+        let opcodes = vec![
+            brillig_opcode,
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
+                q_c: fe_0,
+            }),
+            Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![(fe_1, w_z, w_z_inverse)],
+                linear_combinations: vec![],
+                q_c: -fe_1,
+            }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(-fe_1, w_oracle), (fe_1, w_z_inverse)],
+                q_c: fe_0,
+            }),
+        ];
+
+        let pwg = StubbedPwg;
+
+        let mut witness_assignments = BTreeMap::from([
+            (Witness(1), FieldElement::from(2u128)),
+            (Witness(2), FieldElement::from(3u128)),
+            (Witness(6), FieldElement::from(5u128)),
+        ]);
+        let mut blocks = Blocks::default();
+        let UnresolvedData { unresolved_opcodes, mut unresolved_brillig_oracles, .. } = pwg
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
+
+        assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
+        assert_eq!(unresolved_brillig_oracles.len(), 1, "should have a brillig oracle request");
+
+        let mut oracle_data = unresolved_brillig_oracles.remove(0);
+        assert_eq!(oracle_data.inputs.len(), 1, "Should have solved a single input");
+
+        // Filling data request and continue solving
+        oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
+        let brillig_bytecode = brillig_bytecode::Opcode::Oracle(oracle_data);
+
+        let mut next_opcodes_for_solving = vec![Opcode::Brillig(Brillig {
+            inputs: vec![
+                Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                    q_c: fe_0,
+                },
+                Expression::default(),
+            ],
+            outputs: vec![w_x_plus_y, w_oracle],
+            bytecode: vec![brillig_bytecode],
+        })];
+
+        next_opcodes_for_solving.extend_from_slice(&unresolved_opcodes[..]);
+        let UnresolvedData { unresolved_opcodes, unresolved_brillig_oracles, .. } = pwg
+            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .expect("should not stall on oracle");
+
+        assert!(unresolved_opcodes.is_empty(), "should be fully solved");
+        assert!(unresolved_brillig_oracles.is_empty(), "should have no unresolved oracles");
     }
 }
