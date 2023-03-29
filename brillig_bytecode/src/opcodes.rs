@@ -81,6 +81,7 @@ impl Opcode {
             Opcode::Oracle(_) => "oracle",
             Opcode::Mov { .. } => "mov",
             Opcode::Trap => "trap",
+            Opcode::Bootstrap { .. } => "bootstrap",
         }
     }
 }
