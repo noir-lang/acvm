@@ -56,16 +56,43 @@ pub enum Opcode {
     // TODO:These are special functions like sha256
     Intrinsics,
     // TODO:This will be used to get data from an outside source
-    Oracle {
-        inputs: Vec<RegisterMemIndex>,
-        destination: Vec<RegisterIndex>,
-    },
+    Oracle(OracleData),
     Mov {
         destination: RegisterMemIndex,
         source: RegisterMemIndex,
     },
     /// Used if execution fails during evaluation
     Trap,
+}
+
+impl Opcode {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Opcode::BinaryOp { .. } => "binary_op",
+            Opcode::JMPIFNOT { .. } => "jmpifnot",
+            Opcode::JMPIF { .. } => "jmpif",
+            Opcode::JMP { .. } => "jmp",
+            Opcode::Call => "call",
+            Opcode::Intrinsics => "intrinsics",
+            Opcode::Oracle(_) => "oracle",
+            Opcode::Mov { .. } => "mov",
+            Opcode::Trap => "trap",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OracleData {
+    /// Name of the oracle
+    pub name: String,
+    /// Inputs
+    pub inputs: Vec<RegisterMemIndex>,
+    /// Input values
+    pub input_values: Vec<FieldElement>,
+    /// Output witness
+    pub outputs: Vec<RegisterIndex>,
+    /// Output values - they are computed by the (external) oracle once the inputs are known
+    pub output_values: Vec<FieldElement>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

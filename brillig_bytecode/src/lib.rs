@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Comparison, Opcode};
+pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -21,6 +21,7 @@ pub enum VMStatus {
     Halted,
     InProgress,
     Failure,
+    OracleWait,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -37,8 +38,11 @@ impl VM {
     }
 
     /// Loop over the bytecode and update the program counter
-    pub fn process_opcodes(mut self) -> Registers {
-        while !matches!(self.process_opcode(), VMStatus::Halted | VMStatus::Failure) {}
+    pub fn process_opcodes(mut self) -> (Registers, VMStatus) {
+        while !matches!(
+            self.process_opcode(),
+            VMStatus::Halted | VMStatus::Failure | VMStatus::OracleWait
+        ) {}
         self.finish()
     }
     // Process a single opcode and modify the program counter
@@ -68,7 +72,17 @@ impl VM {
             }
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
-            Opcode::Oracle { inputs, destination } => todo!(),
+            Opcode::Oracle(data) => {
+                if data.outputs.len() == data.output_values.len() {
+                    for (index, value) in data.outputs.iter().zip(data.output_values.iter()) {
+                        self.registers.set(*index, (*value).into())
+                    }
+                } else {
+                    self.status = VMStatus::OracleWait;
+                    return VMStatus::OracleWait;
+                }
+                self.increment_program_counter()
+            }
             Opcode::Mov { destination, source } => {
                 let source_value = self.registers.get(*source);
 
@@ -83,6 +97,10 @@ impl VM {
             }
             Opcode::Trap => VMStatus::Failure,
         }
+    }
+
+    pub fn program_counter(self) -> usize {
+        self.program_counter
     }
 
     /// Increments the program counter by 1.
@@ -123,8 +141,8 @@ impl VM {
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
-    fn finish(self) -> Registers {
-        self.registers
+    fn finish(self) -> (Registers, VMStatus) {
+        (self.registers, self.status)
     }
 }
 
@@ -157,7 +175,7 @@ fn add_single_step_smoke() {
 
     // The register at index `2` should have the value of 3 since we had an
     // add opcode
-    let registers = vm.finish();
+    let (registers, _) = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
@@ -249,7 +267,7 @@ fn test_jmpifnot_opcode() {
     assert_eq!(status, VMStatus::Failure);
 
     // The register at index `2` should have not changed as we jumped over the add opcode
-    let registers = vm.finish();
+    let (registers, status) = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(output_value, Value::from(false));
 }
@@ -269,7 +287,7 @@ fn test_mov_opcode() {
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
 
-    let registers = vm.finish();
+    let (registers, status) = vm.finish();
 
     let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(destination_value, Value::from(1u128));
