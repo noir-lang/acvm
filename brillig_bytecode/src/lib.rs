@@ -33,24 +33,22 @@ pub struct VM {
 }
 
 impl VM {
-    pub fn new(
-        mut inputs: Registers,
-        bytecode: Vec<Opcode>,
-        register_alloc_indices: Option<Vec<u32>>,
-    ) -> VM {
-        if let Some(indices) = register_alloc_indices {
+    pub fn new(mut inputs: Registers, mut bytecode: Vec<Opcode>) -> VM {
+        let last_opcode = bytecode.last().expect("need at least one opcode");
+
+        if let Opcode::Bootstrap { register_allocation_indices } = last_opcode {
             let mut registers_modified =
                 Registers::load(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }]);
 
-            for i in 0..indices.len() {
-                let register_index = indices[i];
+            for i in 0..register_allocation_indices.len() {
+                let register_index = register_allocation_indices[i];
                 let register_value = inputs.get(RegisterMemIndex::Register(RegisterIndex(i)));
                 registers_modified.set(RegisterIndex(register_index as usize), register_value)
             }
 
+            bytecode.pop();
             inputs = registers_modified;
         }
-
         let vm =
             Self { registers: inputs, program_counter: 0, bytecode, status: VMStatus::InProgress };
         vm
@@ -102,6 +100,9 @@ impl VM {
                 self.increment_program_counter()
             }
             Opcode::Trap => VMStatus::Failure,
+            Opcode::Bootstrap { .. } => unreachable!(
+                "should only be at end of opcodes and popped off when initializing the vm"
+            ),
         }
     }
 
@@ -166,7 +167,7 @@ fn add_single_step_smoke() {
     };
 
     // Start VM
-    let mut vm = VM::new(input_registers, vec![opcode], None);
+    let mut vm = VM::new(input_registers, vec![opcode]);
 
     // Process a single VM opcode
     //
@@ -201,8 +202,7 @@ fn test_jmpif_opcode() {
     let jump_if_opcode =
         Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 3 };
 
-    let mut vm =
-        VM::new(input_registers, vec![equal_cmp_opcode, jump_opcode, jump_if_opcode], None);
+    let mut vm = VM::new(input_registers, vec![equal_cmp_opcode, jump_opcode, jump_if_opcode]);
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
@@ -252,7 +252,6 @@ fn test_jmpifnot_opcode() {
     let mut vm = VM::new(
         input_registers,
         vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
-        None,
     );
 
     let status = vm.process_opcode();
@@ -286,7 +285,7 @@ fn test_mov_opcode() {
         source: RegisterMemIndex::Register(RegisterIndex(0)),
     };
 
-    let mut vm = VM::new(input_registers, vec![mov_opcode], None);
+    let mut vm = VM::new(input_registers, vec![mov_opcode]);
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
@@ -345,7 +344,6 @@ fn test_cmp_binary_ops() {
     let mut vm = VM::new(
         input_registers,
         vec![equal_opcode, not_equal_opcode, less_than_opcode, less_than_equal_opcode],
-        None,
     );
 
     let status = vm.process_opcode();
