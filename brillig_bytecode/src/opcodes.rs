@@ -55,7 +55,7 @@ pub enum Opcode {
     Call,
     // TODO:These are special functions like sha256
     Intrinsics,
-    // TODO:This will be used to get data from an outside source
+    /// Used to get data from an outside source
     Oracle(OracleData),
     Mov {
         destination: RegisterMemIndex,
@@ -67,6 +67,8 @@ pub enum Opcode {
     Bootstrap {
         register_allocation_indices: Vec<u32>,
     },
+    /// Stop execution
+    Stop,
 }
 
 impl Opcode {
@@ -82,6 +84,7 @@ impl Opcode {
             Opcode::Mov { .. } => "mov",
             Opcode::Trap => "trap",
             Opcode::Bootstrap { .. } => "bootstrap",
+            Opcode::Stop => "stop",
         }
     }
 }
