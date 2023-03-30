@@ -68,7 +68,7 @@ pub enum Opcode {
         register_allocation_indices: Vec<u32>,
     },
     /// Stop execution
-    Stop
+    Stop,
 }
 
 impl Opcode {
