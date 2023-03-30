@@ -89,11 +89,9 @@ impl VM {
                 self.increment_program_counter()
             }
             Opcode::Call { destination } => {
-                let destination = match destination.to_register_index() {
-                    Some(register_index) => register_index.0,
-                    _ => return VMStatus::Failure,
-                };
-                self.set_program_counter(destination)
+                let register = self.registers.get(*destination);
+                let label = usize::try_from(register.inner.to_u128()).unwrap();
+                self.set_program_counter(label)
             }
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
