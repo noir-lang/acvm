@@ -178,12 +178,14 @@ impl std::fmt::Display for OracleData {
         write!(f, "ORACLE: {}", self.name)?;
         let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
 
-        write!(
-            f,
-            "Inputs: _{}..._{}{solved}",
-            self.inputs.first().unwrap(),
-            self.inputs.last().unwrap()
-        )?;
+        if self.inputs.len() > 0 {
+            write!(
+                f,
+                "Inputs: _{}..._{}{solved}",
+                self.inputs.first().unwrap(),
+                self.inputs.last().unwrap()
+            )?;
+        }
 
         let solved = if self.output_values.len() == self.outputs.len() { "solved" } else { "" };
         write!(
