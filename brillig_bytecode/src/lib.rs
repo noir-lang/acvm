@@ -117,6 +117,7 @@ impl VM {
             Opcode::Bootstrap { .. } => unreachable!(
                 "should only be at end of opcodes and popped off when initializing the vm"
             ),
+            Opcode::Stop => VMStatus::Halted,
         }
     }
 
