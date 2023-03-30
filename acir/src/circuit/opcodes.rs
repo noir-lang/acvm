@@ -37,6 +37,9 @@ impl Brillig {
         write_u32(&mut writer, buffer.len() as u32)?;
         write_bytes(&mut writer, &buffer)?;
 
+        let predicate_is_some = vec![self.predicate.is_some() as u8];
+        write_bytes(&mut writer, &predicate_is_some)?;
+
         if let Some(pred) = &self.predicate {
             pred.write(&mut writer)?;
         }
