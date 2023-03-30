@@ -56,7 +56,7 @@ impl VM {
     }
 
     /// Loop over the bytecode and update the program counter
-    pub fn process_opcodes(mut self) -> (Registers, VMStatus) {
+    pub fn process_opcodes(mut self) -> (Registers, VMStatus, usize) {
         while !matches!(
             self.process_opcode(),
             VMStatus::Halted | VMStatus::Failure | VMStatus::OracleWait
@@ -162,8 +162,8 @@ impl VM {
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
-    fn finish(self) -> (Registers, VMStatus) {
-        (self.registers, self.status)
+    fn finish(self) -> (Registers, VMStatus, usize) {
+        (self.registers, self.status, self.program_counter)
     }
 }
 
@@ -196,7 +196,7 @@ fn add_single_step_smoke() {
 
     // The register at index `2` should have the value of 3 since we had an
     // add opcode
-    let (registers, _) = vm.finish();
+    let (registers, _, _) = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
@@ -288,7 +288,7 @@ fn test_jmpifnot_opcode() {
     assert_eq!(status, VMStatus::Failure);
 
     // The register at index `2` should have not changed as we jumped over the add opcode
-    let (registers, status) = vm.finish();
+    let (registers, status, _) = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(output_value, Value::from(false));
 }
@@ -308,7 +308,7 @@ fn test_mov_opcode() {
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
 
-    let (registers, status) = vm.finish();
+    let (registers, status, _) = vm.finish();
 
     let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(destination_value, Value::from(1u128));

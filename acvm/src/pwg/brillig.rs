@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Opcode, RegisterMemIndex, Registers, VMStatus, Value, VM},
+    brillig_bytecode::{Opcode, OracleData, RegisterMemIndex, Registers, VMStatus, Value, VM},
     circuit::opcodes::Brillig,
     native_types::Witness,
     FieldElement,
@@ -11,7 +11,7 @@ use crate::{
     pwg::arithmetic::ArithmeticSolver, OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError,
 };
 
-use super::{directives::insert_witness, get_value};
+use super::directives::insert_witness;
 
 pub struct BrilligSolver;
 
@@ -24,6 +24,7 @@ impl BrilligSolver {
         let mut input_register_values: Vec<Value> = Vec::new();
         for expr in &brillig.inputs {
             // Break from setting the inputs values if unable to solve the arithmetic expression inputs
+            // TODO: switch this to `get_value` and map the err
             let solve = ArithmeticSolver::evaluate(expr, initial_witness);
             if let Some(value) = solve.to_const() {
                 input_register_values.push(value.into())
@@ -45,10 +46,9 @@ impl BrilligSolver {
         let input_registers = Registers { inner: input_register_values };
         let vm = VM::new(input_registers, brillig.bytecode.clone());
 
-        let (output_registers, status) = vm.clone().process_opcodes();
+        let (output_registers, status, pc) = vm.process_opcodes();
 
         if status == VMStatus::OracleWait {
-            let pc = vm.program_counter();
             let current_opcode = &brillig.bytecode[pc];
             let mut data = match current_opcode.clone() {
                 Opcode::Oracle(data) => data,
@@ -67,11 +67,14 @@ impl BrilligSolver {
                 .collect::<Vec<_>>();
             data.input_values = input_values;
 
-            return Ok(OpcodeResolution::InProgessBrillig(data.clone()));
+            return Ok(OpcodeResolution::InProgressBrillig(OracleWaitInfo {
+                data: data.clone(),
+                program_counter: pc,
+            }));
         }
 
         let output_register_values: Vec<FieldElement> =
-            output_registers.inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
+            output_registers.clone().inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
 
         for (witness, value) in brillig.outputs.iter().zip(output_register_values) {
             insert_witness(*witness, value, initial_witness)?;
@@ -79,4 +82,10 @@ impl BrilligSolver {
 
         Ok(OpcodeResolution::Solved)
     }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct OracleWaitInfo {
+    pub data: OracleData,
+    pub program_counter: usize,
 }
