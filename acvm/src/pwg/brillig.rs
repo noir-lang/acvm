@@ -11,7 +11,7 @@ use crate::{
     pwg::arithmetic::ArithmeticSolver, OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError,
 };
 
-use super::directives::insert_witness;
+use super::{directives::insert_witness, get_value};
 
 pub struct BrilligSolver;
 
@@ -20,6 +20,28 @@ impl BrilligSolver {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         brillig: &mut Brillig,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        // If the predicate is `None`, then we simply return the value 1
+        // If the predicate is `Some` but we cannot find a value, then we return stalled
+        let pred_value = match &brillig.predicate {
+            Some(pred) => get_value(pred, initial_witness),
+            None => Ok(FieldElement::one()),
+        };
+        let pred_value = match pred_value {
+            Ok(pred_value) => pred_value,
+            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+                return Ok(OpcodeResolution::Stalled(unsolved))
+            }
+            Err(err) => return Err(err),
+        };
+
+        // A zero predicate indicates the oracle should be skipped, and its ouputs zeroed.
+        if pred_value.is_zero() {
+            for output_witness in &brillig.outputs {
+                insert_witness(*output_witness, FieldElement::zero(), initial_witness)?;
+            }
+            return Ok(OpcodeResolution::Solved);
+        }
+
         // Set input values
         let mut input_register_values: Vec<Value> = Vec::new();
         for expr in &brillig.inputs {

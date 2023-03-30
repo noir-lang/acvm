@@ -14,6 +14,8 @@ pub struct Brillig {
     pub inputs: Vec<Expression>,
     pub outputs: Vec<Witness>,
     pub bytecode: Vec<brillig_bytecode::Opcode>,
+    /// Predicate of the Brillig execution - indicates if it should be skipped
+    pub predicate: Option<Expression>,
 }
 
 impl Brillig {
@@ -34,6 +36,10 @@ impl Brillig {
         let buffer = rmp_serde::to_vec(&self.bytecode).unwrap();
         write_u32(&mut writer, buffer.len() as u32)?;
         write_bytes(&mut writer, &buffer)?;
+
+        if let Some(pred) = &self.predicate {
+            pred.write(&mut writer)?;
+        }
 
         Ok(())
     }
@@ -56,7 +62,14 @@ impl Brillig {
         reader.read_exact(&mut buffer)?;
         let opcodes: Vec<brillig_bytecode::Opcode> = rmp_serde::from_slice(&buffer).unwrap();
 
-        Ok(Brillig { inputs, outputs, bytecode: opcodes })
+        // Read byte to figure out if there is a predicate
+        let predicate_is_some = read_n::<1, _>(&mut reader)?[0] != 0;
+        let predicate = match predicate_is_some {
+            true => Some(Expression::read(&mut reader)?),
+            false => None,
+        };
+
+        Ok(Brillig { inputs, outputs, bytecode: opcodes, predicate })
     }
 }
 

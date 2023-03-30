@@ -9,10 +9,9 @@ pub mod pwg;
 
 use crate::pwg::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, oracle::OracleSolver};
 use acir::{
-    brillig_bytecode,
     circuit::{
         directives::Directive,
-        opcodes::{BlackBoxFuncCall, Brillig, OracleData},
+        opcodes::{BlackBoxFuncCall, OracleData},
         Circuit, Opcode,
     },
     native_types::{Expression, Witness},
@@ -482,7 +481,6 @@ mod test {
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
-            predicate: None,
             inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
             input_values: vec![],
             outputs: vec![RegisterIndex(1)],
@@ -502,6 +500,7 @@ mod test {
             ],
             outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
             bytecode: brillig_bytecode.clone(),
+            predicate: None,
         });
 
         let opcodes = vec![
@@ -564,6 +563,7 @@ mod test {
             ],
             outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
             bytecode: new_brillig_bytecode,
+            predicate: None,
         })];
 
         next_opcodes_for_solving.extend_from_slice(&unresolved_opcodes[..]);
@@ -614,7 +614,6 @@ mod test {
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
-            predicate: Some(RegisterMemIndex::Register(RegisterIndex(1))),
             inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
             input_values: vec![],
             outputs: vec![RegisterIndex(1)],
@@ -634,6 +633,7 @@ mod test {
             ],
             outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
             bytecode: brillig_bytecode.clone(),
+            predicate: Some(Expression::default()),
         });
 
         let opcodes = vec![
