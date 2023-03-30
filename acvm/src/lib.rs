@@ -64,10 +64,6 @@ pub enum OpcodeResolution {
     /// The opcode is not solvable but could resolved some witness
     InProgress,
     /// The brillig oracle opcode is not solved but could be resolved given some values
-    // InProgressBrillig {
-    //     oracle_data: brillig_bytecode::OracleData,
-    //     program_counter: usize,
-    // },
     InProgressBrillig(brillig::OracleWaitInfo),
 }
 
