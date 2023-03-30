@@ -52,7 +52,9 @@ pub enum Opcode {
     },
     // TODO:This is used to call functions and setup things like
     // TODO execution contexts.
-    Call,
+    Call {
+        destination: RegisterMemIndex,
+    },
     // TODO:These are special functions like sha256
     Intrinsics,
     // TODO:This will be used to get data from an outside source
@@ -76,7 +78,7 @@ impl Opcode {
             Opcode::JMPIFNOT { .. } => "jmpifnot",
             Opcode::JMPIF { .. } => "jmpif",
             Opcode::JMP { .. } => "jmp",
-            Opcode::Call => "call",
+            Opcode::Call { .. } => "call",
             Opcode::Intrinsics => "intrinsics",
             Opcode::Oracle(_) => "oracle",
             Opcode::Mov { .. } => "mov",

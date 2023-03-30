@@ -88,7 +88,13 @@ impl VM {
                 }
                 self.increment_program_counter()
             }
-            Opcode::Call => todo!(),
+            Opcode::Call { destination } => {
+                let destination = match destination.to_register_index() {
+                    Some(register_index) => register_index.0,
+                    _ => return VMStatus::Failure,
+                };
+                self.set_program_counter(destination)
+            }
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
                 if data.outputs.len() == data.output_values.len() {
