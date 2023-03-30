@@ -178,7 +178,7 @@ impl std::fmt::Display for OracleData {
         write!(f, "ORACLE: {}", self.name)?;
         let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
 
-        if self.inputs.len() > 0 {
+        if self.inputs.is_empty() {
             write!(
                 f,
                 "Inputs: _{}..._{}{solved}",
