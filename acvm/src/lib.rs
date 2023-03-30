@@ -551,6 +551,7 @@ mod test {
         brillig_bytecode[oracle_wait_info.program_counter] = invert_oracle;
         // Update the bytecode to only start where we were stopped the previous VM process
         let new_brillig_bytecode = brillig_bytecode[oracle_wait_info.program_counter..].to_vec();
+
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(Brillig {
             inputs: vec![
                 Expression {
@@ -558,6 +559,10 @@ mod test {
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 },
+                Expression::default(),
+                // These are the brillig binary op results
+                // We include the register values here so that they are part of the witness
+                Expression::default(),
                 Expression::default(),
             ],
             outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
