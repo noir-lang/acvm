@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Opcode, OracleData, RegisterMemIndex, Registers, VMStatus, Value, VM},
+    brillig_bytecode::{Opcode, OracleData, Registers, VMStatus, Value, VM},
     circuit::opcodes::Brillig,
     native_types::Witness,
     FieldElement,
@@ -59,6 +59,7 @@ impl BrilligSolver {
                     ))
                 }
             };
+
             let input_values = data
                 .clone()
                 .inputs

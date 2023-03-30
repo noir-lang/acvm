@@ -90,6 +90,8 @@ impl Opcode {
 pub struct OracleData {
     /// Name of the oracle
     pub name: String,
+    /// Predicate of the oracle - indicates if it should be skipped
+    pub predicate: Option<RegisterMemIndex>,
     /// Inputs
     pub inputs: Vec<RegisterMemIndex>,
     /// Input values

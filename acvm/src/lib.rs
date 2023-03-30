@@ -482,6 +482,7 @@ mod test {
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
+            predicate: None,
             inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
             input_values: vec![],
             outputs: vec![RegisterIndex(1)],
@@ -556,7 +557,7 @@ mod test {
                     q_c: fe_0,
                 },
                 Expression::default(),
-                // These are the brillig binary op results
+                // These are the Brillig binary op results
                 // We include the register values here so that they are part of the witness
                 Expression::default(),
                 Expression::default(),
@@ -572,5 +573,96 @@ mod test {
 
         assert!(unresolved_opcodes.is_empty(), "should be fully solved");
         assert!(unresolved_brillig_oracles.is_empty(), "should have no unresolved oracles");
+    }
+
+    #[test]
+    fn brillig_oracle_predicate() {
+        // Opcodes below describe the following:
+        // fn main(x : Field, y : pub Field, cond: bool) {
+        //     let z = x + y;
+        //     let z_inverse = 1/z
+        //     if cond {
+        //         constrain z_inverse == Oracle("inverse", x + y);
+        //     }
+        // }
+        let fe_0 = FieldElement::zero();
+        let fe_1 = FieldElement::one();
+        let w_x = Witness(1);
+        let w_y = Witness(2);
+        let w_oracle = Witness(3);
+        let w_z = Witness(4);
+        let w_z_inverse = Witness(5);
+        let w_x_plus_y = Witness(6);
+        let w_equal_res = Witness(7);
+        let w_lt_res = Witness(8);
+
+        let equal_opcode = brillig_bytecode::Opcode::BinaryOp {
+            result_type: Typ::Field,
+            op: BinaryOp::Cmp(Comparison::Eq),
+            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            result: RegisterIndex(2),
+        };
+
+        let less_than_opcode = brillig_bytecode::Opcode::BinaryOp {
+            result_type: Typ::Field,
+            op: BinaryOp::Cmp(Comparison::Lt),
+            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            result: RegisterIndex(3),
+        };
+
+        let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
+            name: "invert".into(),
+            predicate: Some(RegisterMemIndex::Register(RegisterIndex(1))),
+            inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
+            input_values: vec![],
+            outputs: vec![RegisterIndex(1)],
+            output_values: vec![],
+        });
+
+        let brillig_bytecode = vec![equal_opcode, less_than_opcode, invert_oracle];
+
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![
+                Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                    q_c: fe_0,
+                },
+                Expression::default(),
+            ],
+            outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
+            bytecode: brillig_bytecode.clone(),
+        });
+
+        let opcodes = vec![
+            brillig_opcode,
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
+                q_c: fe_0,
+            }),
+            Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![(fe_1, w_z, w_z_inverse)],
+                linear_combinations: vec![],
+                q_c: -fe_1,
+            }),
+        ];
+
+        let pwg = StubbedPwg;
+
+        let mut witness_assignments = BTreeMap::from([
+            (Witness(1), FieldElement::from(2u128)),
+            (Witness(2), FieldElement::from(3u128)),
+        ]);
+        let mut blocks = Blocks::default();
+        let UnresolvedData { unresolved_opcodes, mut unresolved_brillig_oracles, .. } = pwg
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
+
+        assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
+        assert_eq!(unresolved_brillig_oracles.len(), 0, "should have a brillig oracle request");
     }
 }

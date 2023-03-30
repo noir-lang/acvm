@@ -91,6 +91,13 @@ impl VM {
             Opcode::Call => todo!(),
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
+                if let Some(pred_reg_index) = data.predicate {
+                    let pred_value = self.registers.get(pred_reg_index).inner;
+                    if pred_value.is_zero() {
+                        return self.increment_program_counter();
+                    }
+                }
+
                 if data.outputs.len() == data.output_values.len() {
                     for (index, value) in data.outputs.iter().zip(data.output_values.iter()) {
                         self.registers.set(*index, (*value).into())
