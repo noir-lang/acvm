@@ -90,7 +90,10 @@ impl VM {
             }
             Opcode::Call { destination } => {
                 let register = self.registers.get(*destination);
-                let label = usize::try_from(register.inner.to_u128()).unwrap();
+                let label = usize::try_from(
+                    register.inner.try_to_u64().expect("register does not fit into u64"),
+                )
+                .expect("register does not fit into usize");
                 self.set_program_counter(label)
             }
             Opcode::Intrinsics => todo!(),
