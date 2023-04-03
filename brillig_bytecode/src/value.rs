@@ -8,6 +8,7 @@ pub enum Typ {
     Field,
     Unsigned { bit_size: u32 },
     Signed { bit_size: u32 },
+    ArrayId,
 }
 
 /// Value represents a Value in the VM
@@ -30,6 +31,7 @@ impl Value {
                 todo!("TODO")
             }
             Typ::Signed { bit_size } => todo!("TODO"),
+            Typ::ArrayId => self.inner.inverse(),
         };
         Value { typ: self.typ, inner: value }
     }
@@ -44,6 +46,12 @@ impl From<u128> for Value {
 impl From<FieldElement> for Value {
     fn from(value: FieldElement) -> Self {
         Value { typ: Typ::Field, inner: value }
+    }
+}
+
+impl From<u32> for Value {
+    fn from(value: u32) -> Self {
+        Value { typ: Typ::Field, inner: FieldElement::from(value as i128) }
     }
 }
 

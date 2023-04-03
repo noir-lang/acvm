@@ -10,9 +10,21 @@ use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub enum JabberingIn {
+    Simple(Expression),
+    Array(u32, Vec<Expression>),
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub enum JabberingOut {
+    Simple(Witness),
+    Array(Vec<Witness>),
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Brillig {
-    pub inputs: Vec<Expression>,
-    pub outputs: Vec<Witness>,
+    pub inputs: Vec<JabberingIn>,
+    pub outputs: Vec<JabberingOut>,
     pub bytecode: Vec<brillig_bytecode::Opcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,

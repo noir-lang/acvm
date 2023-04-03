@@ -63,6 +63,16 @@ pub enum Opcode {
         destination: RegisterMemIndex,
         source: RegisterMemIndex,
     },
+    Load {
+        destination: RegisterMemIndex,
+        array_id_reg: RegisterMemIndex,
+        index: usize,
+    },
+    Store {
+        source: RegisterMemIndex,
+        array_id_reg: RegisterMemIndex,
+        index: usize,
+    },
     /// Used if execution fails during evaluation
     Trap,
     /// Hack
@@ -84,6 +94,8 @@ impl Opcode {
             Opcode::Intrinsics => "intrinsics",
             Opcode::Oracle(_) => "oracle",
             Opcode::Mov { .. } => "mov",
+            Opcode::Load { .. } => "load",
+            Opcode::Store { .. } => "store",
             Opcode::Trap => "trap",
             Opcode::Bootstrap { .. } => "bootstrap",
             Opcode::Stop => "stop",

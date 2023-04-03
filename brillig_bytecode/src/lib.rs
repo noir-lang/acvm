@@ -10,10 +10,13 @@ mod opcodes;
 mod registers;
 mod value;
 
+use std::collections::{BTreeMap, HashMap};
+
 use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
 pub use registers::{RegisterIndex, Registers};
+use serde::{Deserialize, Serialize};
 pub use value::Typ;
 pub use value::Value;
 
@@ -31,10 +34,15 @@ pub struct VM {
     program_counter: usize,
     bytecode: Vec<Opcode>,
     status: VMStatus,
+    memory: BTreeMap<Value, Vec<Value>>,
 }
 
 impl VM {
-    pub fn new(mut inputs: Registers, mut bytecode: Vec<Opcode>) -> VM {
+    pub fn new(
+        mut inputs: Registers,
+        memory: BTreeMap<Value, Vec<Value>>,
+        mut bytecode: Vec<Opcode>,
+    ) -> VM {
         let last_opcode = bytecode.last().expect("need at least one opcode");
 
         if let Opcode::Bootstrap { register_allocation_indices } = last_opcode {
@@ -50,8 +58,13 @@ impl VM {
             bytecode.pop();
             inputs = registers_modified;
         }
-        let vm =
-            Self { registers: inputs, program_counter: 0, bytecode, status: VMStatus::InProgress };
+        let vm = Self {
+            registers: inputs,
+            program_counter: 0,
+            bytecode,
+            status: VMStatus::InProgress,
+            memory,
+        };
         vm
     }
 
@@ -125,6 +138,24 @@ impl VM {
                 "should only be at end of opcodes and popped off when initializing the vm"
             ),
             Opcode::Stop => VMStatus::Halted,
+            Opcode::Load { destination, array_id_reg, index } => {
+                let array_id = self.registers.get(*array_id_reg);
+                let array = &self.memory[&array_id];
+                match destination {
+                    RegisterMemIndex::Register(dest_index) => {
+                        self.registers.set(*dest_index, array[*index]);
+                    }
+                    _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
+                }
+                self.increment_program_counter()
+            }
+            Opcode::Store { source, array_id_reg, index } => {
+                let source_value = self.registers.get(*source);
+                let array_id = self.registers.get(*array_id_reg);
+                let array = self.memory.entry(array_id).or_default();
+                array[*index] = source_value;
+                self.increment_program_counter()
+            }
         }
     }
 
@@ -167,6 +198,10 @@ impl VM {
         self.registers.set(result, result_value)
     }
 
+    pub fn load_array(self, array_id: &Value) -> Vec<Value> {
+        self.memory[array_id].clone()
+    }
+
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
@@ -193,7 +228,7 @@ fn add_single_step_smoke() {
     };
 
     // Start VM
-    let mut vm = VM::new(input_registers, vec![opcode]);
+    let mut vm = VM::new(input_registers, BTreeMap::new(), vec![opcode]);
 
     // Process a single VM opcode
     //
@@ -228,7 +263,11 @@ fn test_jmpif_opcode() {
     let jump_if_opcode =
         Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 3 };
 
-    let mut vm = VM::new(input_registers, vec![equal_cmp_opcode, jump_opcode, jump_if_opcode]);
+    let mut vm = VM::new(
+        input_registers,
+        BTreeMap::new(),
+        vec![equal_cmp_opcode, jump_opcode, jump_if_opcode],
+    );
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
@@ -277,6 +316,7 @@ fn test_jmpifnot_opcode() {
 
     let mut vm = VM::new(
         input_registers,
+        BTreeMap::new(),
         vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
     );
 
@@ -311,7 +351,7 @@ fn test_mov_opcode() {
         source: RegisterMemIndex::Register(RegisterIndex(0)),
     };
 
-    let mut vm = VM::new(input_registers, vec![mov_opcode]);
+    let mut vm = VM::new(input_registers, BTreeMap::new(), vec![mov_opcode]);
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
@@ -369,6 +409,7 @@ fn test_cmp_binary_ops() {
 
     let mut vm = VM::new(
         input_registers,
+        BTreeMap::new(),
         vec![equal_opcode, not_equal_opcode, less_than_opcode, less_than_equal_opcode],
     );
 
