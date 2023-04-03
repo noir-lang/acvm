@@ -176,22 +176,17 @@ impl OracleData {
 impl std::fmt::Display for OracleData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ORACLE: {}", self.name)?;
-        let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
 
-        write!(
-            f,
-            "Inputs: _{}..._{}{solved}",
-            self.inputs.first().unwrap(),
-            self.inputs.last().unwrap()
-        )?;
+        write!(f, "Inputs: ")?;
+        for expr in &self.inputs {
+            write!(f, "{}, ", expr)?;
+        }
 
-        let solved = if self.output_values.len() == self.outputs.len() { "solved" } else { "" };
-        write!(
-            f,
-            "Outputs: _{}..._{}{solved}",
-            self.outputs.first().unwrap().witness_index(),
-            self.outputs.last().unwrap().witness_index()
-        )
+        write!(f, "\nOutputs:",)?;
+        for output in &self.outputs {
+            write!(f, "_{}, ", output.0)?;
+        }
+        Ok(())
     }
 }
 
@@ -477,8 +472,8 @@ impl std::fmt::Display for BlackBoxFuncCall {
         // t abbreviate them
         const ABBREVIATION_LIMIT: usize = 5;
 
-        let should_abbreviate_inputs = self.inputs.len() <= ABBREVIATION_LIMIT;
-        let should_abbreviate_outputs = self.outputs.len() <= ABBREVIATION_LIMIT;
+        let should_abbreviate_inputs = false; // = self.inputs.len() <= ABBREVIATION_LIMIT;
+        let should_abbreviate_outputs = false; // = self.outputs.len() <= ABBREVIATION_LIMIT;
 
         // INPUTS
         //
