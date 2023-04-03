@@ -477,7 +477,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         // INPUTS
         //
-        let inputs_str = if should_abbreviate_inputs {
+        let inputs_str = if !should_abbreviate_inputs {
             let mut result = String::new();
             for (index, inp) in self.inputs.iter().enumerate() {
                 result +=
