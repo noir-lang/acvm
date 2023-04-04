@@ -325,7 +325,8 @@ mod test {
     };
 
     use crate::{
-        pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
+        pwg::block::Blocks, Backend, OpcodeResolution, OpcodeResolutionError,
+        PartialWitnessGenerator,
     };
 
     struct StubbedPwg;
@@ -407,5 +408,13 @@ mod test {
             .expect("should be solvable");
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+    }
+
+    #[test]
+    fn test_backend_object_safety() {
+        // This test doesn't do anything at runtime.
+        // We just want to ensure that the `Backend` trait is object safe and this test will refuse to compile
+        // if this property is broken.
+        fn check_object_safety(_backend: Box<dyn Backend>) {}
     }
 }
