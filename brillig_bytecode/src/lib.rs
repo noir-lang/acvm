@@ -10,13 +10,12 @@ mod opcodes;
 mod registers;
 mod value;
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
 pub use registers::{RegisterIndex, Registers};
-use serde::{Deserialize, Serialize};
 pub use value::Typ;
 pub use value::Value;
 
@@ -69,7 +68,7 @@ impl VM {
     }
 
     /// Loop over the bytecode and update the program counter
-    pub fn process_opcodes(mut self) -> (Registers, VMStatus, usize) {
+    pub fn process_opcodes(mut self) -> VMOutputState {
         while !matches!(
             self.process_opcode(),
             VMStatus::Halted | VMStatus::Failure | VMStatus::OracleWait
@@ -198,16 +197,24 @@ impl VM {
         self.registers.set(result, result_value)
     }
 
-    pub fn load_array(self, array_id: &Value) -> Vec<Value> {
-        self.memory[array_id].clone()
-    }
-
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
-    fn finish(self) -> (Registers, VMStatus, usize) {
-        (self.registers, self.status, self.program_counter)
+    fn finish(self) -> VMOutputState {
+        VMOutputState {
+            registers: self.registers,
+            program_counter: self.program_counter,
+            status: self.status,
+            memory: self.memory,
+        }
     }
+}
+
+pub struct VMOutputState {
+    pub registers: Registers,
+    pub program_counter: usize,
+    pub status: VMStatus,
+    pub memory: BTreeMap<Value, Vec<Value>>,
 }
 
 #[test]
@@ -239,7 +246,7 @@ fn add_single_step_smoke() {
 
     // The register at index `2` should have the value of 3 since we had an
     // add opcode
-    let (registers, _, _) = vm.finish();
+    let VMOutputState { registers, .. } = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
@@ -336,7 +343,7 @@ fn test_jmpifnot_opcode() {
     assert_eq!(status, VMStatus::Failure);
 
     // The register at index `2` should have not changed as we jumped over the add opcode
-    let (registers, status, _) = vm.finish();
+    let VMOutputState { registers, .. } = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(output_value, Value::from(false));
 }
@@ -356,7 +363,7 @@ fn test_mov_opcode() {
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
 
-    let (registers, status, _) = vm.finish();
+    let VMOutputState { registers, status, .. } = vm.finish();
 
     let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(destination_value, Value::from(1u128));

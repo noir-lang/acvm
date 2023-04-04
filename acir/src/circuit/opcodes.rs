@@ -15,10 +15,28 @@ pub enum JabberingIn {
     Array(u32, Vec<Expression>),
 }
 
+impl JabberingIn {
+    fn to_u16(&self) -> u16 {
+        match self {
+            JabberingIn::Simple(_) => 0,
+            JabberingIn::Array { .. } => 1,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum JabberingOut {
     Simple(Witness),
     Array(Vec<Witness>),
+}
+
+impl JabberingOut {
+    fn to_u16(&self) -> u16 {
+        match self {
+            JabberingOut::Simple(_) => 0,
+            JabberingOut::Array(_) => 1,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -35,13 +53,34 @@ impl Brillig {
         let inputs_len = self.inputs.len() as u32;
         write_u32(&mut writer, inputs_len)?;
         for input in &self.inputs {
-            input.write(&mut writer)?
+            write_u16(&mut writer, input.to_u16())?;
+            match input {
+                JabberingIn::Simple(expr) => expr.write(&mut writer)?,
+                JabberingIn::Array(id, expr_arr) => {
+                    write_u32(&mut writer, *id)?;
+                    write_u32(&mut writer, expr_arr.len() as u32)?;
+                    for expr in expr_arr {
+                        expr.write(&mut writer)?;
+                    }
+                }
+            }
         }
 
         let outputs_len = self.outputs.len() as u32;
         write_u32(&mut writer, outputs_len)?;
         for output in &self.outputs {
-            write_u32(&mut writer, output.witness_index())?;
+            write_u16(&mut writer, output.to_u16())?;
+            match output {
+                JabberingOut::Simple(witness) => {
+                    write_u32(&mut writer, witness.witness_index())?;
+                }
+                JabberingOut::Array(witness_arr) => {
+                    write_u32(&mut writer, witness_arr.len() as u32)?;
+                    for w in witness_arr {
+                        write_u32(&mut writer, w.witness_index())?;
+                    }
+                }
+            }
         }
 
         // TODO: We use rmp_serde as its easier than doing it manually
@@ -63,13 +102,38 @@ impl Brillig {
         let inputs_len = read_u32(&mut reader)?;
         let mut inputs = Vec::with_capacity(inputs_len as usize);
         for _ in 0..inputs_len {
-            inputs.push(Expression::read(&mut reader)?);
+            let input_type = read_u16(&mut reader)?;
+            match input_type {
+                0 => inputs.push(JabberingIn::Simple(Expression::read(&mut reader)?)),
+                1 => {
+                    let arr_id = read_u32(&mut reader)?;
+                    let arr_len = read_u32(&mut reader)?;
+                    let mut arr_inputs = Vec::with_capacity(arr_len as usize);
+                    for _ in 0..arr_len {
+                        arr_inputs.push(Expression::read(&mut reader)?)
+                    }
+                    inputs.push(JabberingIn::Array(arr_id, arr_inputs))
+                }
+                _ => return Err(std::io::ErrorKind::InvalidData.into()),
+            }
         }
 
         let outputs_len = read_u32(&mut reader)?;
         let mut outputs = Vec::with_capacity(outputs_len as usize);
         for _ in 0..outputs_len {
-            outputs.push(Witness(read_u32(&mut reader)?));
+            let output_type = read_u16(&mut reader)?;
+            match output_type {
+                0 => outputs.push(JabberingOut::Simple(Witness(read_u32(&mut reader)?))),
+                1 => {
+                    let witness_arr_len = read_u32(&mut reader)?;
+                    let mut witness_arr = Vec::with_capacity(witness_arr_len as usize);
+                    for _ in 0..witness_arr_len {
+                        witness_arr.push(Witness(read_u32(&mut reader)?))
+                    }
+                    outputs.push(JabberingOut::Array(witness_arr))
+                }
+                _ => return Err(std::io::ErrorKind::InvalidData.into()),
+            }
         }
 
         let buffer_len = read_u32(&mut reader)?;

@@ -352,7 +352,7 @@ mod test {
         brillig_bytecode::{BinaryOp, Comparison, RegisterIndex, RegisterMemIndex, Typ},
         circuit::{
             directives::Directive,
-            opcodes::{BlackBoxFuncCall, Brillig, OracleData},
+            opcodes::{BlackBoxFuncCall, Brillig, JabberingIn, JabberingOut, OracleData},
             Opcode,
         },
         native_types::{Expression, Witness},
@@ -491,14 +491,19 @@ mod test {
 
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
-                Expression {
+                JabberingIn::Simple(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
-                },
-                Expression::default(),
+                }),
+                JabberingIn::Simple(Expression::default()),
             ],
-            outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
+            outputs: vec![
+                JabberingOut::Simple(w_x_plus_y),
+                JabberingOut::Simple(w_oracle),
+                JabberingOut::Simple(w_equal_res),
+                JabberingOut::Simple(w_lt_res),
+            ],
             bytecode: brillig_bytecode.clone(),
             predicate: None,
         });
@@ -550,18 +555,23 @@ mod test {
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(Brillig {
             inputs: vec![
-                Expression {
+                JabberingIn::Simple(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
-                },
-                Expression::default(),
+                }),
+                JabberingIn::Simple(Expression::default()),
                 // These are the Brillig binary op results
                 // We include the register values here so that they are part of the witness
-                Expression::default(),
-                Expression::default(),
+                JabberingIn::Simple(Expression::default()),
+                JabberingIn::Simple(Expression::default()),
             ],
-            outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
+            outputs: vec![
+                JabberingOut::Simple(w_x_plus_y),
+                JabberingOut::Simple(w_oracle),
+                JabberingOut::Simple(w_equal_res),
+                JabberingOut::Simple(w_lt_res),
+            ],
             bytecode: new_brillig_bytecode,
             predicate: None,
         })];
@@ -624,14 +634,19 @@ mod test {
 
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
-                Expression {
+                JabberingIn::Simple(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
-                },
-                Expression::default(),
+                }),
+                JabberingIn::Simple(Expression::default()),
             ],
-            outputs: vec![w_x_plus_y, w_oracle, w_equal_res, w_lt_res],
+            outputs: vec![
+                JabberingOut::Simple(w_x_plus_y),
+                JabberingOut::Simple(w_oracle),
+                JabberingOut::Simple(w_equal_res),
+                JabberingOut::Simple(w_lt_res),
+            ],
             bytecode: brillig_bytecode.clone(),
             predicate: Some(Expression::default()),
         });

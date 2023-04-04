@@ -9,6 +9,32 @@ pub struct Registers {
     pub inner: Vec<Value>,
 }
 
+impl IntoIterator for Registers {
+    type Item = Value;
+    type IntoIter = RegistersIntoIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        RegistersIntoIterator { registers: self, index: 0 }
+    }
+}
+pub struct RegistersIntoIterator {
+    registers: Registers,
+    index: usize,
+}
+
+impl Iterator for RegistersIntoIterator {
+    type Item = Value;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.registers.inner.len() {
+            return None;
+        }
+
+        self.index += 1;
+        Some(self.registers.inner[self.index - 1])
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RegisterIndex(pub usize);
 
