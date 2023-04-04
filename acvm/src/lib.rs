@@ -10,14 +10,13 @@ pub mod pwg;
 use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
 use acir::{
     circuit::{
-        directives::Directive,
         opcodes::{BlackBoxFuncCall, OracleData},
         Circuit, Opcode,
     },
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
-use pwg::block::Blocks;
+use pwg::{block::Blocks, directives::solve_directives};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -65,6 +64,22 @@ pub enum OpcodeResolution {
     InProgress,
 }
 
+/// Check if all of the inputs to the function have assignments
+///
+/// Returns the first missing assignment if any are missing
+fn first_missing_assignment(
+    witness_assignments: &BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Option<Witness> {
+    func_call.inputs.iter().find_map(|input| {
+        if witness_assignments.contains_key(&input.witness) {
+            None
+        } else {
+            Some(input.witness)
+        }
+    })
+}
+
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
 
 /// This component will generate the backend specific output for
@@ -89,18 +104,16 @@ pub trait PartialWitnessGenerator {
                     Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                     Opcode::BlackBoxFuncCall(bb_func) => {
                         if let Some(unassigned_witness) =
-                            Self::any_missing_assignment(initial_witness, bb_func)
+                            first_missing_assignment(initial_witness, bb_func)
                         {
                             Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
                                 unassigned_witness.0,
                             )))
                         } else {
-                            Self::solve_black_box_function_call(initial_witness, bb_func)
+                            self.solve_black_box_function_call(initial_witness, bb_func)
                         }
                     }
-                    Opcode::Directive(directive) => {
-                        Self::solve_directives(initial_witness, directive)
-                    }
+                    Opcode::Directive(directive) => solve_directives(initial_witness, directive),
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                         blocks.solve(block.id, &block.trace, initial_witness)
                     }
@@ -160,37 +173,10 @@ pub trait PartialWitnessGenerator {
     }
 
     fn solve_black_box_function_call(
+        &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-
-    // Check if all of the inputs to the function have assignments
-    // Returns the first missing assignment if any are missing
-    fn any_missing_assignment(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        func_call: &BlackBoxFuncCall,
-    ) -> Option<Witness> {
-        func_call.inputs.iter().find_map(|input| {
-            if initial_witness.contains_key(&input.witness) {
-                None
-            } else {
-                Some(input.witness)
-            }
-        })
-    }
-
-    fn solve_directives(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        directive: &Directive,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        match pwg::directives::solve_directives(initial_witness, directive) {
-            Ok(_) => Ok(OpcodeResolution::Solved),
-            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
-                Ok(OpcodeResolution::Stalled(unsolved))
-            }
-            Err(err) => Err(err),
-        }
-    }
 }
 
 pub trait SmartContract {
@@ -333,6 +319,7 @@ mod test {
 
     impl PartialWitnessGenerator for StubbedPwg {
         fn solve_black_box_function_call(
+            &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _func_call: &BlackBoxFuncCall,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -415,6 +402,7 @@ mod test {
         // This test doesn't do anything at runtime.
         // We just want to ensure that the `Backend` trait is object safe and this test will refuse to compile
         // if this property is broken.
+        #[allow(dead_code)]
         fn check_object_safety(_backend: Box<dyn Backend>) {}
     }
 }
