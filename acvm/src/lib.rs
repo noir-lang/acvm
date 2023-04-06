@@ -182,16 +182,6 @@ pub trait PartialWitnessGenerator {
 pub trait SmartContract {
     // TODO: Allow a backend to support multiple smart contract platforms
 
-    /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
-    /// Then returns an Ethereum smart contract
-    ///
-    /// XXX: This will be deprecated in future releases for the above method.
-    /// This deprecation may happen in two stages:
-    /// The first stage will remove `num_witnesses` and `num_public_inputs` parameters.
-    /// If we cannot avoid `num_witnesses`, it can be added into the Circuit struct.
-    #[deprecated]
-    fn eth_contract_from_cs(&self, circuit: Circuit) -> String;
-
     /// Returns an Ethereum smart contract to verify proofs against a given verification key.
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
 }
