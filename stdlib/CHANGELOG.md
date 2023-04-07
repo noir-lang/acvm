@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.8.1...acvm_stdlib-v0.9.0) (2023-04-07)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * acir bumped from 0.8.1 to 0.9.0
+
 ## [0.8.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.8.0...acvm_stdlib-v0.8.1) (2023-03-30)
 
 
