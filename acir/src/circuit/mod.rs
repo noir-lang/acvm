@@ -91,7 +91,11 @@ impl Circuit {
         }
 
         let num_opcodes = read_u32(&mut reader)?;
-        let mut opcodes = Vec::with_capacity(num_opcodes as usize);
+
+        let mut opcodes = Vec::new();
+        opcodes
+            .try_reserve_exact(num_opcodes as usize)
+            .map_err(|_| std::io::ErrorKind::InvalidData)?;
         for _ in 0..num_opcodes {
             let opcode = Opcode::read(&mut reader)?;
             opcodes.push(opcode)
