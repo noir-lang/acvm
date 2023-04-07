@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.0](https://github.com/noir-lang/acvm/compare/acvm-v0.8.1...acvm-v0.9.0) (2023-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** Remove deprecated eth_contract_from_cs from SmartContract trait ([#185](https://github.com/noir-lang/acvm/issues/185))
+* **acvm:** make `Backend` trait object safe ([#180](https://github.com/noir-lang/acvm/issues/180))
+
+### Features
+
+* **acvm:** make `Backend` trait object safe ([#180](https://github.com/noir-lang/acvm/issues/180)) ([fd28657](https://github.com/noir-lang/acvm/commit/fd28657426260ce3c53517b75a27eb5c4a74e234))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Remove deprecated eth_contract_from_cs from SmartContract trait ([#185](https://github.com/noir-lang/acvm/issues/185)) ([ee59c9e](https://github.com/noir-lang/acvm/commit/ee59c9efe9a54ff6b97e4daaebf64f3e327e97d9))
+
 ## [0.8.1](https://github.com/noir-lang/acvm/compare/acvm-v0.8.0...acvm-v0.8.1) (2023-03-30)
 
 
