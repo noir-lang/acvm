@@ -9,7 +9,7 @@ use acir::{
 use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 use super::{
-    arithmetic::{ArithmeticSolver, GateStatus},
+    arithmetic::{ArithmeticSolver, ArithmeticStatus},
     directives::insert_witness,
 };
 
@@ -79,13 +79,13 @@ impl BlockSolver {
                 self.insert_value(index, value.q_c);
             } else if operation.is_zero() && value.is_linear() {
                 match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                    GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
-                    GateStatus::GateSolvable(sum, (coef, w)) => {
+                    ArithmeticStatus::Unsolvable => return Err(missing_assignment(value_witness)),
+                    ArithmeticStatus::Solvable(sum, (coef, w)) => {
                         let map_value =
                             self.get_value(index).ok_or_else(|| missing_assignment(Some(w)))?;
                         insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
-                    GateStatus::GateSatisfied(sum) => {
+                    ArithmeticStatus::Satisfied(sum) => {
                         self.insert_value(index, sum + value.q_c);
                     }
                 }

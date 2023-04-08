@@ -10,11 +10,10 @@ use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 /// and create the other witness variables
 pub struct ArithmeticSolver;
 
-#[allow(clippy::enum_variant_names)]
-pub enum GateStatus {
-    GateSatisfied(FieldElement),
-    GateSolvable(FieldElement, (FieldElement, Witness)),
-    GateUnsolvable,
+pub enum ArithmeticStatus {
+    Satisfied(FieldElement),
+    Solvable(FieldElement, (FieldElement, Witness)),
+    Unsolvable,
 }
 
 enum MulTerm {
@@ -36,12 +35,12 @@ impl ArithmeticSolver {
         let gate_status = ArithmeticSolver::solve_fan_in_term(gate, initial_witness);
 
         match (mul_result, gate_status) {
-            (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
+            (MulTerm::TooManyUnknowns, _) | (_, ArithmeticStatus::Unsolvable) => {
                 Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
                     gate.clone(),
                 )))
             }
-            (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
+            (MulTerm::OneUnknown(q, w1), ArithmeticStatus::Solvable(a, (b, w2))) => {
                 if w1 == w2 {
                     // We have one unknown so we can solve the equation
                     let total_sum = a + gate.q_c;
@@ -64,7 +63,7 @@ impl ArithmeticSolver {
                     )))
                 }
             }
-            (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
+            (MulTerm::OneUnknown(partial_prod, unknown_var), ArithmeticStatus::Satisfied(sum)) => {
                 // We have one unknown in the mul term and the fan-in terms are solved.
                 // Hence the equation is solvable, since there is a single unknown
                 // The equation is: partial_prod * unknown_var + sum + qC = 0
@@ -83,7 +82,7 @@ impl ArithmeticSolver {
                     Ok(OpcodeResolution::Solved)
                 }
             }
-            (MulTerm::Solved(a), GateStatus::GateSatisfied(b)) => {
+            (MulTerm::Solved(a), ArithmeticStatus::Satisfied(b)) => {
                 // All the variables in the MulTerm are solved and the Fan-in is also solved
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
@@ -94,7 +93,7 @@ impl ArithmeticSolver {
             }
             (
                 MulTerm::Solved(total_prod),
-                GateStatus::GateSolvable(partial_sum, (coeff, unknown_var)),
+                ArithmeticStatus::Solvable(partial_sum, (coeff, unknown_var)),
             ) => {
                 // The variables in the MulTerm are solved nad there is one unknown in the Fan-in
                 // Hence the equation is solvable, since we have one unknown
@@ -169,7 +168,7 @@ impl ArithmeticSolver {
     pub fn solve_fan_in_term(
         arith_gate: &Expression,
         witness_assignments: &BTreeMap<Witness, FieldElement>,
-    ) -> GateStatus {
+    ) -> ArithmeticStatus {
         // This is assuming that the fan-in is more than 0
 
         // This is the variable that we want to assign the value to
@@ -190,15 +189,15 @@ impl ArithmeticSolver {
 
             // If we have more than 1 unknown, then we cannot solve this equation
             if num_unknowns > 1 {
-                return GateStatus::GateUnsolvable;
+                return ArithmeticStatus::Unsolvable;
             }
         }
 
         if num_unknowns == 0 {
-            return GateStatus::GateSatisfied(result);
+            return ArithmeticStatus::Satisfied(result);
         }
 
-        GateStatus::GateSolvable(result, unknown_variable)
+        ArithmeticStatus::Solvable(result, unknown_variable)
     }
 
     // Partially evaluate the gate using the known witnesses
