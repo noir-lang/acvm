@@ -28,19 +28,25 @@ pub enum VMStatus {
     OracleWait,
 }
 
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
+pub struct ArrayHeap {
+    // maps memory address to Value
+    pub memory_map: BTreeMap<usize, Value>,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VM {
     registers: Registers,
     program_counter: usize,
     bytecode: Vec<Opcode>,
     status: VMStatus,
-    memory: BTreeMap<Value, Vec<Value>>,
+    memory: BTreeMap<Value, ArrayHeap>,
 }
 
 impl VM {
     pub fn new(
         mut inputs: Registers,
-        memory: BTreeMap<Value, Vec<Value>>,
+        memory: BTreeMap<Value, ArrayHeap>,
         mut bytecode: Vec<Opcode>,
     ) -> VM {
         let last_opcode = bytecode.last().expect("need at least one opcode");
@@ -144,7 +150,7 @@ impl VM {
                 let array = &self.memory[&array_id];
                 match destination {
                     RegisterMemIndex::Register(dest_index) => {
-                        self.registers.set(*dest_index, array[*index]);
+                        self.registers.set(*dest_index, array.memory_map[index]);
                     }
                     _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
                 }
@@ -153,8 +159,8 @@ impl VM {
             Opcode::Store { source, array_id_reg, index } => {
                 let source_value = self.registers.get(*source);
                 let array_id = self.registers.get(*array_id_reg);
-                let array = self.memory.entry(array_id).or_default();
-                array[*index] = source_value;
+                let heap = &mut self.memory.entry(array_id).or_default().memory_map;
+                heap.insert(*index, source_value);
                 self.increment_program_counter()
             }
         }
@@ -216,7 +222,7 @@ pub struct VMOutputState {
     pub registers: Registers,
     pub program_counter: usize,
     pub status: VMStatus,
-    pub memory: BTreeMap<Value, Vec<Value>>,
+    pub memory: BTreeMap<Value, ArrayHeap>,
 }
 
 #[test]
@@ -489,7 +495,10 @@ fn load_opcode() {
     };
 
     let mut initial_memory = BTreeMap::new();
-    initial_memory.insert(Value::from(5u128), vec![Value::from(5u128), Value::from(6u128)]);
+    let initial_heap = ArrayHeap {
+        memory_map: BTreeMap::from([(0 as usize, Value::from(5u128)), (1, Value::from(6u128))]),
+    };
+    initial_memory.insert(Value::from(5u128), initial_heap);
 
     let mut vm = VM::new(
         input_registers,
@@ -557,14 +566,14 @@ fn store_opcode() {
     let store_opcode = Opcode::Store {
         source: RegisterMemIndex::Register(RegisterIndex(2)),
         array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
-        index: 2,
+        index: 3,
     };
 
     let mut initial_memory = BTreeMap::new();
-    initial_memory.insert(
-        Value::from(5u128),
-        vec![Value::from(5u128), Value::from(6u128), Value::from(0u128)],
-    );
+    let initial_heap = ArrayHeap {
+        memory_map: BTreeMap::from([(0 as usize, Value::from(5u128)), (1, Value::from(6u128))]),
+    };
+    initial_memory.insert(Value::from(5u128), initial_heap);
 
     let mut vm = VM::new(
         input_registers,
@@ -584,11 +593,12 @@ fn store_opcode() {
     assert_eq!(status, VMStatus::InProgress);
 
     let mem_array = vm.memory[&Value::from(5u128)].clone();
-    assert_eq!(mem_array[2], Value::from(true));
+    assert_eq!(mem_array.memory_map[&3], Value::from(true));
 
     // jump_opcode
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
+    dbg!(status);
 
     // jump_if_opcode
     let status = vm.process_opcode();

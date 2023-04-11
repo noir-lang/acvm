@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Opcode, OracleData, Registers, Typ, VMOutputState, VMStatus, Value, VM},
+    brillig_bytecode::{
+        ArrayHeap, Opcode, OracleData, Registers, Typ, VMOutputState, VMStatus, Value, VM,
+    },
     circuit::opcodes::{Brillig, JabberingIn, JabberingOut},
     native_types::Witness,
     FieldElement,
@@ -53,7 +55,7 @@ impl BrilligSolver {
 
         // Set input values
         let mut input_register_values: Vec<Value> = Vec::new();
-        let mut input_memory: BTreeMap<Value, Vec<Value>> = BTreeMap::new();
+        let mut input_memory: BTreeMap<Value, ArrayHeap> = BTreeMap::new();
         for input in &brillig.inputs {
             match input {
                 JabberingIn::Simple(expr) => {
@@ -74,17 +76,17 @@ impl BrilligSolver {
                     input_register_values.push(id_as_value.into());
 
                     let mut continue_eval = true;
-                    let mut array_heap: Vec<Value> = Vec::new();
-                    for expr in expr_arr {
+                    let mut array_heap: BTreeMap<usize, Value> = BTreeMap::new();
+                    for (i, expr) in expr_arr.into_iter().enumerate() {
                         let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                         if let Some(value) = solve.to_const() {
-                            array_heap.push(value.into())
+                            array_heap.insert(i, value.into());
                         } else {
                             continue_eval = false;
                             break;
                         }
                     }
-                    input_memory.insert(id_as_value, array_heap);
+                    input_memory.insert(id_as_value, ArrayHeap { memory_map: array_heap });
 
                     if !continue_eval {
                         break;
@@ -141,10 +143,10 @@ impl BrilligSolver {
         for (output, register_value) in brillig.outputs.iter().zip(registers) {
             match output {
                 JabberingOut::Simple(witness) => {
-                    insert_witness(*witness, register_value.inner, initial_witness)?
+                    insert_witness(*witness, register_value.inner, initial_witness)?;
                 }
                 JabberingOut::Array(witness_arr) => {
-                    let array = memory[&register_value].clone();
+                    let array = memory[&register_value].memory_map.values();
                     for (witness, value) in witness_arr.iter().zip(array) {
                         insert_witness(*witness, value.inner, initial_witness)?;
                     }
