@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Opcode, OracleData, Registers, VMStatus, Value, VM},
-    circuit::opcodes::Brillig,
+    brillig_bytecode::{
+        ArrayHeap, Opcode, OracleData, Registers, Typ, VMOutputState, VMStatus, Value, VM,
+    },
+    circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::Witness,
     FieldElement,
 };
@@ -36,42 +38,84 @@ impl BrilligSolver {
 
         // A zero predicate indicates the oracle should be skipped, and its ouputs zeroed.
         if pred_value.is_zero() {
-            for output_witness in &brillig.outputs {
-                insert_witness(*output_witness, FieldElement::zero(), initial_witness)?;
+            for output in &brillig.outputs {
+                match output {
+                    BrilligOutputs::Simple(witness) => {
+                        insert_witness(*witness, FieldElement::zero(), initial_witness)?
+                    }
+                    BrilligOutputs::Array(witness_arr) => {
+                        for w in witness_arr {
+                            insert_witness(*w, FieldElement::zero(), initial_witness)?
+                        }
+                    }
+                }
             }
             return Ok(OpcodeResolution::Solved);
         }
 
         // Set input values
         let mut input_register_values: Vec<Value> = Vec::new();
-        for expr in &brillig.inputs {
-            // Break from setting the inputs values if unable to solve the arithmetic expression inputs
-            // TODO: switch this to `get_value` and map the err
-            let solve = ArithmeticSolver::evaluate(expr, initial_witness);
-            if let Some(value) = solve.to_const() {
-                input_register_values.push(value.into())
-            } else {
-                break;
+        let mut input_memory: BTreeMap<Value, ArrayHeap> = BTreeMap::new();
+        for input in &brillig.inputs {
+            match input {
+                BrilligInputs::Simple(expr) => {
+                    // TODO: switch this to `get_value` and map the err
+                    let solve = ArithmeticSolver::evaluate(expr, initial_witness);
+                    if let Some(value) = solve.to_const() {
+                        input_register_values.push(value.into())
+                    } else {
+                        break;
+                    }
+                }
+                BrilligInputs::Array(id, expr_arr) => {
+                    let id_as_value: Value = Value {
+                        typ: Typ::Unsigned { bit_size: 32 },
+                        inner: FieldElement::from(*id as u128),
+                    };
+                    // Push value of the array id as a register
+                    input_register_values.push(id_as_value.into());
+
+                    let mut continue_eval = true;
+                    let mut array_heap: BTreeMap<usize, Value> = BTreeMap::new();
+                    for (i, expr) in expr_arr.into_iter().enumerate() {
+                        let solve = ArithmeticSolver::evaluate(expr, initial_witness);
+                        if let Some(value) = solve.to_const() {
+                            array_heap.insert(i, value.into());
+                        } else {
+                            continue_eval = false;
+                            break;
+                        }
+                    }
+                    input_memory.insert(id_as_value, ArrayHeap { memory_map: array_heap });
+
+                    if !continue_eval {
+                        break;
+                    }
+                }
             }
         }
 
         if input_register_values.len() != brillig.inputs.len() {
+            let jabber_input =
+                brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
+            let expr = match jabber_input {
+                BrilligInputs::Simple(expr) => expr,
+                BrilligInputs::Array(_, expr_arr) => {
+                    expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
+                }
+            };
             return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
-                brillig
-                    .inputs
-                    .last()
-                    .expect("Infallible: cannot reach this point if no inputs")
-                    .clone(),
+                expr.clone(),
             )));
         }
 
         let input_registers = Registers { inner: input_register_values };
-        let vm = VM::new(input_registers, brillig.bytecode.clone());
+        let vm = VM::new(input_registers, input_memory, brillig.bytecode.clone());
 
-        let (output_registers, status, pc) = vm.process_opcodes();
+        let VMOutputState { registers, program_counter, status, memory } = vm.process_opcodes();
 
         if status == VMStatus::OracleWait {
-            let current_opcode = &brillig.bytecode[pc];
+            let current_opcode = &brillig.bytecode[program_counter];
             let mut data = match current_opcode.clone() {
                 Opcode::Oracle(data) => data,
                 _ => {
@@ -86,21 +130,28 @@ impl BrilligSolver {
                 .clone()
                 .inputs
                 .into_iter()
-                .map(|register_mem_index| output_registers.get(register_mem_index).inner)
+                .map(|register_mem_index| registers.get(register_mem_index).inner)
                 .collect::<Vec<_>>();
             data.input_values = input_values;
 
             return Ok(OpcodeResolution::InProgressBrillig(OracleWaitInfo {
                 data: data.clone(),
-                program_counter: pc,
+                program_counter,
             }));
         }
 
-        let output_register_values: Vec<FieldElement> =
-            output_registers.clone().inner.into_iter().map(|v| v.inner).collect::<Vec<_>>();
-
-        for (witness, value) in brillig.outputs.iter().zip(output_register_values) {
-            insert_witness(*witness, value, initial_witness)?;
+        for (output, register_value) in brillig.outputs.iter().zip(registers) {
+            match output {
+                BrilligOutputs::Simple(witness) => {
+                    insert_witness(*witness, register_value.inner, initial_witness)?;
+                }
+                BrilligOutputs::Array(witness_arr) => {
+                    let array = memory[&register_value].memory_map.values();
+                    for (witness, value) in witness_arr.iter().zip(array) {
+                        insert_witness(*witness, value.inner, initial_witness)?;
+                    }
+                }
+            }
         }
 
         Ok(OpcodeResolution::Solved)

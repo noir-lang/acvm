@@ -10,6 +10,9 @@ mod opcodes;
 mod registers;
 mod value;
 
+use std::array;
+use std::collections::BTreeMap;
+
 use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
@@ -25,19 +28,31 @@ pub enum VMStatus {
     OracleWait,
 }
 
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
+pub struct ArrayHeap {
+    // maps memory address to Value
+    pub memory_map: BTreeMap<usize, Value>,
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VM {
     registers: Registers,
     program_counter: usize,
     bytecode: Vec<Opcode>,
     status: VMStatus,
+    memory: BTreeMap<Value, ArrayHeap>,
 }
 
 impl VM {
-    pub fn new(mut inputs: Registers, mut bytecode: Vec<Opcode>) -> VM {
+    pub fn new(
+        mut inputs: Registers,
+        memory: BTreeMap<Value, ArrayHeap>,
+        mut bytecode: Vec<Opcode>,
+    ) -> VM {
         let last_opcode = bytecode.last().expect("need at least one opcode");
 
         if let Opcode::Bootstrap { register_allocation_indices } = last_opcode {
+            // TODO: might have to handle arrays in bootstrap to be correct
             let mut registers_modified =
                 Registers::load(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }]);
 
@@ -50,13 +65,18 @@ impl VM {
             bytecode.pop();
             inputs = registers_modified;
         }
-        let vm =
-            Self { registers: inputs, program_counter: 0, bytecode, status: VMStatus::InProgress };
+        let vm = Self {
+            registers: inputs,
+            program_counter: 0,
+            bytecode,
+            status: VMStatus::InProgress,
+            memory,
+        };
         vm
     }
 
     /// Loop over the bytecode and update the program counter
-    pub fn process_opcodes(mut self) -> (Registers, VMStatus, usize) {
+    pub fn process_opcodes(mut self) -> VMOutputState {
         while !matches!(
             self.process_opcode(),
             VMStatus::Halted | VMStatus::Failure | VMStatus::OracleWait
@@ -125,6 +145,24 @@ impl VM {
                 "should only be at end of opcodes and popped off when initializing the vm"
             ),
             Opcode::Stop => VMStatus::Halted,
+            Opcode::Load { destination, array_id_reg, index } => {
+                let array_id = self.registers.get(*array_id_reg);
+                let array = &self.memory[&array_id];
+                match destination {
+                    RegisterMemIndex::Register(dest_index) => {
+                        self.registers.set(*dest_index, array.memory_map[index]);
+                    }
+                    _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
+                }
+                self.increment_program_counter()
+            }
+            Opcode::Store { source, array_id_reg, index } => {
+                let source_value = self.registers.get(*source);
+                let array_id = self.registers.get(*array_id_reg);
+                let heap = &mut self.memory.entry(array_id).or_default().memory_map;
+                heap.insert(*index, source_value);
+                self.increment_program_counter()
+            }
         }
     }
 
@@ -170,9 +208,21 @@ impl VM {
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
-    fn finish(self) -> (Registers, VMStatus, usize) {
-        (self.registers, self.status, self.program_counter)
+    fn finish(self) -> VMOutputState {
+        VMOutputState {
+            registers: self.registers,
+            program_counter: self.program_counter,
+            status: self.status,
+            memory: self.memory,
+        }
     }
+}
+
+pub struct VMOutputState {
+    pub registers: Registers,
+    pub program_counter: usize,
+    pub status: VMStatus,
+    pub memory: BTreeMap<Value, ArrayHeap>,
 }
 
 #[test]
@@ -193,7 +243,7 @@ fn add_single_step_smoke() {
     };
 
     // Start VM
-    let mut vm = VM::new(input_registers, vec![opcode]);
+    let mut vm = VM::new(input_registers, BTreeMap::new(), vec![opcode]);
 
     // Process a single VM opcode
     //
@@ -204,14 +254,14 @@ fn add_single_step_smoke() {
 
     // The register at index `2` should have the value of 3 since we had an
     // add opcode
-    let (registers, _, _) = vm.finish();
+    let VMOutputState { registers, .. } = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
 
     assert_eq!(output_value, Value::from(3u128))
 }
 
 #[test]
-fn test_jmpif_opcode() {
+fn jmpif_opcode() {
     let input_registers =
         Registers::load(vec![Value::from(2u128), Value::from(2u128), Value::from(0u128)]);
 
@@ -228,7 +278,11 @@ fn test_jmpif_opcode() {
     let jump_if_opcode =
         Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 3 };
 
-    let mut vm = VM::new(input_registers, vec![equal_cmp_opcode, jump_opcode, jump_if_opcode]);
+    let mut vm = VM::new(
+        input_registers,
+        BTreeMap::new(),
+        vec![equal_cmp_opcode, jump_opcode, jump_if_opcode],
+    );
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
@@ -246,7 +300,7 @@ fn test_jmpif_opcode() {
 }
 
 #[test]
-fn test_jmpifnot_opcode() {
+fn jmpifnot_opcode() {
     let input_registers =
         Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(0u128)]);
 
@@ -277,6 +331,7 @@ fn test_jmpifnot_opcode() {
 
     let mut vm = VM::new(
         input_registers,
+        BTreeMap::new(),
         vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
     );
 
@@ -296,13 +351,13 @@ fn test_jmpifnot_opcode() {
     assert_eq!(status, VMStatus::Failure);
 
     // The register at index `2` should have not changed as we jumped over the add opcode
-    let (registers, status, _) = vm.finish();
+    let VMOutputState { registers, .. } = vm.finish();
     let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(output_value, Value::from(false));
 }
 
 #[test]
-fn test_mov_opcode() {
+fn mov_opcode() {
     let input_registers =
         Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
@@ -311,12 +366,12 @@ fn test_mov_opcode() {
         source: RegisterMemIndex::Register(RegisterIndex(0)),
     };
 
-    let mut vm = VM::new(input_registers, vec![mov_opcode]);
+    let mut vm = VM::new(input_registers, BTreeMap::new(), vec![mov_opcode]);
 
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::Halted);
 
-    let (registers, status, _) = vm.finish();
+    let VMOutputState { registers, .. } = vm.finish();
 
     let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(destination_value, Value::from(1u128));
@@ -326,7 +381,7 @@ fn test_mov_opcode() {
 }
 
 #[test]
-fn test_cmp_binary_ops() {
+fn cmp_binary_ops() {
     let input_registers = Registers::load(vec![
         Value::from(2u128),
         Value::from(2u128),
@@ -369,6 +424,7 @@ fn test_cmp_binary_ops() {
 
     let mut vm = VM::new(
         input_registers,
+        BTreeMap::new(),
         vec![equal_opcode, not_equal_opcode, less_than_opcode, less_than_equal_opcode],
     );
 
@@ -395,6 +451,158 @@ fn test_cmp_binary_ops() {
 
     let lte_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
     assert_eq!(lte_value, Value::from(true));
+
+    vm.finish();
+}
+
+#[test]
+fn load_opcode() {
+    let input_registers = Registers::load(vec![
+        Value::from(2u128),
+        Value::from(2u128),
+        Value::from(0u128),
+        Value::from(5u128),
+        Value::from(0u128),
+        Value::from(6u128),
+        Value::from(0u128),
+    ]);
+
+    let equal_cmp_opcode = Opcode::BinaryOp {
+        result_type: Typ::Field,
+        op: BinaryOp::Cmp(Comparison::Eq),
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        result: RegisterIndex(2),
+    };
+
+    let jump_opcode = Opcode::JMP { destination: 3 };
+
+    let jump_if_opcode =
+        Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 10 };
+
+    let load_opcode = Opcode::Load {
+        destination: RegisterMemIndex::Register(RegisterIndex(4)),
+        array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
+        index: 1,
+    };
+
+    let mem_equal_opcode = Opcode::BinaryOp {
+        result_type: Typ::Field,
+        op: BinaryOp::Cmp(Comparison::Eq),
+        lhs: RegisterMemIndex::Register(RegisterIndex(4)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(5)),
+        result: RegisterIndex(6),
+    };
+
+    let mut initial_memory = BTreeMap::new();
+    let initial_heap = ArrayHeap {
+        memory_map: BTreeMap::from([(0 as usize, Value::from(5u128)), (1, Value::from(6u128))]),
+    };
+    initial_memory.insert(Value::from(5u128), initial_heap);
+
+    let mut vm = VM::new(
+        input_registers,
+        initial_memory,
+        vec![equal_cmp_opcode, load_opcode, jump_opcode, mem_equal_opcode, jump_if_opcode],
+    );
+
+    // equal_cmp_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_cmp_value, Value::from(true));
+
+    // load_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(4)));
+    assert_eq!(output_cmp_value, Value::from(6u128));
+
+    // jump_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    // mem_equal_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(6)));
+    assert_eq!(output_cmp_value, Value::from(true));
+
+    // jump_if_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::Halted);
+
+    vm.finish();
+}
+
+#[test]
+fn store_opcode() {
+    let input_registers = Registers::load(vec![
+        Value::from(2u128),
+        Value::from(2u128),
+        Value::from(0u128),
+        Value::from(5u128),
+        Value::from(0u128),
+        Value::from(6u128),
+        Value::from(0u128),
+    ]);
+
+    let equal_cmp_opcode = Opcode::BinaryOp {
+        result_type: Typ::Field,
+        op: BinaryOp::Cmp(Comparison::Eq),
+        lhs: RegisterMemIndex::Register(RegisterIndex(0)),
+        rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        result: RegisterIndex(2),
+    };
+
+    let jump_opcode = Opcode::JMP { destination: 3 };
+
+    let jump_if_opcode =
+        Opcode::JMPIF { condition: RegisterMemIndex::Register(RegisterIndex(2)), destination: 10 };
+
+    let store_opcode = Opcode::Store {
+        source: RegisterMemIndex::Register(RegisterIndex(2)),
+        array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
+        index: 3,
+    };
+
+    let mut initial_memory = BTreeMap::new();
+    let initial_heap = ArrayHeap {
+        memory_map: BTreeMap::from([(0 as usize, Value::from(5u128)), (1, Value::from(6u128))]),
+    };
+    initial_memory.insert(Value::from(5u128), initial_heap);
+
+    let mut vm = VM::new(
+        input_registers,
+        initial_memory,
+        vec![equal_cmp_opcode, store_opcode, jump_opcode, jump_if_opcode],
+    );
+
+    // equal_cmp_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+    assert_eq!(output_cmp_value, Value::from(true));
+
+    // store_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+
+    let mem_array = vm.memory[&Value::from(5u128)].clone();
+    assert_eq!(mem_array.memory_map[&3], Value::from(true));
+
+    // jump_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::InProgress);
+    dbg!(status);
+
+    // jump_if_opcode
+    let status = vm.process_opcode();
+    assert_eq!(status, VMStatus::Halted);
 
     vm.finish();
 }

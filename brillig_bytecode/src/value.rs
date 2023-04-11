@@ -47,6 +47,12 @@ impl From<FieldElement> for Value {
     }
 }
 
+impl From<u32> for Value {
+    fn from(value: u32) -> Self {
+        Value { typ: Typ::Field, inner: FieldElement::from(value as i128) }
+    }
+}
+
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         if value {
