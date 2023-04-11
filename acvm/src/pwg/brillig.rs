@@ -4,7 +4,7 @@ use acir::{
     brillig_bytecode::{
         ArrayHeap, Opcode, OracleData, Registers, Typ, VMOutputState, VMStatus, Value, VM,
     },
-    circuit::opcodes::{Brillig, JabberingIn, JabberingOut},
+    circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::Witness,
     FieldElement,
 };
@@ -40,10 +40,10 @@ impl BrilligSolver {
         if pred_value.is_zero() {
             for output in &brillig.outputs {
                 match output {
-                    JabberingOut::Simple(witness) => {
+                    BrilligOutputs::Simple(witness) => {
                         insert_witness(*witness, FieldElement::zero(), initial_witness)?
                     }
-                    JabberingOut::Array(witness_arr) => {
+                    BrilligOutputs::Array(witness_arr) => {
                         for w in witness_arr {
                             insert_witness(*w, FieldElement::zero(), initial_witness)?
                         }
@@ -58,7 +58,7 @@ impl BrilligSolver {
         let mut input_memory: BTreeMap<Value, ArrayHeap> = BTreeMap::new();
         for input in &brillig.inputs {
             match input {
-                JabberingIn::Simple(expr) => {
+                BrilligInputs::Simple(expr) => {
                     // TODO: switch this to `get_value` and map the err
                     let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                     if let Some(value) = solve.to_const() {
@@ -67,7 +67,7 @@ impl BrilligSolver {
                         break;
                     }
                 }
-                JabberingIn::Array(id, expr_arr) => {
+                BrilligInputs::Array(id, expr_arr) => {
                     let id_as_value: Value = Value {
                         typ: Typ::Unsigned { bit_size: 32 },
                         inner: FieldElement::from(*id as u128),
@@ -99,8 +99,8 @@ impl BrilligSolver {
             let jabber_input =
                 brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
             let expr = match jabber_input {
-                JabberingIn::Simple(expr) => expr,
-                JabberingIn::Array(_, expr_arr) => {
+                BrilligInputs::Simple(expr) => expr,
+                BrilligInputs::Array(_, expr_arr) => {
                     expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
                 }
             };
@@ -142,10 +142,10 @@ impl BrilligSolver {
 
         for (output, register_value) in brillig.outputs.iter().zip(registers) {
             match output {
-                JabberingOut::Simple(witness) => {
+                BrilligOutputs::Simple(witness) => {
                     insert_witness(*witness, register_value.inner, initial_witness)?;
                 }
-                JabberingOut::Array(witness_arr) => {
+                BrilligOutputs::Array(witness_arr) => {
                     let array = memory[&register_value].memory_map.values();
                     for (witness, value) in witness_arr.iter().zip(array) {
                         insert_witness(*witness, value.inner, initial_witness)?;

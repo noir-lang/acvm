@@ -10,39 +10,39 @@ use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub enum JabberingIn {
+pub enum BrilligInputs {
     Simple(Expression),
     Array(u32, Vec<Expression>),
 }
 
-impl JabberingIn {
+impl BrilligInputs {
     fn to_u16(&self) -> u16 {
         match self {
-            JabberingIn::Simple(_) => 0,
-            JabberingIn::Array { .. } => 1,
+            BrilligInputs::Simple(_) => 0,
+            BrilligInputs::Array { .. } => 1,
         }
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub enum JabberingOut {
+pub enum BrilligOutputs {
     Simple(Witness),
     Array(Vec<Witness>),
 }
 
-impl JabberingOut {
+impl BrilligOutputs {
     fn to_u16(&self) -> u16 {
         match self {
-            JabberingOut::Simple(_) => 0,
-            JabberingOut::Array(_) => 1,
+            BrilligOutputs::Simple(_) => 0,
+            BrilligOutputs::Array(_) => 1,
         }
     }
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Brillig {
-    pub inputs: Vec<JabberingIn>,
-    pub outputs: Vec<JabberingOut>,
+    pub inputs: Vec<BrilligInputs>,
+    pub outputs: Vec<BrilligOutputs>,
     pub bytecode: Vec<brillig_bytecode::Opcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,
@@ -55,8 +55,8 @@ impl Brillig {
         for input in &self.inputs {
             write_u16(&mut writer, input.to_u16())?;
             match input {
-                JabberingIn::Simple(expr) => expr.write(&mut writer)?,
-                JabberingIn::Array(id, expr_arr) => {
+                BrilligInputs::Simple(expr) => expr.write(&mut writer)?,
+                BrilligInputs::Array(id, expr_arr) => {
                     write_u32(&mut writer, *id)?;
                     write_u32(&mut writer, expr_arr.len() as u32)?;
                     for expr in expr_arr {
@@ -71,10 +71,10 @@ impl Brillig {
         for output in &self.outputs {
             write_u16(&mut writer, output.to_u16())?;
             match output {
-                JabberingOut::Simple(witness) => {
+                BrilligOutputs::Simple(witness) => {
                     write_u32(&mut writer, witness.witness_index())?;
                 }
-                JabberingOut::Array(witness_arr) => {
+                BrilligOutputs::Array(witness_arr) => {
                     write_u32(&mut writer, witness_arr.len() as u32)?;
                     for w in witness_arr {
                         write_u32(&mut writer, w.witness_index())?;
@@ -104,7 +104,7 @@ impl Brillig {
         for _ in 0..inputs_len {
             let input_type = read_u16(&mut reader)?;
             match input_type {
-                0 => inputs.push(JabberingIn::Simple(Expression::read(&mut reader)?)),
+                0 => inputs.push(BrilligInputs::Simple(Expression::read(&mut reader)?)),
                 1 => {
                     let arr_id = read_u32(&mut reader)?;
                     let arr_len = read_u32(&mut reader)?;
@@ -112,7 +112,7 @@ impl Brillig {
                     for _ in 0..arr_len {
                         arr_inputs.push(Expression::read(&mut reader)?)
                     }
-                    inputs.push(JabberingIn::Array(arr_id, arr_inputs))
+                    inputs.push(BrilligInputs::Array(arr_id, arr_inputs))
                 }
                 _ => return Err(std::io::ErrorKind::InvalidData.into()),
             }
@@ -123,14 +123,14 @@ impl Brillig {
         for _ in 0..outputs_len {
             let output_type = read_u16(&mut reader)?;
             match output_type {
-                0 => outputs.push(JabberingOut::Simple(Witness(read_u32(&mut reader)?))),
+                0 => outputs.push(BrilligOutputs::Simple(Witness(read_u32(&mut reader)?))),
                 1 => {
                     let witness_arr_len = read_u32(&mut reader)?;
                     let mut witness_arr = Vec::with_capacity(witness_arr_len as usize);
                     for _ in 0..witness_arr_len {
                         witness_arr.push(Witness(read_u32(&mut reader)?))
                     }
-                    outputs.push(JabberingOut::Array(witness_arr))
+                    outputs.push(BrilligOutputs::Array(witness_arr))
                 }
                 _ => return Err(std::io::ErrorKind::InvalidData.into()),
             }
