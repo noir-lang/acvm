@@ -66,12 +66,12 @@ pub enum Opcode {
     Load {
         destination: RegisterMemIndex,
         array_id_reg: RegisterMemIndex,
-        index: usize,
+        index: RegisterMemIndex,
     },
     Store {
         source: RegisterMemIndex,
         array_id_reg: RegisterMemIndex,
-        index: usize,
+        index: RegisterMemIndex,
     },
     /// Used if execution fails during evaluation
     Trap,
