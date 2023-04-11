@@ -150,7 +150,12 @@ impl VM {
                 let array = &self.memory[&array_id];
                 match destination {
                     RegisterMemIndex::Register(dest_index) => {
-                        self.registers.set(*dest_index, array.memory_map[index]);
+                        let index_value = self.registers.get(*index);
+                        let index_usize = usize::try_from(
+                            index_value.inner.try_to_u64().expect("register does not fit into u64"),
+                        )
+                        .expect("register does not fit into usize");
+                        self.registers.set(*dest_index, array.memory_map[&index_usize]);
                     }
                     _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
                 }
@@ -160,7 +165,14 @@ impl VM {
                 let source_value = self.registers.get(*source);
                 let array_id = self.registers.get(*array_id_reg);
                 let heap = &mut self.memory.entry(array_id).or_default().memory_map;
-                heap.insert(*index, source_value);
+
+                let index_value = self.registers.get(*index);
+                let index_usize = usize::try_from(
+                    index_value.inner.try_to_u64().expect("register does not fit into u64"),
+                )
+                .expect("register does not fit into usize");
+                heap.insert(index_usize, source_value);
+
                 self.increment_program_counter()
             }
         }
@@ -483,7 +495,7 @@ fn load_opcode() {
     let load_opcode = Opcode::Load {
         destination: RegisterMemIndex::Register(RegisterIndex(4)),
         array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
-        index: 1,
+        index: RegisterMemIndex::Register(RegisterIndex(2)),
     };
 
     let mem_equal_opcode = Opcode::BinaryOp {
@@ -566,7 +578,7 @@ fn store_opcode() {
     let store_opcode = Opcode::Store {
         source: RegisterMemIndex::Register(RegisterIndex(2)),
         array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
-        index: 3,
+        index: RegisterMemIndex::Constant(FieldElement::from(3_u128)),
     };
 
     let mut initial_memory = BTreeMap::new();
@@ -598,7 +610,6 @@ fn store_opcode() {
     // jump_opcode
     let status = vm.process_opcode();
     assert_eq!(status, VMStatus::InProgress);
-    dbg!(status);
 
     // jump_if_opcode
     let status = vm.process_opcode();
