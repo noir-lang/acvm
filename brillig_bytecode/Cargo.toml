@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
+num-bigint = "0.4"
 
 [features]
 bn254 = ["acir_field/bn254"]
