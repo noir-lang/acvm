@@ -10,8 +10,6 @@ mod opcodes;
 mod registers;
 mod value;
 
-use std::array;
-use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
@@ -120,9 +118,9 @@ impl VM {
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
                 if data.output_values.len() == 1 {
-                    self.registers.set(data.outputs[0], data.output_values[0].into());
+                    self.registers.set(data.output, data.output_values[0].into());
                 } else if data.output_values.len() > 1 {
-                    let register = self.registers.get(RegisterMemIndex::Register(data.outputs[0]));
+                    let register = self.registers.get(RegisterMemIndex::Register(data.output));
                     let heap = &mut self.memory.entry(register).or_default().memory_map;
                     for (i, value) in data.output_values.iter().enumerate() {
                         heap.insert(i, (*value).into());
@@ -639,7 +637,7 @@ fn oracle_array_output() {
         name: "get_notes".to_owned(),
         inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
         input_values: vec![],
-        outputs: vec![RegisterIndex(3)],
+        output: RegisterIndex(3),
         output_values: vec![],
     };
 

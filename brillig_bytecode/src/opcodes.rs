@@ -107,12 +107,12 @@ impl Opcode {
 pub struct OracleData {
     /// Name of the oracle
     pub name: String,
-    /// Inputs
+    /// Input registers
     pub inputs: Vec<RegisterMemIndex>,
     /// Input values
     pub input_values: Vec<FieldElement>,
-    /// Output witness
-    pub outputs: Vec<RegisterIndex>,
+    /// Output register
+    pub output: RegisterIndex,
     /// Output values - they are computed by the (external) oracle once the inputs are known
     pub output_values: Vec<FieldElement>,
 }
