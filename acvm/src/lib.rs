@@ -11,7 +11,7 @@ use crate::pwg::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, oracle::O
 use acir::{
     circuit::{
         directives::Directive,
-        opcodes::{BlackBoxFuncCall, OracleData},
+        opcodes::{BlackBoxFuncCall, Brillig, OracleData},
         Circuit, Opcode,
     },
     native_types::{Expression, Witness},
@@ -80,7 +80,7 @@ pub trait PartialWitnessGenerator {
     ) -> Result<UnresolvedData, OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut unresolved_oracles: Vec<OracleData> = Vec::new();
-        let mut unresolved_brillig_oracles: Vec<brillig::OracleWaitInfo> = Vec::new();
+        let mut unresolved_brilligs: Vec<UnresolvedBrillig> = Vec::new();
         while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
@@ -137,7 +137,11 @@ pub trait PartialWitnessGenerator {
                     Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
                         stalled = false;
                         // InProgressBrillig Oracles must be externally re-solved
-                        unresolved_brillig_oracles.push(oracle_wait_info);
+                        let brillig = match opcode {
+                            Opcode::Brillig(brillig) => brillig.clone(),
+                            _ => unreachable!("Brillig resolution for non brillig opcode"),
+                        };
+                        unresolved_brilligs.push(UnresolvedBrillig { brillig, oracle_wait_info })
                     }
                     Ok(OpcodeResolution::Stalled(not_solvable)) => {
                         if opcode_not_solvable.is_none() {
@@ -163,11 +167,11 @@ pub trait PartialWitnessGenerator {
                 }
             }
             // We have oracles that must be externally resolved
-            if !unresolved_oracles.is_empty() | !unresolved_brillig_oracles.is_empty() {
+            if !unresolved_oracles.is_empty() | !unresolved_brilligs.is_empty() {
                 return Ok(UnresolvedData {
                     unresolved_opcodes,
                     unresolved_oracles,
-                    unresolved_brillig_oracles,
+                    unresolved_brilligs,
                 });
             }
             // We are stalled because of an opcode being bad
@@ -182,7 +186,7 @@ pub trait PartialWitnessGenerator {
         Ok(UnresolvedData {
             unresolved_opcodes: Vec::new(),
             unresolved_oracles: Vec::new(),
-            unresolved_brillig_oracles: Vec::new(),
+            unresolved_brilligs: Vec::new(),
         })
     }
 
@@ -220,10 +224,15 @@ pub trait PartialWitnessGenerator {
     }
 }
 
+pub struct UnresolvedBrillig {
+    pub brillig: Brillig,
+    pub oracle_wait_info: brillig::OracleWaitInfo,
+}
+
 pub struct UnresolvedData {
     pub unresolved_opcodes: Vec<Opcode>,
     pub unresolved_oracles: Vec<OracleData>,
-    pub unresolved_brillig_oracles: Vec<brillig::OracleWaitInfo>,
+    pub unresolved_brilligs: Vec<UnresolvedBrillig>,
 }
 
 pub trait SmartContract {
@@ -361,7 +370,7 @@ mod test {
 
     use crate::{
         pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
-        UnresolvedData,
+        UnresolvedBrillig, UnresolvedData,
     };
 
     struct StubbedPwg;
@@ -487,7 +496,7 @@ mod test {
             output_values: vec![],
         });
 
-        let mut brillig_bytecode = vec![equal_opcode, less_than_opcode, invert_oracle];
+        let brillig_bytecode = vec![equal_opcode, less_than_opcode, invert_oracle];
 
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
@@ -504,7 +513,7 @@ mod test {
                 BrilligOutputs::Simple(w_equal_res),
                 BrilligOutputs::Simple(w_lt_res),
             ],
-            bytecode: brillig_bytecode.clone(),
+            bytecode: brillig_bytecode,
             predicate: None,
         });
 
@@ -535,54 +544,33 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let UnresolvedData { unresolved_opcodes, mut unresolved_brillig_oracles, .. } = pwg
+        let UnresolvedData { unresolved_opcodes, mut unresolved_brilligs, .. } = pwg
             .solve(&mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
 
-        assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
-        assert_eq!(unresolved_brillig_oracles.len(), 1, "should have a brillig oracle request");
+        assert_eq!(unresolved_opcodes.len(), 0, "brillig should have been removed");
+        assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
 
-        let oracle_wait_info = unresolved_brillig_oracles.remove(0);
+        let UnresolvedBrillig { oracle_wait_info, mut brillig } = unresolved_brilligs.remove(0);
         let mut oracle_data = oracle_wait_info.data;
         assert_eq!(oracle_data.inputs.len(), 1, "Should have solved a single input");
 
-        // Filling data request and continue solving
+        // Fill data request and continue solving
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let invert_oracle = brillig_bytecode::Opcode::Oracle(oracle_data);
-        brillig_bytecode[oracle_wait_info.program_counter] = invert_oracle;
-        // Update the bytecode to only start where we were stopped the previous VM process
-        let new_brillig_bytecode = brillig_bytecode[oracle_wait_info.program_counter..].to_vec();
 
-        let mut next_opcodes_for_solving = vec![Opcode::Brillig(Brillig {
-            inputs: vec![
-                BrilligInputs::Simple(Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
-                    q_c: fe_0,
-                }),
-                BrilligInputs::Simple(Expression::default()),
-                // These are the Brillig binary op results
-                // We include the register values here so that they are part of the witness
-                BrilligInputs::Simple(Expression::default()),
-                BrilligInputs::Simple(Expression::default()),
-            ],
-            outputs: vec![
-                BrilligOutputs::Simple(w_x_plus_y),
-                BrilligOutputs::Simple(w_oracle),
-                BrilligOutputs::Simple(w_equal_res),
-                BrilligOutputs::Simple(w_lt_res),
-            ],
-            bytecode: new_brillig_bytecode,
-            predicate: None,
-        })];
+        // Alter Brillig oracle opcode
+        brillig.bytecode[oracle_wait_info.program_counter] = invert_oracle;
 
+        let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unresolved_opcodes[..]);
-        let UnresolvedData { unresolved_opcodes, unresolved_brillig_oracles, .. } = pwg
+
+        let UnresolvedData { unresolved_opcodes, unresolved_brilligs, .. } = pwg
             .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should not stall on oracle");
 
         assert!(unresolved_opcodes.is_empty(), "should be fully solved");
-        assert!(unresolved_brillig_oracles.is_empty(), "should have no unresolved oracles");
+        assert!(unresolved_brilligs.is_empty(), "should have no unresolved oracles");
     }
 
     #[test]
@@ -647,7 +635,7 @@ mod test {
                 BrilligOutputs::Simple(w_equal_res),
                 BrilligOutputs::Simple(w_lt_res),
             ],
-            bytecode: brillig_bytecode.clone(),
+            bytecode: brillig_bytecode,
             predicate: Some(Expression::default()),
         });
 
@@ -673,11 +661,11 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let UnresolvedData { unresolved_opcodes, mut unresolved_brillig_oracles, .. } = pwg
+        let UnresolvedData { unresolved_opcodes, unresolved_brilligs, .. } = pwg
             .solve(&mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
 
         assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
-        assert_eq!(unresolved_brillig_oracles.len(), 0, "should have a brillig oracle request");
+        assert!(unresolved_brilligs.is_empty(), "should have no unresolved oracles");
     }
 }
