@@ -483,7 +483,7 @@ mod test {
             name: "invert".into(),
             inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
             input_values: vec![],
-            outputs: vec![RegisterIndex(1)],
+            output: RegisterIndex(1),
             output_values: vec![],
         });
 
@@ -626,7 +626,7 @@ mod test {
             name: "invert".into(),
             inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
             input_values: vec![],
-            outputs: vec![RegisterIndex(1)],
+            output: RegisterIndex(1),
             output_values: vec![],
         });
 
