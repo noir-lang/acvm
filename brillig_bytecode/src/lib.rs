@@ -643,9 +643,7 @@ fn oracle_array_output() {
 
     let oracle_opcode = Opcode::Oracle(oracle_data.clone());
 
-    let mut initial_memory = BTreeMap::new();
-    let initial_heap = ArrayHeap { memory_map: BTreeMap::new() };
-    initial_memory.insert(Value::from(5u128), initial_heap);
+    let initial_memory = BTreeMap::new();
 
     let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode]);
 
