@@ -13,12 +13,12 @@ mod value;
 use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
+use num_bigint::{BigInt, Sign};
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
-use num_bigint::{BigInt, Sign};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum VMStatus {
@@ -216,53 +216,7 @@ impl VM {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.function()(lhs_value, rhs_value);
-
-        // match op {
-        //     BinaryOp::Add => {
-
-        //     }
-        //     BinaryOp::Sub => {
-                
-        //     }
-        //     BinaryOp::Mul | BinaryOp::Div => {
-
-        //     }
-        // }
-
-        let wrapped_result = match result_type {
-            // TODO: sub just add and mul rn
-            Typ::Unsigned { bit_size } => {
-                // If result_value is greater than result_type bit size wrap around
-                // let leading_bits = result_value.inner.num_bits() - bit_size;
-                match op {
-                    BinaryOp::Sub => {
-                        // TODO wrap the opposite way of match below
-                        result_value
-                    }
-                    _ => {
-                        let result_as_int: u128 = result_value.inner.try_into_u128().expect("unsigned integer value cannot be larger than u128");
-                        if result_value.inner.num_bits() > bit_size {
-                            let max_size: u128 = (1 << bit_size) - 1;
-                            let new_result = result_as_int - max_size - 1;
-                            if new_result > max_size { panic!("ICE: cannot have a binary op result be larger than its result type's bit size") }
-                            Value { typ: Typ::Unsigned { bit_size }, inner: new_result.into() }
-                        } else {
-                            result_value
-                        }
-                    }
-                }
-
-            }
-            Typ::Signed { bit_size } => {
-                // TODO possibly use BigInt here?
-                // let x  = BigInt::from_bytes_be(Sign::Minus, &result_value.inner.to_be_bytes());
-                // result_value
-                result_value
-            }
-            _ => result_value,
-        };
-
+        let result_value = op.evaluate(lhs_value, rhs_value, result_type);
 
         self.registers.set(result, result_value)
     }
