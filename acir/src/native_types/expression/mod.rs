@@ -2,6 +2,7 @@ use crate::native_types::Witness;
 use crate::serialization::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::io::{Read, Write};
 
 mod operators;
@@ -282,6 +283,114 @@ impl Expression {
 
         found_x & found_y
     }
+
+    /// Returns `self + k*b`
+    pub fn add_mul(&self, k: FieldElement, b: &Expression) -> Expression {
+        if k.is_zero() {
+            return self.clone();
+        } else if self.is_const() {
+            return self.q_c + (k * b);
+        } else if b.is_const() {
+            return self.clone() + (k * b.q_c);
+        }
+
+        let mut mul_terms: Vec<(FieldElement, Witness, Witness)> =
+            Vec::with_capacity(self.mul_terms.len() + b.mul_terms.len());
+        let mut linear_combinations: Vec<(FieldElement, Witness)> =
+            Vec::with_capacity(self.linear_combinations.len() + b.linear_combinations.len());
+        let q_c = self.q_c + k * b.q_c;
+
+        //linear combinations
+        let mut i1 = 0; //a
+        let mut i2 = 0; //b
+        while i1 < self.linear_combinations.len() && i2 < b.linear_combinations.len() {
+            let (a_c, a_w) = self.linear_combinations[i1];
+            let (b_c, b_w) = b.linear_combinations[i2];
+
+            let (coeff, witness) = match a_w.cmp(&b_w) {
+                Ordering::Greater => {
+                    i2 += 1;
+                    (k * b_c, b_w)
+                }
+                Ordering::Less => {
+                    i1 += 1;
+                    (a_c, a_w)
+                }
+                Ordering::Equal => {
+                    // Here we're taking both witnesses as the witness indices are equal.
+                    // We then advance both `i1` and `i2`.
+                    i1 += 1;
+                    i2 += 1;
+                    (a_c + k * b_c, a_w)
+                }
+            };
+
+            if !coeff.is_zero() {
+                linear_combinations.push((coeff, witness));
+            }
+        }
+
+        // Finally process all the remaining terms which we didn't handle in the above loop.
+        while i1 < self.linear_combinations.len() {
+            linear_combinations.push(self.linear_combinations[i1]);
+            i1 += 1;
+        }
+        while i2 < b.linear_combinations.len() {
+            let (b_c, b_w) = b.linear_combinations[i2];
+            let coeff = b_c * k;
+            if !coeff.is_zero() {
+                linear_combinations.push((coeff, b_w));
+            }
+            i2 += 1;
+        }
+
+        //mul terms
+
+        i1 = 0; //a
+        i2 = 0; //b
+        while i1 < self.mul_terms.len() && i2 < b.mul_terms.len() {
+            let (a_c, a_wl, a_wr) = self.mul_terms[i1];
+            let (b_c, b_wl, b_wr) = b.mul_terms[i2];
+
+            let (coeff, wl, wr) = match (a_wl, a_wr).cmp(&(b_wl, b_wr)) {
+                Ordering::Greater => {
+                    i2 += 1;
+                    (k * b_c, b_wl, b_wr)
+                }
+                Ordering::Less => {
+                    i1 += 1;
+                    (a_c, a_wl, a_wr)
+                }
+                Ordering::Equal => {
+                    // Here we're taking both terms as the witness indices are equal.
+                    // We then advance both `i1` and `i2`.
+                    i2 += 1;
+                    i1 += 1;
+                    (a_c + k * b_c, a_wl, a_wr)
+                }
+            };
+
+            if !coeff.is_zero() {
+                mul_terms.push((coeff, wl, wr));
+            }
+        }
+
+        // Finally process all the remaining terms which we didn't handle in the above loop.
+        while i1 < self.mul_terms.len() {
+            mul_terms.push(self.mul_terms[i1]);
+            i1 += 1;
+        }
+        while i2 < b.mul_terms.len() {
+            let (b_c, b_wl, b_wr) = b.mul_terms[i2];
+            let coeff = b_c * k;
+            if coeff != FieldElement::zero() {
+                mul_terms.push((coeff, b_wl, b_wr));
+            }
+            i2 += 1;
+        }
+
+        Expression { mul_terms, linear_combinations, q_c }
+    }
 }
 
 impl From<FieldElement> for Expression {
@@ -329,4 +438,38 @@ fn serialization_roundtrip() {
 
     let (expr, got_expr) = read_write(expr);
     assert_eq!(expr, got_expr);
+}
+
+#[test]
+fn add_mul_smoketest() {
+    let a = Expression {
+        mul_terms: vec![(FieldElement::from(2u128), Witness(1), Witness(2))],
+        ..Default::default()
+    };
+
+    let k = FieldElement::from(10u128);
+
+    let b = Expression {
+        mul_terms: vec![
+            (FieldElement::from(3u128), Witness(0), Witness(2)),
+            (FieldElement::from(3u128), Witness(1), Witness(2)),
+            (FieldElement::from(4u128), Witness(4), Witness(5)),
+        ],
+        linear_combinations: vec![(FieldElement::from(4u128), Witness(4))],
+        q_c: FieldElement::one(),
+    };
+
+    let result = a.add_mul(k, &b);
+    assert_eq!(
+        result,
+        Expression {
+            mul_terms: vec![
+                (FieldElement::from(30u128), Witness(0), Witness(2)),
+                (FieldElement::from(32u128), Witness(1), Witness(2)),
+                (FieldElement::from(40u128), Witness(4), Witness(5)),
+            ],
+            linear_combinations: vec![(FieldElement::from(40u128), Witness(4))],
+            q_c: FieldElement::from(10u128)
+        }
+    )
 }

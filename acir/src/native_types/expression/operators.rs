@@ -1,6 +1,9 @@
 use crate::native_types::Witness;
 use acir_field::FieldElement;
-use std::ops::{Add, Mul, Neg, Sub};
+use std::{
+    cmp::Ordering,
+    ops::{Add, Mul, Neg, Sub},
+};
 
 use super::Expression;
 
@@ -125,28 +128,97 @@ impl Sub<&Expression> for Witness {
 impl Add<&Expression> for &Expression {
     type Output = Expression;
     fn add(self, rhs: &Expression) -> Expression {
-        // XXX(med) : Implement an efficient way to do this
-
-        let mul_terms: Vec<_> =
-            self.mul_terms.iter().cloned().chain(rhs.mul_terms.iter().cloned()).collect();
-
-        let linear_combinations: Vec<_> = self
-            .linear_combinations
-            .iter()
-            .cloned()
-            .chain(rhs.linear_combinations.iter().cloned())
-            .collect();
-        let q_c = self.q_c + rhs.q_c;
-
-        Expression { mul_terms, linear_combinations, q_c }
+        self.add_mul(FieldElement::one(), rhs)
     }
 }
 
 impl Sub<&Expression> for &Expression {
     type Output = Expression;
     fn sub(self, rhs: &Expression) -> Expression {
-        self + &-rhs
+        self.add_mul(-FieldElement::one(), rhs)
     }
 }
 
-// Mul<Expression> is not implemented as this could result in degree 3+ terms.
+impl Mul<&Expression> for &Expression {
+    type Output = Expression;
+    fn mul(self, rhs: &Expression) -> Expression {
+        if self.is_const() {
+            return self.q_c * rhs;
+        } else if rhs.is_const() {
+            return self * rhs.q_c;
+        } else if !(self.is_linear() && rhs.is_linear()) {
+            // `Expression`s can only represent terms which are up to degree 2.
+            // We then disallow multiplication of `Expression`s which have degree 2 terms.
+            unreachable!("Can only multiply linear terms");
+        }
+
+        let mut output = Expression::from_field(self.q_c * rhs.q_c);
+
+        //TODO to optimize...
+        for lc in &self.linear_combinations {
+            let single = single_mul(lc.1, rhs);
+            output = output.add_mul(lc.0, &single);
+        }
+
+        //linear terms
+        let mut i1 = 0; //a
+        let mut i2 = 0; //b
+        while i1 < self.linear_combinations.len() && i2 < rhs.linear_combinations.len() {
+            let (a_c, a_w) = self.linear_combinations[i1];
+            let (b_c, b_w) = rhs.linear_combinations[i2];
+
+            // Apply scaling from multiplication
+            let a_c = rhs.q_c * a_c;
+            let b_c = self.q_c * b_c;
+
+            let (coeff, witness) = match a_w.cmp(&b_w) {
+                Ordering::Greater => {
+                    i2 += 1;
+                    (b_c, b_w)
+                }
+                Ordering::Less => {
+                    i1 += 1;
+                    (a_c, a_w)
+                }
+                Ordering::Equal => {
+                    // Here we're taking both terms as the witness indices are equal.
+                    // We then advance both `i1` and `i2`.
+                    i1 += 1;
+                    i2 += 1;
+                    (a_c + b_c, a_w)
+                }
+            };
+
+            if !coeff.is_zero() {
+                output.linear_combinations.push((coeff, witness));
+            }
+        }
+        while i1 < self.linear_combinations.len() {
+            let (a_c, a_w) = self.linear_combinations[i1];
+            output.linear_combinations.push((rhs.q_c * a_c, a_w));
+            i1 += 1;
+        }
+        while i2 < rhs.linear_combinations.len() {
+            let (b_c, b_w) = rhs.linear_combinations[i1];
+            output.linear_combinations.push((self.q_c * b_c, b_w));
+            i2 += 1;
+        }
+
+        output
+    }
+}
+
+/// Returns `w*b.linear_combinations`
+fn single_mul(w: Witness, b: &Expression) -> Expression {
+    Expression {
+        mul_terms: b
+            .linear_combinations
+            .iter()
+            .map(|(a, wit)| {
+                let (wl, wr) = if w < *wit { (w, *wit) } else { (*wit, w) };
+                (*a, wl, wr)
+            })
+            .collect(),
+        ..Default::default()
+    }
+}
