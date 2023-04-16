@@ -28,6 +28,7 @@ impl Witness {
         true
     }
 
+    #[deprecated = "ACIR no longer specifies how a witness map should be serialized."]
     pub fn to_bytes(
         witnesses: &std::collections::BTreeMap<Witness, acir_field::FieldElement>,
     ) -> Vec<u8> {
@@ -38,6 +39,7 @@ impl Witness {
         buf_c
     }
 
+    #[deprecated = "ACIR no longer specifies how a witness map should be serialized."]
     pub fn from_bytes(
         bytes: &[u8],
     ) -> std::collections::BTreeMap<Witness, acir_field::FieldElement> {
