@@ -26,10 +26,10 @@ impl Value {
     pub fn inverse(&self) -> Value {
         let value = match self.typ {
             Typ::Field => self.inner.inverse(),
-            Typ::Unsigned { bit_size } => {
+            Typ::Unsigned { bit_size: _ } => {
                 todo!("TODO")
             }
-            Typ::Signed { bit_size } => todo!("TODO"),
+            Typ::Signed { bit_size: _ } => todo!("TODO"),
         };
         Value { typ: self.typ, inner: value }
     }

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+
 /// Memory in the VM is used for storing arrays
 ///
 /// ArrayIndex will be used to reference an Array element.

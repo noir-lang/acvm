@@ -358,7 +358,9 @@ mod test {
 
     use acir::{
         brillig_bytecode,
-        brillig_bytecode::{BinaryOp, Comparison, RegisterIndex, RegisterMemIndex, Typ},
+        brillig_bytecode::{
+            BinaryOp, Comparison, OracleInput, RegisterIndex, RegisterMemIndex, Typ,
+        },
         circuit::{
             directives::Directive,
             opcodes::{BlackBoxFuncCall, Brillig, BrilligInputs, BrilligOutputs, OracleData},
@@ -488,9 +490,12 @@ mod test {
             result: RegisterIndex(3),
         };
 
+        let invert_oracle_input =
+            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
-            inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
+            inputs: vec![invert_oracle_input],
             input_values: vec![],
             output: RegisterIndex(1),
             output_values: vec![],
@@ -610,9 +615,12 @@ mod test {
             result: RegisterIndex(3),
         };
 
+        let invert_oracle_input =
+            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
-            inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
+            inputs: vec![invert_oracle_input],
             input_values: vec![],
             output: RegisterIndex(1),
             output_values: vec![],
