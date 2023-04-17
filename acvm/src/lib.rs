@@ -490,10 +490,8 @@ mod test {
             result: RegisterIndex(3),
         };
 
-        let invert_oracle_input = OracleInput {
-            register_mem_index: RegisterMemIndex::Register(RegisterIndex(0)),
-            length: 0,
-        };
+        let invert_oracle_input =
+            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
@@ -617,10 +615,8 @@ mod test {
             result: RegisterIndex(3),
         };
 
-        let invert_oracle_input = OracleInput {
-            register_mem_index: RegisterMemIndex::Register(RegisterIndex(0)),
-            length: 0,
-        };
+        let invert_oracle_input =
+            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
             name: "invert".into(),
