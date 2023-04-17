@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{
-        ArrayHeap, Opcode, OracleData, Registers, Typ, VMOutputState, VMStatus, Value, VM,
-    },
+    brillig_bytecode::{ArrayHeap, Opcode, OracleData, Registers, Typ, VMStatus, Value, VM},
     circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::Witness,
     FieldElement,
@@ -112,9 +110,11 @@ impl BrilligSolver {
         let input_registers = Registers { inner: input_register_values };
         let vm = VM::new(input_registers, input_memory, brillig.bytecode.clone());
 
-        let VMOutputState { registers, program_counter, status, memory } = vm.process_opcodes();
+        let vm_output = vm.process_opcodes();
 
-        if status == VMStatus::OracleWait {
+        if vm_output.status == VMStatus::OracleWait {
+            let program_counter = vm_output.program_counter;
+
             let current_opcode = &brillig.bytecode[program_counter];
             let mut data = match current_opcode.clone() {
                 Opcode::Oracle(data) => data,
@@ -126,20 +126,7 @@ impl BrilligSolver {
                 }
             };
 
-            let mut input_values = Vec::new();
-            for oracle_input in data.clone().inputs {
-                if oracle_input.length == 0 {
-                    let x = registers.get(oracle_input.register_mem_index).inner;
-                    input_values.push(x);
-                } else {
-                    let array_id = registers.get(oracle_input.register_mem_index);
-                    let array = memory[&array_id].clone();
-                    let heap_fields =
-                        array.memory_map.into_values().map(|value| value.inner).collect::<Vec<_>>();
-                    input_values.extend(heap_fields);
-                }
-            }
-
+            let input_values = vm_output.map_input_values(&data);
             data.input_values = input_values;
 
             return Ok(OpcodeResolution::InProgressBrillig(OracleWaitInfo {
@@ -148,13 +135,13 @@ impl BrilligSolver {
             }));
         }
 
-        for (output, register_value) in brillig.outputs.iter().zip(registers) {
+        for (output, register_value) in brillig.outputs.iter().zip(vm_output.registers) {
             match output {
                 BrilligOutputs::Simple(witness) => {
                     insert_witness(*witness, register_value.inner, initial_witness)?;
                 }
                 BrilligOutputs::Array(witness_arr) => {
-                    let array = memory[&register_value].memory_map.values();
+                    let array = vm_output.memory[&register_value].memory_map.values();
                     for (witness, value) in witness_arr.iter().zip(array) {
                         insert_witness(*witness, value.inner, initial_witness)?;
                     }
