@@ -87,7 +87,7 @@ impl MemoryBlock {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OracleData {
     /// Name of the oracle
     pub name: String,
