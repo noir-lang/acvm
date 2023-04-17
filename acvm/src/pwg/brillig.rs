@@ -126,12 +126,20 @@ impl BrilligSolver {
                 }
             };
 
-            let input_values = data
-                .clone()
-                .inputs
-                .into_iter()
-                .map(|register_mem_index| registers.get(register_mem_index).inner)
-                .collect::<Vec<_>>();
+            let mut input_values = Vec::new();
+            for oracle_input in data.clone().inputs {
+                if oracle_input.length == 0 {
+                    let x = registers.get(oracle_input.register_mem_index).inner;
+                    input_values.push(x);
+                } else {
+                    let array_id = registers.get(oracle_input.register_mem_index);
+                    let array = memory[&array_id].clone();
+                    let heap_fields =
+                        array.memory_map.into_values().map(|value| value.inner).collect::<Vec<_>>();
+                    input_values.extend(heap_fields);
+                }
+            }
+
             data.input_values = input_values;
 
             return Ok(OpcodeResolution::InProgressBrillig(OracleWaitInfo {

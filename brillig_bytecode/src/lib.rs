@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData};
+pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData, OracleInput};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -623,6 +623,8 @@ fn store_opcode() {
 
 #[test]
 fn oracle_array_output() {
+    use crate::opcodes::OracleInput;
+
     let input_registers = Registers::load(vec![
         Value::from(2u128),
         Value::from(2u128),
@@ -633,9 +635,12 @@ fn oracle_array_output() {
         Value::from(0u128),
     ]);
 
+    let oracle_input =
+        OracleInput { register_mem_index: RegisterMemIndex::Register(RegisterIndex(0)), length: 0 };
+
     let mut oracle_data = OracleData {
         name: "get_notes".to_owned(),
-        inputs: vec![RegisterMemIndex::Register(RegisterIndex(0))],
+        inputs: vec![oracle_input],
         input_values: vec![],
         output: RegisterIndex(3),
         output_values: vec![],
@@ -650,12 +655,19 @@ fn oracle_array_output() {
     let output_state = vm.process_opcodes();
     assert_eq!(output_state.status, VMStatus::OracleWait);
 
-    let input_values = oracle_data
-        .clone()
-        .inputs
-        .into_iter()
-        .map(|register_mem_index| output_state.registers.get(register_mem_index).inner)
-        .collect::<Vec<_>>();
+    let mut input_values = Vec::new();
+    for oracle_input in oracle_data.clone().inputs {
+        if oracle_input.length == 0 {
+            let x = output_state.registers.get(oracle_input.register_mem_index).inner;
+            input_values.push(x);
+        } else {
+            let array_id = output_state.registers.get(oracle_input.register_mem_index);
+            let array = output_state.memory[&array_id].clone();
+            let heap_fields =
+                array.memory_map.into_values().map(|value| value.inner).collect::<Vec<_>>();
+            input_values.extend(heap_fields);
+        }
+    }
 
     oracle_data.input_values = input_values;
     oracle_data.output_values = vec![FieldElement::from(10_u128), FieldElement::from(2_u128)];
@@ -668,4 +680,70 @@ fn oracle_array_output() {
     let mem_array = output_state.memory[&Value::from(5u128)].clone();
     assert_eq!(mem_array.memory_map[&0], Value::from(10_u128));
     assert_eq!(mem_array.memory_map[&1], Value::from(2_u128));
+}
+
+#[test]
+fn oracle_array_input() {
+    use crate::opcodes::OracleInput;
+
+    let input_registers = Registers::load(vec![
+        Value::from(2u128),
+        Value::from(2u128),
+        Value::from(0u128),
+        Value::from(5u128),
+        Value::from(0u128),
+        Value::from(6u128),
+        Value::from(0u128),
+    ]);
+
+    let oracle_input =
+        OracleInput { register_mem_index: RegisterMemIndex::Register(RegisterIndex(3)), length: 2 };
+
+    let mut oracle_data = OracleData {
+        name: "call_private_function_oracle".to_owned(),
+        inputs: vec![oracle_input.clone()],
+        input_values: vec![],
+        output: RegisterIndex(6),
+        output_values: vec![],
+    };
+
+    let oracle_opcode = Opcode::Oracle(oracle_data.clone());
+
+    let mut initial_memory = BTreeMap::new();
+    let initial_heap = ArrayHeap {
+        memory_map: BTreeMap::from([(0 as usize, Value::from(5u128)), (1, Value::from(6u128))]),
+    };
+    initial_memory.insert(Value::from(5u128), initial_heap);
+
+    let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode]);
+
+    let output_state = vm.process_opcodes();
+    assert_eq!(output_state.status, VMStatus::OracleWait);
+
+    let mut input_values = Vec::new();
+    for oracle_input in oracle_data.clone().inputs {
+        if oracle_input.length == 0 {
+            let x = output_state.registers.get(oracle_input.register_mem_index).inner;
+            input_values.push(x);
+        } else {
+            let array_id = output_state.registers.get(oracle_input.register_mem_index);
+            let array = output_state.memory[&array_id].clone();
+            let heap_fields =
+                array.memory_map.into_values().map(|value| value.inner).collect::<Vec<_>>();
+            input_values.extend(heap_fields);
+        }
+    }
+    assert_eq!(input_values.len(), oracle_input.length);
+
+    oracle_data.input_values = input_values;
+    oracle_data.output_values = vec![FieldElement::from(5_u128)];
+    let updated_oracle_opcode = Opcode::Oracle(oracle_data);
+
+    let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode]);
+    let output_state = vm.process_opcodes();
+    assert_eq!(output_state.status, VMStatus::Halted);
+
+    let mem_array = output_state.memory[&Value::from(5u128)].clone();
+    assert_eq!(mem_array.memory_map[&0], Value::from(5_u128));
+    assert_eq!(mem_array.memory_map[&1], Value::from(6_u128));
 }
