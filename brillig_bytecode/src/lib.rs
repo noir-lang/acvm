@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData, OracleInput};
+pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData, OracleInput, OracleOutput};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -117,18 +117,50 @@ impl VM {
             }
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
-                if data.output_values.len() == 1 {
-                    self.registers.set(data.output, data.output_values[0].into());
-                } else if data.output_values.len() > 1 {
-                    let register = self.registers.get(RegisterMemIndex::Register(data.output));
-                    let heap = &mut self.memory.entry(register).or_default().memory_map;
-                    for (i, value) in data.output_values.iter().enumerate() {
-                        heap.insert(i, (*value).into());
+                // if data.output_values.len() == 1 {
+                //     self.registers.set(data.output, data.output_values[0].into());
+                // } else if data.output_values.len() > 1 {
+                //     let register = self.registers.get(RegisterMemIndex::Register(data.output));
+                //     let heap = &mut self.memory.entry(register).or_default().memory_map;
+                //     for (i, value) in data.output_values.iter().enumerate() {
+                //         heap.insert(i, (*value).into());
+                //     }
+                // } else {
+                //     self.status = VMStatus::OracleWait;
+                //     return VMStatus::OracleWait;
+                // }
+                let mut num_output_values = 0;
+                for oracle_output in data.clone().outputs {
+                    match oracle_output {
+                        OracleOutput::RegisterIndex(_) => num_output_values += 1,
+                        OracleOutput::Array { length, .. } => num_output_values += length,
                     }
-                } else {
+                }
+                if num_output_values != data.output_values.len() {
                     self.status = VMStatus::OracleWait;
                     return VMStatus::OracleWait;
+                } else {
+                    let mut current_value_index = 0;
+                    for oracle_output in data.clone().outputs {
+                        match oracle_output {
+                            OracleOutput::RegisterIndex(index) => {
+                                self.registers
+                                    .set(index, data.output_values[current_value_index].into());
+                                current_value_index += 1
+                            }
+                            OracleOutput::Array { start, length } => {
+                                let array_id =
+                                    self.registers.get(RegisterMemIndex::Register(start));
+                                let heap = &mut self.memory.entry(array_id).or_default().memory_map;
+                                for (i, value) in data.output_values.iter().enumerate() {
+                                    heap.insert(i, (*value).into());
+                                }
+                                current_value_index += length
+                            }
+                        }
+                    }
                 }
+
                 self.increment_program_counter()
             }
             Opcode::Mov { destination, source } => {
@@ -670,12 +702,13 @@ mod tests {
 
         let oracle_input =
             OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+        let oracle_output = OracleOutput::Array { start: RegisterIndex(3), length: 2 };
 
         let mut oracle_data = OracleData {
             name: "get_notes".to_owned(),
             inputs: vec![oracle_input],
             input_values: vec![],
-            output: RegisterIndex(3),
+            outputs: vec![oracle_output],
             output_values: vec![],
         };
 
@@ -722,12 +755,13 @@ mod tests {
             start: RegisterMemIndex::Register(RegisterIndex(3)),
             length: expected_length,
         };
+        let oracle_output = OracleOutput::RegisterIndex(RegisterIndex(6));
 
         let mut oracle_data = OracleData {
             name: "call_private_function_oracle".to_owned(),
             inputs: vec![oracle_input.clone()],
             input_values: vec![],
-            output: RegisterIndex(6),
+            outputs: vec![oracle_output],
             output_values: vec![],
         };
 
