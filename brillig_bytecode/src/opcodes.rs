@@ -142,20 +142,6 @@ pub enum Comparison {
 }
 
 impl BinaryOp {
-    // pub fn function(&self) -> fn(Value, Value) -> Value {
-    //     match self {
-    //         BinaryOp::Add => |a: Value, b: Value| a + b,
-    //         BinaryOp::Sub => |a: Value, b: Value| a - b,
-    //         BinaryOp::Mul => |a: Value, b: Value| a * b,
-    //         BinaryOp::Div => |a: Value, b: Value| a / b,
-    //         BinaryOp::Cmp(comparison) => match comparison {
-    //             Comparison::Eq => |a: Value, b: Value| (a == b).into(),
-    //             Comparison::Lt => |a: Value, b: Value| (a.inner < b.inner).into(),
-    //             Comparison::Lte => |a: Value, b: Value| (a.inner <= b.inner).into(),
-    //         },
-    //     }
-    // }
-
     pub fn evaluate(&self, a: Value, b: Value, res_type: Typ) -> Value {
         match self {
             BinaryOp::Add => {

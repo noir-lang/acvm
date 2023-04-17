@@ -211,7 +211,7 @@ impl VM {
         lhs: RegisterMemIndex,
         rhs: RegisterMemIndex,
         result: RegisterIndex,
-        _result_type: Typ,
+        result_type: Typ,
     ) {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
