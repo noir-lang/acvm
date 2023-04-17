@@ -118,9 +118,9 @@ pub struct OracleData {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OracleInput {
-    pub register_mem_index: RegisterMemIndex,
-    pub length: usize,
+pub enum OracleInput {
+    RegisterMemIndex(RegisterMemIndex),
+    Array { start: RegisterMemIndex, length: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
