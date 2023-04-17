@@ -117,18 +117,6 @@ impl VM {
             }
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
-                // if data.output_values.len() == 1 {
-                //     self.registers.set(data.output, data.output_values[0].into());
-                // } else if data.output_values.len() > 1 {
-                //     let register = self.registers.get(RegisterMemIndex::Register(data.output));
-                //     let heap = &mut self.memory.entry(register).or_default().memory_map;
-                //     for (i, value) in data.output_values.iter().enumerate() {
-                //         heap.insert(i, (*value).into());
-                //     }
-                // } else {
-                //     self.status = VMStatus::OracleWait;
-                //     return VMStatus::OracleWait;
-                // }
                 let mut num_output_values = 0;
                 for oracle_output in data.clone().outputs {
                     match oracle_output {
