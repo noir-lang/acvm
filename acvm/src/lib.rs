@@ -155,10 +155,6 @@ pub trait PartialWitnessGenerator {
                             Some(oracle_data) => Opcode::Oracle(oracle_data),
                             None => opcode.clone(),
                         });
-                        unresolved_opcodes.push(match solved_brillig_data {
-                            Some(brillig) => Opcode::Brillig(brillig),
-                            None => opcode.clone(),
-                        })
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
