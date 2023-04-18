@@ -112,7 +112,7 @@ pub struct OracleData {
     /// Input values
     pub input_values: Vec<FieldElement>,
     /// Output register
-    pub output: RegisterIndex,
+    pub outputs: Vec<OracleOutput>,
     /// Output values - they are computed by the (external) oracle once the inputs are known
     pub output_values: Vec<FieldElement>,
 }
@@ -121,6 +121,12 @@ pub struct OracleData {
 pub enum OracleInput {
     RegisterMemIndex(RegisterMemIndex),
     Array { start: RegisterMemIndex, length: usize },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OracleOutput {
+    RegisterIndex(RegisterIndex),
+    Array { start: RegisterIndex, length: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
