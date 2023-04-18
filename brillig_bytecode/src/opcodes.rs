@@ -126,7 +126,7 @@ pub enum OracleInput {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OracleOutput {
     RegisterIndex(RegisterIndex),
-    Array { start: RegisterIndex, length: usize },
+    Array { start: RegisterMemIndex, length: usize },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

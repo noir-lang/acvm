@@ -137,8 +137,7 @@ impl VM {
                                 current_value_index += 1
                             }
                             OracleOutput::Array { start, length } => {
-                                let array_id =
-                                    self.registers.get(RegisterMemIndex::Register(start));
+                                let array_id = self.registers.get(start);
                                 let heap = &mut self.memory.entry(array_id).or_default().memory_map;
                                 for (i, value) in data.output_values.iter().enumerate() {
                                     heap.insert(i, (*value).into());
@@ -690,7 +689,8 @@ mod tests {
 
         let oracle_input =
             OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
-        let oracle_output = OracleOutput::Array { start: RegisterIndex(3), length: 2 };
+        let oracle_output =
+            OracleOutput::Array { start: RegisterMemIndex::Register(RegisterIndex(3)), length: 2 };
 
         let mut oracle_data = OracleData {
             name: "get_notes".to_owned(),
