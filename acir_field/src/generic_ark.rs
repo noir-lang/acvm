@@ -143,6 +143,16 @@ impl<F: PrimeField> From<u128> for FieldElement<F> {
     }
 }
 
+impl<F: PrimeField> From<bool> for FieldElement<F> {
+    fn from(boolean: bool) -> FieldElement<F> {
+        if boolean {
+            FieldElement::one()
+        } else {
+            FieldElement::zero()
+        }
+    }
+}
+
 impl<F: PrimeField> FieldElement<F> {
     pub fn one() -> FieldElement<F> {
         FieldElement(F::one())
