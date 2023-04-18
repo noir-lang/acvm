@@ -151,10 +151,13 @@ pub trait PartialWitnessGenerator {
                         // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
-                        unresolved_opcodes.push(match solved_oracle_data {
-                            Some(oracle_data) => Opcode::Oracle(oracle_data),
-                            None => opcode.clone(),
-                        });
+                        if let Some(oracle_data) = solved_oracle_data {
+                            unresolved_opcodes.push(Opcode::Oracle(oracle_data));
+                        } else if let Some(brillig) = solved_brillig_data {
+                            unresolved_opcodes.push(Opcode::Brillig(brillig));
+                        } else {
+                            unresolved_opcodes.push(opcode.clone());
+                        }
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
