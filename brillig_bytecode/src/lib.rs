@@ -13,6 +13,7 @@ mod value;
 use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
+use num_bigint::{BigInt, Sign};
 pub use opcodes::RegisterMemIndex;
 pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData, OracleInput, OracleOutput};
 pub use registers::{RegisterIndex, Registers};
@@ -229,12 +230,12 @@ impl VM {
         lhs: RegisterMemIndex,
         rhs: RegisterMemIndex,
         result: RegisterIndex,
-        _result_type: Typ,
+        result_type: Typ,
     ) {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.function()(lhs_value, rhs_value);
+        let result_value = op.evaluate(lhs_value, rhs_value, result_type);
 
         self.registers.set(result, result_value)
     }
