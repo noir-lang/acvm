@@ -21,7 +21,7 @@ use std::collections::{BTreeMap, HashSet};
 ///
 /// This optimization pass will keep the 16-bit range constraint
 /// and remove the 32-bit range constraint opcode.
-pub struct RangeOptimizer {
+pub(crate) struct RangeOptimizer {
     /// Maps witnesses to their lowest known bit sizes.
     lists: BTreeMap<Witness, u32>,
     circuit: Circuit,
@@ -30,7 +30,7 @@ pub struct RangeOptimizer {
 impl RangeOptimizer {
     /// Creates a new `RangeOptimizer` by collecting all known range
     /// constraints from `Circuit`.
-    pub fn new(circuit: Circuit) -> Self {
+    pub(crate) fn new(circuit: Circuit) -> Self {
         let range_list = Self::collect_ranges(&circuit);
         Self { circuit, lists: range_list }
     }
@@ -67,7 +67,7 @@ impl RangeOptimizer {
 
     /// Returns a `Circuit` where each Witness is only range constrained
     /// once to the lowest number `bit size` possible.
-    pub fn replace_redundant_ranges(self) -> Circuit {
+    pub(crate) fn replace_redundant_ranges(self) -> Circuit {
         let mut already_seen_witness = HashSet::new();
 
         let mut optimized_opcodes = Vec::with_capacity(self.circuit.opcodes.len());
@@ -132,7 +132,7 @@ fn extract_range_opcode(opcode: &Opcode) -> Option<(Witness, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::optimizers::{redundant_range::extract_range_opcode, RangeOptimizer};
+    use crate::compiler::optimizers::redundant_range::{extract_range_opcode, RangeOptimizer};
     use acir::{
         circuit::{
             opcodes::{BlackBoxFuncCall, FunctionInput},
