@@ -231,6 +231,7 @@ pub enum Language {
     PLONKCSat { width: usize },
 }
 
+#[deprecated]
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     let mut bytes = Vec::new();
     cs.write(&mut bytes).expect("could not serialize circuit");
@@ -242,6 +243,7 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     hasher.finalize_fixed().into()
 }
 
+#[deprecated]
 pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
     let mut bytes = Vec::new();
     cs.write(&mut bytes).expect("could not serialize circuit");
