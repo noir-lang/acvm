@@ -82,18 +82,20 @@ impl RangeOptimizer {
                     continue;
                 }
             };
+            // If we've already applied the range constraint for this witness then skip this opcode.
+            let already_added = already_seen_witness.contains(&witness);
+            if already_added {
+                continue;
+            }
 
-            // Check if this is the lowest number of bits
-            // in the circuit and that we have not added it
-            // in the list of opcodes yet.
+            // Check if this is the lowest number of bits in the circuit
             let stored_num_bits = self.lists.get(&witness).expect("Could not find witness. This should never be the case if `collect_ranges` is called");
             let is_lowest_bit_size = num_bits <= *stored_num_bits;
-            let already_added = already_seen_witness.contains(&witness);
 
             // If the opcode is associated with the lowest bit size
             // and we have not added a duplicate of this opcode yet,
             // then we should add retain this range opcode.
-            if is_lowest_bit_size && !already_added {
+            if is_lowest_bit_size {
                 already_seen_witness.insert(witness);
                 optimized_opcodes.push(opcode);
             }
