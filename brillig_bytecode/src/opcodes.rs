@@ -52,6 +52,9 @@ pub enum Opcode {
     JMP {
         destination: Label,
     },
+    PushStack {
+        source: RegisterMemIndex,
+    },
     // TODO:This is used to call functions and setup things like
     // TODO execution contexts.
     CallBack,
@@ -73,12 +76,6 @@ pub enum Opcode {
         array_id_reg: RegisterMemIndex,
         index: RegisterMemIndex,
     },
-    PushStack {
-        source: RegisterMemIndex,
-    },
-    // PopStack {
-
-    // }
     /// Used if execution fails during evaluation
     Trap,
     /// Hack
@@ -96,7 +93,8 @@ impl Opcode {
             Opcode::JMPIFNOT { .. } => "jmpifnot",
             Opcode::JMPIF { .. } => "jmpif",
             Opcode::JMP { .. } => "jmp",
-            Opcode::Call { .. } => "call",
+            Opcode::PushStack { .. } => "pushstack",
+            Opcode::CallBack => "callback",
             Opcode::Intrinsics => "intrinsics",
             Opcode::Oracle(_) => "oracle",
             Opcode::Mov { .. } => "mov",
