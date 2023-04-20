@@ -64,6 +64,18 @@ pub enum OpcodeResolution {
     InProgress,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PartialWitnessGeneratorStatus {
+    /// All opcodes have been solved.
+    Solved,
+
+    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle].
+    ///
+    /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
+    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
+    RequiresOracleData { required_oracle_data: Vec<OracleData>, unsolved_opcodes: Vec<Opcode> },
+}
+
 /// Check if all of the inputs to the function have assignments
 ///
 /// Returns the first missing assignment if any are missing
@@ -91,7 +103,7 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<(Vec<Opcode>, Vec<OracleData>), OpcodeResolutionError> {
+    ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut unresolved_oracles: Vec<OracleData> = Vec::new();
         while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
@@ -158,7 +170,10 @@ pub trait PartialWitnessGenerator {
             }
             // We have oracles that must be externally resolved
             if !unresolved_oracles.is_empty() {
-                return Ok((unresolved_opcodes, unresolved_oracles));
+                return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
+                    required_oracle_data: unresolved_oracles,
+                    unsolved_opcodes: unresolved_opcodes,
+                });
             }
             // We are stalled because of an opcode being bad
             if stalled && !unresolved_opcodes.is_empty() {
@@ -169,7 +184,7 @@ pub trait PartialWitnessGenerator {
             }
             std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
-        Ok((Vec::new(), Vec::new()))
+        Ok(PartialWitnessGeneratorStatus::Solved)
     }
 
     fn solve_black_box_function_call(
@@ -304,7 +319,7 @@ mod test {
 
     use crate::{
         pwg::block::Blocks, Backend, OpcodeResolution, OpcodeResolutionError,
-        PartialWitnessGenerator,
+        PartialWitnessGenerator, PartialWitnessGeneratorStatus,
     };
 
     struct StubbedPwg;
@@ -370,23 +385,26 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let (unsolved_opcodes, mut unresolved_oracles) = pwg
+        let solver_status = pwg
             .solve(&mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresOracleData { mut required_oracle_data, unsolved_opcodes } = solver_status else {
+            panic!("Should require oracle data")
+        };
         assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
-        assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
-        let mut oracle_data = unresolved_oracles.remove(0);
+        assert_eq!(required_oracle_data.len(), 1, "should have an oracle request");
+        let mut oracle_data = required_oracle_data.remove(0);
+
         assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
 
         // Filling data request and continue solving
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-        let (unsolved_opcodes, unresolved_oracles) = pwg
+        let solver_status = pwg
             .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should be solvable");
-        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
-        assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+        assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
     #[test]
