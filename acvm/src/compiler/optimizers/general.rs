@@ -4,9 +4,9 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-pub struct GeneralOpt;
+pub(crate) struct GeneralOpt;
 impl GeneralOpt {
-    pub fn optimize(gate: Expression) -> Expression {
+    pub(crate) fn optimize(gate: Expression) -> Expression {
         // XXX: Perhaps this optimization can be done on the fly
         let gate = remove_zero_coefficients(gate);
         simplify_mul_terms(gate)
