@@ -318,23 +318,13 @@ impl OracleData {
 
 impl std::fmt::Display for OracleData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ORACLE: {}", self.name)?;
-        let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
-
-        write!(
-            f,
-            "Inputs: _{}..._{}{solved}",
-            self.inputs.first().unwrap(),
-            self.inputs.last().unwrap()
-        )?;
-
-        let solved = if self.output_values.len() == self.outputs.len() { "solved" } else { "" };
-        write!(
-            f,
-            "Outputs: _{}..._{}{solved}",
-            self.outputs.first().unwrap().witness_index(),
-            self.outputs.last().unwrap().witness_index()
-        )
+        write!(f, "ORACLE: {}\n", self.name)?;
+        let inputs_str =
+            self.inputs.iter().map(|arith| format!("{}", arith)).collect::<Vec<_>>().join(", ");
+        write!(f, "\tInputs: {}\n", inputs_str)?;
+        let outputs_str =
+            self.outputs.iter().map(|w| format!("_{}", w.0)).collect::<Vec<_>>().join(", ");
+        write!(f, "\tOutputs: {:?}", outputs_str)
     }
 }
 
@@ -523,12 +513,7 @@ impl std::fmt::Display for Opcode {
             }
             Opcode::Directive(Directive::Log(info)) => match info {
                 LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
-                LogInfo::WitnessOutput(witnesses) => write!(
-                    f,
-                    "Log: _{}..._{}",
-                    witnesses.first().unwrap().witness_index(),
-                    witnesses.last().unwrap().witness_index()
-                ),
+                LogInfo::WitnessOutput(witnesses) => write!(f, "Log: {:?}", witnesses),
             },
             Opcode::Block(block) => {
                 write!(f, "BLOCK ")?;
@@ -627,76 +612,23 @@ impl std::fmt::Display for BlackBoxFuncCall {
         let uppercase_name: String = self.name.name().into();
         let uppercase_name = uppercase_name.to_uppercase();
         write!(f, "BLACKBOX::{uppercase_name} ")?;
-        write!(f, "[")?;
-
-        // Once a vectors length gets above this limit,
-        // instead of listing all of their elements, we use ellipses
-        // t abbreviate them
-        const ABBREVIATION_LIMIT: usize = 5;
-
-        let should_abbreviate_inputs = self.inputs.len() <= ABBREVIATION_LIMIT;
-        let should_abbreviate_outputs = self.outputs.len() <= ABBREVIATION_LIMIT;
 
         // INPUTS
         //
-        let inputs_str = if should_abbreviate_inputs {
-            let mut result = String::new();
-            for (index, inp) in self.inputs.iter().enumerate() {
-                result +=
-                    &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
-                // Add a comma, unless it is the last entry
-                if index != self.inputs.len() - 1 {
-                    result += ", "
-                }
-            }
-            result
-        } else {
-            let first = self.inputs.first().unwrap();
-            let last = self.inputs.last().unwrap();
-
-            let mut result = String::new();
-
-            result += &format!(
-                "(_{}, num_bits: {})...(_{}, num_bits: {})",
-                first.witness.witness_index(),
-                first.num_bits,
-                last.witness.witness_index(),
-                last.num_bits,
-            );
-
-            result
-        };
-        write!(f, "{inputs_str}")?;
-        write!(f, "] ")?;
+        let inputs_str = self
+            .inputs
+            .iter()
+            .map(|inp| format!("(_{}, num_bits: {})", inp.witness.0, inp.num_bits))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "\tInputs: {}", inputs_str)?;
 
         // OUTPUTS
         // TODO: Avoid duplication of INPUTS and OUTPUTS code
-
-        if self.outputs.is_empty() {
-            return Ok(());
-        }
-
-        write!(f, "[ ")?;
-        let outputs_str = if should_abbreviate_outputs {
-            let mut result = String::new();
-            for (index, output) in self.outputs.iter().enumerate() {
-                result += &format!("_{}", output.witness_index());
-                // Add a comma, unless it is the last entry
-                if index != self.outputs.len() - 1 {
-                    result += ", "
-                }
-            }
-            result
-        } else {
-            let first = self.outputs.first().unwrap();
-            let last = self.outputs.last().unwrap();
-
-            let mut result = String::new();
-            result += &format!("(_{},...,_{})", first.witness_index(), last.witness_index());
-            result
-        };
-        write!(f, "{outputs_str}")?;
-        write!(f, "]")
+        let outputs_str =
+            self.outputs.iter().map(|w| format!("_{}", w.0)).collect::<Vec<_>>().join(", ");
+        write!(f, "\tOutputs: {}", outputs_str)?;
+        Ok(())
     }
 }
 
