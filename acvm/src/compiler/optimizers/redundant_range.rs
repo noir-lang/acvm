@@ -4,6 +4,7 @@ use acir::{
     BlackBoxFunc,
 };
 use std::collections::{BTreeMap, HashSet};
+
 /// RangeOptimizer will remove redundant range constraints.
 ///
 /// Suppose we had the following pseudo-code:
