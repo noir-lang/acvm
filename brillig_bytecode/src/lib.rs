@@ -41,6 +41,7 @@ pub struct VM {
     bytecode: Vec<Opcode>,
     status: VMStatus,
     memory: BTreeMap<Value, ArrayHeap>,
+    call_stack: Vec<Value>,
 }
 
 impl VM {
@@ -71,6 +72,7 @@ impl VM {
             bytecode,
             status: VMStatus::InProgress,
             memory,
+            call_stack: Vec::new(),
         };
         vm
     }
@@ -108,13 +110,16 @@ impl VM {
                 }
                 self.increment_program_counter()
             }
-            Opcode::Call { destination } => {
-                let register = self.registers.get(*destination);
-                let label = usize::try_from(
-                    register.inner.try_to_u64().expect("register does not fit into u64"),
-                )
-                .expect("register does not fit into usize");
-                self.set_program_counter(label)
+            Opcode::CallBack => {
+                if let Some(register) = self.call_stack.pop() {
+                    let label = usize::try_from(
+                        register.inner.try_to_u64().expect("register does not fit into u64"),
+                    )
+                    .expect("register does not fit into usize");
+                    self.set_program_counter(label)
+                } else {
+                    return VMStatus::Halted;
+                }
             }
             Opcode::Intrinsics => todo!(),
             Opcode::Oracle(data) => {
@@ -196,6 +201,11 @@ impl VM {
                 .expect("register does not fit into usize");
                 heap.insert(index_usize, source_value);
 
+                self.increment_program_counter()
+            }
+            Opcode::PushStack { source } => {
+                let register = self.registers.get(*source);
+                self.call_stack.push(register);
                 self.increment_program_counter()
             }
         }
