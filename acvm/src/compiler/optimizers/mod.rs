@@ -1,3 +1,3 @@
 mod general;
 
-pub use general::GeneralOpt as GeneralOptimizer;
+pub(crate) use general::GeneralOpt as GeneralOptimizer;
