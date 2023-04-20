@@ -54,9 +54,7 @@ pub enum Opcode {
     },
     // TODO:This is used to call functions and setup things like
     // TODO execution contexts.
-    Call {
-        destination: RegisterMemIndex,
-    },
+    CallBack,
     // TODO:These are special functions like sha256
     Intrinsics,
     /// Used to get data from an outside source
@@ -75,6 +73,12 @@ pub enum Opcode {
         array_id_reg: RegisterMemIndex,
         index: RegisterMemIndex,
     },
+    PushStack {
+        source: RegisterMemIndex,
+    },
+    // PopStack {
+
+    // }
     /// Used if execution fails during evaluation
     Trap,
     /// Hack
