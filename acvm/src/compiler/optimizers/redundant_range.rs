@@ -54,7 +54,7 @@ impl RangeOptimizer {
 
             // Check if the witness has already been recorded and if the witness
             // size is more than the current one, we replace it
-            let should_replace = match witness_to_bit_sizes.get(&witness).cloned() {
+            let should_replace = match witness_to_bit_sizes.get(&witness).copied() {
                 Some(old_range_bits) => old_range_bits > num_bits,
                 None => true,
             };
