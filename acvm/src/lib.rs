@@ -92,7 +92,7 @@ fn first_missing_assignment(
     })
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
+pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
@@ -318,8 +318,8 @@ mod test {
     };
 
     use crate::{
-        pwg::block::Blocks, Backend, OpcodeResolution, OpcodeResolutionError,
-        PartialWitnessGenerator, PartialWitnessGeneratorStatus,
+        pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
+        PartialWitnessGeneratorStatus,
     };
 
     struct StubbedPwg;
@@ -405,14 +405,5 @@ mod test {
             .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should be solvable");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
-    }
-
-    #[test]
-    fn test_backend_object_safety() {
-        // This test doesn't do anything at runtime.
-        // We just want to ensure that the `Backend` trait is object safe and this test will refuse to compile
-        // if this property is broken.
-        #[allow(dead_code)]
-        fn check_object_safety(_backend: Box<dyn Backend>) {}
     }
 }
