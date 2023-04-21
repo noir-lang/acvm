@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Sub};
+use std::ops::{Add, BitAnd, BitOr, BitXor, Mul, Shl, Shr, Sub};
 
 use crate::{
     memory::ArrayIndex,
@@ -140,6 +140,11 @@ pub enum BinaryOp {
     Mul,
     Div,
     Cmp(Comparison),
+    And, // (&) Bitwise AND
+    Or,  // (|) Bitwise OR
+    Xor, // (^) Bitwise XOR
+    Shl, // (<<) Shift left
+    Shr, // (>>) Shift right
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,40 +156,48 @@ pub enum Comparison {
 
 impl BinaryOp {
     pub fn evaluate(&self, a: Value, b: Value, res_type: Typ) -> Value {
-        match self {
-            BinaryOp::Add => {
-                let res_inner = self.wrapping(a.inner, b.inner, res_type, u128::add, Add::add);
-                Value { typ: res_type, inner: res_inner }
-            }
+        let res_inner = match self {
+            BinaryOp::Add => self.wrapping(a.inner, b.inner, res_type, u128::add, Add::add),
             BinaryOp::Sub => {
-                let res_inner =
-                    self.wrapping(a.inner, b.inner, res_type, u128::wrapping_sub, Sub::sub);
-                Value { typ: res_type, inner: res_inner }
+                self.wrapping(a.inner, b.inner, res_type, u128::wrapping_sub, Sub::sub)
             }
-            BinaryOp::Mul => {
-                let res_inner = self.wrapping(a.inner, b.inner, res_type, u128::mul, Mul::mul);
-                Value { typ: res_type, inner: res_inner }
-            }
+            BinaryOp::Mul => self.wrapping(a.inner, b.inner, res_type, u128::mul, Mul::mul),
             BinaryOp::Div => match res_type {
-                Typ::Field => a / b,
+                Typ::Field => a.inner / b.inner,
                 Typ::Unsigned { bit_size } => {
                     let lhs = a.inner.to_u128() % (1_u128 << bit_size);
                     let rhs = b.inner.to_u128() % (1_u128 << bit_size);
-                    Value { typ: res_type, inner: FieldElement::from(lhs / rhs) }
+                    FieldElement::from(lhs / rhs)
                 }
                 Typ::Signed { bit_size } => {
                     let a = field_to_signed(a.inner, bit_size);
                     let b = field_to_signed(b.inner, bit_size);
-                    let res_inner = signed_to_field(a / b, bit_size);
-                    Value { typ: res_type, inner: res_inner }
+                    signed_to_field(a / b, bit_size)
                 }
             },
             BinaryOp::Cmp(comparison) => match comparison {
-                Comparison::Eq => (a == b).into(),
-                Comparison::Lt => (a.inner < b.inner).into(),
-                Comparison::Lte => (a.inner <= b.inner).into(),
+                Comparison::Eq => ((a == b) as u128).into(),
+                Comparison::Lt => ((a.inner < b.inner) as u128).into(),
+                Comparison::Lte => ((a.inner <= b.inner) as u128).into(),
             },
-        }
+            BinaryOp::And => {
+                self.wrapping(a.inner, b.inner, res_type, u128::bitand, field_op_not_allowed)
+            }
+            BinaryOp::Or => {
+                self.wrapping(a.inner, b.inner, res_type, u128::bitor, field_op_not_allowed)
+            }
+            BinaryOp::Xor => {
+                self.wrapping(a.inner, b.inner, res_type, u128::bitxor, field_op_not_allowed)
+            }
+            BinaryOp::Shl => {
+                self.wrapping(a.inner, b.inner, res_type, u128::shl, field_op_not_allowed)
+            }
+            BinaryOp::Shr => {
+                self.wrapping(a.inner, b.inner, res_type, u128::shr, field_op_not_allowed)
+            }
+        };
+
+        Value { typ: res_type, inner: res_inner }
     }
 
     /// Perform the given numeric operation and modulo the result by the max value for the given bit count
@@ -232,4 +245,8 @@ fn signed_to_field(a: i128, n: u32) -> FieldElement {
         let b = (a + 2_i128.pow(n + 1)) as u128;
         FieldElement::from(b)
     }
+}
+
+fn field_op_not_allowed(_lhs: FieldElement, _rhs: FieldElement) -> FieldElement {
+    unreachable!("operation not allowed for FieldElement");
 }

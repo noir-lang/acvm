@@ -338,7 +338,7 @@ mod tests {
             Registers::load(vec![Value::from(2u128), Value::from(2u128), Value::from(0u128)]);
 
         let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(1)),
@@ -381,7 +381,7 @@ mod tests {
         let trap_opcode = Opcode::Trap;
 
         let not_equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(1)),
@@ -465,7 +465,7 @@ mod tests {
         ]);
 
         let equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(1)),
@@ -473,7 +473,7 @@ mod tests {
         };
 
         let not_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(3)),
@@ -481,7 +481,7 @@ mod tests {
         };
 
         let less_than_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Lt),
             lhs: RegisterMemIndex::Register(RegisterIndex(3)),
             rhs: RegisterMemIndex::Register(RegisterIndex(4)),
@@ -489,7 +489,7 @@ mod tests {
         };
 
         let less_than_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Lte),
             lhs: RegisterMemIndex::Register(RegisterIndex(3)),
             rhs: RegisterMemIndex::Register(RegisterIndex(4)),
@@ -542,7 +542,7 @@ mod tests {
         ]);
 
         let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(1)),
@@ -563,7 +563,7 @@ mod tests {
         };
 
         let mem_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(4)),
             rhs: RegisterMemIndex::Register(RegisterIndex(5)),
@@ -627,7 +627,7 @@ mod tests {
         ]);
 
         let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Field,
+            result_type: Typ::Unsigned { bit_size: 1 },
             op: BinaryOp::Cmp(Comparison::Eq),
             lhs: RegisterMemIndex::Register(RegisterIndex(0)),
             rhs: RegisterMemIndex::Register(RegisterIndex(1)),

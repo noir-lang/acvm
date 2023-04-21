@@ -66,10 +66,8 @@ impl BrilligSolver {
                     }
                 }
                 BrilligInputs::Array(id, expr_arr) => {
-                    let id_as_value: Value = Value {
-                        typ: Typ::Field,
-                        inner: FieldElement::from(*id as u128),
-                    };
+                    let id_as_value: Value =
+                        Value { typ: Typ::Field, inner: FieldElement::from(*id as u128) };
                     // Push value of the array id as a register
                     input_register_values.push(id_as_value.into());
 
