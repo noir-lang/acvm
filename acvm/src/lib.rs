@@ -92,7 +92,7 @@ fn first_missing_assignment(
     })
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
+pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
