@@ -66,11 +66,7 @@ impl BrilligSolver {
                     }
                 }
                 BrilligInputs::Array(id, expr_arr) => {
-                    let id_as_value: Value =
-                        Value { typ: Typ::Field, inner: FieldElement::from(*id as u128) };
-                    // Push value of the array id as a register
-                    input_register_values.push(id_as_value.into());
-
+                    // Attempt to fetch all array input values
                     let mut continue_eval = true;
                     let mut array_heap: BTreeMap<usize, Value> = BTreeMap::new();
                     for (i, expr) in expr_arr.into_iter().enumerate() {
@@ -82,19 +78,26 @@ impl BrilligSolver {
                             break;
                         }
                     }
-                    input_memory.insert(id_as_value, ArrayHeap { memory_map: array_heap });
 
+                    // If an array value is missing exit the input solver and do not insert the array id as an input register
                     if !continue_eval {
                         break;
                     }
+
+                    let id_as_value: Value =
+                        Value { typ: Typ::Field, inner: FieldElement::from(*id as u128) };
+                    // Push value of the array id as a register
+                    input_register_values.push(id_as_value.into());
+
+                    input_memory.insert(id_as_value, ArrayHeap { memory_map: array_heap });
                 }
             }
         }
 
         if input_register_values.len() != brillig.inputs.len() {
-            let jabber_input =
+            let brillig_input =
                 brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
-            let expr = match jabber_input {
+            let expr = match brillig_input {
                 BrilligInputs::Simple(expr) => expr,
                 BrilligInputs::Array(_, expr_arr) => {
                     expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
