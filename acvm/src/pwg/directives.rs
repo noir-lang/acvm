@@ -8,11 +8,30 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-use crate::OpcodeResolutionError;
+use crate::{OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value, sorting::route, witness_to_value};
 
+/// Attempts to solve the [`Directive`] opcode `directive`.
+/// If successful, `initial_witness` will be mutated to contain the new witness assignment.
+///
+/// Returns `Ok(OpcodeResolution)` to signal whether the directive was successful solved.
+///
+/// Returns `Err(OpcodeResolutionError)` if a circuit constraint is unsatisfied.
 pub fn solve_directives(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    directive: &Directive,
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    match solve_directives_internal(initial_witness, directive) {
+        Ok(_) => Ok(OpcodeResolution::Solved),
+        Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+            Ok(OpcodeResolution::Stalled(unsolved))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn solve_directives_internal(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     directive: &Directive,
 ) -> Result<(), OpcodeResolutionError> {

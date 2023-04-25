@@ -101,7 +101,7 @@ impl CircuitSimplifier {
 
     // Generate an Arithmetic gate which set witness to its value
     pub fn define(&self, w: &Witness) -> Opcode {
-        let mut a = Expression::from(w);
+        let mut a = Expression::from(*w);
         a.q_c = -self.solved[w];
         Opcode::Arithmetic(a)
     }

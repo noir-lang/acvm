@@ -1,5 +1,60 @@
 # Changelog
 
+## [0.9.0](https://github.com/noir-lang/acvm/compare/acir-v0.8.1...acir-v0.9.0) (2023-04-07)
+
+
+### Bug Fixes
+
+* Add test for Out of Memory  ([#188](https://github.com/noir-lang/acvm/issues/188)) ([c3db985](https://github.com/noir-lang/acvm/commit/c3db985893e7e59ea04005bb3a57eda5c6ce28c7))
+
+## [0.8.1](https://github.com/noir-lang/acvm/compare/acir-v0.8.0...acir-v0.8.1) (2023-03-30)
+
+
+### Bug Fixes
+
+* unwraps if inputs is zero ([#171](https://github.com/noir-lang/acvm/issues/171)) ([10a3bb2](https://github.com/noir-lang/acvm/commit/10a3bb2a9930ccf422b3f08227aae07775686860))
+
+## [0.8.0](https://github.com/noir-lang/acvm/compare/acir-v0.7.1...acir-v0.8.0) (2023-03-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156))
+
+### Bug Fixes
+
+* **acir:** Read Log Directive ([#156](https://github.com/noir-lang/acvm/issues/156)) ([1cc2b7f](https://github.com/noir-lang/acvm/commit/1cc2b7f2179cecc338fe0def72bb2dd17eaed0cd))
+
+## [0.7.1](https://github.com/noir-lang/acvm/compare/acir-v0.7.0...acir-v0.7.1) (2023-03-27)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize undefined versions
+
+## [0.7.0](https://github.com/noir-lang/acvm/compare/acir-v0.6.0...acir-v0.7.0) (2023-03-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add initial oracle opcode ([#149](https://github.com/noir-lang/acvm/issues/149))
+* **acir:** Add RAM and ROM opcodes
+* **acir:** Add a public outputs field ([#56](https://github.com/noir-lang/acvm/issues/56))
+* **acir:** remove `Linear` struct ([#145](https://github.com/noir-lang/acvm/issues/145))
+* **acvm:** Remove truncate and oddrange directives ([#142](https://github.com/noir-lang/acvm/issues/142))
+
+### Features
+
+* **acir:** Add a public outputs field ([#56](https://github.com/noir-lang/acvm/issues/56)) ([5f358a9](https://github.com/noir-lang/acvm/commit/5f358a97aaa81d87956e182cd8a6d60de75f9752))
+* **acir:** Add RAM and ROM opcodes ([73e9f25](https://github.com/noir-lang/acvm/commit/73e9f25dd87b2ca91245e93d2445eadc0f522fac))
+* Add initial oracle opcode ([#149](https://github.com/noir-lang/acvm/issues/149)) ([88ee2f8](https://github.com/noir-lang/acvm/commit/88ee2f89f37abf5dd1d9f91b4d2eed44dc651348))
+
+
+### Miscellaneous Chores
+
+* **acir:** remove `Linear` struct ([#145](https://github.com/noir-lang/acvm/issues/145)) ([bbb6d92](https://github.com/noir-lang/acvm/commit/bbb6d92e25c43dd33b12f5fcd639fc9ad2a9c9d8))
+* **acvm:** Remove truncate and oddrange directives ([#142](https://github.com/noir-lang/acvm/issues/142)) ([85dd6e8](https://github.com/noir-lang/acvm/commit/85dd6e85bfba85bfb97651f7e30e1f75deb986d5))
+
 ## [0.6.0](https://github.com/noir-lang/acvm/compare/acir-v0.5.0...acir-v0.6.0) (2023-03-03)
 
 

@@ -141,24 +141,24 @@ mod test {
         let mut trace = vec![MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(1)),
+            value: Expression::from(Witness(1)),
         }];
         index += FieldElement::one();
         trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(2)),
+            value: Expression::from(Witness(2)),
         });
         index += FieldElement::one();
         trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(3)),
+            value: Expression::from(Witness(3)),
         });
         trace.push(MemOp {
             operation: Expression::zero(),
             index: Expression::one(),
-            value: Expression::from(&Witness(4)),
+            value: Expression::from(Witness(4)),
         });
         let id = BlockId::default();
         let mut initial_witness = BTreeMap::new();

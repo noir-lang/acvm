@@ -2,7 +2,9 @@ use std::io::{Read, Write};
 
 use super::directives::{Directive, LogInfo, QuotientDirective};
 use crate::native_types::{Expression, Witness};
-use crate::serialization::{read_n, read_u16, read_u32, write_bytes, write_u16, write_u32};
+use crate::serialization::{
+    read_bytes, read_field_element, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32,
+};
 use crate::BlackBoxFunc;
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
@@ -85,6 +87,116 @@ impl MemoryBlock {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OracleData {
+    /// Name of the oracle
+    pub name: String,
+    /// Inputs
+    pub inputs: Vec<Expression>,
+    /// Input values - they are progressively computed by the pwg
+    pub input_values: Vec<FieldElement>,
+    /// Output witness
+    pub outputs: Vec<Witness>,
+    /// Output values - they are computed by the (external) oracle once the input_values are known
+    pub output_values: Vec<FieldElement>,
+}
+
+impl OracleData {
+    pub(crate) fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
+        let name_as_bytes = self.name.as_bytes();
+        let name_len = name_as_bytes.len();
+        write_u32(&mut writer, name_len as u32)?;
+        write_bytes(&mut writer, name_as_bytes)?;
+
+        let inputs_len = self.inputs.len() as u32;
+        write_u32(&mut writer, inputs_len)?;
+        for input in &self.inputs {
+            input.write(&mut writer)?
+        }
+
+        let outputs_len = self.outputs.len() as u32;
+        write_u32(&mut writer, outputs_len)?;
+        for output in &self.outputs {
+            write_u32(&mut writer, output.witness_index())?;
+        }
+
+        let inputs_len = self.input_values.len() as u32;
+        write_u32(&mut writer, inputs_len)?;
+        for input in &self.input_values {
+            write_bytes(&mut writer, &input.to_be_bytes())?;
+        }
+
+        let outputs_len = self.output_values.len() as u32;
+        write_u32(&mut writer, outputs_len)?;
+        for output in &self.output_values {
+            write_bytes(&mut writer, &output.to_be_bytes())?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
+        let name_len = read_u32(&mut reader)?;
+        let name_as_bytes = read_bytes(&mut reader, name_len as usize)?;
+        let name: String = String::from_utf8(name_as_bytes)
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
+
+        let inputs_len = read_u32(&mut reader)?;
+        let mut inputs = Vec::with_capacity(inputs_len as usize);
+        for _ in 0..inputs_len {
+            let input = Expression::read(&mut reader)?;
+            inputs.push(input);
+        }
+
+        let outputs_len = read_u32(&mut reader)?;
+        let mut outputs = Vec::with_capacity(outputs_len as usize);
+        for _ in 0..outputs_len {
+            let witness_index = read_u32(&mut reader)?;
+            outputs.push(Witness(witness_index));
+        }
+
+        const FIELD_ELEMENT_NUM_BYTES: usize = FieldElement::max_num_bytes() as usize;
+        let inputs_len = read_u32(&mut reader)?;
+        let mut input_values = Vec::with_capacity(inputs_len as usize);
+        for _ in 0..inputs_len {
+            let value = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
+            input_values.push(value);
+        }
+
+        let outputs_len = read_u32(&mut reader)?;
+        let mut output_values = Vec::with_capacity(outputs_len as usize);
+        for _ in 0..outputs_len {
+            let value = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
+            output_values.push(value);
+        }
+
+        Ok(OracleData { name, inputs, outputs, input_values, output_values })
+    }
+}
+
+impl std::fmt::Display for OracleData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ORACLE: {}", self.name)?;
+        let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
+
+        if !self.inputs.is_empty() {
+            write!(
+                f,
+                "Inputs: _{}..._{}{solved}",
+                self.inputs.first().unwrap(),
+                self.inputs.last().unwrap()
+            )?;
+        }
+
+        let solved = if self.output_values.len() == self.outputs.len() { "solved" } else { "" };
+        write!(
+            f,
+            "Outputs: _{}..._{}{solved}",
+            self.outputs.first().unwrap().witness_index(),
+            self.outputs.last().unwrap().witness_index()
+        )
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     Arithmetic(Expression),
@@ -104,6 +216,7 @@ pub enum Opcode {
     /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
     /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
     RAM(MemoryBlock),
+    Oracle(OracleData),
 }
 
 impl Opcode {
@@ -117,6 +230,7 @@ impl Opcode {
             Opcode::Block(_) => "block",
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
+            Opcode::Oracle(data) => &data.name,
         }
     }
 
@@ -130,6 +244,7 @@ impl Opcode {
             Opcode::Block(_) => 3,
             Opcode::ROM(_) => 4,
             Opcode::RAM(_) => 5,
+            Opcode::Oracle { .. } => 6,
         }
     }
 
@@ -154,6 +269,7 @@ impl Opcode {
             Opcode::Block(mem_block) | Opcode::ROM(mem_block) | Opcode::RAM(mem_block) => {
                 mem_block.write(writer)
             }
+            Opcode::Oracle(data) => data.write(writer),
         }
     }
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -186,6 +302,10 @@ impl Opcode {
             5 => {
                 let block = MemoryBlock::read(reader)?;
                 Ok(Opcode::RAM(block))
+            }
+            6 => {
+                let data = OracleData::read(reader)?;
+                Ok(Opcode::Oracle(data))
             }
             _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
@@ -272,6 +392,10 @@ impl std::fmt::Display for Opcode {
             Opcode::RAM(block) => {
                 write!(f, "RAM ")?;
                 write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
+            }
+            Opcode::Oracle(data) => {
+                write!(f, "ORACLE: ")?;
+                write!(f, "{data}")
             }
         }
     }
@@ -456,4 +580,13 @@ fn serialization_roundtrip() {
         let (op, got_op) = read_write(opcode);
         assert_eq!(op, got_op)
     }
+}
+
+#[test]
+fn panic_regression_187() {
+    // See: https://github.com/noir-lang/acvm/issues/187
+    // This issue seems to not be reproducible on Mac.
+    let data = b"\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x77\xdc\xa8\x37\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0\x80\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x04";
+    let circuit = crate::circuit::Circuit::read(&data[..]);
+    assert!(circuit.is_err())
 }

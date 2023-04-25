@@ -14,6 +14,7 @@ use optimizers::GeneralOptimizer;
 use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
 
+use self::optimizers::RangeOptimizer;
 use simplify::CircuitSimplifier;
 
 #[derive(PartialEq, Eq, Debug, Error)]
@@ -46,6 +47,10 @@ pub fn compile(
         };
     }
     let acir = Circuit { opcodes, ..acir };
+
+    // Range optimization pass
+    let range_optimizer = RangeOptimizer::new(acir);
+    let acir = range_optimizer.replace_redundant_ranges();
 
     let transformer = match &np_language {
         crate::Language::R1CS => {

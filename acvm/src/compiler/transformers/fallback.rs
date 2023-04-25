@@ -33,8 +33,10 @@ impl FallbackTransformer {
                     | Opcode::Directive(_)
                     | Opcode::Block(_)
                     | Opcode::ROM(_)
-                    | Opcode::RAM(_) => {
+                    | Opcode::RAM(_)
+                    | Opcode::Oracle { .. } => {
                         // directive, arithmetic expression or blocks are handled by acvm
+                        // The oracle opcode is assumed to be supported.
                         acir_supported_opcodes.push(opcode);
                         continue;
                     }
@@ -76,8 +78,8 @@ impl FallbackTransformer {
             BlackBoxFunc::AND => {
                 let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
                 stdlib::fallback::and(
-                    Expression::from(&lhs),
-                    Expression::from(&rhs),
+                    Expression::from(lhs),
+                    Expression::from(rhs),
                     result,
                     num_bits,
                     current_witness_idx,
@@ -86,8 +88,8 @@ impl FallbackTransformer {
             BlackBoxFunc::XOR => {
                 let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
                 stdlib::fallback::xor(
-                    Expression::from(&lhs),
-                    Expression::from(&rhs),
+                    Expression::from(lhs),
+                    Expression::from(rhs),
                     result,
                     num_bits,
                     current_witness_idx,
@@ -99,7 +101,7 @@ impl FallbackTransformer {
                 let input = &gc.inputs[0];
                 // Note there are no outputs because range produces no outputs
                 stdlib::fallback::range(
-                    Expression::from(&input.witness),
+                    Expression::from(input.witness),
                     input.num_bits,
                     current_witness_idx,
                 )

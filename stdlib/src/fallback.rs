@@ -48,7 +48,7 @@ pub(crate) fn bit_decomposition(
     // of the input and each bit is actually a bit
     let mut binary_exprs = Vec::new();
     let mut bit_decomp_constraint = gate;
-    let mut two_pow = FieldElement::one();
+    let mut two_pow: FieldElement = FieldElement::one();
     let two = FieldElement::from(2_i128);
     for &bit in &bit_vector {
         // Bit constraint to ensure each bit is a zero or one; bit^2 - bit = 0
