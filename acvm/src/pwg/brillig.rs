@@ -112,45 +112,51 @@ impl BrilligSolver {
         let vm = VM::new(input_registers, input_memory, brillig.bytecode.clone());
 
         let vm_output = vm.process_opcodes();
-
-        if vm_output.status == VMStatus::OracleWait {
-            let program_counter = vm_output.program_counter;
-
-            let current_opcode = &brillig.bytecode[program_counter];
-            let mut data = match current_opcode.clone() {
-                Opcode::Oracle(data) => data,
-                _ => {
-                    return Err(OpcodeResolutionError::UnexpectedOpcode(
-                        "brillig oracle",
-                        current_opcode.name(),
-                    ))
-                }
-            };
-
-            let input_values = vm_output.map_input_values(&data);
-            data.input_values = input_values;
-
-            return Ok(OpcodeResolution::InProgressBrillig(OracleWaitInfo {
-                data: data.clone(),
-                program_counter,
-            }));
-        }
-
-        for (output, register_value) in brillig.outputs.iter().zip(vm_output.registers) {
-            match output {
-                BrilligOutputs::Simple(witness) => {
-                    insert_witness(*witness, register_value.inner, initial_witness)?;
-                }
-                BrilligOutputs::Array(witness_arr) => {
-                    let array = vm_output.memory[&register_value].memory_map.values();
-                    for (witness, value) in witness_arr.iter().zip(array) {
-                        insert_witness(*witness, value.inner, initial_witness)?;
+        
+        let result = match vm_output.status {
+            VMStatus::Halted => {
+                for (output, register_value) in brillig.outputs.iter().zip(vm_output.registers) {
+                    match output {
+                        BrilligOutputs::Simple(witness) => {
+                            insert_witness(*witness, register_value.inner, initial_witness)?;
+                        }
+                        BrilligOutputs::Array(witness_arr) => {
+                            let array = vm_output.memory[&register_value].memory_map.values();
+                            for (witness, value) in witness_arr.iter().zip(array) {
+                                insert_witness(*witness, value.inner, initial_witness)?;
+                            }
+                        }
                     }
                 }
+                OpcodeResolution::Solved
             }
-        }
+            VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
+            VMStatus::Failure => return Err(OpcodeResolutionError::UnsatisfiedConstrain),
+            VMStatus::OracleWait => {
+                let program_counter = vm_output.program_counter;
 
-        Ok(OpcodeResolution::Solved)
+                let current_opcode = &brillig.bytecode[program_counter];
+                let mut data = match current_opcode.clone() {
+                    Opcode::Oracle(data) => data,
+                    _ => {
+                        return Err(OpcodeResolutionError::UnexpectedOpcode(
+                            "brillig oracle",
+                            current_opcode.name(),
+                        ))
+                    }
+                };
+
+                let input_values = vm_output.map_input_values(&data);
+                data.input_values = input_values;
+
+                OpcodeResolution::InProgressBrillig(OracleWaitInfo {
+                    data: data.clone(),
+                    program_counter,
+                })
+            }
+        };
+
+        Ok(result)
     }
 }
 
