@@ -176,7 +176,7 @@ impl BinaryOp {
                 }
             },
             BinaryOp::Cmp(comparison) => match comparison {
-                Comparison::Eq => ((a == b) as u128).into(),
+                Comparison::Eq => ((a.inner == b.inner) as u128).into(),
                 Comparison::Lt => ((a.inner < b.inner) as u128).into(),
                 Comparison::Lte => ((a.inner <= b.inner) as u128).into(),
             },
