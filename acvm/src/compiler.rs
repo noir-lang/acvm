@@ -1,6 +1,5 @@
 // The various passes that we can use over ACIR
 pub mod optimizers;
-pub mod simplify;
 pub mod transformers;
 
 use crate::Language;
@@ -15,7 +14,7 @@ use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
 
 use self::optimizers::RangeOptimizer;
-use simplify::CircuitSimplifier;
+use self::optimizers::Simplifier;
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -27,7 +26,7 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: IsOpcodeSupported,
-    simplifier: &CircuitSimplifier,
+    simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
