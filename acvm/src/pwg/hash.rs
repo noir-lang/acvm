@@ -5,30 +5,62 @@ use std::collections::BTreeMap;
 
 use crate::{OpcodeResolution, OpcodeResolutionError};
 
-use super::witness_to_value;
+use super::{insert_value, witness_to_value};
 
 pub fn blake2s(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &BlackBoxFuncCall,
+    func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    generic_hash_256::<Blake2s>(initial_witness, gadget_call)
+    let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
+
+    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+        insert_value(
+            output_witness,
+            FieldElement::from_be_bytes_reduce(&[*value]),
+            initial_witness,
+        )?;
+    }
+
+    Ok(OpcodeResolution::Solved)
 }
 
 pub fn sha256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &BlackBoxFuncCall,
+    func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    generic_hash_256::<Sha256>(initial_witness, gadget_call)
+    let hash = generic_hash_256::<Sha256>(initial_witness, func_call)?;
+
+    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+        insert_value(
+            output_witness,
+            FieldElement::from_be_bytes_reduce(&[*value]),
+            initial_witness,
+        )?;
+    }
+
+    Ok(OpcodeResolution::Solved)
+}
+
+pub fn hash_to_field_128_security(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
+
+    let reduced_res = FieldElement::from_be_bytes_reduce(&hash);
+    insert_value(&func_call.outputs[0], reduced_res, initial_witness)?;
+
+    Ok(OpcodeResolution::Solved)
 }
 
 fn generic_hash_256<D: Digest>(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &BlackBoxFuncCall,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    func_call: &BlackBoxFuncCall,
+) -> Result<[u8; 32], OpcodeResolutionError> {
     let mut hasher = D::new();
 
     // Read witness assignments into hasher.
-    for input in gadget_call.inputs.iter() {
+    for input in func_call.inputs.iter() {
         let witness = input.witness;
         let num_bits = input.num_bits as usize;
 
@@ -37,12 +69,6 @@ fn generic_hash_256<D: Digest>(
         hasher.update(bytes);
     }
 
-    // Perform hash and write outputs to witness map.
-    let result = hasher.finalize();
-    for i in 0..32 {
-        initial_witness
-            .insert(gadget_call.outputs[i], FieldElement::from_be_bytes_reduce(&[result[i]]));
-    }
-
-    Ok(OpcodeResolution::Solved)
+    let result = hasher.finalize().as_slice().try_into().unwrap();
+    Ok(result)
 }
