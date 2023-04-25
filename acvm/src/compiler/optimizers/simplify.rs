@@ -440,7 +440,7 @@ mod test {
     };
 
     use crate::compiler::{
-        simplify::CircuitSimplifier,
+        optimizers::Simplifier,
         transformers::{FallbackTransformer, IsOpcodeSupported},
     };
 
@@ -470,7 +470,7 @@ mod test {
             linear_combinations: vec![(one, a)],
             q_c: FieldElement::zero(),
         };
-        let mut simplifier = CircuitSimplifier::new(1);
+        let mut simplifier = Simplifier::new(1);
         let mut circuit = vec![
             Opcode::Arithmetic(gate_a),
             Opcode::Arithmetic(gate_b),
