@@ -77,6 +77,20 @@ impl VM {
         vm
     }
 
+    fn status(&mut self, status: VMStatus) -> VMStatus {
+        self.status = status;
+        status
+    }
+    fn halt(&mut self) -> VMStatus {
+        self.status(VMStatus::Halted)
+    }
+    fn wait(&mut self) -> VMStatus {
+        self.status(VMStatus::OracleWait)
+    }
+    fn fail(&mut self) -> VMStatus {
+        self.status(VMStatus::Failure)
+    }
+
     /// Loop over the bytecode and update the program counter
     pub fn process_opcodes(mut self) -> VMOutputState {
         while !matches!(
@@ -118,7 +132,7 @@ impl VM {
                     .expect("register does not fit into usize");
                     self.set_program_counter(label)
                 } else {
-                    return VMStatus::Halted;
+                    return self.halt();
                 }
             }
             Opcode::Intrinsics => todo!(),
@@ -131,8 +145,7 @@ impl VM {
                     }
                 }
                 if num_output_values != data.output_values.len() {
-                    self.status = VMStatus::OracleWait;
-                    return VMStatus::OracleWait;
+                    return self.wait();
                 } else {
                     let mut current_value_index = 0;
                     for oracle_output in data.clone().outputs {
@@ -163,16 +176,16 @@ impl VM {
                     RegisterMemIndex::Register(dest_index) => {
                         self.registers.set(*dest_index, source_value)
                     }
-                    _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
+                    _ => return self.fail(), // TODO: add variants to VMStatus::Failure for more informed failures
                 }
 
                 self.increment_program_counter()
             }
-            Opcode::Trap => VMStatus::Failure,
+            Opcode::Trap => self.fail(),
             Opcode::Bootstrap { .. } => unreachable!(
                 "should only be at end of opcodes and popped off when initializing the vm"
             ),
-            Opcode::Stop => VMStatus::Halted,
+            Opcode::Stop => self.halt(),
             Opcode::Load { destination, array_id_reg, index } => {
                 let array_id = self.registers.get(*array_id_reg);
                 let array = &self.memory[&array_id];
@@ -185,7 +198,7 @@ impl VM {
                         .expect("register does not fit into usize");
                         self.registers.set(*dest_index, array.memory_map[&index_usize]);
                     }
-                    _ => return VMStatus::Failure, // TODO: add variants to VMStatus::Failure for more informed failures
+                    _ => return self.fail(), // TODO: add variants to VMStatus::Failure for more informed failures
                 }
                 self.increment_program_counter()
             }
