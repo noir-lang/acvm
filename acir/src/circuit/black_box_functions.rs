@@ -22,6 +22,7 @@ pub enum BlackBoxFunc {
     EcdsaSecp256k1,
     FixedBaseScalarMul,
     Keccak256,
+    VerifyProof,
 }
 
 impl std::fmt::Display for BlackBoxFunc {
@@ -46,6 +47,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::XOR => 10,
             BlackBoxFunc::RANGE => 11,
             BlackBoxFunc::Keccak256 => 12,
+            BlackBoxFunc::VerifyProof => 13,
         }
     }
     pub fn from_u16(index: u16) -> Option<Self> {
@@ -82,6 +84,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::XOR => "xor",
             BlackBoxFunc::RANGE => "range",
             BlackBoxFunc::Keccak256 => "keccak256",
+            BlackBoxFunc::VerifyProof => "verify_proof",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -99,6 +102,7 @@ impl BlackBoxFunc {
             "xor" => Some(BlackBoxFunc::XOR),
             "range" => Some(BlackBoxFunc::RANGE),
             "keccak256" => Some(BlackBoxFunc::Keccak256),
+            "verify_proof" => Some(BlackBoxFunc::VerifyProof),
             _ => None,
         }
     }
@@ -112,49 +116,70 @@ impl BlackBoxFunc {
             BlackBoxFunc::SHA256 => FuncDefinition {
                 name,
                 input_size: InputSize::Variable,
-                output_size: OutputSize(32),
+                output_size: OutputSize::Fixed(32),
             },
             BlackBoxFunc::Blake2s => FuncDefinition {
                 name,
                 input_size: InputSize::Variable,
-                output_size: OutputSize(32),
+                output_size: OutputSize::Fixed(32),
             },
-            BlackBoxFunc::HashToField128Security => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::MerkleMembership => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
+            BlackBoxFunc::HashToField128Security => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize::Fixed(1),
+            },
+            BlackBoxFunc::MerkleMembership => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize::Fixed(1),
+            },
             BlackBoxFunc::SchnorrVerify => FuncDefinition {
                 name,
                 // XXX: input_size can be changed to fixed, once we hash
                 // the message before passing it to schnorr.
                 // This is assuming all hashes will be 256 bits. Reasonable?
                 input_size: InputSize::Variable,
-                output_size: OutputSize(1),
+                output_size: OutputSize::Fixed(1),
             },
-            BlackBoxFunc::Pedersen => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(2) }
-            }
-            BlackBoxFunc::EcdsaSecp256k1 => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::FixedBaseScalarMul => {
-                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(2) }
-            }
-            BlackBoxFunc::AND => {
-                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::XOR => {
-                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::RANGE => {
-                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(0) }
-            }
+            BlackBoxFunc::Pedersen => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize::Fixed(2),
+            },
+            BlackBoxFunc::EcdsaSecp256k1 => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize::Fixed(1),
+            },
+            BlackBoxFunc::FixedBaseScalarMul => FuncDefinition {
+                name,
+                input_size: InputSize::Fixed(1),
+                output_size: OutputSize::Fixed(2),
+            },
+            BlackBoxFunc::AND => FuncDefinition {
+                name,
+                input_size: InputSize::Fixed(2),
+                output_size: OutputSize::Fixed(1),
+            },
+            BlackBoxFunc::XOR => FuncDefinition {
+                name,
+                input_size: InputSize::Fixed(2),
+                output_size: OutputSize::Fixed(1),
+            },
+            BlackBoxFunc::RANGE => FuncDefinition {
+                name,
+                input_size: InputSize::Fixed(1),
+                output_size: OutputSize::Fixed(0),
+            },
             BlackBoxFunc::Keccak256 => FuncDefinition {
                 name,
                 input_size: InputSize::Variable,
-                output_size: OutputSize(32),
+                output_size: OutputSize::Fixed(32),
+            },
+            BlackBoxFunc::VerifyProof => FuncDefinition {
+                name,
+                input_size: InputSize::Variable,
+                output_size: OutputSize::Variable,
             },
         }
     }
@@ -178,10 +203,15 @@ impl InputSize {
     }
 }
 
-// Output size Cannot currently vary, so we use a separate struct
-// XXX: In the future, we may be able to allow the output to vary based on the input size, however this implies support for dynamic circuits
+// Descriptor as to whether the output is fixed or variable
+// Example: The input and output for recursive verification is variable as different proof systems can have different sized aggregation objects.
+// XXX: In the future, we may be able to allow the output to vary based on the input size, however this implies support for dynamic circuits,
+// right now any variable output size should be based upon the proving system, not the input size
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct OutputSize(pub u128);
+pub enum OutputSize {
+    Variable,
+    Fixed(u128),
+}
 
 #[derive(Clone, Debug, Hash)]
 // Specs for how many inputs/outputs the method takes.
