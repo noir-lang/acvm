@@ -1,11 +1,11 @@
-use crate::{pwg::witness_to_value, OpcodeResolutionError};
+use crate::{pwg::witness_to_value, OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
 
 pub fn solve_range_opcode(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
     // TODO: this consistency check can be moved to a general function
     let defined_input_size = BlackBoxFunc::RANGE
         .definition()
@@ -31,5 +31,5 @@ pub fn solve_range_opcode(
     if w_value.num_bits() > input.num_bits {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
-    Ok(())
+    Ok(OpcodeResolution::Solved)
 }
