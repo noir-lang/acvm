@@ -13,7 +13,7 @@ pub enum BlackBoxFunc {
     RANGE,
     SHA256,
     Blake2s,
-    MerkleMembership,
+    ComputeMerkleRoot,
     SchnorrVerify,
     Pedersen,
     // 128 here specifies that this function
@@ -35,7 +35,7 @@ impl BlackBoxFunc {
         match self {
             BlackBoxFunc::AES => 0,
             BlackBoxFunc::SHA256 => 1,
-            BlackBoxFunc::MerkleMembership => 2,
+            BlackBoxFunc::ComputeMerkleRoot => 2,
             BlackBoxFunc::SchnorrVerify => 3,
             BlackBoxFunc::Blake2s => 4,
             BlackBoxFunc::Pedersen => 5,
@@ -52,7 +52,7 @@ impl BlackBoxFunc {
         let function = match index {
             0 => BlackBoxFunc::AES,
             1 => BlackBoxFunc::SHA256,
-            2 => BlackBoxFunc::MerkleMembership,
+            2 => BlackBoxFunc::ComputeMerkleRoot,
             3 => BlackBoxFunc::SchnorrVerify,
             4 => BlackBoxFunc::Blake2s,
             5 => BlackBoxFunc::Pedersen,
@@ -71,7 +71,7 @@ impl BlackBoxFunc {
         match self {
             BlackBoxFunc::AES => "aes",
             BlackBoxFunc::SHA256 => "sha256",
-            BlackBoxFunc::MerkleMembership => "merkle_membership",
+            BlackBoxFunc::ComputeMerkleRoot => "compute_merkle_root",
             BlackBoxFunc::SchnorrVerify => "schnorr_verify",
             BlackBoxFunc::Blake2s => "blake2s",
             BlackBoxFunc::Pedersen => "pedersen",
@@ -88,7 +88,7 @@ impl BlackBoxFunc {
         match op_name {
             "aes" => Some(BlackBoxFunc::AES),
             "sha256" => Some(BlackBoxFunc::SHA256),
-            "merkle_membership" => Some(BlackBoxFunc::MerkleMembership),
+            "compute_merkle_root" => Some(BlackBoxFunc::ComputeMerkleRoot),
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
             "blake2s" => Some(BlackBoxFunc::Blake2s),
             "pedersen" => Some(BlackBoxFunc::Pedersen),
@@ -122,7 +122,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::HashToField128Security => {
                 FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
             }
-            BlackBoxFunc::MerkleMembership => {
+            BlackBoxFunc::ComputeMerkleRoot => {
                 FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
             }
             BlackBoxFunc::SchnorrVerify => FuncDefinition {
