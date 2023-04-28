@@ -58,7 +58,7 @@ pub enum OpcodeResolutionError {
 pub enum OpcodeResolution {
     /// The opcode is resolved
     Solved,
-    /// The opcode is not solvable             
+    /// The opcode is not solvable
     Stalled(OpcodeNotSolvable),
     /// The opcode is not solvable but could resolved some witness
     InProgress,
@@ -92,7 +92,15 @@ fn first_missing_assignment(
     })
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
+pub trait Backend:
+    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default + Fallible
+{
+}
+
+pub trait Fallible {
+    /// The Error type returned by failed function calls in the Backend trait.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
@@ -194,14 +202,14 @@ pub trait PartialWitnessGenerator {
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 
-pub trait SmartContract {
+pub trait SmartContract: Fallible {
     // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Returns an Ethereum smart contract to verify proofs against a given verification key.
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error>;
 }
 
-pub trait ProofSystemCompiler {
+pub trait ProofSystemCompiler: Fallible {
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
@@ -212,11 +220,11 @@ pub trait ProofSystemCompiler {
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
     /// Returns the number of gates in a circuit
-    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
 
     /// Generates a proving and verification key given the circuit description
     /// These keys can then be used to construct a proof and for its verification
-    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>);
+    fn preprocess(&self, circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error>;
 
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
@@ -226,7 +234,7 @@ pub trait ProofSystemCompiler {
         circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
-    ) -> Vec<u8>;
+    ) -> Result<Vec<u8>, Self::Error>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
     fn verify_with_vk(
@@ -235,7 +243,7 @@ pub trait ProofSystemCompiler {
         public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: &Circuit,
         verification_key: &[u8],
-    ) -> bool;
+    ) -> Result<bool, Self::Error>;
 }
 
 /// Supported NP complete languages
