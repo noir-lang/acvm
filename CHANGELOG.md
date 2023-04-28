@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1](https://github.com/noir-lang/acvm/compare/root-v0.10.0...root-v0.10.1) (2023-04-28)
+
+
+### Bug Fixes
+
+* **acir:** add `bn254` as default feature flag ([#240](https://github.com/noir-lang/acvm/issues/240)) ([e56973d](https://github.com/noir-lang/acvm/commit/e56973d8dc1745fe9bb844ec8347acd4d836d42f))
+
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/root-v0.9.0...root-v0.10.0) (2023-04-26)
 
 

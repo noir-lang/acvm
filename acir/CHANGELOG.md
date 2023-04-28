@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/noir-lang/acvm/compare/acir-v0.10.0...acir-v0.10.1) (2023-04-28)
+
+
+### Bug Fixes
+
+* **acir:** add `bn254` as default feature flag ([#240](https://github.com/noir-lang/acvm/issues/240)) ([e56973d](https://github.com/noir-lang/acvm/commit/e56973d8dc1745fe9bb844ec8347acd4d836d42f))
+
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acir-v0.9.0...acir-v0.10.0) (2023-04-26)
 
 
