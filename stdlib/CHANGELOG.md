@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.9.0...acvm_stdlib-v0.10.0) (2023-04-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* organise operator implementations for Expression ([#190](https://github.com/noir-lang/acvm/issues/190))
+
+### Bug Fixes
+
+* prevent `bn254` feature flag always being enabled ([#225](https://github.com/noir-lang/acvm/issues/225)) ([82eee6a](https://github.com/noir-lang/acvm/commit/82eee6ab08ae480f04904ca8571fd88f4466c000))
+
+
+### Miscellaneous Chores
+
+* organise operator implementations for Expression ([#190](https://github.com/noir-lang/acvm/issues/190)) ([a619df6](https://github.com/noir-lang/acvm/commit/a619df614bbb9b2518b788b42a7553b069823a0f))
+
 ## [0.9.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.8.1...acvm_stdlib-v0.9.0) (2023-04-07)
 
 
