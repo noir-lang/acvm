@@ -14,6 +14,7 @@ pub mod arithmetic;
 // Directives
 pub mod directives;
 // black box functions
+pub mod black_box_functions;
 pub mod block;
 pub mod hash;
 pub mod logic;

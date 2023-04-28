@@ -16,7 +16,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
-use pwg::{block::Blocks, directives::solve_directives};
+use pwg::{block::Blocks, directives::solve_directives, black_box_functions::solve_black_box_function};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -110,7 +110,12 @@ pub trait PartialWitnessGenerator {
                                 unassigned_witness.0,
                             )))
                         } else {
-                            self.solve_black_box_function_call(initial_witness, bb_func)
+                            let status = solve_black_box_function(initial_witness, bb_func);
+                            if matches!(status, Err(OpcodeResolutionError::OpcodeNotSolvable(_))) {
+                                self.solve_black_box_function_call(initial_witness, bb_func)
+                            } else {
+                                status
+                            }
                         }
                     }
                     Opcode::Directive(directive) => solve_directives(initial_witness, directive),
