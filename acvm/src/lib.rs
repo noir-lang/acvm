@@ -16,7 +16,9 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
-use pwg::{block::Blocks, directives::solve_directives, black_box_functions::solve_black_box_function};
+use pwg::{
+    black_box_functions::solve_black_box_function, block::Blocks, directives::solve_directives,
+};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
