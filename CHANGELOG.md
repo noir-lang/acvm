@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3](https://github.com/noir-lang/acvm/compare/root-v0.10.2...root-v0.10.3) (2023-04-28)
+
+
+### Bug Fixes
+
+* add default feature flag to ACVM crate ([#245](https://github.com/noir-lang/acvm/issues/245)) ([455fddb](https://github.com/noir-lang/acvm/commit/455fddbc19af81cb01d54e29cad199691e1a1d98))
+
 ## [0.10.2](https://github.com/noir-lang/acvm/compare/root-v0.10.1...root-v0.10.2) (2023-04-28)
 
 
