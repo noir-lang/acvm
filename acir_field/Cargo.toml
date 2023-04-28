@@ -27,5 +27,5 @@ cfg-if = "1.0.0"
 
 [features]
 default = ["bn254"]
-bn254 = ["ark-bn254", "ark-ff"]
-bls12_381 = ["ark-bls12-381", "ark-ff"]
+bn254 = ["dep:ark-bn254", "dep:ark-ff"]
+bls12_381 = ["dep:ark-bls12-381", "dep:ark-ff"]
