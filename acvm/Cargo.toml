@@ -30,6 +30,7 @@ indexmap = "1.7.0"
 thiserror = "1.0.21"
 
 [features]
+default = ["bn254"]
 bn254 = ["acir/bn254", "stdlib/bn254"]
 bls12_381 = ["acir/bls12_381", "stdlib/bls12_381"]
 
