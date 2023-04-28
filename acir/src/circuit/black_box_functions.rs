@@ -65,6 +65,7 @@ impl BlackBoxFunc {
             10 => BlackBoxFunc::XOR,
             11 => BlackBoxFunc::RANGE,
             12 => BlackBoxFunc::Keccak256,
+            13 => BlackBoxFunc::VerifyProof,
             _ => return None,
         };
         Some(function)
