@@ -1,5 +1,5 @@
-mod arithmetic;
+mod expression;
 mod witness;
 
-pub use arithmetic::Expression;
+pub use expression::Expression;
 pub use witness::Witness;
