@@ -30,4 +30,4 @@ jobs:
         with:
           workflow: publish.yml
           ref: master
-          inputs: '{ "acvm-ref": "${{ needs.release-please.outputs.tag-name }}" }'
+          inputs: '{ "acvm-ref": "${{ needs.release-please.outputs.tag-name }}", "publish": true }'
