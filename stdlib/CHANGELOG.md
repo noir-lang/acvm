@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.1...acvm_stdlib-v0.10.2) (2023-04-28)
+
+
+### Bug Fixes
+
+* add default flag to `acvm_stdlib` ([#242](https://github.com/noir-lang/acvm/issues/242)) ([83b6fa8](https://github.com/noir-lang/acvm/commit/83b6fa8302569add7e3ac8481b2fd2a6a1ff3576))
+
 ## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.0...acvm_stdlib-v0.10.1) (2023-04-28)
 
 
