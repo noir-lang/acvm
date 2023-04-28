@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm-v0.10.0...acvm-v0.10.1) (2023-04-28)
+
+
+### Miscellaneous Chores
+
+* **acvm:** Synchronize undefined versions
+
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm-v0.9.0...acvm-v0.10.0) (2023-04-26)
 
 
