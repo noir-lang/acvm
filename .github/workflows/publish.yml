@@ -1,9 +1,9 @@
 name: Publish crates
 
 on:
-  push:
-    # We only want this to perform dry runs on the release PR.
-    branches: ["release-please--branches--master"]
+  # We only want to perform dry runs when this workflow runs on PRs.
+  pull_request:
+    branches: [master]
   workflow_dispatch:
     inputs:
       acvm-ref:
