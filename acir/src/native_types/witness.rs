@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, io::Read, ops::Index};
 
+use acir_field::FieldElement;
 use flate2::{
     bufread::{DeflateDecoder, DeflateEncoder},
     Compression,
@@ -37,40 +38,36 @@ impl From<u32> for Witness {
 
 /// A map from the witnesses in a constraint system to the field element values
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize)]
-pub struct WitnessMap(BTreeMap<Witness, acir_field::FieldElement>);
+pub struct WitnessMap(BTreeMap<Witness, FieldElement>);
 
 impl WitnessMap {
     pub fn new() -> Self {
         Self(BTreeMap::new())
     }
-    pub fn get(&self, witness: &Witness) -> Option<&acir_field::FieldElement> {
+    pub fn get(&self, witness: &Witness) -> Option<&FieldElement> {
         self.0.get(witness)
     }
-    pub fn get_index(&self, index: u32) -> Option<&acir_field::FieldElement> {
+    pub fn get_index(&self, index: u32) -> Option<&FieldElement> {
         self.0.get(&index.into())
     }
     pub fn contains_key(&self, key: &Witness) -> bool {
         self.0.contains_key(key)
     }
-    pub fn insert(
-        &mut self,
-        key: Witness,
-        value: acir_field::FieldElement,
-    ) -> Option<acir_field::FieldElement> {
+    pub fn insert(&mut self, key: Witness, value: FieldElement) -> Option<FieldElement> {
         self.0.insert(key, value)
     }
 }
 
 impl Index<&Witness> for WitnessMap {
-    type Output = acir_field::FieldElement;
+    type Output = FieldElement;
 
     fn index(&self, index: &Witness) -> &Self::Output {
         &self.0[index]
     }
 }
 
-impl From<BTreeMap<Witness, acir_field::FieldElement>> for WitnessMap {
-    fn from(value: BTreeMap<Witness, acir_field::FieldElement>) -> Self {
+impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
+    fn from(value: BTreeMap<Witness, FieldElement>) -> Self {
         Self(value)
     }
 }
@@ -94,7 +91,7 @@ impl From<&[u8]> for WitnessMap {
     }
 }
 
-impl From<WitnessMap> for Vec<acir_field::FieldElement> {
+impl From<WitnessMap> for Vec<FieldElement> {
     fn from(val: WitnessMap) -> Self {
         val.0.into_values().collect()
     }
