@@ -1,15 +1,14 @@
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::WitnessMap, FieldElement};
 use blake2::{Blake2s, Digest};
 use sha2::Sha256;
 use sha3::Keccak256;
-use std::collections::BTreeMap;
 
 use crate::{OpcodeResolution, OpcodeResolutionError};
 
 use super::{insert_value, witness_to_value};
 
 pub fn blake2s(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
@@ -26,7 +25,7 @@ pub fn blake2s(
 }
 
 pub fn sha256(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Sha256>(initial_witness, func_call)?;
@@ -43,7 +42,7 @@ pub fn sha256(
 }
 
 pub fn keccak256(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Keccak256>(initial_witness, func_call)?;
@@ -60,7 +59,7 @@ pub fn keccak256(
 }
 
 pub fn hash_to_field_128_security(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
@@ -72,7 +71,7 @@ pub fn hash_to_field_128_security(
 }
 
 fn generic_hash_256<D: Digest>(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<[u8; 32], OpcodeResolutionError> {
     let mut hasher = D::new();

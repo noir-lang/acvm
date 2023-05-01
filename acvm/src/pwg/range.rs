@@ -1,9 +1,8 @@
 use crate::{pwg::witness_to_value, OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
-use std::collections::BTreeMap;
+use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::WitnessMap, BlackBoxFunc};
 
 pub fn solve_range_opcode(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     // TODO: this consistency check can be moved to a general function

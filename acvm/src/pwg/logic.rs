@@ -1,10 +1,13 @@
 use super::{insert_value, witness_to_value};
 use crate::{OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
-use std::collections::BTreeMap;
+use acir::{
+    circuit::opcodes::BlackBoxFuncCall,
+    native_types::{Witness, WitnessMap},
+    BlackBoxFunc,
+};
 
 pub fn solve_logic_opcode(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match func_call.name {
@@ -19,7 +22,7 @@ pub struct LogicSolver;
 impl LogicSolver {
     /// Derives the rest of the witness based on the initial low level variables
     fn solve_logic_gate(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         a: &Witness,
         b: &Witness,
         result: Witness,
@@ -39,14 +42,14 @@ impl LogicSolver {
     }
 
     pub fn solve_and_gate(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         gate: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);
         LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
     }
     pub fn solve_xor_gate(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         gate: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);

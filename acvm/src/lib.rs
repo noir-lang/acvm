@@ -13,11 +13,10 @@ use acir::{
         opcodes::{BlackBoxFuncCall, OracleData},
         Circuit, Opcode,
     },
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc,
 };
 use pwg::{block::Blocks, directives::solve_directives};
-use std::collections::BTreeMap;
 use thiserror::Error;
 
 // re-export acir
@@ -80,7 +79,7 @@ pub enum PartialWitnessGeneratorStatus {
 ///
 /// Returns the first missing assignment if any are missing
 fn first_missing_assignment(
-    witness_assignments: &BTreeMap<Witness, FieldElement>,
+    witness_assignments: &WitnessMap,
     func_call: &BlackBoxFuncCall,
 ) -> Option<Witness> {
     func_call.inputs.iter().find_map(|input| {
@@ -100,7 +99,7 @@ pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator
 pub trait PartialWitnessGenerator {
     fn solve(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
@@ -189,7 +188,7 @@ pub trait PartialWitnessGenerator {
 
     fn solve_black_box_function_call(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         func_call: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
@@ -230,7 +229,7 @@ pub trait ProofSystemCompiler {
     fn prove_with_pk(
         &self,
         circuit: &Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
+        witness_values: WitnessMap,
         proving_key: &[u8],
     ) -> Result<Vec<u8>, Self::Error>;
 
@@ -238,7 +237,7 @@ pub trait ProofSystemCompiler {
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: BTreeMap<Witness, FieldElement>,
+        public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<bool, Self::Error>;
@@ -319,7 +318,7 @@ mod test {
             opcodes::{BlackBoxFuncCall, OracleData},
             Opcode,
         },
-        native_types::{Expression, Witness},
+        native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
@@ -333,7 +332,7 @@ mod test {
     impl PartialWitnessGenerator for StubbedPwg {
         fn solve_black_box_function_call(
             &self,
-            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _initial_witness: &mut WitnessMap,
             _func_call: &BlackBoxFuncCall,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
@@ -389,7 +388,8 @@ mod test {
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
-        ]);
+        ])
+        .into();
         let mut blocks = Blocks::default();
         let solver_status = pwg
             .solve(&mut witness_assignments, &mut blocks, opcodes)
