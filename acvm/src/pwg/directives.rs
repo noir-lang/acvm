@@ -61,13 +61,13 @@ fn solve_directives_internal(
                 (&int_a % &int_b, &int_a / &int_b)
             };
 
-            insert_witness(
-                *q,
+            insert_value(
+                q,
                 FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
                 initial_witness,
             )?;
-            insert_witness(
-                *r,
+            insert_value(
+                r,
                 FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
                 initial_witness,
             )?;
@@ -129,7 +129,7 @@ fn solve_directives_internal(
             let control = route(base, b);
             for (w, value) in bits.iter().zip(control) {
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
-                insert_witness(*w, value, initial_witness)?;
+                insert_value(w, value, initial_witness)?;
             }
             Ok(())
         }
@@ -170,24 +170,6 @@ fn solve_directives_internal(
             Ok(())
         }
     }
-}
-
-pub fn insert_witness(
-    w: Witness,
-    value: FieldElement,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
-) -> Result<(), OpcodeResolutionError> {
-    match initial_witness.entry(w) {
-        std::collections::btree_map::Entry::Vacant(e) => {
-            e.insert(value);
-        }
-        std::collections::btree_map::Entry::Occupied(e) => {
-            if e.get() != &value {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-        }
-    }
-    Ok(())
 }
 
 /// This trims any leading zeroes.
