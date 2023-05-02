@@ -77,8 +77,9 @@ fn generic_hash_256<D: Digest>(
 pub fn keccak256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     gadget_call: &BlackBoxFuncCall,
-) -> Result<(), OpcodeResolutionError> {
-    generic_sha3::<Keccak256>(initial_witness, gadget_call)
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    generic_sha3::<Keccak256>(initial_witness, gadget_call)?;
+    Ok(OpcodeResolution::Solved)
 }
 
 fn generic_sha3<D: sha3::Digest>(
