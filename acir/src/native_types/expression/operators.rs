@@ -195,12 +195,18 @@ impl Mul<&Expression> for &Expression {
         }
         while i1 < self.linear_combinations.len() {
             let (a_c, a_w) = self.linear_combinations[i1];
-            output.linear_combinations.push((rhs.q_c * a_c, a_w));
+            let coeff = rhs.q_c * a_c;
+            if !coeff.is_zero() {
+                output.linear_combinations.push((coeff, a_w));
+            }
             i1 += 1;
         }
         while i2 < rhs.linear_combinations.len() {
             let (b_c, b_w) = rhs.linear_combinations[i2];
-            output.linear_combinations.push((self.q_c * b_c, b_w));
+            let coeff = self.q_c * b_c;
+            if !coeff.is_zero() {
+                output.linear_combinations.push((coeff, b_w));
+            }
             i2 += 1;
         }
 
