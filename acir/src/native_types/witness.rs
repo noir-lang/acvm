@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, io::Read, ops::Index};
+use std::{
+    collections::{btree_map, BTreeMap},
+    io::Read,
+    ops::Index,
+};
 
 use acir_field::FieldElement;
 use flate2::{
@@ -66,6 +70,25 @@ impl Index<&Witness> for WitnessMap {
     }
 }
 
+pub struct IntoIter(btree_map::IntoIter<Witness, FieldElement>);
+
+impl Iterator for IntoIter {
+    type Item = (Witness, FieldElement);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
+impl IntoIterator for WitnessMap {
+    type Item = (Witness, FieldElement);
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter(self.0.into_iter())
+    }
+}
+
 impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     fn from(value: BTreeMap<Witness, FieldElement>) -> Self {
         Self(value)
@@ -88,11 +111,5 @@ impl From<&[u8]> for WitnessMap {
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();
         Self(rmp_serde::from_slice(buf_d.as_slice()).unwrap())
-    }
-}
-
-impl From<WitnessMap> for Vec<FieldElement> {
-    fn from(val: WitnessMap) -> Self {
-        val.0.into_values().collect()
     }
 }
