@@ -199,7 +199,7 @@ impl Mul<&Expression> for &Expression {
             i1 += 1;
         }
         while i2 < rhs.linear_combinations.len() {
-            let (b_c, b_w) = rhs.linear_combinations[i1];
+            let (b_c, b_w) = rhs.linear_combinations[i2];
             output.linear_combinations.push((self.q_c * b_c, b_w));
             i2 += 1;
         }
