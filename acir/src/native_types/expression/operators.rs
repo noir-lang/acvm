@@ -222,3 +222,63 @@ fn single_mul(w: Witness, b: &Expression) -> Expression {
         ..Default::default()
     }
 }
+
+#[test]
+fn add_smoketest() {
+    let a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(FieldElement::from(2u128), Witness(2))],
+        q_c: FieldElement::from(2u128),
+    };
+
+    let b = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(FieldElement::from(4u128), Witness(4))],
+        q_c: FieldElement::one(),
+    };
+
+    assert_eq!(
+        &a + &b,
+        Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![
+                (FieldElement::from(2u128), Witness(2)),
+                (FieldElement::from(4u128), Witness(4))
+            ],
+            q_c: FieldElement::from(3u128)
+        }
+    );
+
+    // Enforce commutativity
+    assert_eq!(&a + &b, &b + &a);
+}
+
+#[test]
+fn mul_smoketest() {
+    let a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(FieldElement::from(2u128), Witness(2))],
+        q_c: FieldElement::from(2u128),
+    };
+
+    let b = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(FieldElement::from(4u128), Witness(4))],
+        q_c: FieldElement::one(),
+    };
+
+    assert_eq!(
+        &a * &b,
+        Expression {
+            mul_terms: vec![(FieldElement::from(8u128), Witness(2), Witness(4)),],
+            linear_combinations: vec![
+                (FieldElement::from(2u128), Witness(2)),
+                (FieldElement::from(8u128), Witness(4))
+            ],
+            q_c: FieldElement::from(2u128)
+        }
+    );
+
+    // Enforce commutativity
+    assert_eq!(&a * &b, &b * &a);
+}
