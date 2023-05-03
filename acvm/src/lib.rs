@@ -244,10 +244,7 @@ pub trait ProofSystemCompiler {
         public_inputs: BTreeMap<Witness, FieldElement>,
     ) -> Vec<FieldElement>;
 
-    fn vk_as_fields(
-        &self,
-        verification_key: &[u8],
-    ) -> (Vec<FieldElement>, FieldElement);
+    fn vk_as_fields(&self, verification_key: &[u8]) -> (Vec<FieldElement>, FieldElement);
 }
 
 /// Supported NP complete languages
