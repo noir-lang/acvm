@@ -16,6 +16,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use k256::elliptic_curve::Field;
 use pwg::{block::Blocks, directives::solve_directives};
 use std::collections::BTreeMap;
 use thiserror::Error;
@@ -236,6 +237,17 @@ pub trait ProofSystemCompiler {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool;
+
+    fn proof_as_fields(
+        &self,
+        proof: &[u8],
+        public_inputs: BTreeMap<Witness, FieldElement>,
+    ) -> Vec<FieldElement>;
+
+    fn vk_as_fields(
+        &self,
+        verification_key: &[u8],
+    ) -> (Vec<FieldElement>, FieldElement);
 }
 
 /// Supported NP complete languages
