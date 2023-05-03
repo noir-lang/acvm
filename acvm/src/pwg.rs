@@ -52,7 +52,7 @@ pub enum OpcodeResolution {
 /// Returns the first missing assignment if any are missing
 fn first_missing_assignment(
     witness_assignments: &BTreeMap<Witness, FieldElement>,
-    inputs: &Vec<FunctionInput>,
+    inputs: &[FunctionInput],
 ) -> Option<Witness> {
     inputs.iter().find_map(|input| {
         if witness_assignments.contains_key(&input.witness) {
@@ -65,13 +65,13 @@ fn first_missing_assignment(
 
 fn is_stalled(
     witness_assignments: &BTreeMap<Witness, FieldElement>,
-    inputs: &Vec<FunctionInput>,
+    inputs: &[FunctionInput],
 ) -> bool {
     inputs.iter().all(|input| witness_assignments.contains_key(&input.witness))
 }
 
 pub fn solve(
-    backend: impl PartialWitnessGenerator,
+    backend: &impl PartialWitnessGenerator,
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     blocks: &mut Blocks,
     mut opcode_to_solve: Vec<Opcode>,

@@ -61,80 +61,80 @@ pub trait PartialWitnessGenerator {
     fn aes(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn and(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn xor(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn range(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn sha256(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn blake2s(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn compute_merkle_root(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn pedersen(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn hash_to_field128_security(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn ecdsa_secp256k1(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn keccak256(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &Vec<FunctionInput>,
-        outputs: &Vec<Witness>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
 }
 
@@ -277,9 +277,9 @@ mod test {
     impl PartialWitnessGenerator for StubbedPwg {
         fn aes(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -287,9 +287,9 @@ mod test {
         }
         fn and(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -297,9 +297,9 @@ mod test {
         }
         fn xor(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -307,9 +307,9 @@ mod test {
         }
         fn range(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -317,9 +317,9 @@ mod test {
         }
         fn sha256(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -327,9 +327,9 @@ mod test {
         }
         fn blake2s(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -337,9 +337,9 @@ mod test {
         }
         fn compute_merkle_root(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -347,9 +347,9 @@ mod test {
         }
         fn schnorr_verify(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -357,9 +357,9 @@ mod test {
         }
         fn pedersen(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -367,9 +367,9 @@ mod test {
         }
         fn hash_to_field128_security(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -377,9 +377,9 @@ mod test {
         }
         fn ecdsa_secp256k1(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -387,9 +387,9 @@ mod test {
         }
         fn fixed_base_scalar_mul(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -397,9 +397,9 @@ mod test {
         }
         fn keccak256(
             &self,
-            initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            inputs: &Vec<FunctionInput>,
-            outputs: &Vec<Witness>,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
@@ -458,7 +458,7 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let solver_status = pwg::solve(backend, &mut witness_assignments, &mut blocks, opcodes)
+        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresOracleData { mut required_oracle_data, unsolved_opcodes } = solver_status else {
             panic!("Should require oracle data")
@@ -473,9 +473,9 @@ mod test {
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-        let solver_status = pwg
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should be solvable");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should be solvable");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }
