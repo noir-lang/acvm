@@ -1,5 +1,5 @@
 use super::{insert_value, witness_to_value};
-use crate::{OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
 

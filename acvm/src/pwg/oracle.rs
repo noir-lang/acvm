@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use acir::{circuit::opcodes::OracleData, native_types::Witness, FieldElement};
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{arithmetic::ArithmeticSolver, insert_value};
 

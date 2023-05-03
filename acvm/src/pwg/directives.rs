@@ -8,7 +8,7 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-use crate::{OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value, sorting::route, witness_to_value};
 
