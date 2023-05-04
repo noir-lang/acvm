@@ -1,5 +1,5 @@
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
-use blake2::{Blake2s, Digest};
+use blake2::{Blake2s256, Digest};
 use sha2::Sha256;
 use sha3::Keccak256;
 use std::collections::BTreeMap;
@@ -12,7 +12,7 @@ pub fn blake2s(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
+    let hash = generic_hash_256::<Blake2s256>(initial_witness, func_call)?;
 
     for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
         insert_value(
@@ -63,7 +63,7 @@ pub fn hash_to_field_128_security(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Blake2s>(initial_witness, func_call)?;
+    let hash = generic_hash_256::<Blake2s256>(initial_witness, func_call)?;
 
     let reduced_res = FieldElement::from_be_bytes_reduce(&hash);
     insert_value(&func_call.outputs[0], reduced_res, initial_witness)?;
