@@ -92,7 +92,15 @@ fn first_missing_assignment(
     })
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
+pub trait Backend:
+    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Fallible + Default
+{
+}
+
+pub trait Fallible {
+    /// The Error type returned by failed function calls in Backend traits.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
@@ -194,20 +202,14 @@ pub trait PartialWitnessGenerator {
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 
-pub trait SmartContract {
-    /// The Error type returned by failed function calls in the SmartContract trait.
-    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
-
+pub trait SmartContract: Fallible {
     // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Returns an Ethereum smart contract to verify proofs against a given verification key.
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error>;
 }
 
-pub trait ProofSystemCompiler {
-    /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
-    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
-
+pub trait ProofSystemCompiler: Fallible {
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
