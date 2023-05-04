@@ -208,8 +208,8 @@ pub trait ProofSystemCompiler {
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
 
-    // Returns true if the backend supports the selected black box function
-    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
+    // Returns true if the backend supports the selected opcode
+    fn opcode_supported(&self, opcode: &Opcode) -> bool;
 
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
