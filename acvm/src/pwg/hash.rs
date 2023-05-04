@@ -42,7 +42,7 @@ pub fn sha256(
     Ok(OpcodeResolution::Solved)
 }
 
-pub fn keccak(
+pub fn keccak256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
