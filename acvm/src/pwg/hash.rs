@@ -8,7 +8,7 @@ use crate::{OpcodeResolution, OpcodeResolutionError};
 
 use super::{insert_value, witness_to_value};
 
-pub fn blake2s(
+pub fn blake2s256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
