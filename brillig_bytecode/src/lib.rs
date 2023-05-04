@@ -14,8 +14,9 @@ use std::collections::BTreeMap;
 
 use acir_field::FieldElement;
 use num_bigint::{BigInt, Sign};
+pub use opcodes::BinaryOp;
 pub use opcodes::RegisterMemIndex;
-pub use opcodes::{BinaryOp, Comparison, Opcode, OracleData, OracleInput, OracleOutput};
+pub use opcodes::{Comparison, Opcode, OracleData, OracleInput, OracleOutput};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -55,11 +56,11 @@ impl VM {
         if let Opcode::Bootstrap { register_allocation_indices } = last_opcode {
             // TODO: might have to handle arrays in bootstrap to be correct
             let mut registers_modified =
-                Registers::load(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }]);
+                Registers::load(vec![Value { inner: FieldElement::from(0u128) }]);
 
             for i in 0..register_allocation_indices.len() {
                 let register_index = register_allocation_indices[i];
-                let register_value = inputs.get(RegisterMemIndex::Register(RegisterIndex(i)));
+                let register_value = inputs.get(RegisterIndex(i));
                 registers_modified.set(RegisterIndex(register_index as usize), register_value)
             }
 
@@ -103,12 +104,16 @@ impl VM {
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
         match opcode {
-            Opcode::BinaryOp { op, lhs, rhs, result, result_type } => {
-                self.process_binary_op(*op, *lhs, *rhs, *result, *result_type);
+            Opcode::BinaryFieldOp { op, lhs, rhs, result } => {
+                self.process_binary_field_op(*op, *lhs, *rhs, *result);
                 self.increment_program_counter()
             }
-            Opcode::JMP { destination } => self.set_program_counter(*destination),
-            Opcode::JMPIF { condition, destination } => {
+            Opcode::BinaryIntOp { op, bit_size, lhs, rhs, result } => {
+                self.process_binary_int_op(*op, *bit_size, *lhs, *rhs, *result);
+                self.increment_program_counter()
+            }
+            Opcode::Jump { destination } => self.set_program_counter(*destination),
+            Opcode::JumpIf { condition, destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
                 let condition_value = self.registers.get(*condition);
@@ -117,14 +122,14 @@ impl VM {
                 }
                 self.increment_program_counter()
             }
-            Opcode::JMPIFNOT { condition, destination } => {
+            Opcode::JumpIfNot { condition, destination } => {
                 let condition_value = self.registers.get(*condition);
                 if condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
                 self.increment_program_counter()
             }
-            Opcode::CallBack => {
+            Opcode::Call => {
                 if let Some(register) = self.call_stack.pop() {
                     let label = usize::try_from(
                         register.inner.try_to_u64().expect("register does not fit into u64"),
@@ -171,14 +176,7 @@ impl VM {
             }
             Opcode::Mov { destination, source } => {
                 let source_value = self.registers.get(*source);
-
-                match destination {
-                    RegisterMemIndex::Register(dest_index) => {
-                        self.registers.set(*dest_index, source_value)
-                    }
-                    _ => return self.fail(), // TODO: add variants to VMStatus::Failure for more informed failures
-                }
-
+                self.registers.set(*destination, source_value);
                 self.increment_program_counter()
             }
             Opcode::Trap => self.fail(),
@@ -189,17 +187,11 @@ impl VM {
             Opcode::Load { destination, array_id_reg, index } => {
                 let array_id = self.registers.get(*array_id_reg);
                 let array = &self.memory[&array_id];
-                match destination {
-                    RegisterMemIndex::Register(dest_index) => {
-                        let index_value = self.registers.get(*index);
-                        let index_usize = usize::try_from(
-                            index_value.inner.try_to_u64().expect("register does not fit into u64"),
-                        )
-                        .expect("register does not fit into usize");
-                        self.registers.set(*dest_index, array.memory_map[&index_usize]);
-                    }
-                    _ => return self.fail(), // TODO: add variants to VMStatus::Failure for more informed failures
-                }
+                let index_value = self.registers.get(*index);
+                let index_usize = usize::try_from(
+                    index_value.inner.try_to_u64().expect("register does not fit into u64"),
+                ).expect("register does not fit into usize");
+                self.registers.set(*destination, array.memory_map[&index_usize]);
                 self.increment_program_counter()
             }
             Opcode::Store { source, array_id_reg, index } => {
@@ -219,6 +211,10 @@ impl VM {
             Opcode::PushStack { source } => {
                 let register = self.registers.get(*source);
                 self.call_stack.push(register);
+                self.increment_program_counter()
+            }
+            Opcode::LoadConst { destination, constant } => {
+                self.registers.set(*destination, Value { inner: *constant });
                 self.increment_program_counter()
             }
         }
@@ -247,20 +243,37 @@ impl VM {
 
     /// Process a binary operation.
     /// This method will not modify the program counter.
-    fn process_binary_op(
+    fn process_binary_int_op(
         &mut self,
         op: BinaryOp,
-        lhs: RegisterMemIndex,
-        rhs: RegisterMemIndex,
+        bit_size: u32,
+        lhs: RegisterIndex,
+        rhs: RegisterIndex,
         result: RegisterIndex,
-        result_type: Typ,
     ) {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.evaluate(lhs_value, rhs_value, result_type);
+        let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
 
-        self.registers.set(result, result_value)
+        self.registers.set(result, result_value.into());
+    }
+
+    /// Process a binary operation.
+    /// This method will not modify the program counter.
+    fn process_binary_field_op(
+        &mut self,
+        op: BinaryOp,
+        lhs: RegisterIndex,
+        rhs: RegisterIndex,
+        result: RegisterIndex,
+    ) {
+        let lhs_value = self.registers.get(lhs);
+        let rhs_value = self.registers.get(rhs);
+
+        let result_value = op.evaluate_field(lhs_value.inner, rhs_value.inner);
+
+        self.registers.set(result, result_value.into())
     }
 
     /// Returns the state of the registers.
@@ -288,7 +301,7 @@ impl VMOutputState {
         let mut input_values = vec![];
         for oracle_input in &oracle_data.inputs {
             match oracle_input {
-                OracleInput::RegisterMemIndex(register_index) => {
+                OracleInput::RegisterIndex(register_index) => {
                     let register = self.registers.get(*register_index);
                     input_values.push(register.inner);
                 }
@@ -319,12 +332,12 @@ mod tests {
 
         // Add opcode to add the value in register `0` and `1`
         // and place the output in register `2`
-        let opcode = Opcode::BinaryOp {
+        let opcode = Opcode::BinaryIntOp {
             op: BinaryOp::Add,
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            bit_size: 2,
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
-            result_type: Typ::Field,
         };
 
         // Start VM
@@ -340,7 +353,7 @@ mod tests {
         // The register at index `2` should have the value of 3 since we had an
         // add opcode
         let VMOutputState { registers, .. } = vm.finish();
-        let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_value = registers.get(RegisterIndex(2));
 
         assert_eq!(output_value, Value::from(3u128))
     }
@@ -350,18 +363,18 @@ mod tests {
         let input_registers =
             Registers::load(vec![Value::from(2u128), Value::from(2u128), Value::from(0u128)]);
 
-        let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let equal_cmp_opcode = Opcode::BinaryIntOp {
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            bit_size: 1,
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let jump_opcode = Opcode::JMP { destination: 2 };
+        let jump_opcode = Opcode::Jump { destination: 2 };
 
-        let jump_if_opcode = Opcode::JMPIF {
-            condition: RegisterMemIndex::Register(RegisterIndex(2)),
+        let jump_if_opcode = Opcode::JumpIf {
+            condition: RegisterIndex(2),
             destination: 3,
         };
 
@@ -374,7 +387,7 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_cmp_value, Value::from(true));
 
         let status = vm.process_opcode();
@@ -393,27 +406,25 @@ mod tests {
 
         let trap_opcode = Opcode::Trap;
 
-        let not_equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let not_equal_cmp_opcode = Opcode::BinaryFieldOp {
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let jump_opcode = Opcode::JMP { destination: 2 };
+        let jump_opcode = Opcode::Jump { destination: 2 };
 
-        let jump_if_not_opcode = Opcode::JMPIFNOT {
-            condition: RegisterMemIndex::Register(RegisterIndex(2)),
+        let jump_if_not_opcode = Opcode::JumpIfNot {
+            condition: RegisterIndex(2),
             destination: 1,
         };
 
-        let add_opcode = Opcode::BinaryOp {
+        let add_opcode = Opcode::BinaryFieldOp {
             op: BinaryOp::Add,
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
-            result_type: Typ::Field,
         };
 
         let mut vm = VM::new(
@@ -428,7 +439,7 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_cmp_value, Value::from(false));
 
         let status = vm.process_opcode();
@@ -439,7 +450,7 @@ mod tests {
 
         // The register at index `2` should have not changed as we jumped over the add opcode
         let VMOutputState { registers, .. } = vm.finish();
-        let output_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_value = registers.get(RegisterIndex(2));
         assert_eq!(output_value, Value::from(false));
     }
 
@@ -449,8 +460,8 @@ mod tests {
             Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
         let mov_opcode = Opcode::Mov {
-            destination: RegisterMemIndex::Register(RegisterIndex(2)),
-            source: RegisterMemIndex::Register(RegisterIndex(0)),
+            destination: RegisterIndex(2),
+            source: RegisterIndex(0),
         };
 
         let mut vm = VM::new(input_registers, BTreeMap::new(), vec![mov_opcode]);
@@ -460,10 +471,10 @@ mod tests {
 
         let VMOutputState { registers, .. } = vm.finish();
 
-        let destination_value = registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let destination_value = registers.get(RegisterIndex(2));
         assert_eq!(destination_value, Value::from(1u128));
 
-        let source_value = registers.get(RegisterMemIndex::Register(RegisterIndex(0)));
+        let source_value = registers.get(RegisterIndex(0));
         assert_eq!(source_value, Value::from(1u128));
     }
 
@@ -477,35 +488,35 @@ mod tests {
             Value::from(6u128),
         ]);
 
-        let equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let equal_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let not_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let not_equal_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(3)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(3),
             result: RegisterIndex(2),
         };
 
-        let less_than_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let less_than_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Lt),
-            lhs: RegisterMemIndex::Register(RegisterIndex(3)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(4)),
+            lhs: RegisterIndex(3),
+            rhs: RegisterIndex(4),
             result: RegisterIndex(2),
         };
 
-        let less_than_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let less_than_equal_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Lte),
-            lhs: RegisterMemIndex::Register(RegisterIndex(3)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(4)),
+            lhs: RegisterIndex(3),
+            rhs: RegisterIndex(4),
             result: RegisterIndex(2),
         };
 
@@ -518,25 +529,25 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_eq_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_eq_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_eq_value, Value::from(true));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_neq_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_neq_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_neq_value, Value::from(false));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let lt_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let lt_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(lt_value, Value::from(true));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::Halted);
 
-        let lte_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let lte_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(lte_value, Value::from(true));
 
         vm.finish();
@@ -554,32 +565,32 @@ mod tests {
             Value::from(0u128),
         ]);
 
-        let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let equal_cmp_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let jump_opcode = Opcode::JMP { destination: 3 };
+        let jump_opcode = Opcode::Jump { destination: 3 };
 
-        let jump_if_opcode = Opcode::JMPIF {
-            condition: RegisterMemIndex::Register(RegisterIndex(2)),
+        let jump_if_opcode = Opcode::JumpIf {
+            condition: RegisterIndex(2),
             destination: 10,
         };
 
         let load_opcode = Opcode::Load {
-            destination: RegisterMemIndex::Register(RegisterIndex(4)),
-            array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
-            index: RegisterMemIndex::Register(RegisterIndex(2)),
+            destination: RegisterIndex(4),
+            array_id_reg: RegisterIndex(3),
+            index: RegisterIndex(2),
         };
 
-        let mem_equal_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let mem_equal_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(4)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(5)),
+            lhs: RegisterIndex(4),
+            rhs: RegisterIndex(5),
             result: RegisterIndex(6),
         };
 
@@ -599,14 +610,14 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_cmp_value, Value::from(true));
 
         // load_opcode
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(4)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(4));
         assert_eq!(output_cmp_value, Value::from(6u128));
 
         // jump_opcode
@@ -617,7 +628,7 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(6)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(6));
         assert_eq!(output_cmp_value, Value::from(true));
 
         // jump_if_opcode
@@ -637,27 +648,33 @@ mod tests {
             Value::from(0u128),
             Value::from(6u128),
             Value::from(0u128),
+            Value::from(0u128),
         ]);
 
-        let equal_cmp_opcode = Opcode::BinaryOp {
-            result_type: Typ::Unsigned { bit_size: 1 },
+        let equal_cmp_opcode = Opcode::BinaryIntOp {
+            bit_size: 1,
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let jump_opcode = Opcode::JMP { destination: 3 };
+        let jump_opcode = Opcode::Jump { destination: 4 };
 
-        let jump_if_opcode = Opcode::JMPIF {
-            condition: RegisterMemIndex::Register(RegisterIndex(2)),
-            destination: 10,
+        let jump_if_opcode = Opcode::JumpIf {
+            condition: RegisterIndex(2),
+            destination: 11,
+        };
+
+        let load_const_opcode = Opcode::LoadConst {
+            destination: RegisterIndex(7),
+            constant: 3_u128.into()
         };
 
         let store_opcode = Opcode::Store {
-            source: RegisterMemIndex::Register(RegisterIndex(2)),
-            array_id_reg: RegisterMemIndex::Register(RegisterIndex(3)),
-            index: RegisterMemIndex::Constant(FieldElement::from(3_u128)),
+            source: RegisterIndex(2),
+            array_id_reg: RegisterIndex(3),
+            index: RegisterIndex(7),
         };
 
         let mut initial_memory = BTreeMap::new();
@@ -669,15 +686,19 @@ mod tests {
         let mut vm = VM::new(
             input_registers,
             initial_memory,
-            vec![equal_cmp_opcode, store_opcode, jump_opcode, jump_if_opcode],
+            vec![equal_cmp_opcode, load_const_opcode, store_opcode, jump_opcode, jump_if_opcode],
         );
 
         // equal_cmp_opcode
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterMemIndex::Register(RegisterIndex(2)));
+        let output_cmp_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_cmp_value, Value::from(true));
+
+        // load_const_opcode
+        let status = vm.process_opcode();
+        assert_eq!(status, VMStatus::InProgress);
 
         // store_opcode
         let status = vm.process_opcode();
@@ -711,10 +732,9 @@ mod tests {
             Value::from(0u128),
         ]);
 
-        let oracle_input =
-            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+        let oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
         let oracle_output =
-            OracleOutput::Array { start: RegisterMemIndex::Register(RegisterIndex(3)), length: 2 };
+            OracleOutput::Array { start: RegisterIndex(3), length: 2 };
 
         let mut oracle_data = OracleData {
             name: "get_notes".to_owned(),
@@ -764,7 +784,7 @@ mod tests {
 
         let expected_length = 2;
         let oracle_input = OracleInput::Array {
-            start: RegisterMemIndex::Register(RegisterIndex(3)),
+            start: RegisterIndex(3),
             length: expected_length,
         };
         let oracle_output = OracleOutput::RegisterIndex(RegisterIndex(6));

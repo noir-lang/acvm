@@ -50,19 +50,15 @@ impl Registers {
         Self { inner: values }
     }
     /// Gets the values at register with address `index`
-    pub fn get(&self, index: RegisterMemIndex) -> Value {
-        match index {
-            RegisterMemIndex::Register(register) => self.inner[register.inner()],
-            RegisterMemIndex::Constant(constant) => Value { typ: Typ::Field, inner: constant },
-            RegisterMemIndex::Memory(_) => todo!("we will implement memory later"),
-        }
+    pub fn get(&self, register: RegisterIndex) -> Value {
+        self.inner[register.inner()]
     }
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
         if index.inner() >= self.inner.len() {
             let diff = index.inner() - self.inner.len() + 1;
             self.inner
-                .extend(vec![Value { typ: Typ::Field, inner: FieldElement::from(0u128) }; diff])
+                .extend(vec![Value {inner: FieldElement::from(0u128) }; diff])
         }
         self.inner[index.inner()] = value
     }

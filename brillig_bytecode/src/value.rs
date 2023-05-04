@@ -13,7 +13,6 @@ pub enum Typ {
 /// Value represents a Value in the VM
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Value {
-    pub typ: Typ,
     pub inner: FieldElement,
 }
 
@@ -22,43 +21,35 @@ impl Value {
     pub fn is_zero(&self) -> bool {
         self.inner.is_zero()
     }
-    /// Performs the multiplicative inverse of `Value`
-    pub fn inverse(&self) -> Value {
-        let value = match self.typ {
-            Typ::Field => self.inner.inverse(),
-            Typ::Unsigned { bit_size: _ } => {
-                todo!("TODO")
-            }
-            Typ::Signed { bit_size: _ } => todo!("TODO"),
-        };
-        Value { typ: self.typ, inner: value }
+    pub fn to_u128(&self) -> u128 {
+        self.inner.to_u128()
     }
 }
 
 impl From<u128> for Value {
     fn from(value: u128) -> Self {
-        Value { typ: Typ::Field, inner: FieldElement::from(value) }
+        Value { inner: FieldElement::from(value) }
     }
 }
 
 impl From<FieldElement> for Value {
     fn from(value: FieldElement) -> Self {
-        Value { typ: Typ::Field, inner: value }
+        Value { inner: value }
     }
 }
 
 impl From<u32> for Value {
     fn from(value: u32) -> Self {
-        Value { typ: Typ::Field, inner: FieldElement::from(value as i128) }
+        Value { inner: FieldElement::from(value as i128) }
     }
 }
 
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         if value {
-            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::one() }
+            Value { inner: FieldElement::one() }
         } else {
-            Value { typ: Typ::Unsigned { bit_size: 1 }, inner: FieldElement::zero() }
+            Value { inner: FieldElement::zero() }
         }
     }
 }
@@ -67,34 +58,34 @@ impl Add for Value {
     type Output = Value;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Value { typ: self.typ, inner: self.inner + rhs.inner }
+        Value { inner: self.inner + rhs.inner }
     }
 }
 impl Sub for Value {
     type Output = Value;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Value { typ: self.typ, inner: self.inner - rhs.inner }
+        Value { inner: self.inner - rhs.inner }
     }
 }
 impl Mul for Value {
     type Output = Value;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Value { typ: self.typ, inner: self.inner * rhs.inner }
+        Value { inner: self.inner * rhs.inner }
     }
 }
 impl Div for Value {
     type Output = Value;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Value { typ: self.typ, inner: self.inner / rhs.inner }
+        Value { inner: self.inner / rhs.inner }
     }
 }
 impl Neg for Value {
     type Output = Value;
 
     fn neg(self) -> Self::Output {
-        Value { typ: self.typ, inner: -self.inner }
+        Value { inner: -self.inner }
     }
 }

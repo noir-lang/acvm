@@ -358,7 +358,7 @@ mod test {
     use acir::{
         brillig_bytecode,
         brillig_bytecode::{
-            BinaryOp, Comparison, OracleInput, OracleOutput, RegisterIndex, RegisterMemIndex, Typ,
+             Comparison, OracleInput, OracleOutput, RegisterIndex, RegisterMemIndex, Typ, BinaryOp,
         },
         circuit::{
             directives::Directive,
@@ -473,24 +473,21 @@ mod test {
         let w_equal_res = Witness(7);
         let w_lt_res = Witness(8);
 
-        let equal_opcode = brillig_bytecode::Opcode::BinaryOp {
-            result_type: Typ::Field,
-            op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+            op: brillig_bytecode::BinaryOp::Cmp(Comparison::Eq),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let less_than_opcode = brillig_bytecode::Opcode::BinaryOp {
-            result_type: Typ::Field,
+        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryOp::Cmp(Comparison::Lt),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(3),
         };
 
-        let invert_oracle_input =
-            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+        let invert_oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
         let invert_oracle_output = OracleOutput::RegisterIndex(RegisterIndex(1));
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
@@ -599,24 +596,21 @@ mod test {
         let w_equal_res = Witness(7);
         let w_lt_res = Witness(8);
 
-        let equal_opcode = brillig_bytecode::Opcode::BinaryOp {
-            result_type: Typ::Field,
+        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryOp::Cmp(Comparison::Eq),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
-        let less_than_opcode = brillig_bytecode::Opcode::BinaryOp {
-            result_type: Typ::Field,
+        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryOp::Cmp(Comparison::Lt),
-            lhs: RegisterMemIndex::Register(RegisterIndex(0)),
-            rhs: RegisterMemIndex::Register(RegisterIndex(1)),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
             result: RegisterIndex(3),
         };
 
-        let invert_oracle_input =
-            OracleInput::RegisterMemIndex(RegisterMemIndex::Register(RegisterIndex(0)));
+        let invert_oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
         let invert_oracle_output = OracleOutput::RegisterIndex(RegisterIndex(1));
 
         let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
