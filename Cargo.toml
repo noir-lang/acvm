@@ -16,4 +16,6 @@ stdlib = { package = "acvm_stdlib", version = "0.10.3", path = "stdlib", default
 num-bigint = "0.4"
 num-traits = "0.2"
 
+thiserror = "1.0.21"
+
 serde = { version = "1.0.136", features = ["derive"] }
