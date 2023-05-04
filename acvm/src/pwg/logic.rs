@@ -1,4 +1,4 @@
-use super::{directives::insert_witness, witness_to_value};
+use super::{insert_value, witness_to_value};
 use crate::{OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
@@ -34,7 +34,7 @@ impl LogicSolver {
         } else {
             w_l_value.and(w_r_value, num_bits)
         };
-        insert_witness(result, assignment, initial_witness)?;
+        insert_value(&result, assignment, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 

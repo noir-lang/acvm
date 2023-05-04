@@ -4,7 +4,7 @@ use acir::{circuit::opcodes::OracleData, native_types::Witness, FieldElement};
 
 use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
-use super::{arithmetic::ArithmeticSolver, directives::insert_witness};
+use super::{arithmetic::ArithmeticSolver, insert_value};
 
 pub struct OracleSolver;
 
@@ -28,7 +28,7 @@ impl OracleSolver {
         if data.input_values.len() == data.inputs.len() {
             if data.output_values.len() == data.outputs.len() {
                 for (out, value) in data.outputs.iter().zip(data.output_values.iter()) {
-                    insert_witness(*out, *value, initial_witness)?;
+                    insert_value(out, *value, initial_witness)?;
                 }
                 Ok(OpcodeResolution::Solved)
             } else {
