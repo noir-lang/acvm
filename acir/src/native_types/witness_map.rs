@@ -10,8 +10,21 @@ use flate2::{
     Compression,
 };
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::native_types::Witness;
+
+#[derive(Debug, Error)]
+pub enum WitnessMapError {
+    #[error(transparent)]
+    MsgpackEncodeError(#[from] rmp_serde::encode::Error),
+
+    #[error(transparent)]
+    MsgpackDecodeError(#[from] rmp_serde::decode::Error),
+
+    #[error(transparent)]
+    DeflateError(#[from] std::io::Error),
+}
 
 /// A map from the witnesses in a constraint system to the field element values
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize)]
@@ -68,21 +81,25 @@ impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     }
 }
 
-impl From<WitnessMap> for Vec<u8> {
-    fn from(val: WitnessMap) -> Self {
-        let buf = rmp_serde::to_vec(&val).unwrap();
+impl TryFrom<WitnessMap> for Vec<u8> {
+    type Error = WitnessMapError;
+
+    fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
+        let buf = rmp_serde::to_vec(&val)?;
         let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
         let mut buf_c = Vec::new();
-        deflater.read_to_end(&mut buf_c).unwrap();
-        buf_c
+        deflater.read_to_end(&mut buf_c)?;
+        Ok(buf_c)
     }
 }
 
-impl From<&[u8]> for WitnessMap {
-    fn from(bytes: &[u8]) -> Self {
+impl TryFrom<&[u8]> for WitnessMap {
+    type Error = WitnessMapError;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         let mut deflater = DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
-        deflater.read_to_end(&mut buf_d).unwrap();
-        Self(rmp_serde::from_slice(buf_d.as_slice()).unwrap())
+        deflater.read_to_end(&mut buf_d)?;
+        Ok(Self(rmp_serde::from_slice(buf_d.as_slice())?))
     }
 }
