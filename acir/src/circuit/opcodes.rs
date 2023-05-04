@@ -1,201 +1,18 @@
 use std::io::{Read, Write};
 
 use super::directives::{Directive, LogInfo};
-use crate::native_types::{Expression, Witness};
-use crate::serialization::{
-    read_bytes, read_field_element, read_n, read_u16, read_u32, write_bytes, write_u16, write_u32,
-};
-use crate::BlackBoxFunc;
-use acir_field::FieldElement;
+use crate::native_types::Expression;
+use crate::serialization::{read_n, write_bytes};
+
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
-pub struct BlockId(pub u32);
+mod black_box_function_call;
+mod block;
+mod oracle_data;
 
-/// Operation on a block
-/// We can either write or read at a block index
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-pub struct MemOp {
-    /// Can be 0 (read) or 1 (write)
-    pub operation: Expression,
-    pub index: Expression,
-    pub value: Expression,
-}
-
-/// Represents operations on a block of length len of data
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MemoryBlock {
-    /// Id of the block
-    pub id: BlockId,
-    /// Length of the memory block
-    pub len: u32,
-    /// Trace of memory operations
-    pub trace: Vec<MemOp>,
-}
-
-impl MemoryBlock {
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let id = read_u32(&mut reader)?;
-        let len = read_u32(&mut reader)?;
-        let trace_len = read_u32(&mut reader)?;
-        let mut trace = Vec::with_capacity(len as usize);
-        for _i in 0..trace_len {
-            let operation = Expression::read(&mut reader)?;
-            let index = Expression::read(&mut reader)?;
-            let value = Expression::read(&mut reader)?;
-            trace.push(MemOp { operation, index, value });
-        }
-        Ok(MemoryBlock { id: BlockId(id), len, trace })
-    }
-
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        write_u32(&mut writer, self.id.0)?;
-        write_u32(&mut writer, self.len)?;
-        write_u32(&mut writer, self.trace.len() as u32)?;
-
-        for op in &self.trace {
-            op.operation.write(&mut writer)?;
-            op.index.write(&mut writer)?;
-            op.value.write(&mut writer)?;
-        }
-        Ok(())
-    }
-
-    /// Returns the initialization vector of the MemoryBlock
-    pub fn init_phase(&self) -> Vec<Expression> {
-        let mut init = Vec::new();
-        for i in 0..self.len as usize {
-            assert_eq!(
-                self.trace[i].operation,
-                Expression::one(),
-                "Block initialization require a write"
-            );
-            let index = self.trace[i]
-                .index
-                .to_const()
-                .expect("Non-const index during Block initialization");
-            if index != FieldElement::from(i as i128) {
-                todo!(
-                    "invalid index when initializing a block, we could try to sort the init phase"
-                );
-            }
-            let value = self.trace[i].value.clone();
-            assert!(value.is_degree_one_univariate(), "Block initialization requires a witness");
-            init.push(value);
-        }
-        init
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OracleData {
-    /// Name of the oracle
-    pub name: String,
-    /// Inputs
-    pub inputs: Vec<Expression>,
-    /// Input values - they are progressively computed by the pwg
-    pub input_values: Vec<FieldElement>,
-    /// Output witness
-    pub outputs: Vec<Witness>,
-    /// Output values - they are computed by the (external) oracle once the input_values are known
-    pub output_values: Vec<FieldElement>,
-}
-
-impl OracleData {
-    pub(crate) fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        let name_as_bytes = self.name.as_bytes();
-        let name_len = name_as_bytes.len();
-        write_u32(&mut writer, name_len as u32)?;
-        write_bytes(&mut writer, name_as_bytes)?;
-
-        let inputs_len = self.inputs.len() as u32;
-        write_u32(&mut writer, inputs_len)?;
-        for input in &self.inputs {
-            input.write(&mut writer)?
-        }
-
-        let outputs_len = self.outputs.len() as u32;
-        write_u32(&mut writer, outputs_len)?;
-        for output in &self.outputs {
-            write_u32(&mut writer, output.witness_index())?;
-        }
-
-        let inputs_len = self.input_values.len() as u32;
-        write_u32(&mut writer, inputs_len)?;
-        for input in &self.input_values {
-            write_bytes(&mut writer, &input.to_be_bytes())?;
-        }
-
-        let outputs_len = self.output_values.len() as u32;
-        write_u32(&mut writer, outputs_len)?;
-        for output in &self.output_values {
-            write_bytes(&mut writer, &output.to_be_bytes())?;
-        }
-        Ok(())
-    }
-
-    pub(crate) fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let name_len = read_u32(&mut reader)?;
-        let name_as_bytes = read_bytes(&mut reader, name_len as usize)?;
-        let name: String = String::from_utf8(name_as_bytes)
-            .map_err(|_| std::io::Error::from(std::io::ErrorKind::InvalidData))?;
-
-        let inputs_len = read_u32(&mut reader)?;
-        let mut inputs = Vec::with_capacity(inputs_len as usize);
-        for _ in 0..inputs_len {
-            let input = Expression::read(&mut reader)?;
-            inputs.push(input);
-        }
-
-        let outputs_len = read_u32(&mut reader)?;
-        let mut outputs = Vec::with_capacity(outputs_len as usize);
-        for _ in 0..outputs_len {
-            let witness_index = read_u32(&mut reader)?;
-            outputs.push(Witness(witness_index));
-        }
-
-        const FIELD_ELEMENT_NUM_BYTES: usize = FieldElement::max_num_bytes() as usize;
-        let inputs_len = read_u32(&mut reader)?;
-        let mut input_values = Vec::with_capacity(inputs_len as usize);
-        for _ in 0..inputs_len {
-            let value = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
-            input_values.push(value);
-        }
-
-        let outputs_len = read_u32(&mut reader)?;
-        let mut output_values = Vec::with_capacity(outputs_len as usize);
-        for _ in 0..outputs_len {
-            let value = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
-            output_values.push(value);
-        }
-
-        Ok(OracleData { name, inputs, outputs, input_values, output_values })
-    }
-}
-
-impl std::fmt::Display for OracleData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ORACLE: {}", self.name)?;
-        let solved = if self.input_values.len() == self.inputs.len() { "solved" } else { "" };
-
-        if !self.inputs.is_empty() {
-            write!(
-                f,
-                "Inputs: _{}..._{}{solved}",
-                self.inputs.first().unwrap(),
-                self.inputs.last().unwrap()
-            )?;
-        }
-
-        let solved = if self.output_values.len() == self.outputs.len() { "solved" } else { "" };
-        write!(
-            f,
-            "Outputs: _{}..._{}{solved}",
-            self.outputs.first().unwrap().witness_index(),
-            self.outputs.last().unwrap().witness_index()
-        )
-    }
-}
+pub use black_box_function_call::{BlackBoxFuncCall, FunctionInput};
+pub use block::{BlockId, MemOp, MemoryBlock};
+pub use oracle_data::OracleData;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
@@ -251,6 +68,7 @@ impl Opcode {
     pub fn is_arithmetic(&self) -> bool {
         matches!(self, Opcode::Arithmetic(_))
     }
+
     pub fn arithmetic(self) -> Option<Expression> {
         match self {
             Opcode::Arithmetic(expr) => Some(expr),
@@ -407,152 +225,11 @@ impl std::fmt::Debug for Opcode {
     }
 }
 
-// Note: Some functions will not use all of the witness
-// So we need to supply how many bits of the witness is needed
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FunctionInput {
-    pub witness: Witness,
-    pub num_bits: u32,
-}
-
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BlackBoxFuncCall {
-    pub name: BlackBoxFunc,
-    pub inputs: Vec<FunctionInput>,
-    pub outputs: Vec<Witness>,
-}
-
-impl BlackBoxFuncCall {
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        write_u16(&mut writer, self.name.to_u16())?;
-
-        let num_inputs = self.inputs.len() as u32;
-        write_u32(&mut writer, num_inputs)?;
-
-        for input in &self.inputs {
-            write_u32(&mut writer, input.witness.witness_index())?;
-            write_u32(&mut writer, input.num_bits)?;
-        }
-
-        let num_outputs = self.outputs.len() as u32;
-        write_u32(&mut writer, num_outputs)?;
-
-        for output in &self.outputs {
-            write_u32(&mut writer, output.witness_index())?;
-        }
-
-        Ok(())
-    }
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let func_index = read_u16(&mut reader)?;
-        let name = BlackBoxFunc::from_u16(func_index).ok_or(std::io::ErrorKind::InvalidData)?;
-
-        let num_inputs = read_u32(&mut reader)?;
-        let mut inputs = Vec::with_capacity(num_inputs as usize);
-        for _ in 0..num_inputs {
-            let witness = Witness(read_u32(&mut reader)?);
-            let num_bits = read_u32(&mut reader)?;
-            let input = FunctionInput { witness, num_bits };
-            inputs.push(input)
-        }
-
-        let num_outputs = read_u32(&mut reader)?;
-        let mut outputs = Vec::with_capacity(num_outputs as usize);
-        for _ in 0..num_outputs {
-            let witness = Witness(read_u32(&mut reader)?);
-            outputs.push(witness)
-        }
-
-        Ok(BlackBoxFuncCall { name, inputs, outputs })
-    }
-}
-
-impl std::fmt::Display for BlackBoxFuncCall {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let uppercase_name: String = self.name.name().into();
-        let uppercase_name = uppercase_name.to_uppercase();
-        write!(f, "BLACKBOX::{uppercase_name} ")?;
-        write!(f, "[")?;
-
-        // Once a vectors length gets above this limit,
-        // instead of listing all of their elements, we use ellipses
-        // t abbreviate them
-        const ABBREVIATION_LIMIT: usize = 5;
-
-        let should_abbreviate_inputs = self.inputs.len() <= ABBREVIATION_LIMIT;
-        let should_abbreviate_outputs = self.outputs.len() <= ABBREVIATION_LIMIT;
-
-        // INPUTS
-        //
-        let inputs_str = if should_abbreviate_inputs {
-            let mut result = String::new();
-            for (index, inp) in self.inputs.iter().enumerate() {
-                result +=
-                    &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
-                // Add a comma, unless it is the last entry
-                if index != self.inputs.len() - 1 {
-                    result += ", "
-                }
-            }
-            result
-        } else {
-            let first = self.inputs.first().unwrap();
-            let last = self.inputs.last().unwrap();
-
-            let mut result = String::new();
-
-            result += &format!(
-                "(_{}, num_bits: {})...(_{}, num_bits: {})",
-                first.witness.witness_index(),
-                first.num_bits,
-                last.witness.witness_index(),
-                last.num_bits,
-            );
-
-            result
-        };
-        write!(f, "{inputs_str}")?;
-        write!(f, "] ")?;
-
-        // OUTPUTS
-        // TODO: Avoid duplication of INPUTS and OUTPUTS code
-
-        if self.outputs.is_empty() {
-            return Ok(());
-        }
-
-        write!(f, "[ ")?;
-        let outputs_str = if should_abbreviate_outputs {
-            let mut result = String::new();
-            for (index, output) in self.outputs.iter().enumerate() {
-                result += &format!("_{}", output.witness_index());
-                // Add a comma, unless it is the last entry
-                if index != self.outputs.len() - 1 {
-                    result += ", "
-                }
-            }
-            result
-        } else {
-            let first = self.outputs.first().unwrap();
-            let last = self.outputs.last().unwrap();
-
-            let mut result = String::new();
-            result += &format!("(_{},...,_{})", first.witness_index(), last.witness_index());
-            result
-        };
-        write!(f, "{outputs_str}")?;
-        write!(f, "]")
-    }
-}
-
-impl std::fmt::Debug for BlackBoxFuncCall {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(self, f)
-    }
-}
-
 #[test]
 fn serialization_roundtrip() {
+    use crate::native_types::Witness;
+    use crate::BlackBoxFunc;
+
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
         opcode.write(&mut bytes).unwrap();
