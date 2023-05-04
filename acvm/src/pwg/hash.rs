@@ -1,6 +1,7 @@
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
 use blake2::{Blake2s, Digest};
 use sha2::Sha256;
+use sha3::Keccak256;
 use std::collections::BTreeMap;
 
 use crate::{OpcodeResolution, OpcodeResolutionError};
@@ -29,6 +30,23 @@ pub fn sha256(
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Sha256>(initial_witness, func_call)?;
+
+    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+        insert_value(
+            output_witness,
+            FieldElement::from_be_bytes_reduce(&[*value]),
+            initial_witness,
+        )?;
+    }
+
+    Ok(OpcodeResolution::Solved)
+}
+
+pub fn keccak256(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    let hash = generic_hash_256::<Keccak256>(initial_witness, func_call)?;
 
     for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
         insert_value(
