@@ -17,13 +17,13 @@ use crate::native_types::Witness;
 #[derive(Debug, Error)]
 pub enum WitnessMapError {
     #[error(transparent)]
-    MsgpackEncodeError(#[from] rmp_serde::encode::Error),
+    MsgpackEncode(#[from] rmp_serde::encode::Error),
 
     #[error(transparent)]
-    MsgpackDecodeError(#[from] rmp_serde::decode::Error),
+    MsgpackDecode(#[from] rmp_serde::decode::Error),
 
     #[error(transparent)]
-    DeflateError(#[from] std::io::Error),
+    Deflate(#[from] std::io::Error),
 }
 
 /// A map from the witnesses in a constraint system to the field element values

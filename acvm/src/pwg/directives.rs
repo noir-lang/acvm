@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use acir::{
     circuit::directives::{Directive, LogInfo},
-    native_types::{Witness, WitnessMap},
+    native_types::WitnessMap,
     FieldElement,
 };
 use num_bigint::BigUint;
