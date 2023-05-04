@@ -1,12 +1,12 @@
 use super::{directives::insert_witness, witness_to_value};
-use crate::OpcodeResolutionError;
+use crate::{OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
 use std::collections::BTreeMap;
 
 pub fn solve_logic_opcode(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match func_call.name {
         BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
         BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
@@ -25,7 +25,7 @@ impl LogicSolver {
         result: Witness,
         num_bits: u32,
         is_xor_gate: bool,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let w_l_value = witness_to_value(initial_witness, *a)?;
         let w_r_value = witness_to_value(initial_witness, *b)?;
 
@@ -35,20 +35,20 @@ impl LogicSolver {
             w_l_value.and(w_r_value, num_bits)
         };
         insert_witness(result, assignment, initial_witness)?;
-        Ok(())
+        Ok(OpcodeResolution::Solved)
     }
 
     pub fn solve_and_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &BlackBoxFuncCall,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);
         LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
     }
     pub fn solve_xor_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gate: &BlackBoxFuncCall,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let (a, b, result, num_bits) = extract_input_output(gate);
         LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, true)
     }

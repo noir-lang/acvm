@@ -1,7 +1,7 @@
 [package]
 name = "acir_field"
 description = "The field implementation being used by ACIR."
-version = "0.9.0"
+version = "0.10.3"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,10 +10,9 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hex.workspace = true
+hex = "0.4.2"
 num-bigint.workspace = true
 serde.workspace = true
-
 
 ark-bn254 = { version = "^0.4.0", optional = true, default-features = false, features = [
     "curve",
@@ -27,5 +26,5 @@ cfg-if = "1.0.0"
 
 [features]
 default = ["bn254"]
-bn254 = ["ark-bn254", "ark-ff"]
-bls12_381 = ["ark-bls12-381", "ark-ff"]
+bn254 = ["dep:ark-bn254", "dep:ark-ff"]
+bls12_381 = ["dep:ark-bls12-381", "dep:ark-ff"]
