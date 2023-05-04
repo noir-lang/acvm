@@ -1,6 +1,6 @@
 mod general;
 mod redundant_range;
-mod simplify;
+pub mod simplify;
 
 pub(crate) use general::GeneralOpt as GeneralOptimizer;
 pub(crate) use redundant_range::RangeOptimizer;
