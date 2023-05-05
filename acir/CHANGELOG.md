@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/noir-lang/acvm/compare/acir-v0.10.3...acir-v0.11.0) (2023-05-04)
+
+
+### Bug Fixes
+
+* **acir:** Fix `Expression` multiplication to correctly handle degree 1 terms ([#255](https://github.com/noir-lang/acvm/issues/255)) ([e399396](https://github.com/noir-lang/acvm/commit/e399396f7e06deb6b831517af17018607df3f252))
+
 ## [0.10.3](https://github.com/noir-lang/acvm/compare/acir-v0.10.2...acir-v0.10.3) (2023-04-28)
 
 

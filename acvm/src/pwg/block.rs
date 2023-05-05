@@ -6,11 +6,11 @@ use acir::{
     FieldElement,
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
-    directives::insert_witness,
+    insert_value,
 };
 
 /// Maps a block to its emulated state
@@ -83,7 +83,7 @@ impl BlockSolver {
                     GateStatus::GateSolvable(sum, (coef, w)) => {
                         let map_value =
                             self.get_value(index).ok_or_else(|| missing_assignment(Some(w)))?;
-                        insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
+                        insert_value(&w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
                         self.insert_value(index, sum + value.q_c);
@@ -131,7 +131,7 @@ mod test {
         FieldElement,
     };
 
-    use crate::pwg::directives::insert_witness;
+    use crate::pwg::insert_value;
 
     use super::Blocks;
 
@@ -163,11 +163,11 @@ mod test {
         let id = BlockId::default();
         let mut initial_witness = BTreeMap::new();
         let mut value = FieldElement::zero();
-        insert_witness(Witness(1), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(1), value, &mut initial_witness).unwrap();
         value = FieldElement::one();
-        insert_witness(Witness(2), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(2), value, &mut initial_witness).unwrap();
         value = value + value;
-        insert_witness(Witness(3), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(3), value, &mut initial_witness).unwrap();
         let mut blocks = Blocks::default();
         blocks.solve(id, &trace, &mut initial_witness).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
