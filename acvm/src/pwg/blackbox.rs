@@ -59,6 +59,10 @@ pub(crate) fn solve(
         BlackBoxFunc::SHA256 => sha256(initial_witness, bb_func),
         BlackBoxFunc::Blake2s => blake2s(initial_witness, bb_func),
         BlackBoxFunc::Keccak256 => keccak256(initial_witness, bb_func),
+        BlackBoxFunc::HashToField128Security => {
+            hash_to_field_128_security(initial_witness, bb_func)
+        }
+        BlackBoxFunc::EcdsaSecp256k1 => secp256k1_prehashed(initial_witness, bb_func),
         BlackBoxFunc::ComputeMerkleRoot => {
             backend.compute_merkle_root(initial_witness, &bb_func.inputs, &bb_func.outputs)
         }
@@ -68,10 +72,7 @@ pub(crate) fn solve(
         BlackBoxFunc::Pedersen => {
             backend.pedersen(initial_witness, &bb_func.inputs, &bb_func.outputs)
         }
-        BlackBoxFunc::HashToField128Security => {
-            hash_to_field_128_security(initial_witness, bb_func)
-        }
-        BlackBoxFunc::EcdsaSecp256k1 => secp256k1_prehashed(initial_witness, bb_func),
+
         BlackBoxFunc::FixedBaseScalarMul => {
             backend.fixed_base_scalar_mul(initial_witness, &bb_func.inputs, &bb_func.outputs)
         }
