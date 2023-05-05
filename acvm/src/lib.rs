@@ -7,16 +7,14 @@
 pub mod compiler;
 pub mod pwg;
 
-use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
 use acir::{
     circuit::{
-        opcodes::{BlackBoxFuncCall, OracleData},
+        opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode,
     },
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
-use pwg::{block::Blocks, directives::solve_directives};
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -56,144 +54,90 @@ pub enum OpcodeResolutionError {
     BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum OpcodeResolution {
-    /// The opcode is resolved
-    Solved,
-    /// The opcode is not solvable
-    Stalled(OpcodeNotSolvable),
-    /// The opcode is not solvable but could resolved some witness
-    InProgress,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum PartialWitnessGeneratorStatus {
-    /// All opcodes have been solved.
-    Solved,
-
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle].
-    ///
-    /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
-    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
-    RequiresOracleData { required_oracle_data: Vec<OracleData>, unsolved_opcodes: Vec<Opcode> },
-}
-
-/// Check if all of the inputs to the function have assignments
-///
-/// Returns the first missing assignment if any are missing
-fn first_missing_assignment(
-    witness_assignments: &BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
-) -> Option<Witness> {
-    func_call.inputs.iter().find_map(|input| {
-        if witness_assignments.contains_key(&input.witness) {
-            None
-        } else {
-            Some(input.witness)
-        }
-    })
-}
-
 pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
 /// Returns an Error if the backend does not support that OPCODE
 pub trait PartialWitnessGenerator {
-    fn solve(
+    fn aes(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        blocks: &mut Blocks,
-        mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
-        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        let mut unresolved_oracles: Vec<OracleData> = Vec::new();
-        while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
-            unresolved_opcodes.clear();
-            let mut stalled = true;
-            let mut opcode_not_solvable = None;
-            for opcode in &opcode_to_solve {
-                let mut solved_oracle_data = None;
-                let resolution = match opcode {
-                    Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                    Opcode::BlackBoxFuncCall(bb_func) => {
-                        if let Some(unassigned_witness) =
-                            first_missing_assignment(initial_witness, bb_func)
-                        {
-                            Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                                unassigned_witness.0,
-                            )))
-                        } else {
-                            self.solve_black_box_function_call(initial_witness, bb_func)
-                        }
-                    }
-                    Opcode::Directive(directive) => solve_directives(initial_witness, directive),
-                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                        blocks.solve(block.id, &block.trace, initial_witness)
-                    }
-                    Opcode::Oracle(data) => {
-                        let mut data_clone = data.clone();
-                        let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
-                        solved_oracle_data = Some(data_clone);
-                        Ok(result)
-                    }
-                };
-                match resolution {
-                    Ok(OpcodeResolution::Solved) => {
-                        stalled = false;
-                    }
-                    Ok(OpcodeResolution::InProgress) => {
-                        stalled = false;
-                        // InProgress Oracles must be externally re-solved
-                        if let Some(oracle) = solved_oracle_data {
-                            unresolved_oracles.push(oracle);
-                        } else {
-                            unresolved_opcodes.push(opcode.clone());
-                        }
-                    }
-                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                        if opcode_not_solvable.is_none() {
-                            // we keep track of the first unsolvable opcode
-                            opcode_not_solvable = Some(not_solvable);
-                        }
-                        // We push those opcodes not solvable to the back as
-                        // it could be because the opcodes are out of order, i.e. this assignment
-                        // relies on a later opcodes' results
-                        unresolved_opcodes.push(match solved_oracle_data {
-                            Some(oracle_data) => Opcode::Oracle(oracle_data),
-                            None => opcode.clone(),
-                        });
-                    }
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                        unreachable!("ICE - Result should have been converted to GateResolution")
-                    }
-                    Err(err) => return Err(err),
-                }
-            }
-            // We have oracles that must be externally resolved
-            if !unresolved_oracles.is_empty() {
-                return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
-                    required_oracle_data: unresolved_oracles,
-                    unsolved_opcodes: unresolved_opcodes,
-                });
-            }
-            // We are stalled because of an opcode being bad
-            if stalled && !unresolved_opcodes.is_empty() {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    opcode_not_solvable
-                        .expect("infallible: cannot be stalled and None at the same time"),
-                ));
-            }
-            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
-        }
-        Ok(PartialWitnessGeneratorStatus::Solved)
-    }
-
-    fn solve_black_box_function_call(
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn and(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        func_call: &BlackBoxFuncCall,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn xor(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn range(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn sha256(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn blake2s(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn compute_merkle_root(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn schnorr_verify(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn pedersen(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn hash_to_field128_security(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn ecdsa_secp256k1(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn fixed_base_scalar_mul(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn keccak256(
+        &self,
+        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
@@ -318,7 +262,7 @@ mod test {
     use acir::{
         circuit::{
             directives::Directive,
-            opcodes::{BlackBoxFuncCall, OracleData},
+            opcodes::{FunctionInput, OracleData},
             Opcode,
         },
         native_types::{Expression, Witness},
@@ -326,19 +270,142 @@ mod test {
     };
 
     use crate::{
-        pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
-        PartialWitnessGeneratorStatus,
+        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus},
+        OpcodeResolutionError, PartialWitnessGenerator,
     };
 
     struct StubbedPwg;
 
     impl PartialWitnessGenerator for StubbedPwg {
-        fn solve_black_box_function_call(
+        fn aes(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _func_call: &BlackBoxFuncCall,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn and(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn xor(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn range(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn sha256(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn blake2s(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn compute_merkle_root(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn schnorr_verify(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn pedersen(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn hash_to_field128_security(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn ecdsa_secp256k1(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn fixed_base_scalar_mul(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
+        }
+        fn keccak256(
+            &self,
+            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            {
+                panic!("Path not trodden by this test")
+            }
         }
     }
 
@@ -386,15 +453,14 @@ mod test {
             }),
         ];
 
-        let pwg = StubbedPwg;
+        let backend = StubbedPwg;
 
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
         ]);
         let mut blocks = Blocks::default();
-        let solver_status = pwg
-            .solve(&mut witness_assignments, &mut blocks, opcodes)
+        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresOracleData { mut required_oracle_data, unsolved_opcodes } = solver_status else {
             panic!("Should require oracle data")
@@ -409,9 +475,9 @@ mod test {
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-        let solver_status = pwg
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should be solvable");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should be solvable");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }

@@ -4,7 +4,7 @@ use sha2::Sha256;
 use sha3::Keccak256;
 use std::collections::BTreeMap;
 
-use crate::{OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 use super::{insert_value, witness_to_value};
 
