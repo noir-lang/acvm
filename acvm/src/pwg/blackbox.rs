@@ -75,6 +75,6 @@ pub(crate) fn solve(
         BlackBoxFunc::FixedBaseScalarMul => {
             backend.fixed_base_scalar_mul(initial_witness, &bb_func.inputs, &bb_func.outputs)
         }
-        BlackBoxFunc::AES => Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(bb_func.name)),
+        BlackBoxFunc::AES => backend.aes(initial_witness, &bb_func.inputs, &bb_func.outputs),
     }
 }
