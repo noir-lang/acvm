@@ -19,7 +19,7 @@ jobs:
     name: Publish in order
     runs-on: ubuntu-latest
     env:
-      DRY_RUN_FLAG: ${{ (inputs.publish && "") || "--dry-run" }}
+      DRY_RUN_FLAG: ${{ !inputs.publish && "--dry-run" }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -55,4 +55,3 @@ jobs:
           cargo publish $DRY_RUN_FLAG --package acvm
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.ACVM_CRATES_IO_TOKEN }}
-  
