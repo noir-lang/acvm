@@ -1,16 +1,16 @@
 use super::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc, FieldElement};
+use acir::{circuit::opcodes::{BlackBoxFuncCall, FunctionInput}, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 pub fn solve_logic_opcode(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    match func_call.name {
-        BlackBoxFunc::AND => LogicSolver::solve_and_gate(initial_witness, func_call),
-        BlackBoxFunc::XOR => LogicSolver::solve_xor_gate(initial_witness, func_call),
-        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.name)),
+    match func_call {
+        BlackBoxFuncCall::AND {lhs, rhs, output} => LogicSolver::solve_and_gate(initial_witness, lhs, rhs, output),
+        BlackBoxFuncCall::XOR {lhs, rhs, output} => LogicSolver::solve_xor_gate(initial_witness, lhs, rhs, output),
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.get_black_box_func())),
     }
 }
 
@@ -22,7 +22,7 @@ impl LogicSolver {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         a: &Witness,
         b: &Witness,
-        result: Witness,
+        result: &Witness,
         num_bits: u32,
         is_xor_gate: bool,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -34,38 +34,28 @@ impl LogicSolver {
         } else {
             w_l_value.and(w_r_value, num_bits)
         };
-        insert_value(&result, assignment, initial_witness)?;
+        insert_value(result, assignment, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 
     pub fn solve_and_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gate: &BlackBoxFuncCall,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let (a, b, result, num_bits) = extract_input_output(gate);
-        LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
+        assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+
+        LogicSolver::solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, output, lhs.num_bits, false)
     }
     pub fn solve_xor_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gate: &BlackBoxFuncCall,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let (a, b, result, num_bits) = extract_input_output(gate);
-        LogicSolver::solve_logic_gate(initial_witness, &a, &b, result, num_bits, true)
+        assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+
+        LogicSolver::solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, output, lhs.num_bits, true)
     }
-}
-// TODO: Is there somewhere else that we can put this?
-// TODO: extraction methods are needed for some opcodes like logic and range
-pub(crate) fn extract_input_output(
-    bb_func_call: &BlackBoxFuncCall,
-) -> (Witness, Witness, Witness, u32) {
-    let a = &bb_func_call.inputs[0];
-    let b = &bb_func_call.inputs[1];
-    let result = &bb_func_call.outputs[0];
-
-    // The num_bits variable should be the same for all witnesses
-    assert_eq!(a.num_bits, b.num_bits, "number of bits specified for each input must be the same");
-
-    let num_bits = a.num_bits;
-
-    (a.witness, b.witness, *result, num_bits)
 }

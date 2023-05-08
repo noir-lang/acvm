@@ -1,4 +1,4 @@
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::{FunctionInput}, native_types::Witness, FieldElement};
 use blake2::{Blake2s256, Digest};
 use sha2::Sha256;
 use sha3::Keccak256;
@@ -10,11 +10,13 @@ use super::{insert_value, witness_to_value};
 
 pub fn blake2s256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Blake2s256>(initial_witness, func_call)?;
+    inputs: &Vec<FunctionInput>,
+    outputs: &Vec<Witness>,
 
-    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    let hash = generic_hash_256::<Blake2s256>(initial_witness, inputs)?;
+
+    for (output_witness, value) in outputs.iter().zip(hash.iter()) {
         insert_value(
             output_witness,
             FieldElement::from_be_bytes_reduce(&[*value]),
@@ -27,11 +29,12 @@ pub fn blake2s256(
 
 pub fn sha256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
+    inputs: &Vec<FunctionInput>,
+    outputs: &Vec<Witness>,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Sha256>(initial_witness, func_call)?;
+    let hash = generic_hash_256::<Sha256>(initial_witness, inputs)?;
 
-    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+    for (output_witness, value) in outputs.iter().zip(hash.iter()) {
         insert_value(
             output_witness,
             FieldElement::from_be_bytes_reduce(&[*value]),
@@ -44,11 +47,12 @@ pub fn sha256(
 
 pub fn keccak256(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
+    inputs: &Vec<FunctionInput>,
+    outputs: &Vec<Witness>,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Keccak256>(initial_witness, func_call)?;
+    let hash = generic_hash_256::<Keccak256>(initial_witness, inputs)?;
 
-    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+    for (output_witness, value) in outputs.iter().zip(hash.iter()) {
         insert_value(
             output_witness,
             FieldElement::from_be_bytes_reduce(&[*value]),
@@ -61,24 +65,25 @@ pub fn keccak256(
 
 pub fn hash_to_field_128_security(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
+    inputs: &Vec<FunctionInput>,
+    output: &Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hash = generic_hash_256::<Blake2s256>(initial_witness, func_call)?;
+    let hash = generic_hash_256::<Blake2s256>(initial_witness, inputs)?;
 
     let reduced_res = FieldElement::from_be_bytes_reduce(&hash);
-    insert_value(&func_call.outputs[0], reduced_res, initial_witness)?;
+    insert_value(output, reduced_res, initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }
 
 fn generic_hash_256<D: Digest>(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    func_call: &BlackBoxFuncCall,
+    inputs: &Vec<FunctionInput>,
 ) -> Result<[u8; 32], OpcodeResolutionError> {
     let mut hasher = D::new();
 
     // Read witness assignments into hasher.
-    for input in func_call.inputs.iter() {
+    for input in inputs.iter() {
         let witness = input.witness;
         let num_bits = input.num_bits as usize;
 

@@ -2,7 +2,6 @@ use super::super::CompileError;
 use acir::{
     circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Expression,
-    BlackBoxFunc,
 };
 
 // A predicate that returns true if the black box function is supported
@@ -66,31 +65,28 @@ impl FallbackTransformer {
         gc: &BlackBoxFuncCall,
         current_witness_idx: u32,
     ) -> Result<(u32, Vec<Opcode>), CompileError> {
-        let (updated_witness_index, opcodes_fallback) = match gc.name {
-            BlackBoxFunc::AND => {
-                let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+        let (updated_witness_index, opcodes_fallback) = match gc {
+            BlackBoxFuncCall::AND { lhs, rhs, output } => {
+                assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
                 stdlib::fallback::and(
-                    Expression::from(lhs),
-                    Expression::from(rhs),
-                    result,
-                    num_bits,
+                    Expression::from(lhs.witness),
+                    Expression::from(rhs.witness),
+                    *output,
+                    lhs.num_bits,
                     current_witness_idx,
                 )
             }
-            BlackBoxFunc::XOR => {
-                let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+            BlackBoxFuncCall::XOR { lhs, rhs, output }  => {
+                assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
                 stdlib::fallback::xor(
-                    Expression::from(lhs),
-                    Expression::from(rhs),
-                    result,
-                    num_bits,
+                    Expression::from(lhs.witness),
+                    Expression::from(rhs.witness),
+                    *output,
+                    lhs.num_bits,
                     current_witness_idx,
                 )
             }
-            BlackBoxFunc::RANGE => {
-                // TODO: add consistency checks in one place
-                // TODO: we aren't checking that range gate should have one input
-                let input = &gc.inputs[0];
+            BlackBoxFuncCall::RANGE {input} => {
                 // Note there are no outputs because range produces no outputs
                 stdlib::fallback::range(
                     Expression::from(input.witness),
@@ -99,7 +95,7 @@ impl FallbackTransformer {
                 )
             }
             _ => {
-                return Err(CompileError::UnsupportedBlackBox(gc.name));
+                return Err(CompileError::UnsupportedBlackBox(gc.get_black_box_func()));
             }
         };
 

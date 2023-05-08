@@ -1,13 +1,14 @@
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::{FunctionInput}, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gadget_call: &BlackBoxFuncCall,
+    inputs: &Vec<FunctionInput>,
+    outputs: &Vec<Witness>,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let mut inputs_iter = gadget_call.inputs.iter();
+    let mut inputs_iter = inputs.iter();
 
     let mut pub_key_x = [0u8; 32];
     for (i, pkx) in pub_key_x.iter_mut().enumerate() {
@@ -50,7 +51,7 @@ pub fn secp256k1_prehashed(
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();
 
-    initial_witness.insert(gadget_call.outputs[0], FieldElement::from(result));
+    initial_witness.insert(outputs[0], FieldElement::from(result));
     Ok(OpcodeResolution::Solved)
 }
 

@@ -43,7 +43,7 @@ impl Opcode {
         match self {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
-            Opcode::BlackBoxFuncCall(g) => g.name.name(),
+            Opcode::BlackBoxFuncCall(g) => g.get_black_box_func().name(),
             Opcode::Block(_) => "block",
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
@@ -228,7 +228,6 @@ impl std::fmt::Debug for Opcode {
 #[test]
 fn serialization_roundtrip() {
     use crate::native_types::Witness;
-    use crate::BlackBoxFunc;
 
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
@@ -239,8 +238,7 @@ fn serialization_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-        name: BlackBoxFunc::AES,
+    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {
         inputs: vec![
             FunctionInput { witness: Witness(1u32), num_bits: 12 },
             FunctionInput { witness: Witness(24u32), num_bits: 32 },
