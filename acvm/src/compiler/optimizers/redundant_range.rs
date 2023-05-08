@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{Circuit, Opcode, opcodes::BlackBoxFuncCall},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Witness,
 };
 use std::collections::{BTreeMap, HashSet};

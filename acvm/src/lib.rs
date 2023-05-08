@@ -244,11 +244,7 @@ pub fn default_is_opcode_supported(
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(
-            opcode,
-            Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {..})
-                | Opcode::Block(_)
-        )
+        !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES { .. }) | Opcode::Block(_))
     }
 
     match language {

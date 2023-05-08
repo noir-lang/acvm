@@ -1,12 +1,12 @@
-use acir::{circuit::opcodes::{FunctionInput}, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    inputs: &Vec<FunctionInput>,
-    outputs: &Vec<Witness>,
+    inputs: &[FunctionInput],
+    outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let mut inputs_iter = inputs.iter();
 

@@ -1,6 +1,10 @@
 use super::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::{BlackBoxFuncCall, FunctionInput}, native_types::Witness, FieldElement};
+use acir::{
+    circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
+    native_types::Witness,
+    FieldElement,
+};
 use std::collections::BTreeMap;
 
 pub fn solve_logic_opcode(
@@ -8,9 +12,16 @@ pub fn solve_logic_opcode(
     func_call: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match func_call {
-        BlackBoxFuncCall::AND {lhs, rhs, output} => LogicSolver::solve_and_gate(initial_witness, lhs, rhs, output),
-        BlackBoxFuncCall::XOR {lhs, rhs, output} => LogicSolver::solve_xor_gate(initial_witness, lhs, rhs, output),
-        _ => Err(OpcodeResolutionError::UnexpectedOpcode("logic opcode", func_call.get_black_box_func())),
+        BlackBoxFuncCall::AND { lhs, rhs, output } => {
+            LogicSolver::solve_and_gate(initial_witness, lhs, rhs, output)
+        }
+        BlackBoxFuncCall::XOR { lhs, rhs, output } => {
+            LogicSolver::solve_xor_gate(initial_witness, lhs, rhs, output)
+        }
+        _ => Err(OpcodeResolutionError::UnexpectedOpcode(
+            "logic opcode",
+            func_call.get_black_box_func(),
+        )),
     }
 }
 
@@ -44,9 +55,19 @@ impl LogicSolver {
         rhs: &FunctionInput,
         output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+        assert_eq!(
+            lhs.num_bits, rhs.num_bits,
+            "number of bits specified for each input must be the same"
+        );
 
-        LogicSolver::solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, output, lhs.num_bits, false)
+        LogicSolver::solve_logic_gate(
+            initial_witness,
+            &lhs.witness,
+            &rhs.witness,
+            output,
+            lhs.num_bits,
+            false,
+        )
     }
     pub fn solve_xor_gate(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
@@ -54,8 +75,18 @@ impl LogicSolver {
         rhs: &FunctionInput,
         output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+        assert_eq!(
+            lhs.num_bits, rhs.num_bits,
+            "number of bits specified for each input must be the same"
+        );
 
-        LogicSolver::solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, output, lhs.num_bits, true)
+        LogicSolver::solve_logic_gate(
+            initial_witness,
+            &lhs.witness,
+            &rhs.witness,
+            output,
+            lhs.num_bits,
+            true,
+        )
     }
 }

@@ -67,7 +67,10 @@ impl FallbackTransformer {
     ) -> Result<(u32, Vec<Opcode>), CompileError> {
         let (updated_witness_index, opcodes_fallback) = match gc {
             BlackBoxFuncCall::AND { lhs, rhs, output } => {
-                assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+                assert_eq!(
+                    lhs.num_bits, rhs.num_bits,
+                    "number of bits specified for each input must be the same"
+                );
                 stdlib::fallback::and(
                     Expression::from(lhs.witness),
                     Expression::from(rhs.witness),
@@ -76,8 +79,11 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
-            BlackBoxFuncCall::XOR { lhs, rhs, output }  => {
-                assert_eq!(lhs.num_bits, rhs.num_bits, "number of bits specified for each input must be the same");
+            BlackBoxFuncCall::XOR { lhs, rhs, output } => {
+                assert_eq!(
+                    lhs.num_bits, rhs.num_bits,
+                    "number of bits specified for each input must be the same"
+                );
                 stdlib::fallback::xor(
                     Expression::from(lhs.witness),
                     Expression::from(rhs.witness),
@@ -86,7 +92,7 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
-            BlackBoxFuncCall::RANGE {input} => {
+            BlackBoxFuncCall::RANGE { input } => {
                 // Note there are no outputs because range produces no outputs
                 stdlib::fallback::range(
                     Expression::from(input.witness),

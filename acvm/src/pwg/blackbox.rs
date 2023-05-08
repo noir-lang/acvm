@@ -52,18 +52,14 @@ pub(crate) fn solve(
                 unreachable!("Only reachable if the blackbox is stalled")
             }
         }
-        BlackBoxFuncCall::AES { inputs, outputs } => {
-            backend.aes(initial_witness, inputs, outputs)
-        }
+        BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
         BlackBoxFuncCall::AND { lhs, rhs, output } => {
             backend.and(initial_witness, lhs, rhs, output)
         }
         BlackBoxFuncCall::XOR { lhs, rhs, output } => {
             backend.xor(initial_witness, lhs, rhs, output)
         }
-        BlackBoxFuncCall::RANGE { input } => {
-            backend.range(initial_witness, input)
-        }
+        BlackBoxFuncCall::RANGE { input } => backend.range(initial_witness, input),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => {
             backend.sha256(initial_witness, inputs, outputs)
         }

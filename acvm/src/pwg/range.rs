@@ -1,5 +1,5 @@
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{native_types::Witness, FieldElement, circuit::opcodes::FunctionInput};
+use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 pub fn solve_range_opcode(

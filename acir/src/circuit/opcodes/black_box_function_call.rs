@@ -16,25 +16,62 @@ pub struct FunctionInput {
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BlackBoxFuncCall {
     #[allow(clippy::upper_case_acronyms)]
-    AES{ inputs: Vec<FunctionInput>, outputs: Vec<Witness> },
-    AND{ lhs: FunctionInput, rhs: FunctionInput, output: Witness },
-    XOR{ lhs: FunctionInput, rhs: FunctionInput, output: Witness },
-    RANGE{ input: FunctionInput },
-    SHA256{ inputs: Vec<FunctionInput>, outputs: Vec<Witness> },
-    Blake2s{ inputs: Vec<FunctionInput>, outputs: Vec<Witness> },
-    ComputeMerkleRoot{ inputs: Vec<FunctionInput>, output: Witness },
-    SchnorrVerify{ inputs: Vec<FunctionInput>, output: Witness },
-    Pedersen{
+    AES {
+        inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
+    },
+    AND {
+        lhs: FunctionInput,
+        rhs: FunctionInput,
+        output: Witness,
+    },
+    XOR {
+        lhs: FunctionInput,
+        rhs: FunctionInput,
+        output: Witness,
+    },
+    RANGE {
+        input: FunctionInput,
+    },
+    SHA256 {
+        inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
+    },
+    Blake2s {
+        inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
+    },
+    ComputeMerkleRoot {
+        inputs: Vec<FunctionInput>,
+        output: Witness,
+    },
+    SchnorrVerify {
+        inputs: Vec<FunctionInput>,
+        output: Witness,
+    },
+    Pedersen {
         hash_index: u32,
-        inputs: Vec<FunctionInput>, 
-        outputs: Vec<Witness>
+        inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
     },
     // 128 here specifies that this function
     // should have 128 bits of security
-    HashToField128Security{ inputs: Vec<FunctionInput>, output: Witness },
-    EcdsaSecp256k1{ inputs: Vec<FunctionInput>, output: Witness },
-    FixedBaseScalarMul{ input: FunctionInput, outputs: Vec<Witness> },
-    Keccak256{ inputs: Vec<FunctionInput>, outputs: Vec<Witness> },
+    HashToField128Security {
+        inputs: Vec<FunctionInput>,
+        output: Witness,
+    },
+    EcdsaSecp256k1 {
+        inputs: Vec<FunctionInput>,
+        output: Witness,
+    },
+    FixedBaseScalarMul {
+        input: FunctionInput,
+        outputs: Vec<Witness>,
+    },
+    Keccak256 {
+        inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
+    },
 }
 
 fn write_input<W: Write>(input: &FunctionInput, mut writer: W) -> std::io::Result<()> {
@@ -68,7 +105,7 @@ fn write_outputs<W: Write>(outputs: &Vec<Witness>, mut writer: W) -> std::io::Re
 fn read_input<R: Read>(mut reader: R) -> std::io::Result<FunctionInput> {
     let witness_index = read_u32(&mut reader)?;
     let num_bits = read_u32(&mut reader)?;
-    Ok(FunctionInput{ witness: Witness::new(witness_index), num_bits })
+    Ok(FunctionInput { witness: Witness::new(witness_index), num_bits })
 }
 
 fn read_inputs<R: Read>(mut reader: R) -> std::io::Result<Vec<FunctionInput>> {
@@ -99,35 +136,36 @@ fn read_outputs<R: Read>(mut reader: R) -> std::io::Result<Vec<Witness>> {
 impl BlackBoxFuncCall {
     pub fn get_black_box_func(&self) -> BlackBoxFunc {
         match self {
-            BlackBoxFuncCall::AES {..} => BlackBoxFunc::AES,
-            BlackBoxFuncCall::AND {..} => BlackBoxFunc::AND,
-            BlackBoxFuncCall::XOR {..} => BlackBoxFunc::XOR,
-            BlackBoxFuncCall::RANGE {..} =>BlackBoxFunc::RANGE,
-            BlackBoxFuncCall::SHA256 {..} => BlackBoxFunc::SHA256,
-            BlackBoxFuncCall::Blake2s {..} =>BlackBoxFunc::Blake2s,
-            BlackBoxFuncCall::ComputeMerkleRoot {..} => BlackBoxFunc::ComputeMerkleRoot,
-            BlackBoxFuncCall::SchnorrVerify {..} => BlackBoxFunc::SchnorrVerify,
-            BlackBoxFuncCall::Pedersen {..} => BlackBoxFunc::Pedersen,
-            BlackBoxFuncCall::HashToField128Security {..} => BlackBoxFunc::HashToField128Security,
-            BlackBoxFuncCall::EcdsaSecp256k1 {..} => BlackBoxFunc::EcdsaSecp256k1,
-            BlackBoxFuncCall::FixedBaseScalarMul {..} => BlackBoxFunc::FixedBaseScalarMul,
-            BlackBoxFuncCall::Keccak256 {..} => BlackBoxFunc::Keccak256,
+            BlackBoxFuncCall::AES { .. } => BlackBoxFunc::AES,
+            BlackBoxFuncCall::AND { .. } => BlackBoxFunc::AND,
+            BlackBoxFuncCall::XOR { .. } => BlackBoxFunc::XOR,
+            BlackBoxFuncCall::RANGE { .. } => BlackBoxFunc::RANGE,
+            BlackBoxFuncCall::SHA256 { .. } => BlackBoxFunc::SHA256,
+            BlackBoxFuncCall::Blake2s { .. } => BlackBoxFunc::Blake2s,
+            BlackBoxFuncCall::ComputeMerkleRoot { .. } => BlackBoxFunc::ComputeMerkleRoot,
+            BlackBoxFuncCall::SchnorrVerify { .. } => BlackBoxFunc::SchnorrVerify,
+            BlackBoxFuncCall::Pedersen { .. } => BlackBoxFunc::Pedersen,
+            BlackBoxFuncCall::HashToField128Security { .. } => BlackBoxFunc::HashToField128Security,
+            BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
+            BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
+            BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
         }
     }
 
     pub fn get_inputs_vec(&self) -> Vec<FunctionInput> {
         match self {
-            BlackBoxFuncCall::AES { inputs, .. } 
+            BlackBoxFuncCall::AES { inputs, .. }
             | BlackBoxFuncCall::SHA256 { inputs, .. }
             | BlackBoxFuncCall::Blake2s { inputs, .. }
-            | BlackBoxFuncCall::Keccak256 { inputs, .. } 
+            | BlackBoxFuncCall::Keccak256 { inputs, .. }
             | BlackBoxFuncCall::ComputeMerkleRoot { inputs, .. }
             | BlackBoxFuncCall::SchnorrVerify { inputs, .. }
             | BlackBoxFuncCall::Pedersen { inputs, .. }
             | BlackBoxFuncCall::HashToField128Security { inputs, .. }
             | BlackBoxFuncCall::EcdsaSecp256k1 { inputs, .. } => inputs.to_vec(),
-            BlackBoxFuncCall::AND  { lhs, rhs, .. } 
-            | BlackBoxFuncCall::XOR { lhs, rhs, .. }  => vec![*lhs, *rhs],
+            BlackBoxFuncCall::AND { lhs, rhs, .. } | BlackBoxFuncCall::XOR { lhs, rhs, .. } => {
+                vec![*lhs, *rhs]
+            }
             BlackBoxFuncCall::FixedBaseScalarMul { input, .. }
             | BlackBoxFuncCall::RANGE { input } => vec![*input],
         }
@@ -135,14 +173,14 @@ impl BlackBoxFuncCall {
 
     pub fn get_outputs_vec(&self) -> Vec<Witness> {
         match self {
-            BlackBoxFuncCall::AES { outputs, .. } 
+            BlackBoxFuncCall::AES { outputs, .. }
             | BlackBoxFuncCall::SHA256 { outputs, .. }
             | BlackBoxFuncCall::Blake2s { outputs, .. }
             | BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
             | BlackBoxFuncCall::Pedersen { outputs, .. }
             | BlackBoxFuncCall::Keccak256 { outputs, .. } => outputs.to_vec(),
-            BlackBoxFuncCall::AND  { output, .. } 
-            | BlackBoxFuncCall::XOR { output, .. } 
+            BlackBoxFuncCall::AND { output, .. }
+            | BlackBoxFuncCall::XOR { output, .. }
             | BlackBoxFuncCall::HashToField128Security { output, .. }
             | BlackBoxFuncCall::ComputeMerkleRoot { output, .. }
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
@@ -157,11 +195,8 @@ impl BlackBoxFuncCall {
         write_inputs(&self.get_inputs_vec(), &mut writer)?;
         write_outputs(&self.get_outputs_vec(), &mut writer)?;
 
-        match self {
-            BlackBoxFuncCall::Pedersen { hash_index, .. } => {
-                write_u32(&mut writer, *hash_index)?;
-            }
-            _ => {}
+        if let BlackBoxFuncCall::Pedersen { hash_index, .. } = self {
+            write_u32(&mut writer, *hash_index)?;
         }
 
         Ok(())
@@ -194,15 +229,25 @@ impl BlackBoxFuncCall {
             }
             BlackBoxFunc::SHA256 => BlackBoxFuncCall::SHA256 { inputs, outputs },
             BlackBoxFunc::Blake2s => BlackBoxFuncCall::Blake2s { inputs, outputs },
-            BlackBoxFunc::ComputeMerkleRoot => BlackBoxFuncCall::ComputeMerkleRoot { inputs, output: outputs[0] },
-            BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify { inputs, output: outputs[0] },
+            BlackBoxFunc::ComputeMerkleRoot => {
+                BlackBoxFuncCall::ComputeMerkleRoot { inputs, output: outputs[0] }
+            }
+            BlackBoxFunc::SchnorrVerify => {
+                BlackBoxFuncCall::SchnorrVerify { inputs, output: outputs[0] }
+            }
             BlackBoxFunc::Pedersen => {
                 let hash_index: u32 = read_u32(&mut reader)?;
                 BlackBoxFuncCall::Pedersen { inputs, outputs, hash_index }
             }
-            BlackBoxFunc::HashToField128Security => BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] },
-            BlackBoxFunc::EcdsaSecp256k1 => BlackBoxFuncCall::EcdsaSecp256k1 { inputs, output: outputs[0] },
-            BlackBoxFunc::FixedBaseScalarMul => BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0].clone(), outputs },
+            BlackBoxFunc::HashToField128Security => {
+                BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] }
+            }
+            BlackBoxFunc::EcdsaSecp256k1 => {
+                BlackBoxFuncCall::EcdsaSecp256k1 { inputs, output: outputs[0] }
+            }
+            BlackBoxFunc::FixedBaseScalarMul => {
+                BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs }
+            }
             BlackBoxFunc::Keccak256 => BlackBoxFuncCall::Keccak256 { inputs, outputs },
         };
 
@@ -221,8 +266,7 @@ fn get_inputs_string(inputs: &Vec<FunctionInput>) -> String {
     if should_abbreviate_inputs {
         let mut result = String::new();
         for (index, inp) in inputs.iter().enumerate() {
-            result +=
-                &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
+            result += &format!("(_{}, num_bits: {})", inp.witness.witness_index(), inp.num_bits);
             // Add a comma, unless it is the last entry
             if index != inputs.len() - 1 {
                 result += ", "
@@ -291,7 +335,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
         write!(f, "{outputs_str}")?;
 
         write!(f, "]")?;
-        
+
         // FUNCTION SPECIFIC PARAMETERS
         match self {
             BlackBoxFuncCall::Pedersen { hash_index, .. } => write!(f, " hash_index: {hash_index}"),
