@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use acir::{
-    circuit::directives::{Directive, LogInfo},
+    circuit::directives::{Directive, LogInfo, QuotientDirective},
     native_types::Witness,
     FieldElement,
 };
@@ -42,7 +42,7 @@ fn solve_directives_internal(
             initial_witness.insert(*result, inverse);
             Ok(())
         }
-        Directive::Quotient { a, b, q, r, predicate } => {
+        Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
