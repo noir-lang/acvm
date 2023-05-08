@@ -42,11 +42,16 @@ pub enum BlackBoxFuncCall {
         outputs: Vec<Witness>,
     },
     ComputeMerkleRoot {
-        inputs: Vec<FunctionInput>,
+        leaf: FunctionInput,
+        index: FunctionInput,
+        hash_path: Vec<FunctionInput>,
         output: Witness,
     },
     SchnorrVerify {
-        inputs: Vec<FunctionInput>,
+        public_key_x: FunctionInput,
+        public_key_y: FunctionInput,
+        signature: Vec<FunctionInput>,
+        message: Vec<FunctionInput>,
         output: Witness,
     },
     Pedersen {
@@ -61,7 +66,10 @@ pub enum BlackBoxFuncCall {
         output: Witness,
     },
     EcdsaSecp256k1 {
-        inputs: Vec<FunctionInput>,
+        public_key_x: Vec<FunctionInput>,
+        public_key_y: Vec<FunctionInput>,
+        signature: Vec<FunctionInput>,
+        message: Vec<FunctionInput>,
         output: Witness,
     },
     FixedBaseScalarMul {
@@ -158,16 +166,48 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::SHA256 { inputs, .. }
             | BlackBoxFuncCall::Blake2s { inputs, .. }
             | BlackBoxFuncCall::Keccak256 { inputs, .. }
-            | BlackBoxFuncCall::ComputeMerkleRoot { inputs, .. }
-            | BlackBoxFuncCall::SchnorrVerify { inputs, .. }
             | BlackBoxFuncCall::Pedersen { inputs, .. }
-            | BlackBoxFuncCall::HashToField128Security { inputs, .. }
-            | BlackBoxFuncCall::EcdsaSecp256k1 { inputs, .. } => inputs.to_vec(),
+            | BlackBoxFuncCall::HashToField128Security { inputs, .. } => inputs.to_vec(),
             BlackBoxFuncCall::AND { lhs, rhs, .. } | BlackBoxFuncCall::XOR { lhs, rhs, .. } => {
                 vec![*lhs, *rhs]
             }
             BlackBoxFuncCall::FixedBaseScalarMul { input, .. }
             | BlackBoxFuncCall::RANGE { input } => vec![*input],
+            BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, .. } => {
+                let mut inputs = Vec::new();
+                inputs.push(*leaf);
+                inputs.push(*index);
+                inputs.extend(hash_path.iter().cloned());
+                inputs
+            }
+            BlackBoxFuncCall::SchnorrVerify {
+                public_key_x,
+                public_key_y,
+                signature,
+                message,
+                ..
+            } => {
+                let mut inputs = Vec::new();
+                inputs.push(*public_key_x);
+                inputs.push(*public_key_y);
+                inputs.extend(signature.iter().cloned());
+                inputs.extend(message.iter().cloned());
+                inputs
+            }
+            BlackBoxFuncCall::EcdsaSecp256k1 {
+                public_key_x,
+                public_key_y,
+                signature,
+                message,
+                ..
+            } => {
+                let mut inputs = Vec::new();
+                inputs.extend(public_key_x.iter().cloned());
+                inputs.extend(public_key_y.iter().cloned());
+                inputs.extend(signature.iter().cloned());
+                inputs.extend(message.iter().cloned());
+                inputs
+            }
         }
     }
 
@@ -229,12 +269,19 @@ impl BlackBoxFuncCall {
             }
             BlackBoxFunc::SHA256 => BlackBoxFuncCall::SHA256 { inputs, outputs },
             BlackBoxFunc::Blake2s => BlackBoxFuncCall::Blake2s { inputs, outputs },
-            BlackBoxFunc::ComputeMerkleRoot => {
-                BlackBoxFuncCall::ComputeMerkleRoot { inputs, output: outputs[0] }
-            }
-            BlackBoxFunc::SchnorrVerify => {
-                BlackBoxFuncCall::SchnorrVerify { inputs, output: outputs[0] }
-            }
+            BlackBoxFunc::ComputeMerkleRoot => BlackBoxFuncCall::ComputeMerkleRoot {
+                leaf: inputs[0],
+                index: inputs[1],
+                hash_path: inputs[2..].to_vec(),
+                output: outputs[0],
+            },
+            BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
+                public_key_x: inputs[0],
+                public_key_y: inputs[1],
+                signature: inputs[2..66].to_vec(),
+                message: inputs[66..].to_vec(),
+                output: outputs[0],
+            },
             BlackBoxFunc::Pedersen => {
                 let hash_index: u32 = read_u32(&mut reader)?;
                 BlackBoxFuncCall::Pedersen { inputs, outputs, hash_index }
@@ -242,9 +289,13 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] }
             }
-            BlackBoxFunc::EcdsaSecp256k1 => {
-                BlackBoxFuncCall::EcdsaSecp256k1 { inputs, output: outputs[0] }
-            }
+            BlackBoxFunc::EcdsaSecp256k1 => BlackBoxFuncCall::EcdsaSecp256k1 {
+                public_key_x: inputs[0..32].to_vec(),
+                public_key_y: inputs[32..64].to_vec(),
+                signature: inputs[64..128].to_vec(),
+                message: inputs[128..].to_vec(),
+                output: outputs[0],
+            },
             BlackBoxFunc::FixedBaseScalarMul => {
                 BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs }
             }

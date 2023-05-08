@@ -100,13 +100,18 @@ pub trait PartialWitnessGenerator {
     fn compute_merkle_root(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        leaf: &FunctionInput,
+        index: &FunctionInput,
+        hash_path: &[FunctionInput],
         output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        public_key_x: &FunctionInput,
+        public_key_y: &FunctionInput,
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
         output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn pedersen(
@@ -125,7 +130,10 @@ pub trait PartialWitnessGenerator {
     fn ecdsa_secp256k1(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        public_key_x: &[FunctionInput],
+        public_key_y: &[FunctionInput],
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
         outputs: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
@@ -339,7 +347,9 @@ mod test {
         fn compute_merkle_root(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
+            _leaf: &FunctionInput,
+            _index: &FunctionInput,
+            _hash_path: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
@@ -349,7 +359,10 @@ mod test {
         fn schnorr_verify(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
+            _public_key_x: &FunctionInput,
+            _public_key_y: &FunctionInput,
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
@@ -380,7 +393,10 @@ mod test {
         fn ecdsa_secp256k1(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
+            _public_key_x: &[FunctionInput],
+            _public_key_y: &[FunctionInput],
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {

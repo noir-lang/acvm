@@ -66,21 +66,43 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Blake2s { inputs, outputs } => {
             backend.blake2s(initial_witness, inputs, outputs)
         }
-        BlackBoxFuncCall::ComputeMerkleRoot { inputs, output } => {
-            backend.compute_merkle_root(initial_witness, inputs, output)
+        BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, output } => {
+            backend.compute_merkle_root(initial_witness, leaf, index, hash_path, output)
         }
-        BlackBoxFuncCall::SchnorrVerify { inputs, output } => {
-            backend.schnorr_verify(initial_witness, inputs, output)
-        }
+        BlackBoxFuncCall::SchnorrVerify {
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        } => backend.schnorr_verify(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        ),
         BlackBoxFuncCall::Pedersen { hash_index, inputs, outputs } => {
             backend.pedersen(initial_witness, *hash_index, inputs, outputs)
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
             backend.hash_to_field128_security(initial_witness, inputs, output)
         }
-        BlackBoxFuncCall::EcdsaSecp256k1 { inputs, output } => {
-            backend.ecdsa_secp256k1(initial_witness, inputs, output)
-        }
+        BlackBoxFuncCall::EcdsaSecp256k1 {
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        } => backend.ecdsa_secp256k1(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
             backend.fixed_base_scalar_mul(initial_witness, input, outputs)
         }
