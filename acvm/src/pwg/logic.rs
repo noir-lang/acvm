@@ -31,8 +31,8 @@ pub(crate) fn extract_input_output(
     inputs: &[FunctionInput],
     outputs: &[Witness],
 ) -> (Witness, Witness, Witness, u32) {
-    let a = inputs[0];
-    let b = inputs[1];
+    let a = &inputs[0];
+    let b = &inputs[1];
     let result = outputs[0];
 
     // The num_bits variable should be the same for all witnesses
