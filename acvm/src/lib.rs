@@ -310,7 +310,6 @@ mod test {
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _inputs: &[FunctionInput],
-            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             {
                 panic!("Path not trodden by this test")
