@@ -282,9 +282,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn and(
             &self,
@@ -292,9 +290,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn xor(
             &self,
@@ -302,18 +298,14 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn range(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _inputs: &[FunctionInput],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn sha256(
             &self,
@@ -321,9 +313,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn blake2s(
             &self,
@@ -331,9 +321,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn compute_merkle_root(
             &self,
@@ -341,9 +329,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn schnorr_verify(
             &self,
@@ -351,9 +337,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn pedersen(
             &self,
@@ -361,9 +345,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn hash_to_field128_security(
             &self,
@@ -371,9 +353,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn ecdsa_secp256k1(
             &self,
@@ -381,9 +361,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn fixed_base_scalar_mul(
             &self,
@@ -391,9 +369,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn keccak256(
             &self,
@@ -401,9 +377,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
     }
 
