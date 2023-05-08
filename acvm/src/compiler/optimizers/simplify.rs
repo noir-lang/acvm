@@ -178,11 +178,11 @@ impl CircuitSimplifier {
         first: bool,
     ) -> SimplifyResult {
         match gadget {
-            BlackBoxFuncCall::AND {output, ..} | BlackBoxFuncCall::XOR {output, ..}  => {
+            BlackBoxFuncCall::AND { output, .. } | BlackBoxFuncCall::XOR { output, .. } => {
                 self.use_witness(*output, gate_idx, first);
                 SimplifyResult::Unresolved
             }
-            BlackBoxFuncCall::RANGE {input, ..} => {
+            BlackBoxFuncCall::RANGE { input, .. } => {
                 if self.contains(input.witness) {
                     self.use_witness(input.witness, gate_idx, first);
                     let max = BigUint::from_u32(2).unwrap().pow(input.num_bits);
