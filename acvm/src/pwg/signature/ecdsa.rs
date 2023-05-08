@@ -5,14 +5,17 @@ use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError}
 
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    inputs: &[FunctionInput],
-    outputs: &[Witness],
+    public_key_x_inputs: &[FunctionInput],
+    public_key_y_inputs: &[FunctionInput],
+    signature_inputs: &[FunctionInput],
+    message_inputs: &[FunctionInput],
+    output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let mut inputs_iter = inputs.iter();
-
     let mut pub_key_x = [0u8; 32];
+    let mut public_key_x_inputs = public_key_x_inputs.iter();
+
     for (i, pkx) in pub_key_x.iter_mut().enumerate() {
-        let _x_i = inputs_iter
+        let _x_i = public_key_x_inputs
             .next()
             .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {i} bytes"));
 
@@ -21,8 +24,10 @@ pub fn secp256k1_prehashed(
     }
 
     let mut pub_key_y = [0u8; 32];
+    let mut public_key_y_inputs = public_key_y_inputs.iter();
+
     for (i, pky) in pub_key_y.iter_mut().enumerate() {
-        let _y_i = inputs_iter
+        let _y_i = public_key_y_inputs
             .next()
             .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {i} bytes"));
 
@@ -31,8 +36,10 @@ pub fn secp256k1_prehashed(
     }
 
     let mut signature = [0u8; 64];
+    let mut signature_inputs = signature_inputs.iter();
+
     for (i, sig) in signature.iter_mut().enumerate() {
-        let _sig_i = inputs_iter
+        let _sig_i = signature_inputs
             .next()
             .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {i} bytes"));
 
@@ -41,7 +48,7 @@ pub fn secp256k1_prehashed(
     }
 
     let mut hashed_message = Vec::new();
-    for msg in inputs_iter {
+    for msg in message_inputs.iter() {
         let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
         let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
         hashed_message.push(msg_i);
@@ -51,7 +58,7 @@ pub fn secp256k1_prehashed(
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();
 
-    initial_witness.insert(outputs[0], FieldElement::from(result));
+    initial_witness.insert(output, FieldElement::from(result));
     Ok(OpcodeResolution::Solved)
 }
 
