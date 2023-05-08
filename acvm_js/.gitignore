@@ -1,0 +1,16 @@
+/target
+.DS_Store
+examples/**/target/
+examples/9
+.vscode
+node_modules
+pkg/
+
+# Nargo output
+*.proof
+*.acir
+*.acir.sha256
+*.tr
+*.pk
+*.vk
+**/Verifier.toml
