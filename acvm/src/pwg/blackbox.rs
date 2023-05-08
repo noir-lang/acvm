@@ -61,7 +61,8 @@ pub(crate) fn solve(
             backend.xor(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::RANGE, inputs, outputs } => {
-            backend.range(initial_witness, inputs, outputs)
+            assert!(outputs.is_empty());
+            backend.range(initial_witness, inputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::SHA256, inputs, outputs } => {
             backend.sha256(initial_witness, inputs, outputs)

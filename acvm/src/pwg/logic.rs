@@ -1,15 +1,16 @@
 use super::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, FieldElement};
+use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
 use std::collections::BTreeMap;
 
 /// Solves a [`BlackBoxFunc::And`][acir::circuit::black_box_functions::BlackBoxFunc::AND] opcode and inserts
 /// the result into the supplied witness map
 pub fn and(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gate: &BlackBoxFuncCall,
+    inputs: &[FunctionInput],
+    outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let (a, b, result, num_bits) = extract_input_output(gate);
+    let (a, b, result, num_bits) = extract_input_output(inputs, outputs);
     solve_logic_gate(initial_witness, &a, &b, result, |left, right| left.and(right, num_bits))
 }
 
@@ -17,27 +18,29 @@ pub fn and(
 /// the result into the supplied witness map
 pub fn xor(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    gate: &BlackBoxFuncCall,
+    inputs: &[FunctionInput],
+    outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let (a, b, result, num_bits) = extract_input_output(gate);
+    let (a, b, result, num_bits) = extract_input_output(inputs, outputs);
     solve_logic_gate(initial_witness, &a, &b, result, |left, right| left.xor(right, num_bits))
 }
 
 // TODO: Is there somewhere else that we can put this?
 // TODO: extraction methods are needed for some opcodes like logic and range
 pub(crate) fn extract_input_output(
-    bb_func_call: &BlackBoxFuncCall,
+    inputs: &[FunctionInput],
+    outputs: &[Witness],
 ) -> (Witness, Witness, Witness, u32) {
-    let a = &bb_func_call.inputs[0];
-    let b = &bb_func_call.inputs[1];
-    let result = &bb_func_call.outputs[0];
+    let a = inputs[0];
+    let b = inputs[1];
+    let result = outputs[0];
 
     // The num_bits variable should be the same for all witnesses
     assert_eq!(a.num_bits, b.num_bits, "number of bits specified for each input must be the same");
 
     let num_bits = a.num_bits;
 
-    (a.witness, b.witness, *result, num_bits)
+    (a.witness, b.witness, result, num_bits)
 }
 
 /// Derives the rest of the witness based on the initial low level variables
