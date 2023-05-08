@@ -14,6 +14,7 @@ use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
 
 use self::optimizers::RangeOptimizer;
+use self::optimizers::Simplifier;
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -25,13 +26,14 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: IsOpcodeSupported,
+    simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Fallback transformer pass
-    let acir = FallbackTransformer::transform(acir, is_opcode_supported)?;
+    let acir = FallbackTransformer::transform(acir, is_opcode_supported, simplifier)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();
