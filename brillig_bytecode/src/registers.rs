@@ -1,4 +1,4 @@
-use crate::{opcodes::RegisterMemIndex, Typ, Value};
+use crate::{Value};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 

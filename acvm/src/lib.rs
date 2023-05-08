@@ -358,7 +358,7 @@ mod test {
     use acir::{
         brillig_bytecode,
         brillig_bytecode::{
-             Comparison, OracleInput, OracleOutput, RegisterIndex, RegisterMemIndex, Typ, BinaryOp,
+             Comparison, OracleInput, OracleOutput, RegisterIndex, BinaryFieldOp,
         },
         circuit::{
             directives::Directive,
@@ -474,14 +474,14 @@ mod test {
         let w_lt_res = Witness(8);
 
         let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-            op: brillig_bytecode::BinaryOp::Cmp(Comparison::Eq),
+            op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-            op: BinaryOp::Cmp(Comparison::Lt),
+            op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
             result: RegisterIndex(3),
@@ -597,14 +597,14 @@ mod test {
         let w_lt_res = Witness(8);
 
         let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-            op: BinaryOp::Cmp(Comparison::Eq),
+            op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
             result: RegisterIndex(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-            op: BinaryOp::Cmp(Comparison::Lt),
+            op: BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
             result: RegisterIndex(3),

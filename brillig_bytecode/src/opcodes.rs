@@ -1,28 +1,8 @@
-use std::ops::{Add, BitAnd, BitOr, BitXor, Mul, Shl, Shr, Sub};
-
 use crate::{
-    memory::ArrayIndex,
-    value::{Typ, Value},
     RegisterIndex,
 };
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RegisterMemIndex {
-    Register(RegisterIndex),
-    Constant(FieldElement),
-    Memory(ArrayIndex),
-}
-
-impl RegisterMemIndex {
-    pub fn to_register_index(self) -> Option<RegisterIndex> {
-        match self {
-            RegisterMemIndex::Register(register) => Some(register),
-            RegisterMemIndex::Constant(_) | RegisterMemIndex::Memory(_) => None,
-        }
-    }
-}
 
 pub type Label = usize;
 
@@ -32,7 +12,7 @@ pub enum Opcode {
     /// Performs the specified binary operation
     /// and stores the value in the `result` register.  
     BinaryFieldOp {
-        op: BinaryOp,
+        op: BinaryFieldOp,
         lhs: RegisterIndex,
         rhs: RegisterIndex,
         result: RegisterIndex,
@@ -41,7 +21,7 @@ pub enum Opcode {
     /// Performs the specified binary operation
     /// and stores the value in the `result` register.  
     BinaryIntOp {
-        op: BinaryOp,
+        op: BinaryIntOp,
         bit_size: u32,
         lhs: RegisterIndex,
         rhs: RegisterIndex,
@@ -49,52 +29,46 @@ pub enum Opcode {
     },
     JumpIfNot {
         condition: RegisterIndex,
-        destination: Label,
+        location: Label,
     },
     /// Sets the program counter to the value located at `destination`
     /// If the value at condition is non-zero
     JumpIf {
         condition: RegisterIndex,
-        destination: Label,
+        location: Label,
     },
     /// Sets the program counter to the label.
     Jump {
-        destination: Label,
+        location: Label,
     },
-    PushStack {
-        source: RegisterIndex,
+    // We don't support dynamic jumps or calls
+    // See https://github.com/ethereum/aleth/issues/3404 for reasoning
+    Call {
+        location: Label,
     },
-    // TODO:This is used to call functions and setup things like
-    // TODO execution contexts.
-    Call,
+    Const {
+        destination: RegisterIndex,
+        value: FieldElement,  
+    },
+    Return,
     // TODO:These are special functions like sha256
     Intrinsics,
     /// Used to get data from an outside source
     Oracle(OracleData),
     Mov {
-        destination: RegisterIndex,
-        source: RegisterIndex,
+        destination_register: RegisterIndex,
+        source_register: RegisterIndex,
     },
     Load {
-        destination: RegisterIndex,
-        array_id_reg: RegisterIndex,
-        index: RegisterIndex,
-    },
-    LoadConst {
-        destination: RegisterIndex,
-        constant: FieldElement,
+        destination_register: RegisterIndex,
+        source_pointer: RegisterIndex,
     },
     Store {
-        source: RegisterIndex,
-        array_id_reg: RegisterIndex,
-        index: RegisterIndex,
+        destination_pointer: RegisterIndex,
+        source_register: RegisterIndex,
     },
     /// Used if execution fails during evaluation
     Trap,
-    /// Hack
-    Bootstrap {
-        register_allocation_indices: Vec<u32>,
-    },
     /// Stop execution
     Stop,
 }
@@ -104,20 +78,19 @@ impl Opcode {
         match self {
             Opcode::BinaryFieldOp { .. } => "binary_field_op",
             Opcode::BinaryIntOp { .. } => "binary_int_op",
-            Opcode::JumpIfNot { .. } => "jmpifnot",
-            Opcode::JumpIf { .. } => "jmpif",
+            Opcode::JumpIfNot { .. } => "jmp_if_not",
+            Opcode::JumpIf { .. } => "jmp_if",
             Opcode::Jump { .. } => "jmp",
-            Opcode::PushStack { .. } => "pushstack",
-            Opcode::Call => "callback",
+            Opcode::Call { .. } => "call",
+            Opcode::Const { .. } => "const",
+            Opcode::Return => "return",
             Opcode::Intrinsics => "intrinsics",
             Opcode::Oracle(_) => "oracle",
             Opcode::Mov { .. } => "mov",
             Opcode::Load { .. } => "load",
             Opcode::Store { .. } => "store",
             Opcode::Trap => "trap",
-            Opcode::Bootstrap { .. } => "bootstrap",
             Opcode::Stop => "stop",
-            Opcode::LoadConst { .. } => "loadconst",
         }
     }
 }
@@ -139,19 +112,27 @@ pub struct OracleData {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OracleInput {
     RegisterIndex(RegisterIndex),
-    Array { start: RegisterIndex, length: usize },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OracleOutput {
     RegisterIndex(RegisterIndex),
-    Array { start: RegisterIndex, length: usize },
 }
 
 
 // Binary fixed-length integer expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BinaryOp {
+pub enum BinaryFieldOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Cmp(Comparison),
+}
+
+// Binary fixed-length integer expressions
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BinaryIntOp {
     Add,
     Sub,
     Mul,
@@ -172,61 +153,58 @@ pub enum Comparison {
     Lte, //(<=) field less or equal
 }
 
-impl BinaryOp {
+impl BinaryFieldOp {
     /// Evaluate a binary operation on two FieldElements and return the result as a FieldElement.
     pub fn evaluate_field(&self, a: FieldElement, b: FieldElement) -> FieldElement {
         match self {
             // Perform addition, subtraction, multiplication, and division based on the BinaryOp variant.
-            BinaryOp::Add => a + b,
-            BinaryOp::Sub => a - b,
-            BinaryOp::Mul => a * b,
-            BinaryOp::SignedDiv | BinaryOp::UnsignedDiv => a / b,
+            BinaryFieldOp::Add => a + b,
+            BinaryFieldOp::Sub => a - b,
+            BinaryFieldOp::Mul => a * b,
+            BinaryFieldOp::Div => a / b,
              // Perform a comparison between a and b based on the Comparison variant.
-             BinaryOp::Cmp(comparison) => match comparison {
+             BinaryFieldOp::Cmp(comparison) => match comparison {
                 Comparison::Eq => ((a == b) as u128).into(),
                 Comparison::Lt => ((a < b) as u128).into(),
                 Comparison::Lte => ((a <= b) as u128).into(),
             },
-            // These operations are not allowed for FieldElement, so they are unreachable.
-            BinaryOp::And => unreachable!("operation not allowed for FieldElement"),
-            BinaryOp::Or => unreachable!("operation not allowed for FieldElement"),
-            BinaryOp::Xor => unreachable!("operation not allowed for FieldElement"),
-            BinaryOp::Shl => unreachable!("operation not allowed for FieldElement"),
-            BinaryOp::Shr => unreachable!("operation not allowed for FieldElement"),
         }
     }
+}
+
+impl BinaryIntOp {
     /// Evaluate a binary operation on two unsigned integers (u128) with a given bit size and return the result as a u128.
     pub fn evaluate_int(&self, a: u128, b: u128, bit_size: u32) -> u128 {
         let bit_modulo = 1_u128 << bit_size;
         match self {
             // Perform addition, subtraction, and multiplication, applying a modulo operation to keep the result within the bit size.
-            BinaryOp::Add => (a + b) % bit_modulo,
-            BinaryOp::Sub => (a - b) % bit_modulo,
-            BinaryOp::Mul => (a * b) % bit_modulo,
+            BinaryIntOp::Add => (a + b) % bit_modulo,
+            BinaryIntOp::Sub => (a - b) % bit_modulo,
+            BinaryIntOp::Mul => (a * b) % bit_modulo,
             // Perform unsigned division using the modulo operation on a and b.
-            BinaryOp::UnsignedDiv => (a % bit_modulo) / (b % bit_modulo),
+            BinaryIntOp::UnsignedDiv => (a % bit_modulo) / (b % bit_modulo),
             // Perform signed division by first converting a and b to signed integers and then back to unsigned after the operation.
-            BinaryOp::SignedDiv => to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size),
+            BinaryIntOp::SignedDiv => to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size),
             // Perform a comparison between a and b based on the Comparison variant.
-            BinaryOp::Cmp(comparison) => match comparison {
+            BinaryIntOp::Cmp(comparison) => match comparison {
                 Comparison::Eq => ((a == b) as u128).into(),
                 Comparison::Lt => ((a < b) as u128).into(),
                 Comparison::Lte => ((a <= b) as u128).into(),
             },
             // Perform bitwise AND, OR, XOR, left shift, and right shift operations, applying a modulo operation to keep the result within the bit size.
-            BinaryOp::And => {
+            BinaryIntOp::And => {
                 (a & b) % bit_modulo
             }
-            BinaryOp::Or => {
+            BinaryIntOp::Or => {
                 (a | b) % bit_modulo
             }
-            BinaryOp::Xor => {
+            BinaryIntOp::Xor => {
                 (a ^ b) % bit_modulo
             }
-            BinaryOp::Shl => {
+            BinaryIntOp::Shl => {
                 (a << b) % bit_modulo
             }
-            BinaryOp::Shr => {
+            BinaryIntOp::Shr => {
                 (a >> b) % bit_modulo
             }
         }

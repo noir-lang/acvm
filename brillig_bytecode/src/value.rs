@@ -24,6 +24,15 @@ impl Value {
     pub fn to_u128(&self) -> u128 {
         self.inner.to_u128()
     }
+    pub fn to_usize(&self) -> usize {
+        self.inner.to_u128() as usize
+    }
+}
+
+impl From<usize> for Value {
+    fn from(value: usize) -> Self {
+        Value { inner: FieldElement::from(value as u128) }
+    }
 }
 
 impl From<u128> for Value {
@@ -35,12 +44,6 @@ impl From<u128> for Value {
 impl From<FieldElement> for Value {
     fn from(value: FieldElement) -> Self {
         Value { inner: value }
-    }
-}
-
-impl From<u32> for Value {
-    fn from(value: u32) -> Self {
-        Value { inner: FieldElement::from(value as i128) }
     }
 }
 
