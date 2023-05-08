@@ -10,7 +10,7 @@ pub fn and(
     gate: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let (a, b, result, num_bits) = extract_input_output(gate);
-    solve_logic_gate(initial_witness, &a, &b, result, num_bits, false)
+    solve_logic_gate(initial_witness, &a, &b, result, |left, right| left.and(right, num_bits))
 }
 
 /// Solves a [`BlackBoxFunc::XOR`][acir::circuit::black_box_functions::BlackBoxFunc::XOR] opcode and inserts
@@ -20,7 +20,7 @@ pub fn xor(
     gate: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let (a, b, result, num_bits) = extract_input_output(gate);
-    solve_logic_gate(initial_witness, &a, &b, result, num_bits, true)
+    solve_logic_gate(initial_witness, &a, &b, result, |left, right| left.xor(right, num_bits))
 }
 
 // TODO: Is there somewhere else that we can put this?
@@ -46,17 +46,12 @@ fn solve_logic_gate(
     a: &Witness,
     b: &Witness,
     result: Witness,
-    num_bits: u32,
-    is_xor_gate: bool,
+    logic_op: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let w_l_value = witness_to_value(initial_witness, *a)?;
     let w_r_value = witness_to_value(initial_witness, *b)?;
+    let assignment = logic_op(w_l_value, w_r_value);
 
-    let assignment = if is_xor_gate {
-        w_l_value.xor(w_r_value, num_bits)
-    } else {
-        w_l_value.and(w_r_value, num_bits)
-    };
     insert_value(&result, assignment, initial_witness)?;
     Ok(OpcodeResolution::Solved)
 }
