@@ -3,7 +3,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables

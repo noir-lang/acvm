@@ -1,6 +1,6 @@
 use acir::{circuit::opcodes::OracleData, native_types::WitnessMap};
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{arithmetic::ArithmeticSolver, insert_value};
 

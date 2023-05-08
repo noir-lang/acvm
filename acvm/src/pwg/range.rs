@@ -1,4 +1,4 @@
-use crate::{pwg::witness_to_value, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::BlackBoxFuncCall, native_types::WitnessMap, BlackBoxFunc};
 
 pub fn solve_range_opcode(

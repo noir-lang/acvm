@@ -1,7 +1,7 @@
 [package]
 name = "acvm"
 description = "The virtual machine that processes ACIR given a backend/proof system."
-version = "0.10.3"
+version = "0.11.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,9 +17,9 @@ thiserror.workspace = true
 acir.workspace = true
 stdlib.workspace = true
 
-blake2 = "0.9.1"
-sha2 = "0.9.3"
-sha3 = "0.9.1"
+blake2 = "0.10.6"
+sha2 = "0.10.6"
+sha3 = "0.10.6"
 crc32fast = "1.3.2"
 k256 = { version = "0.7.2", features = [
     "ecdsa",
