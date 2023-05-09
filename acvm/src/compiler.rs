@@ -106,3 +106,198 @@ pub fn compile<F: Fn(&Opcode) -> bool>(
         return_values: acir.return_values,
     })
 }
+
+#[test]
+fn foo() {
+    #[derive(Debug, Default)]
+    struct DummyBackend;
+
+    impl crate::PartialWitnessGenerator for DummyBackend {
+        fn aes(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn and(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn xor(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn range(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn sha256(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn blake2s(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn compute_merkle_root(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn schnorr_verify(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn pedersen(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn hash_to_field128_security(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn ecdsa_secp256k1(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn fixed_base_scalar_mul(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn keccak256(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+    }
+
+    #[derive(Debug, Default)]
+    struct DummyError;
+
+    impl std::fmt::Display for DummyError {
+        fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            todo!()
+        }
+    }
+
+    impl std::error::Error for DummyError {
+        fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+            None
+        }
+
+        fn description(&self) -> &str {
+            "description() is deprecated; use Display"
+        }
+
+        fn cause(&self) -> Option<&dyn std::error::Error> {
+            self.source()
+        }
+    }
+    impl crate::ProofSystemCompiler for DummyBackend {
+        type Error = DummyError;
+
+        fn np_language(&self) -> Language {
+            todo!()
+        }
+
+        fn opcode_supported(&self, _opcode: &Opcode) -> bool {
+            todo!()
+        }
+
+        fn get_exact_circuit_size(&self, _circuit: &Circuit) -> Result<u32, Self::Error> {
+            todo!()
+        }
+
+        fn preprocess(&self, _circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
+            todo!()
+        }
+
+        fn prove_with_pk(
+            &self,
+            _circuit: &Circuit,
+            _witness_values: std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _proving_key: &[u8],
+        ) -> Result<Vec<u8>, Self::Error> {
+            todo!()
+        }
+
+        fn verify_with_vk(
+            &self,
+            _proof: &[u8],
+            _public_inputs: std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _circuit: &Circuit,
+            _verification_key: &[u8],
+        ) -> Result<bool, Self::Error> {
+            todo!()
+        }
+    }
+
+    impl crate::SmartContract for DummyBackend {
+        type Error = DummyError;
+
+        fn eth_contract_from_vk(&self, _verification_key: &[u8]) -> Result<String, Self::Error> {
+            todo!()
+        }
+    }
+
+    impl crate::Backend for DummyBackend {}
+}
