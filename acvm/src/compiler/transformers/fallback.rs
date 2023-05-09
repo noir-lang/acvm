@@ -76,7 +76,8 @@ impl FallbackTransformer {
     ) -> Result<(u32, Vec<Opcode>), CompileError> {
         let (updated_witness_index, opcodes_fallback) = match gc.name {
             BlackBoxFunc::AND => {
-                let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+                let (lhs, rhs, result, num_bits) =
+                    crate::pwg::logic::extract_input_output(&gc.inputs, &gc.outputs);
                 stdlib::fallback::and(
                     Expression::from(lhs),
                     Expression::from(rhs),
@@ -86,7 +87,8 @@ impl FallbackTransformer {
                 )
             }
             BlackBoxFunc::XOR => {
-                let (lhs, rhs, result, num_bits) = crate::pwg::logic::extract_input_output(gc);
+                let (lhs, rhs, result, num_bits) =
+                    crate::pwg::logic::extract_input_output(&gc.inputs, &gc.outputs);
                 stdlib::fallback::xor(
                     Expression::from(lhs),
                     Expression::from(rhs),
