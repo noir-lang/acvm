@@ -108,7 +108,7 @@ pub fn compile<F: Fn(&Opcode) -> bool>(
 }
 
 #[test]
-fn foo() {
+fn compile_api_compiles_with_backend() {
     use crate::ProofSystemCompiler;
 
     compile(
