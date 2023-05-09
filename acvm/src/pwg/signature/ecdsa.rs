@@ -3,6 +3,19 @@ use std::collections::BTreeMap;
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
+fn to_u8_vec(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    value: &[FunctionInput],
+) -> Result<Vec<u8>, OpcodeResolutionError> {
+    let mut result = Vec::new();
+    for input in value {
+        let w_value = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
+        let byte = w_value.last().unwrap();
+        result.push(*byte);
+    }
+    Ok(result)
+}
+
 pub fn secp256k1_prehashed(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     public_key_x_inputs: &[FunctionInput],
@@ -11,41 +24,18 @@ pub fn secp256k1_prehashed(
     message_inputs: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let mut pub_key_x = [0u8; 32];
-    let mut public_key_x_inputs = public_key_x_inputs.iter();
-
-    for (i, pkx) in pub_key_x.iter_mut().enumerate() {
-        let _x_i = public_key_x_inputs
-            .next()
-            .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {i} bytes"));
-
-        let x_i = witness_to_value(initial_witness, _x_i.witness)?;
-        *pkx = *x_i.to_be_bytes().last().unwrap();
-    }
-
-    let mut pub_key_y = [0u8; 32];
-    let mut public_key_y_inputs = public_key_y_inputs.iter();
-
-    for (i, pky) in pub_key_y.iter_mut().enumerate() {
-        let _y_i = public_key_y_inputs
-            .next()
-            .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {i} bytes"));
-
-        let y_i = witness_to_value(initial_witness, _y_i.witness)?;
-        *pky = *y_i.to_be_bytes().last().unwrap();
-    }
-
-    let mut signature = [0u8; 64];
-    let mut signature_inputs = signature_inputs.iter();
-
-    for (i, sig) in signature.iter_mut().enumerate() {
-        let _sig_i = signature_inputs
-            .next()
-            .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {i} bytes"));
-
-        let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-        *sig = *sig_i.to_be_bytes().last().unwrap()
-    }
+    let pub_key_x: [u8; 32] =
+        to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().unwrap_or_else(|_| {
+            panic!("pub_key_x should be 32 bytes long, found {} bytes", public_key_x_inputs.len())
+        });
+    let pub_key_y: [u8; 32] =
+        to_u8_vec(initial_witness, public_key_y_inputs)?.try_into().unwrap_or_else(|_| {
+            panic!("pub_key_y should be 32 bytes long, found {} bytes", public_key_y_inputs.len())
+        });
+    let signature: [u8; 32] =
+        to_u8_vec(initial_witness, signature_inputs)?.try_into().unwrap_or_else(|_| {
+            panic!("signature should be 64 bytes long, found {} bytes", signature_inputs.len())
+        });
 
     let mut hashed_message = Vec::new();
     for msg in message_inputs.iter() {
