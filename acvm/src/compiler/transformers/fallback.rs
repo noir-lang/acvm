@@ -7,16 +7,13 @@ use acir::{
     BlackBoxFunc,
 };
 
-// A predicate that returns true if the black box function is supported
-pub type IsOpcodeSupported = fn(&Opcode) -> bool;
-
 pub struct FallbackTransformer;
 
 impl FallbackTransformer {
     //ACIR pass which replace unsupported opcodes using arithmetic fallback
-    pub fn transform(
+    pub fn transform<F: Fn(&Opcode) -> bool>(
         acir: Circuit,
-        is_supported: IsOpcodeSupported,
+        is_supported: F,
         simplifier: &Simplifier,
     ) -> Result<Circuit, CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());

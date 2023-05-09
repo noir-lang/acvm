@@ -11,7 +11,7 @@ use acir::{
 use indexmap::IndexMap;
 use optimizers::GeneralOptimizer;
 use thiserror::Error;
-use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
+use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
 use self::optimizers::RangeOptimizer;
 use self::optimizers::Simplifier;
@@ -22,10 +22,10 @@ pub enum CompileError {
     UnsupportedBlackBox(BlackBoxFunc),
 }
 
-pub fn compile(
+pub fn compile<F: Fn(&Opcode) -> bool>(
     acir: Circuit,
     np_language: Language,
-    is_opcode_supported: IsOpcodeSupported,
+    is_opcode_supported: F,
     simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.

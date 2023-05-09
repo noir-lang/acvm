@@ -439,10 +439,7 @@ mod test {
         FieldElement,
     };
 
-    use crate::compiler::{
-        optimizers::Simplifier,
-        transformers::{FallbackTransformer, IsOpcodeSupported},
-    };
+    use crate::compiler::{optimizers::Simplifier, transformers::FallbackTransformer};
 
     #[test]
     fn simplify_test() {
@@ -479,7 +476,7 @@ mod test {
         simplifier.simplify(&mut circuit);
         assert_eq!(circuit.len(), 3);
         assert_eq!(simplifier.solved_gates.len(), 1);
-        let support_all: IsOpcodeSupported = |_| true;
+        let support_all = |_opcode: &Opcode| true;
         let mut acir = Circuit::default();
         acir.opcodes = circuit;
         let acir = FallbackTransformer::transform(acir, support_all, &simplifier).unwrap();
