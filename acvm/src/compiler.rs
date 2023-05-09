@@ -203,15 +203,6 @@ fn foo() {
             todo!()
         }
 
-        fn hash_to_field128_security(
-            &self,
-            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
-            _inputs: &[acir::circuit::opcodes::FunctionInput],
-            _outputs: &[Witness],
-        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
-            todo!()
-        }
-
         fn ecdsa_secp256k1(
             &self,
             _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
@@ -231,6 +222,15 @@ fn foo() {
         }
 
         fn keccak256(
+            &self,
+            _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
+            _inputs: &[acir::circuit::opcodes::FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<crate::pwg::OpcodeResolution, crate::OpcodeResolutionError> {
+            todo!()
+        }
+
+        fn hash_to_field_128_security(
             &self,
             _initial_witness: &mut std::collections::BTreeMap<Witness, acir::FieldElement>,
             _inputs: &[acir::circuit::opcodes::FunctionInput],
