@@ -109,6 +109,16 @@ pub fn compile<F: Fn(&Opcode) -> bool>(
 
 #[test]
 fn foo() {
+    use crate::ProofSystemCompiler;
+
+    compile(
+        Circuit::default(),
+        Language::R1CS,
+        |opcode| DummyBackend.opcode_supported(opcode),
+        &Simplifier::new(0),
+    )
+    .unwrap();
+
     #[derive(Debug, Default)]
     struct DummyBackend;
 
