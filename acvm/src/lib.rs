@@ -15,6 +15,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use core::fmt::Debug;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -52,7 +53,10 @@ pub enum OpcodeResolutionError {
     BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
+pub trait Backend:
+    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default + Debug
+{
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
