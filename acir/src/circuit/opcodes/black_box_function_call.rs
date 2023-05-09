@@ -55,7 +55,6 @@ pub enum BlackBoxFuncCall {
         output: Witness,
     },
     Pedersen {
-        hash_index: u32,
         inputs: Vec<FunctionInput>,
         outputs: Vec<Witness>,
     },
@@ -235,10 +234,6 @@ impl BlackBoxFuncCall {
         write_inputs(&self.get_inputs_vec(), &mut writer)?;
         write_outputs(&self.get_outputs_vec(), &mut writer)?;
 
-        if let BlackBoxFuncCall::Pedersen { hash_index, .. } = self {
-            write_u32(&mut writer, *hash_index)?;
-        }
-
         Ok(())
     }
 
@@ -282,10 +277,7 @@ impl BlackBoxFuncCall {
                 message: inputs[66..].to_vec(),
                 output: outputs[0],
             },
-            BlackBoxFunc::Pedersen => {
-                let hash_index: u32 = read_u32(&mut reader)?;
-                BlackBoxFuncCall::Pedersen { inputs, outputs, hash_index }
-            }
+            BlackBoxFunc::Pedersen => BlackBoxFuncCall::Pedersen { inputs, outputs },
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] }
             }
@@ -385,13 +377,7 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         write!(f, "{outputs_str}")?;
 
-        write!(f, "]")?;
-
-        // FUNCTION SPECIFIC PARAMETERS
-        match self {
-            BlackBoxFuncCall::Pedersen { hash_index, .. } => write!(f, " hash_index: {hash_index}"),
-            _ => write!(f, ""),
-        }
+        write!(f, "]")
     }
 }
 

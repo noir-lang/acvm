@@ -117,7 +117,6 @@ pub trait PartialWitnessGenerator {
     fn pedersen(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        hash_index: u32,
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
@@ -372,7 +371,6 @@ mod test {
         fn pedersen(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _hash_index: u32,
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {

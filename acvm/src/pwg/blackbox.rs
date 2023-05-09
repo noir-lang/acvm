@@ -83,8 +83,8 @@ pub(crate) fn solve(
             message,
             output,
         ),
-        BlackBoxFuncCall::Pedersen { hash_index, inputs, outputs } => {
-            backend.pedersen(initial_witness, *hash_index, inputs, outputs)
+        BlackBoxFuncCall::Pedersen { inputs, outputs } => {
+            backend.pedersen(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
             backend.hash_to_field128_security(initial_witness, inputs, output)
