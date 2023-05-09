@@ -68,7 +68,7 @@ pub enum BlackBoxFuncCall {
         public_key_x: Vec<FunctionInput>,
         public_key_y: Vec<FunctionInput>,
         signature: Vec<FunctionInput>,
-        message: Vec<FunctionInput>,
+        hashed_message: Vec<FunctionInput>,
         output: Witness,
     },
     FixedBaseScalarMul {
@@ -173,10 +173,10 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::FixedBaseScalarMul { input, .. }
             | BlackBoxFuncCall::RANGE { input } => vec![*input],
             BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, .. } => {
-                let mut inputs = Vec::new();
+                let mut inputs = Vec::with_capacity(2 + hash_path.len());
                 inputs.push(*leaf);
                 inputs.push(*index);
-                inputs.extend(hash_path.iter().cloned());
+                inputs.extend(hash_path.iter().copied());
                 inputs
             }
             BlackBoxFuncCall::SchnorrVerify {
@@ -186,25 +186,27 @@ impl BlackBoxFuncCall {
                 message,
                 ..
             } => {
-                let mut inputs = Vec::new();
+                let mut inputs = Vec::with_capacity(2 + signature.len() + message.len());
                 inputs.push(*public_key_x);
                 inputs.push(*public_key_y);
-                inputs.extend(signature.iter().cloned());
-                inputs.extend(message.iter().cloned());
+                inputs.extend(signature.iter().copied());
+                inputs.extend(message.iter().copied());
                 inputs
             }
             BlackBoxFuncCall::EcdsaSecp256k1 {
                 public_key_x,
                 public_key_y,
                 signature,
-                message,
+                hashed_message: message,
                 ..
             } => {
-                let mut inputs = Vec::new();
-                inputs.extend(public_key_x.iter().cloned());
-                inputs.extend(public_key_y.iter().cloned());
-                inputs.extend(signature.iter().cloned());
-                inputs.extend(message.iter().cloned());
+                let mut inputs = Vec::with_capacity(
+                    public_key_x.len() + public_key_y.len() + signature.len() + message.len(),
+                );
+                inputs.extend(public_key_x.iter().copied());
+                inputs.extend(public_key_y.iter().copied());
+                inputs.extend(signature.iter().copied());
+                inputs.extend(message.iter().copied());
                 inputs
             }
         }
@@ -244,57 +246,92 @@ impl BlackBoxFuncCall {
         let inputs = read_inputs(&mut reader)?;
         let outputs = read_outputs(&mut reader)?;
 
-        let func_call = match name {
-            BlackBoxFunc::AES => BlackBoxFuncCall::AES { inputs, outputs },
+        match name {
+            BlackBoxFunc::AES => Ok(BlackBoxFuncCall::AES { inputs, outputs }),
             BlackBoxFunc::AND => {
-                let lhs = inputs[0];
-                let rhs = inputs[1];
-                let output = outputs[0];
-                BlackBoxFuncCall::AND { lhs, rhs, output }
+                if inputs.len() < 2 || outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    let lhs = inputs[0];
+                    let rhs = inputs[1];
+                    let output = outputs[0];
+                    Ok(BlackBoxFuncCall::AND { lhs, rhs, output })
+                }
             }
             BlackBoxFunc::XOR => {
-                let lhs = inputs[0];
-                let rhs = inputs[1];
-                let output = outputs[0];
-                BlackBoxFuncCall::XOR { lhs, rhs, output }
+                if inputs.len() < 2 || outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    let lhs = inputs[0];
+                    let rhs = inputs[1];
+                    let output = outputs[0];
+                    Ok(BlackBoxFuncCall::XOR { lhs, rhs, output })
+                }
             }
             BlackBoxFunc::RANGE => {
-                let input = inputs[0];
-                BlackBoxFuncCall::RANGE { input }
+                if inputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::RANGE { input: inputs[0] })
+                }
             }
-            BlackBoxFunc::SHA256 => BlackBoxFuncCall::SHA256 { inputs, outputs },
-            BlackBoxFunc::Blake2s => BlackBoxFuncCall::Blake2s { inputs, outputs },
-            BlackBoxFunc::ComputeMerkleRoot => BlackBoxFuncCall::ComputeMerkleRoot {
-                leaf: inputs[0],
-                index: inputs[1],
-                hash_path: inputs[2..].to_vec(),
-                output: outputs[0],
-            },
-            BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
-                public_key_x: inputs[0],
-                public_key_y: inputs[1],
-                signature: inputs[2..66].to_vec(),
-                message: inputs[66..].to_vec(),
-                output: outputs[0],
-            },
-            BlackBoxFunc::Pedersen => BlackBoxFuncCall::Pedersen { inputs, outputs },
+            BlackBoxFunc::SHA256 => Ok(BlackBoxFuncCall::SHA256 { inputs, outputs }),
+            BlackBoxFunc::Blake2s => Ok(BlackBoxFuncCall::Blake2s { inputs, outputs }),
+            BlackBoxFunc::ComputeMerkleRoot => {
+                if inputs.len() < 2 || outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::ComputeMerkleRoot {
+                        leaf: inputs[0],
+                        index: inputs[1],
+                        hash_path: inputs[2..].to_vec(),
+                        output: outputs[0],
+                    })
+                }
+            }
+            BlackBoxFunc::SchnorrVerify => {
+                if inputs.len() < 66 || outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::SchnorrVerify {
+                        public_key_x: inputs[0],
+                        public_key_y: inputs[1],
+                        signature: inputs[2..66].to_vec(),
+                        message: inputs[66..].to_vec(),
+                        output: outputs[0],
+                    })
+                }
+            }
+            BlackBoxFunc::Pedersen => Ok(BlackBoxFuncCall::Pedersen { inputs, outputs }),
             BlackBoxFunc::HashToField128Security => {
-                BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] }
+                if outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] })
+                }
             }
-            BlackBoxFunc::EcdsaSecp256k1 => BlackBoxFuncCall::EcdsaSecp256k1 {
-                public_key_x: inputs[0..32].to_vec(),
-                public_key_y: inputs[32..64].to_vec(),
-                signature: inputs[64..128].to_vec(),
-                message: inputs[128..].to_vec(),
-                output: outputs[0],
-            },
+            BlackBoxFunc::EcdsaSecp256k1 => {
+                if inputs.len() < 128 || outputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::EcdsaSecp256k1 {
+                        public_key_x: inputs[0..32].to_vec(),
+                        public_key_y: inputs[32..64].to_vec(),
+                        signature: inputs[64..128].to_vec(),
+                        hashed_message: inputs[128..].to_vec(),
+                        output: outputs[0],
+                    })
+                }
+            }
             BlackBoxFunc::FixedBaseScalarMul => {
-                BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs }
+                if inputs.is_empty() {
+                    Err(std::io::ErrorKind::InvalidData.into())
+                } else {
+                    Ok(BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs })
+                }
             }
-            BlackBoxFunc::Keccak256 => BlackBoxFuncCall::Keccak256 { inputs, outputs },
-        };
-
-        Ok(func_call)
+            BlackBoxFunc::Keccak256 => Ok(BlackBoxFuncCall::Keccak256 { inputs, outputs }),
+        }
     }
 }
 

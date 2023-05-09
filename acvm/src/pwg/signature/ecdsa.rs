@@ -4,13 +4,13 @@ use std::collections::BTreeMap;
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
 fn to_u8_vec(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
-    value: &[FunctionInput],
+    initial_witness: &BTreeMap<Witness, FieldElement>,
+    inputs: &[FunctionInput],
 ) -> Result<Vec<u8>, OpcodeResolutionError> {
-    let mut result = Vec::new();
-    for input in value {
-        let w_value = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
-        let byte = w_value.last().unwrap();
+    let mut result = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        let witness_value_bytes = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
+        let byte = witness_value_bytes.last().unwrap();
         result.push(*byte);
     }
     Ok(result)
@@ -37,13 +37,7 @@ pub fn secp256k1_prehashed(
             panic!("signature should be 64 bytes long, found {} bytes", signature_inputs.len())
         });
 
-    let mut hashed_message = Vec::new();
-    for msg in message_inputs.iter() {
-        let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
-        let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
-        hashed_message.push(msg_i);
-    }
-
+    let hashed_message = to_u8_vec(initial_witness, message_inputs)?;
     let result =
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();

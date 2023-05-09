@@ -93,7 +93,7 @@ pub(crate) fn solve(
             public_key_x,
             public_key_y,
             signature,
-            message,
+            hashed_message: message,
             output,
         } => backend.ecdsa_secp256k1(
             initial_witness,
