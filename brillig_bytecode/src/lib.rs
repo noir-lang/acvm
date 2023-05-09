@@ -98,11 +98,11 @@ impl VM {
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
         match opcode {
-            Opcode::BinaryFieldOp { op, lhs, rhs, result } => {
+            Opcode::BinaryFieldOp { op, lhs, rhs, destination: result } => {
                 self.process_binary_field_op(*op, *lhs, *rhs, *result);
                 self.increment_program_counter()
             }
-            Opcode::BinaryIntOp { op, bit_size, lhs, rhs, result } => {
+            Opcode::BinaryIntOp { op, bit_size, lhs, rhs, destination: result } => {
                 self.process_binary_int_op(*op, *bit_size, *lhs, *rhs, *result);
                 self.increment_program_counter()
             }
@@ -159,14 +159,14 @@ impl VM {
 
                 self.increment_program_counter()
             }
-            Opcode::Mov { destination_register, source_register } => {
+            Opcode::Mov { destination: destination_register, source: source_register } => {
                 let source_value = self.get(source_register);
                 self.registers.set(*destination_register, source_value);
                 self.increment_program_counter()
             }
             Opcode::Trap => self.fail(),
             Opcode::Stop => self.halt(),
-            Opcode::Load { destination_register, source_pointer } => {
+            Opcode::Load { destination: destination_register, source_pointer } => {
                 // Convert our source_pointer to a usize
                 let source = self.get(source_pointer);
                 let source_usize = usize::try_from(
@@ -177,7 +177,7 @@ impl VM {
                 self.registers.set(*destination_register, *value);
                 self.increment_program_counter()
             }
-            Opcode::Store { destination_pointer, source_register } => {
+            Opcode::Store { destination_pointer, source: source_register } => {
                 // Convert our destination_pointer to a usize
                 let destination = self.get(destination_pointer);
                 let destination_usize = usize::try_from(
@@ -297,29 +297,6 @@ impl VMOutputState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    /// Test helper
-    struct TestCompiler {
-        registers: Vec<Value>,
-        opcodes: Vec<Opcode>
-    }
-
-    impl TestCompiler {
-        fn make(&mut self, opcode: Opcode) {
-            self.opcodes.push(opcode);
-        }
-        fn register(&mut self, value: Value) -> RegisterIndex {
-            self.registers.push(value);
-            RegisterIndex(self.registers.len() - 1)
-        }
-        // fn make_const(&mut self, value: Value) -> usize {
-        //     self.registers.push(Value::from(0u128));
-        //     self.opcodes.push(Opcode::Const {
-        //         destination: RegisterIndex(self.registers.len() - 1),
-        //         value: value.inner,
-        //     });
-        //     self.registers.len() - 1
-        // }
-    }
 
     #[test]
     fn add_single_step_smoke() {
@@ -335,7 +312,7 @@ mod tests {
             bit_size: 2,
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         // Start VM
@@ -358,43 +335,57 @@ mod tests {
 
     #[test]
     fn jmpif_opcode() {
-        let mut compiler = TestCompiler {
-            registers: vec![],
-            opcodes: vec![],
+        let mut registers = vec![];
+        let mut opcodes = vec![];
+    
+        let lhs = {
+            registers.push(Value::from(2u128));
+            RegisterIndex(registers.len() - 1)
         };
+    
+        let rhs = {
+            registers.push(Value::from(2u128));
+            RegisterIndex(registers.len() - 1)
+        };
+    
+        let destination = {
+            registers.push(Value::from(0u128));
+            RegisterIndex(registers.len() - 1)
+        };
+    
         let equal_cmp_opcode = Opcode::BinaryIntOp {
             op: BinaryIntOp::Cmp(Comparison::Eq),
             bit_size: 1,
-            lhs: compiler.register(Value::from(2u128)),
-            rhs: compiler.register(Value::from(2u128)),
-            result: compiler.register(Value::from(0u128)),
+            lhs,
+            rhs,
+            destination,
         };
-        compiler.make(equal_cmp_opcode);
-        compiler.make(Opcode::Jump { location: 2 });
-        compiler.make(Opcode::JumpIf {
+        opcodes.push(equal_cmp_opcode);
+        opcodes.push(Opcode::Jump { location: 2 });
+        opcodes.push(Opcode::JumpIf {
             condition: RegisterIndex(2),
             location: 3,
         });
-
+    
         let mut vm = VM::new(
-            Registers {inner: compiler.registers},
+            Registers { inner: registers },
             vec![],
-            compiler.opcodes,
-            None
+            opcodes,
+            None,
         );
-
+    
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
-
+    
         let output_cmp_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(output_cmp_value, Value::from(true));
-
+    
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
-
+    
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::Halted);
-
+    
         vm.finish();
     }
 
@@ -409,7 +400,7 @@ mod tests {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let jump_opcode = Opcode::Jump { location: 2 };
@@ -423,7 +414,7 @@ mod tests {
             op: BinaryFieldOp::Add,
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let mut vm = VM::new(
@@ -460,8 +451,8 @@ mod tests {
             Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
         let mov_opcode = Opcode::Mov {
-            destination_register: RegisterIndex(2),
-            source_register: RegisterIndex(0),
+            destination: RegisterIndex(2),
+            source: RegisterIndex(0),
         };
 
         let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], None);
@@ -493,7 +484,7 @@ mod tests {
             op: BinaryIntOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let not_equal_opcode = Opcode::BinaryIntOp {
@@ -501,7 +492,7 @@ mod tests {
             op: BinaryIntOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(3),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let less_than_opcode = Opcode::BinaryIntOp {
@@ -509,7 +500,7 @@ mod tests {
             op: BinaryIntOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex(3),
             rhs: RegisterIndex(4),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let less_than_equal_opcode = Opcode::BinaryIntOp {
@@ -517,7 +508,7 @@ mod tests {
             op: BinaryIntOp::Cmp(Comparison::Lte),
             lhs: RegisterIndex(3),
             rhs: RegisterIndex(4),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let mut vm = VM::new(
@@ -553,291 +544,271 @@ mod tests {
 
         vm.finish();
     }
+    #[test]
+    fn store_opcode() {
+        /// Brillig code for the following:
+        ///     let mut i = 0;
+        ///     let len = memory.len();
+        ///     while i < len {
+        ///         memory[i] = i as Value;
+        ///         i += 1;
+        ///     }
+        fn brillig_write_memory(memory: Vec<Value>) -> Vec<Value> {
+            let r_i = RegisterIndex(0);
+            let r_len = RegisterIndex(1);
+            let r_tmp = RegisterIndex(2);
+            let start = [
+                // i = 0
+                Opcode::Const {
+                    destination: r_i, 
+                    value: 0u128.into(),
+                },
+                // len = memory.len() (approximation)
+                Opcode::Const {
+                    destination: r_len,
+                    value: FieldElement::from(memory.len() as u128),
+                },
+            ];
+            let loop_body = [
+                // *i = i
+                Opcode::Store { 
+                    destination_pointer: r_i,
+                    source: r_i,
+                },
+                // tmp = 1
+                Opcode::Const {
+                    destination: r_tmp,
+                    value: 1u128.into(),
+                },
+                // i = i + 1 (tmp)
+                Opcode::BinaryIntOp {
+                    destination: r_i,
+                    lhs: r_i,
+                    op: BinaryIntOp::Add,
+                    rhs: r_tmp,
+                    bit_size: 32,
+                },
+                // tmp = i < len
+                Opcode::BinaryIntOp {
+                    destination: r_tmp,
+                    lhs: r_i,
+                    op: BinaryIntOp::Cmp(Comparison::Lt), 
+                    rhs: r_len,
+                    bit_size: 32,
+                },
+                // if tmp != 0 goto loop_body
+                Opcode::JumpIf {
+                    condition: r_tmp,
+                    location: start.len()
+                },
+            ];
+            let vm = brillig_execute(memory, [&start[..], &loop_body[..]].concat());
+            vm.memory.clone()
+        }
+    
+        let memory = brillig_write_memory(vec![Value::from(0u128); 5]);
+        let expected = vec![
+            Value::from(0u128),
+            Value::from(1u128),
+            Value::from(2u128),
+            Value::from(3u128),
+            Value::from(4u128),
+        ];
+        assert_eq!(memory, expected);
+    
+        let memory = brillig_write_memory(vec![Value::from(0u128); 1024]);
+        let expected: Vec<Value> = (0..1024).map(|i| Value::from(i as u128)).collect();
+        assert_eq!(memory, expected);
+    }
 
-    // #[test]
-    // fn load_opcode() {
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2u128),
-    //         Value::from(2u128),
-    //         Value::from(0u128),
-    //         Value::from(5u128),
-    //         Value::from(0u128),
-    //         Value::from(6u128),
-    //         Value::from(0u128),
-    //     ]);
+    #[test]
+    fn load_opcode() {
+        /// Brillig code for the following:
+        ///     let mut sum = 0;
+        ///     let mut i = 0;
+        ///     let len = memory.len();
+        ///     while i < len {
+        ///         sum += memory[i];
+        ///         i += 1;
+        ///     }
+        fn brillig_sum_memory(memory: Vec<Value>) -> Value {
+            let r_i = RegisterIndex(0);
+            let r_len = RegisterIndex(1);
+            let r_sum = RegisterIndex(2);
+            let r_tmp = RegisterIndex(3);
+            let start = [
+                // sum = 0
+                Opcode::Const {
+                    destination: r_sum,
+                    value: 0u128.into(),
+                },
+                // i = 0
+                Opcode::Const {
+                    destination: r_i, 
+                    value: 0u128.into(),
+                },
+                // len = array.len() (approximation)
+                Opcode::Const {
+                    destination: r_len,
+                    value: FieldElement::from(memory.len() as u128),
+                },
+            ];
+            let loop_body = [
+                // tmp = *i
+                Opcode::Load { 
+                    destination: r_tmp,
+                    source_pointer: r_i
+                },
+                // sum = sum + tmp
+                Opcode::BinaryIntOp {
+                    destination: r_sum,
+                    lhs: r_sum,
+                    op: BinaryIntOp::Add,
+                    rhs: r_tmp,
+                    bit_size: 32,
+                },
+                // tmp = 1
+                Opcode::Const {
+                    destination: r_tmp,
+                    value: 1u128.into(),
+                },
+                // i = i + 1 (tmp)
+                Opcode::BinaryIntOp {
+                    destination: r_i,
+                    lhs: r_i,
+                    op: BinaryIntOp::Add,
+                    rhs: r_tmp,
+                    bit_size: 32,
+                },
+                // tmp = i < len
+                Opcode::BinaryIntOp {
+                    destination: r_tmp,
+                    lhs: r_i,
+                    op: BinaryIntOp::Cmp(Comparison::Lt), 
+                    rhs: r_len,
+                    bit_size: 32,
+                },
+                // if tmp != 0 goto loop_body
+                Opcode::JumpIf {
+                    condition: r_tmp,
+                    location: start.len()
+                },
+            ];
+            let vm = brillig_execute(memory, [&start[..], &loop_body[..]].concat());
+            vm.registers.get(r_sum)
+        }
 
-    //     let equal_cmp_opcode = Opcode::BinaryIntOp {
-    //         bit_size: 1,
-    //         op: BinaryIntOp::Cmp(Comparison::Eq),
-    //         lhs: RegisterIndex(0),
-    //         rhs: RegisterIndex(1),
-    //         result: RegisterIndex(2),
-    //     };
+        assert_eq!(brillig_sum_memory(vec![
+            Value::from(1u128),
+            Value::from(2u128),
+            Value::from(3u128),
+            Value::from(4u128),
+            Value::from(5u128),
+        ]), Value::from(15u128));
+        assert_eq!(brillig_sum_memory(vec![Value::from(1u128); 1024]), Value::from(1024u128));
+    }
 
-    //     let jump_opcode = Opcode::Jump { location: 3 };
-
-    //     let jump_if_opcode = Opcode::JumpIf {
-    //         condition: RegisterIndex(2),
-    //         location: 10,
-    //     };
-
-    //     let load_opcode = Opcode::Load {
-    //         destination_register: RegisterIndex(4),
-    //         source_array: RegisterIndex(3),
-    //         source_index: RegisterIndex(2),
-    //     };
-
-    //     let mem_equal_opcode = Opcode::BinaryIntOp {
-    //         bit_size: 1,
-    //         op: BinaryIntOp::Cmp(Comparison::Eq),
-    //         lhs: RegisterIndex(4),
-    //         rhs: RegisterIndex(5),
-    //         result: RegisterIndex(6),
-    //     };
-
-    //     let mut initial_memory = vec![];
-    //     let initial_heap = HeapArray {
-    //         array: vec![Value::from(5), Value::from(6)]
-    //     };
-    //     initial_memory.insert(Value::from(5), initial_heap);
-
-    //     let mut vm = VM::new(
-    //         input_registers,
-    //         initial_memory,
-    //         vec![equal_cmp_opcode, load_opcode, jump_opcode, mem_equal_opcode, jump_if_opcode],
-    //         None,
-    //     );
-
-    //     // equal_cmp_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     let output_cmp_value = vm.registers.get(RegisterIndex(2));
-    //     assert_eq!(output_cmp_value, Value::from(true));
-
-    //     // load_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     let output_cmp_value = vm.registers.get(RegisterIndex(4));
-    //     assert_eq!(output_cmp_value, Value::from(6u128));
-
-    //     // jump_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     // mem_equal_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     let output_cmp_value = vm.registers.get(RegisterIndex(6));
-    //     assert_eq!(output_cmp_value, Value::from(true));
-
-    //     // jump_if_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::Halted);
-
-    //     vm.finish();
-    // }
-
-    // #[test]
-    // fn store_opcode() {
-    //     let mut compiler = TestCompiler {
-    //         registers: vec![],
-    //         opcodes: vec![],
-    //     };
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2),
-    //         Value::from(2),
-    //         Value::from(0),
-    //         Value::from(5),
-    //         Value::from(0),
-    //         Value::from(6),
-    //         Value::from(0),
-    //         Value::from(0),
-    //         Value::from(0),
-    //     ]);
-
-    //     let equal_cmp_opcode = Opcode::BinaryIntOp {
-    //         bit_size: 1,
-    //         op: BinaryIntOp::Cmp(Comparison::Eq),
-    //         lhs: RegisterIndex(0),
-    //         rhs: RegisterIndex(1),
-    //         result: RegisterIndex(2),
-    //     };
-
-    //     let jump_opcode = Opcode::Jump { location: 4 };
-
-    //     let jump_if_opcode = Opcode::JumpIf {
-    //         condition: RegisterIndex(2),
-    //         location: 11,
-    //     };
-
-    //     let load_const_opcode = Opcode::Const {
-    //         destination: RegisterIndex(8),
-    //         value: 1_u128.into()
-    //     };
-    //     let load_const_opcode = Opcode::Const {
-    //         destination: RegisterIndex(7),
-    //         value: 3_u128.into()
-    //     };
-    //     Opcode::Allocate { 
-    //         array_pointer: RegisterIndex(3), 
-    //         array_size: RegisterIndex(8) 
-    //     };
-    //     let store_opcode = Opcode::Store {
-    //         source: RegisterIndex(2),
-    //         destination_array: RegisterIndex(3),
-    //         destination_index: RegisterIndex(7),
-    //     };
-
-    //     let mut initial_memory = vec![];
-    //     let initial_heap = HeapArray {
-    //         array: vec![Value::from(5), Value::from(6)],
-    //     };
-    //     initial_memory.insert(Value::from(5), initial_heap);
-
-    //     let mut vm = VM::new(
-    //         input_registers,
-    //         initial_memory,
-    //         vec![equal_cmp_opcode, load_const_opcode, store_opcode, jump_opcode, jump_if_opcode],
-    //         None,
-    //     );
-
-    //     // equal_cmp_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     let output_cmp_value = vm.registers.get(RegisterIndex(2));
-    //     assert_eq!(output_cmp_value, Value::from(true));
-
-    //     // load_const_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     // store_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     let mem_array = vm.memory[&Value::from(5)].clone();
-    //     assert_eq!(mem_array.array[3], Value::from(true));
-
-    //     // jump_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::InProgress);
-
-    //     // jump_if_opcode
-    //     let status = vm.process_opcode();
-    //     assert_eq!(status, VMStatus::Halted);
-
-    //     vm.finish();
-    // }
-
-    // #[test]
-    // fn oracle_array_output() {
-    //     use crate::opcodes::OracleInput;
-
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2),
-    //         Value::from(2),
-    //         Value::from(0),
-    //         Value::from(5),
-    //         Value::from(0),
-    //         Value::from(6),
-    //         Value::from(0),
-    //     ]);
-
-    //     let oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
-    //     let oracle_output =
-    //         OracleOutput::Array { start: RegisterIndex(3), length: 2 };
-
-    //     let mut oracle_data = OracleData {
-    //         name: "get_notes".to_owned(),
-    //         inputs: vec![oracle_input],
-    //         input_values: vec![],
-    //         outputs: vec![oracle_output],
-    //         output_values: vec![],
-    //     };
-
-    //     let oracle_opcode = Opcode::Oracle(oracle_data.clone());
-
-    //     let initial_memory = vec![];
-
-    //     let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None);
-
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::OracleWait);
-
-    //     let input_values = output_state.map_input_values(&oracle_data);
-
-    //     oracle_data.input_values = input_values;
-    //     oracle_data.output_values = vec![FieldElement::from(10_u128), FieldElement::from(2_u128)];
-    //     let updated_oracle_opcode = Opcode::Oracle(oracle_data);
-
-    //     let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::Halted);
-
-    //     let mem_array = output_state.memory[&Value::from(5u128)].clone();
-    //     assert_eq!(mem_array.array[0], Value::from(10_u128));
-    //     assert_eq!(mem_array.array[1], Value::from(2_u128));
-    // }
-
-    // #[test]
-    // fn oracle_array_input() {
-    //     use crate::opcodes::OracleInput;
-
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2),
-    //         Value::from(2),
-    //         Value::from(0),
-    //         Value::from(5),
-    //         Value::from(0),
-    //         Value::from(6),
-    //         Value::from(0),
-    //     ]);
-
-    //     let expected_length = 2;
-    //     let oracle_input = OracleInput::Array {
-    //         start: RegisterIndex(3),
-    //         length: expected_length,
-    //     };
-    //     let oracle_output = OracleOutput::RegisterIndex(RegisterIndex(6));
-
-    //     let mut oracle_data = OracleData {
-    //         name: "call_private_function_oracle".to_owned(),
-    //         inputs: vec![oracle_input.clone()],
-    //         input_values: vec![],
-    //         outputs: vec![oracle_output],
-    //         output_values: vec![],
-    //     };
-
-    //     let oracle_opcode = Opcode::Oracle(oracle_data.clone());
-
-    //     let mut initial_memory = vec![];
-    //     let initial_heap = HeapArray {
-    //         array: vec![Value::from(5), Value::from(6)],
-    //     };
-    //     initial_memory.insert(Value::from(5), initial_heap);
-
-    //     let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None,);
-
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::OracleWait);
-
-    //     let input_values = output_state.map_input_values(&oracle_data);
-    //     assert_eq!(input_values.len(), expected_length);
-
-    //     oracle_data.input_values = input_values;
-    //     oracle_data.output_values = vec![FieldElement::from(5u128)];
-    //     let updated_oracle_opcode = Opcode::Oracle(oracle_data);
-
-    //     let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::Halted);
-
-    //     let mem_array = output_state.memory[&Value::from(5)].clone();
-    //     assert_eq!(mem_array.array[0], Value::from(5));
-    //     assert_eq!(mem_array.array[1], Value::from(6));
-    // }
+    #[test]
+    fn call_and_return_opcodes() {
+        /// Brillig code for the following recursive function:
+        ///     fn recursive_write(i: u128, len: u128) {
+        ///         if len <= i {
+        ///             return;
+        ///         }
+        ///         memory[i as usize] = i as Value;
+        ///         recursive_write(memory, i + 1, len);
+        ///     }
+        /// Note we represent a 100% in-register optimized form in brillig
+        fn brillig_recursive_write_memory(memory: Vec<Value>) -> Vec<Value> {
+            let r_i = RegisterIndex(0);
+            let r_len = RegisterIndex(1);
+            let r_tmp = RegisterIndex(2);
+    
+            let start = [
+                // i = 0
+                Opcode::Const {
+                    destination: r_i,
+                    value: 0u128.into(),
+                },
+                // len = memory.len() (approximation)
+                Opcode::Const {
+                    destination: r_len,
+                    value: FieldElement::from(memory.len() as u128),
+                },
+            ];
+    
+            let recursive_fn = [
+                // tmp = len <= i
+                Opcode::BinaryIntOp {
+                    destination: r_tmp,
+                    lhs: r_len,
+                    op: BinaryIntOp::Cmp(Comparison::Lte),
+                    rhs: r_i,
+                    bit_size: 32,
+                },
+                // if !tmp, goto end
+                Opcode::JumpIf {
+                    condition: r_tmp,
+                    location: start.len() + 6, // 7 ops in recursive_fn, go to 'Return'
+                },
+                // *i = i
+                Opcode::Store {
+                    destination_pointer: r_i,
+                    source: r_i,
+                },
+                // tmp = 1
+                Opcode::Const {
+                    destination: r_tmp,
+                    value: 1u128.into(),
+                },
+                // i = i + 1 (tmp)
+                Opcode::BinaryIntOp {
+                    destination: r_i,
+                    lhs: r_i,
+                    op: BinaryIntOp::Add,
+                    rhs: r_tmp,
+                    bit_size: 32,
+                },
+                // call recursive_fn
+                Opcode::Jump {
+                    location: start.len(),
+                },
+                Opcode::Return {}
+            ];
+    
+            let vm = brillig_execute(memory, [&start[..], &recursive_fn[..]].concat());
+            vm.memory.clone()
+        }
+    
+        let memory = brillig_recursive_write_memory(vec![Value::from(0u128); 5]);
+        let expected = vec![
+            Value::from(0u128),
+            Value::from(1u128),
+            Value::from(2u128),
+            Value::from(3u128),
+            Value::from(4u128),
+        ];
+        assert_eq!(memory, expected);
+    
+        let memory = brillig_recursive_write_memory(vec![Value::from(0u128); 1024]);
+        let expected: Vec<Value> = (0..1024).map(|i| Value::from(i as u128)).collect();
+        assert_eq!(memory, expected);
+    }
+    
+    /// Helper to execute brillig code
+    fn brillig_execute(memory: Vec<Value>, opcodes: Vec<Opcode>) -> VM {
+        let mut vm = VM::new(
+            Registers { inner: vec![Value::from(0u128); 16]},
+            memory,
+            opcodes,
+            None,
+        );
+        loop {
+            let status = vm.process_opcode();
+            if status == VMStatus::Halted {
+                break;
+            }
+        }
+        vm
+    }
 }

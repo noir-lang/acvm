@@ -477,14 +477,14 @@ mod test {
             op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(3),
+            destination: RegisterIndex(3),
         };
 
         let invert_oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
@@ -600,14 +600,14 @@ mod test {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(2),
+            destination: RegisterIndex(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex(0),
             rhs: RegisterIndex(1),
-            result: RegisterIndex(3),
+            destination: RegisterIndex(3),
         };
 
         let invert_oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));

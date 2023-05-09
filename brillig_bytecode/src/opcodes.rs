@@ -12,20 +12,20 @@ pub enum Opcode {
     /// Performs the specified binary operation
     /// and stores the value in the `result` register.  
     BinaryFieldOp {
+        destination: RegisterIndex,
         op: BinaryFieldOp,
         lhs: RegisterIndex,
         rhs: RegisterIndex,
-        result: RegisterIndex,
     },
     /// Takes the bit_size size integers in registers `lhs` and `rhs`
     /// Performs the specified binary operation
     /// and stores the value in the `result` register.  
     BinaryIntOp {
+        destination: RegisterIndex,
         op: BinaryIntOp,
         bit_size: u32,
         lhs: RegisterIndex,
         rhs: RegisterIndex,
-        result: RegisterIndex,
     },
     JumpIfNot {
         condition: RegisterIndex,
@@ -56,16 +56,16 @@ pub enum Opcode {
     /// Used to get data from an outside source
     Oracle(OracleData),
     Mov {
-        destination_register: RegisterIndex,
-        source_register: RegisterIndex,
+        destination: RegisterIndex,
+        source: RegisterIndex,
     },
     Load {
-        destination_register: RegisterIndex,
+        destination: RegisterIndex,
         source_pointer: RegisterIndex,
     },
     Store {
         destination_pointer: RegisterIndex,
-        source_register: RegisterIndex,
+        source: RegisterIndex,
     },
     /// Used if execution fails during evaluation
     Trap,
