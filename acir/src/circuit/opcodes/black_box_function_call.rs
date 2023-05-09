@@ -87,7 +87,7 @@ fn write_input<W: Write>(input: &FunctionInput, mut writer: W) -> std::io::Resul
     Ok(())
 }
 
-fn write_inputs<W: Write>(inputs: &Vec<FunctionInput>, mut writer: W) -> std::io::Result<()> {
+fn write_inputs<W: Write>(inputs: &[FunctionInput], mut writer: W) -> std::io::Result<()> {
     let num_inputs = inputs.len() as u32;
     write_u32(&mut writer, num_inputs)?;
 
@@ -98,7 +98,7 @@ fn write_inputs<W: Write>(inputs: &Vec<FunctionInput>, mut writer: W) -> std::io
     Ok(())
 }
 
-fn write_outputs<W: Write>(outputs: &Vec<Witness>, mut writer: W) -> std::io::Result<()> {
+fn write_outputs<W: Write>(outputs: &[Witness], mut writer: W) -> std::io::Result<()> {
     let num_inputs = outputs.len() as u32;
     write_u32(&mut writer, num_inputs)?;
 
@@ -337,7 +337,7 @@ impl BlackBoxFuncCall {
 
 const ABBREVIATION_LIMIT: usize = 5;
 
-fn get_inputs_string(inputs: &Vec<FunctionInput>) -> String {
+fn get_inputs_string(inputs: &[FunctionInput]) -> String {
     // Once a vectors length gets above this limit,
     // instead of listing all of their elements, we use ellipses
     // to abbreviate them
@@ -371,7 +371,7 @@ fn get_inputs_string(inputs: &Vec<FunctionInput>) -> String {
     }
 }
 
-fn get_outputs_string(outputs: &Vec<Witness>) -> String {
+fn get_outputs_string(outputs: &[Witness]) -> String {
     let should_abbreviate_outputs = outputs.len() <= ABBREVIATION_LIMIT;
 
     if should_abbreviate_outputs {
