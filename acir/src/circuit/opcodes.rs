@@ -43,7 +43,7 @@ impl Opcode {
         match self {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
-            Opcode::BlackBoxFuncCall(g) => g.get_black_box_func().name(),
+            Opcode::BlackBoxFuncCall(g) => g.name(),
             Opcode::Block(_) => "block",
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",

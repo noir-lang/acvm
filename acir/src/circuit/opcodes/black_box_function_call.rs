@@ -159,6 +159,10 @@ impl BlackBoxFuncCall {
         }
     }
 
+    pub fn name(&self) -> &str {
+        self.get_black_box_func().name()
+    }
+
     pub fn get_inputs_vec(&self) -> Vec<FunctionInput> {
         match self {
             BlackBoxFuncCall::AES { inputs, .. }
@@ -396,8 +400,7 @@ fn get_outputs_string(outputs: &[Witness]) -> String {
 
 impl std::fmt::Display for BlackBoxFuncCall {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let uppercase_name: String = self.get_black_box_func().name().into();
-        let uppercase_name = uppercase_name.to_uppercase();
+        let uppercase_name = self.name().to_uppercase();
         write!(f, "BLACKBOX::{uppercase_name} ")?;
         // INPUTS
         write!(f, "[")?;
