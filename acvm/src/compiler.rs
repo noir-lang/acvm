@@ -22,10 +22,10 @@ pub enum CompileError {
     UnsupportedBlackBox(BlackBoxFunc),
 }
 
-pub fn compile<F: Fn(&Opcode) -> bool>(
+pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_opcode_supported: F,
+    is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.

@@ -11,9 +11,9 @@ pub struct FallbackTransformer;
 
 impl FallbackTransformer {
     //ACIR pass which replace unsupported opcodes using arithmetic fallback
-    pub fn transform<F: Fn(&Opcode) -> bool>(
+    pub fn transform(
         acir: Circuit,
-        is_supported: F,
+        is_supported: impl Fn(&Opcode) -> bool,
         simplifier: &Simplifier,
     ) -> Result<Circuit, CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
