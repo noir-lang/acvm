@@ -56,7 +56,8 @@ pub(crate) fn solve(
             backend.xor(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::RANGE, inputs, outputs } => {
-            backend.range(initial_witness, inputs, outputs)
+            assert!(outputs.is_empty());
+            backend.range(initial_witness, inputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::SHA256, inputs, outputs } => {
             backend.sha256(initial_witness, inputs, outputs)
@@ -74,7 +75,7 @@ pub(crate) fn solve(
             backend.pedersen(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::HashToField128Security, inputs, outputs } => {
-            backend.hash_to_field128_security(initial_witness, inputs, outputs)
+            backend.hash_to_field_128_security(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall { name: BlackBoxFunc::EcdsaSecp256k1, inputs, outputs } => {
             backend.ecdsa_secp256k1(initial_witness, inputs, outputs)

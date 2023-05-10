@@ -16,7 +16,7 @@ pub enum GateStatus {
     GateUnsolvable,
 }
 
-enum MulTerm {
+pub enum MulTerm {
     OneUnknown(FieldElement, Witness), // (qM * known_witness, unknown_witness)
     TooManyUnknowns,
     Solved(FieldElement),
