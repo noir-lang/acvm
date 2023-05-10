@@ -260,9 +260,7 @@ pub fn default_is_opcode_supported(
     }
 }
 
-pub fn default_is_bb_supported(
-    language: Language,
-) -> impl Fn(BlackBoxFunc) -> bool {
+pub fn default_is_bb_supported(language: Language) -> impl Fn(BlackBoxFunc) -> bool {
     fn r1cs_is_supported(_: BlackBoxFunc) -> bool {
         false
     }
