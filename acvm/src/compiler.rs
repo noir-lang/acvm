@@ -125,23 +125,23 @@ fn compile_api_compiles_with_backend() {
     #[derive(Error, Debug)]
     enum DummyError {}
 
-    impl crate::ProofSystemCompiler for DummyProofSystem {
+    impl ProofSystemCompiler for DummyProofSystem {
         type Error = DummyError;
 
         fn np_language(&self) -> Language {
-            todo!()
+            panic!("Path not trodden by this test")
         }
 
         fn opcode_supported(&self, _opcode: &Opcode) -> bool {
-            todo!()
+            panic!("Path not trodden by this test")
         }
 
         fn get_exact_circuit_size(&self, _circuit: &Circuit) -> Result<u32, Self::Error> {
-            todo!()
+            panic!("Path not trodden by this test")
         }
 
         fn preprocess(&self, _circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
-            todo!()
+            panic!("Path not trodden by this test")
         }
 
         fn prove_with_pk(
@@ -150,7 +150,7 @@ fn compile_api_compiles_with_backend() {
             _witness_values: std::collections::BTreeMap<Witness, acir::FieldElement>,
             _proving_key: &[u8],
         ) -> Result<Vec<u8>, Self::Error> {
-            todo!()
+            panic!("Path not trodden by this test")
         }
 
         fn verify_with_vk(
@@ -160,7 +160,7 @@ fn compile_api_compiles_with_backend() {
             _circuit: &Circuit,
             _verification_key: &[u8],
         ) -> Result<bool, Self::Error> {
-            todo!()
+            panic!("Path not trodden by this test")
         }
     }
 }
