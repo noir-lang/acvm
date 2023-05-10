@@ -811,4 +811,111 @@ mod tests {
         }
         vm
     }
+    #[test]
+    fn oracle_array_output() {
+        use crate::opcodes::OracleInput;
+
+        let input_registers = Registers::load(vec![
+            Value::from(2),
+            Value::from(2),
+            Value::from(0),
+            Value::from(5),
+            Value::from(0),
+            Value::from(6),
+            Value::from(0),
+        ]);
+
+        let oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
+        let oracle_output =
+            OracleOutput::Array { start: RegisterIndex(3), length: 2 };
+
+        let mut oracle_data = OracleData {
+            name: "get_notes".to_owned(),
+            inputs: vec![oracle_input],
+            input_values: vec![],
+            outputs: vec![oracle_output],
+            output_values: vec![],
+        };
+
+        let oracle_opcode = Opcode::Oracle(oracle_data.clone());
+
+        let initial_memory = vec![];
+
+        let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None);
+
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::OracleWait);
+
+        let input_values = output_state.map_input_values(&oracle_data);
+
+        oracle_data.input_values = input_values;
+        oracle_data.output_values = vec![FieldElement::from(10_u128), FieldElement::from(2_u128)];
+        let updated_oracle_opcode = Opcode::Oracle(oracle_data);
+
+        let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::Halted);
+
+        let mem_array = output_state.memory[&Value::from(5u128)].clone();
+        assert_eq!(mem_array.array[0], Value::from(10_u128));
+        assert_eq!(mem_array.array[1], Value::from(2_u128));
+    }
+
+    #[test]
+    fn oracle_array_input() {
+        use crate::opcodes::OracleInput;
+
+        let input_registers = Registers::load(vec![
+            Value::from(2),
+            Value::from(2),
+            Value::from(0),
+            Value::from(5),
+            Value::from(0),
+            Value::from(6),
+            Value::from(0),
+        ]);
+
+        let expected_length = 2;
+        let oracle_input = OracleInput::Array {
+            start: RegisterIndex(3),
+            length: expected_length,
+        };
+        let oracle_output = OracleOutput::RegisterIndex(RegisterIndex(6));
+
+        let mut oracle_data = OracleData {
+            name: "call_private_function_oracle".to_owned(),
+            inputs: vec![oracle_input.clone()],
+            input_values: vec![],
+            outputs: vec![oracle_output],
+            output_values: vec![],
+        };
+
+        let oracle_opcode = Opcode::Oracle(oracle_data.clone());
+
+        let mut initial_memory = vec![];
+        let initial_heap = HeapArray {
+            array: vec![Value::from(5), Value::from(6)],
+        };
+        initial_memory.insert(Value::from(5), initial_heap);
+
+        let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None,);
+
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::OracleWait);
+
+        let input_values = output_state.map_input_values(&oracle_data);
+        assert_eq!(input_values.len(), expected_length);
+
+        oracle_data.input_values = input_values;
+        oracle_data.output_values = vec![FieldElement::from(5u128)];
+        let updated_oracle_opcode = Opcode::Oracle(oracle_data);
+
+        let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::Halted);
+
+        let mem_array = output_state.memory[&Value::from(5)].clone();
+        assert_eq!(mem_array.array[0], Value::from(5));
+        assert_eq!(mem_array.array[1], Value::from(6));
+    }
 }
