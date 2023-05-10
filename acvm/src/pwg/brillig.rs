@@ -68,7 +68,7 @@ impl BrilligSolver {
                 BrilligInputs::Array(id, expr_arr) => {
                     // Attempt to fetch all array input values
                     let mut continue_eval = true;
-                    for expr in expr_arr.into_iter() {
+                    for expr in expr_arr.iter() {
                         let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                         if let Some(value) = solve.to_const() {
                             input_memory.push(value.into());
@@ -111,7 +111,7 @@ impl BrilligSolver {
         let vm_output = vm.process_opcodes();
         
         let result = match vm_output.status {
-            VMStatus::Halted => {
+            VMStatus::Finished => {
                 for (output, register_value) in brillig.outputs.iter().zip(vm_output.registers) {
                     match output {
                         BrilligOutputs::Simple(witness) => {
@@ -147,7 +147,7 @@ impl BrilligSolver {
                 data.input_values = input_values;
 
                 OpcodeResolution::InProgressBrillig(OracleWaitInfo {
-                    data: data.clone(),
+                    data,
                     program_counter,
                 })
             }

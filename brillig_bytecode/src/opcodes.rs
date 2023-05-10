@@ -187,9 +187,9 @@ impl BinaryIntOp {
             BinaryIntOp::SignedDiv => to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size),
             // Perform a comparison between a and b based on the Comparison variant.
             BinaryIntOp::Cmp(comparison) => match comparison {
-                Comparison::Eq => ((a == b) as u128).into(),
-                Comparison::Lt => ((a < b) as u128).into(),
-                Comparison::Lte => ((a <= b) as u128).into(),
+                Comparison::Eq => (a == b) as u128,
+                Comparison::Lt => (a < b) as u128,
+                Comparison::Lte => (a <= b) as u128,
             },
             // Perform bitwise AND, OR, XOR, left shift, and right shift operations, applying a modulo operation to keep the result within the bit size.
             BinaryIntOp::And => {
@@ -223,6 +223,7 @@ fn to_signed(a: u128, n: u32) -> i128 {
 
 fn to_unsigned(a: i128, n: u32) -> u128 {
     if n >= 126 {
+        // TODO(AD): clean this up a bit - this is only converted to a field later, error there?
         panic!("ICE: cannot convert signed {n} bit size into field");
     }
     if a >= 0 {

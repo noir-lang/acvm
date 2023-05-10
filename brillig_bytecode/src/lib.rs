@@ -19,7 +19,7 @@ pub use value::Value;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum VMStatus {
-    Halted,
+    Finished,
     InProgress,
     Failure,
     OracleWait,
@@ -53,46 +53,48 @@ impl VM {
             let mut registers_modified =
                 Registers::load(vec![Value::from(0u128)]);
     
-            for i in 0..register_allocation_indices.len() {
-                let register_index = register_allocation_indices[i];
+            for (i, register_index) in register_allocation_indices.iter().enumerate() {
                 let register_value = inputs.get(RegisterIndex(i));
-                registers_modified.set(RegisterIndex(register_index as usize), register_value)
+                registers_modified.set(RegisterIndex(*register_index as usize), register_value)
             }
     
             inputs = registers_modified;
         }
-        let vm = Self {
+        
+        Self {
             registers: inputs,
             program_counter: 0,
             bytecode,
             status: VMStatus::InProgress,
             memory,
             call_stack: Vec::new(),
-        };
-        vm
+        }
     }
 
     fn status(&mut self, status: VMStatus) -> VMStatus {
         self.status = status;
         status
     }
-    fn halt(&mut self) -> VMStatus {
-        self.status(VMStatus::Halted)
+    fn finish(&mut self) -> VMStatus {
+        self.status(VMStatus::Finished)
     }
     fn wait(&mut self) -> VMStatus {
         self.status(VMStatus::OracleWait)
     }
-    fn fail(&mut self) -> VMStatus {
-        self.status(VMStatus::Failure)
+    fn fail(&mut self, error_msg: &str) -> VMStatus {
+        self.status(VMStatus::Failure);
+        // TODO(AD): Proper error handling
+        println!("Brillig error: {}", error_msg);
+        VMStatus::Failure
     }
 
     /// Loop over the bytecode and update the program counter
     pub fn process_opcodes(mut self) -> VMOutputState {
         while !matches!(
             self.process_opcode(),
-            VMStatus::Halted | VMStatus::Failure | VMStatus::OracleWait
+            VMStatus::Finished | VMStatus::Failure | VMStatus::OracleWait
         ) {}
-        self.finish()
+        self.output_final_state()
     }
     // Process a single opcode and modify the program counter
     pub fn process_opcode(&mut self) -> VMStatus {
@@ -131,7 +133,7 @@ impl VM {
                     .expect("register does not fit into usize");
                     self.set_program_counter(label)
                 } else {
-                    return self.halt();
+                    self.fail("return opcode hit, but callstack already empty")
                 }
             }
             Opcode::Intrinsics => todo!(),
@@ -164,8 +166,8 @@ impl VM {
                 self.registers.set(*destination_register, source_value);
                 self.increment_program_counter()
             }
-            Opcode::Trap => self.fail(),
-            Opcode::Stop => self.halt(),
+            Opcode::Trap => self.fail("explicit trap hit in brillig"),
+            Opcode::Stop => self.finish(),
             Opcode::Load { destination: destination_register, source_pointer } => {
                 // Convert our source_pointer to a usize
                 let source = self.get(source_pointer);
@@ -219,7 +221,7 @@ impl VM {
         assert!(self.program_counter < self.bytecode.len());
         self.program_counter = value;
         if self.program_counter >= self.bytecode.len() {
-            self.status = VMStatus::Halted;
+            self.status = VMStatus::Finished;
         }
         self.status
     }
@@ -262,7 +264,7 @@ impl VM {
     /// Returns the state of the registers.
     /// This consumes ownership of the VM and is conventionally
     /// called when all of the bytecode has been processed.
-    fn finish(self) -> VMOutputState {
+    fn output_final_state(self) -> VMOutputState {
         VMOutputState {
             registers: self.registers,
             program_counter: self.program_counter,
@@ -271,6 +273,7 @@ impl VM {
         }
     }
 }
+
 
 pub struct VMOutputState {
     pub registers: Registers,
@@ -321,13 +324,13 @@ mod tests {
         // Process a single VM opcode
         //
         // After processing a single opcode, we should have
-        // the vm status as halted since there is only one opcode
+        // the vm status as finished since there is only one opcode
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Halted);
+        assert_eq!(status, VMStatus::Finished);
 
         // The register at index `2` should have the value of 3 since we had an
         // add opcode
-        let VMOutputState { registers, .. } = vm.finish();
+        let VMOutputState { registers, .. } = vm.output_final_state();
         let output_value = registers.get(RegisterIndex(2));
 
         assert_eq!(output_value, Value::from(3u128))
@@ -384,9 +387,9 @@ mod tests {
         assert_eq!(status, VMStatus::InProgress);
     
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Halted);
+        assert_eq!(status, VMStatus::Finished);
     
-        vm.finish();
+        vm.output_final_state();
     }
 
     #[test]
@@ -440,7 +443,7 @@ mod tests {
         assert_eq!(status, VMStatus::Failure);
 
         // The register at index `2` should have not changed as we jumped over the add opcode
-        let VMOutputState { registers, .. } = vm.finish();
+        let VMOutputState { registers, .. } = vm.output_final_state();
         let output_value = registers.get(RegisterIndex(2));
         assert_eq!(output_value, Value::from(false));
     }
@@ -458,9 +461,9 @@ mod tests {
         let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], None);
 
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Halted);
+        assert_eq!(status, VMStatus::Finished);
 
-        let VMOutputState { registers, .. } = vm.finish();
+        let VMOutputState { registers, .. } = vm.output_final_state();
 
         let destination_value = registers.get(RegisterIndex(2));
         assert_eq!(destination_value, Value::from(1u128));
@@ -537,12 +540,12 @@ mod tests {
         assert_eq!(lt_value, Value::from(true));
 
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Halted);
+        assert_eq!(status, VMStatus::Finished);
 
         let lte_value = vm.registers.get(RegisterIndex(2));
         assert_eq!(lte_value, Value::from(true));
 
-        vm.finish();
+        vm.output_final_state();
     }
     #[test]
     fn store_opcode() {
@@ -603,7 +606,7 @@ mod tests {
                 },
             ];
             let vm = brillig_execute(memory, [&start[..], &loop_body[..]].concat());
-            vm.memory.clone()
+            vm.memory
         }
     
         let memory = brillig_write_memory(vec![Value::from(0u128); 5]);
@@ -735,6 +738,14 @@ mod tests {
                     destination: r_len,
                     value: FieldElement::from(memory.len() as u128),
                 },
+                // call recursive_fn
+                Opcode::Call {
+                    location: 4, // Call after 'start'
+                },
+                // end program by jumping to end
+                Opcode::Jump {
+                    location: 100,
+                },
             ];
     
             let recursive_fn = [
@@ -777,7 +788,7 @@ mod tests {
             ];
     
             let vm = brillig_execute(memory, [&start[..], &recursive_fn[..]].concat());
-            vm.memory.clone()
+            vm.memory
         }
     
         let memory = brillig_recursive_write_memory(vec![Value::from(0u128); 5]);
@@ -795,127 +806,115 @@ mod tests {
         assert_eq!(memory, expected);
     }
     
+    fn empty_registers() -> Registers {
+        Registers::load(vec![Value::from(0u128); 16])
+    }
     /// Helper to execute brillig code
     fn brillig_execute(memory: Vec<Value>, opcodes: Vec<Opcode>) -> VM {
         let mut vm = VM::new(
-            Registers { inner: vec![Value::from(0u128); 16]},
+            empty_registers(),
             memory,
             opcodes,
             None,
         );
         loop {
             let status = vm.process_opcode();
-            if status == VMStatus::Halted {
+            if status == VMStatus::Finished || status == VMStatus::OracleWait {
                 break;
             }
+            assert_eq!(status, VMStatus::InProgress)
         }
+        assert_eq!(vm.call_stack, vec![]);
         vm
     }
-    // #[test]
-    // fn oracle_array_output() {
-    //     use crate::opcodes::OracleInput;
 
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2),
-    //         Value::from(2),
-    //         Value::from(0),
-    //         Value::from(5),
-    //         Value::from(0),
-    //         Value::from(6),
-    //         Value::from(0),
-    //     ]);
+    #[test]
+    fn oracle_output() {
+        use crate::opcodes::OracleInput;
 
-    //     let oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
-    //     let oracle_output =
-    //         OracleOutput::Array { start: RegisterIndex(3), length: 2 };
+        let oracle_inputs = vec![OracleInput::RegisterIndex(RegisterIndex(0))];
+        let oracle_outputs = vec![
+            OracleOutput::RegisterIndex(RegisterIndex(3)),
+            OracleOutput::RegisterIndex(RegisterIndex(4)),
+        ];
 
-    //     let mut oracle_data = OracleData {
-    //         name: "get_notes".to_owned(),
-    //         inputs: vec![oracle_input],
-    //         input_values: vec![],
-    //         outputs: vec![oracle_output],
-    //         output_values: vec![],
-    //     };
+        let mut oracle_data = OracleData {
+            name: "get_notes".to_owned(),
+            inputs: oracle_inputs,
+            input_values: vec![],
+            outputs: oracle_outputs,
+            output_values: vec![],
+        };
 
-    //     let oracle_opcode = Opcode::Oracle(oracle_data.clone());
+        let oracle_opcode = Opcode::Oracle(oracle_data.clone());
 
-    //     let initial_memory = vec![];
+        let vm = VM::new(empty_registers(), vec![], vec![oracle_opcode], None);
 
-    //     let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None);
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::OracleWait);
 
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::OracleWait);
+        let input_values = output_state.map_input_values(&oracle_data);
 
-    //     let input_values = output_state.map_input_values(&oracle_data);
+        oracle_data.input_values = input_values;
+        oracle_data.output_values = vec![FieldElement::from(10_u128), FieldElement::from(2_u128)];
+        let updated_oracle_opcode = Opcode::Oracle(oracle_data);
 
-    //     oracle_data.input_values = input_values;
-    //     oracle_data.output_values = vec![FieldElement::from(10_u128), FieldElement::from(2_u128)];
-    //     let updated_oracle_opcode = Opcode::Oracle(oracle_data);
+        let vm = VM::new(empty_registers(), output_state.memory, vec![updated_oracle_opcode], None,);
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::Finished);
 
-    //     let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::Halted);
+        assert_eq!(output_state.registers.get(RegisterIndex(3)), Value::from(10_u128));
+        assert_eq!(output_state.registers.get(RegisterIndex(4)), Value::from(2_u128));
+    }
 
-    //     let mem_array = output_state.memory[&Value::from(5u128)].clone();
-    //     assert_eq!(mem_array.array[0], Value::from(10_u128));
-    //     assert_eq!(mem_array.array[1], Value::from(2_u128));
-    // }
+    #[test]
+    fn oracle_input() {
+        use crate::opcodes::OracleInput;
 
-    // #[test]
-    // fn oracle_array_input() {
-    //     use crate::opcodes::OracleInput;
+        let oracle_outputs = vec![
+            OracleOutput::RegisterIndex(RegisterIndex(1)),
+            OracleOutput::RegisterIndex(RegisterIndex(2)),
+        ];
+        let oracle_inputs = vec![OracleInput::RegisterIndex(RegisterIndex(0))];
 
-    //     let input_registers = Registers::load(vec![
-    //         Value::from(2),
-    //         Value::from(2),
-    //         Value::from(0),
-    //         Value::from(5),
-    //         Value::from(0),
-    //         Value::from(6),
-    //         Value::from(0),
-    //     ]);
+        let mut oracle_data = OracleData {
+            name: "call_private_function_oracle".to_owned(),
+            inputs: oracle_inputs,
+            input_values: vec![],
+            outputs: oracle_outputs,
+            output_values: vec![],
+        };
 
-    //     let expected_length = 2;
-    //     let oracle_input = OracleInput::Array {
-    //         start: RegisterIndex(3),
-    //         length: expected_length,
-    //     };
-    //     let oracle_output = OracleOutput::RegisterIndex(RegisterIndex(6));
+        let program = vec![
+            Opcode::Const {
+                destination: RegisterIndex(1), 
+                value: 0u128.into(),
+            },
+            Opcode::Const {
+                destination: RegisterIndex(2), 
+                value: 0u128.into(),
+            },
+            Opcode::Oracle(oracle_data.clone())
+        ];
+        let vm = VM::new(empty_registers(), vec![], program.clone(), None,);
 
-    //     let mut oracle_data = OracleData {
-    //         name: "call_private_function_oracle".to_owned(),
-    //         inputs: vec![oracle_input.clone()],
-    //         input_values: vec![],
-    //         outputs: vec![oracle_output],
-    //         output_values: vec![],
-    //     };
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::OracleWait);
 
-    //     let oracle_opcode = Opcode::Oracle(oracle_data.clone());
+        let input_values = output_state.map_input_values(&oracle_data);
+        assert_eq!(input_values.len(), oracle_data.inputs.len());
 
-    //     let mut initial_memory = vec![];
-    //     let initial_heap = HeapArray {
-    //         array: vec![Value::from(5), Value::from(6)],
-    //     };
-    //     initial_memory.insert(Value::from(5), initial_heap);
+        // Update oracle_data
+        oracle_data.input_values = input_values;
+        oracle_data.output_values = vec![FieldElement::from(5u128), FieldElement::from(6u128)];
+        let mut updated_program = program;
+        updated_program[2] = Opcode::Oracle(oracle_data);
 
-    //     let vm = VM::new(input_registers.clone(), initial_memory, vec![oracle_opcode], None,);
+        let vm = VM::new(empty_registers(), vec![], updated_program, None,);
+        let output_state = vm.process_opcodes();
+        assert_eq!(output_state.status, VMStatus::Finished);
 
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::OracleWait);
-
-    //     let input_values = output_state.map_input_values(&oracle_data);
-    //     assert_eq!(input_values.len(), expected_length);
-
-    //     oracle_data.input_values = input_values;
-    //     oracle_data.output_values = vec![FieldElement::from(5u128)];
-    //     let updated_oracle_opcode = Opcode::Oracle(oracle_data);
-
-    //     let vm = VM::new(input_registers, output_state.memory, vec![updated_oracle_opcode], None,);
-    //     let output_state = vm.process_opcodes();
-    //     assert_eq!(output_state.status, VMStatus::Halted);
-
-    //     let mem_array = output_state.memory[&Value::from(5)].clone();
-    //     assert_eq!(mem_array.array[0], Value::from(5));
-    //     assert_eq!(mem_array.array[1], Value::from(6));
-    // }
+        assert_eq!(output_state.registers.get(RegisterIndex(1)), Value::from(5u128));
+        assert_eq!(output_state.registers.get(RegisterIndex(2)), Value::from(6u128));
+    }
 }
