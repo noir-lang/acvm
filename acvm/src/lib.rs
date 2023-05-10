@@ -15,6 +15,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use core::fmt::Debug;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -46,15 +47,16 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
-    #[error("unexpected opcode, expected {0}, but got {1}")]
-    UnexpectedOpcode(&'static str, BlackBoxFunc),
     #[error("expected {0} inputs for function {1}, but got {2}")]
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
+pub trait Backend:
+    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default + Debug
+{
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
@@ -120,7 +122,7 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
-    fn hash_to_field128_security(
+    fn hash_to_field_128_security(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
@@ -375,7 +377,7 @@ mod test {
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
-        fn hash_to_field128_security(
+        fn hash_to_field_128_security(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _inputs: &[FunctionInput],

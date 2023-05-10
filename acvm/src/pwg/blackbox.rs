@@ -87,7 +87,7 @@ pub(crate) fn solve(
             backend.pedersen(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
-            backend.hash_to_field128_security(initial_witness, inputs, output)
+            backend.hash_to_field_128_security(initial_witness, inputs, output)
         }
         BlackBoxFuncCall::EcdsaSecp256k1 {
             public_key_x,
