@@ -180,6 +180,8 @@ mod ecdsa_secp256k1 {
             0x01, 0x61, 0xe4, 0x9a, 0x71, 0x5f, 0xcd, 0x55,
         ];
 
-        verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).unwrap();
+        let valid = verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).is_ok();
+
+        assert!(valid)
     }
 }
