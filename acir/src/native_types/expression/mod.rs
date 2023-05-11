@@ -187,6 +187,10 @@ impl Expression {
         self.is_linear() && self.linear_combinations.len() == 1
     }
 
+    pub fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+
     /// Returns a `FieldElement` if the expression represents a constant polynomial.
     /// Otherwise returns `None`.
     ///

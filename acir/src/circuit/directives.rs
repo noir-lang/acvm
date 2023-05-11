@@ -7,6 +7,15 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QuotientDirective {
+    pub a: Expression,
+    pub b: Expression,
+    pub q: Witness,
+    pub r: Witness,
+    pub predicate: Option<Expression>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// Directives do not apply any constraints.
 /// You can think of them as opcodes that allow one to use non-determinism
 /// In the future, this can be replaced with asm non-determinism blocks
@@ -18,13 +27,7 @@ pub enum Directive {
     },
 
     //Performs euclidian division of a / b (as integers) and stores the quotient in q and the rest in r
-    Quotient {
-        a: Expression,
-        b: Expression,
-        q: Witness,
-        r: Witness,
-        predicate: Option<Expression>,
-    },
+    Quotient(QuotientDirective),
 
     //decomposition of a: a=\sum b[i]*radix^i where b is an array of witnesses < radix in little endian form
     ToLeRadix {
@@ -48,7 +51,7 @@ impl Directive {
     pub fn name(&self) -> &str {
         match self {
             Directive::Invert { .. } => "invert",
-            Directive::Quotient { .. } => "quotient",
+            Directive::Quotient(_) => "quotient",
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
             Directive::Log { .. } => "log",
@@ -71,7 +74,7 @@ impl Directive {
                 write_u32(&mut writer, x.witness_index())?;
                 write_u32(&mut writer, result.witness_index())?;
             }
-            Directive::Quotient { a, b, q, r, predicate } => {
+            Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
                 a.write(&mut writer)?;
                 b.write(&mut writer)?;
                 write_u32(&mut writer, q.witness_index())?;
@@ -151,7 +154,7 @@ impl Directive {
                     false => None,
                 };
 
-                Ok(Directive::Quotient { a, b, q, r, predicate })
+                Ok(Directive::Quotient(QuotientDirective { a, b, q, r, predicate }))
             }
             2 => {
                 let a = Expression::read(&mut reader)?;
@@ -249,20 +252,20 @@ fn serialization_roundtrip() {
     // TODO: Find a way to ensure that we include all of the variants
     let invert = Directive::Invert { x: Witness(10), result: Witness(10) };
 
-    let quotient_none = Directive::Quotient {
+    let quotient_none = Directive::Quotient(QuotientDirective {
         a: Expression::default(),
         b: Expression::default(),
         q: Witness(1u32),
         r: Witness(2u32),
         predicate: None,
-    };
-    let quotient_predicate = Directive::Quotient {
+    });
+    let quotient_predicate = Directive::Quotient(QuotientDirective {
         a: Expression::default(),
         b: Expression::default(),
         q: Witness(1u32),
         r: Witness(2u32),
         predicate: Some(Expression::default()),
-    };
+    });
 
     let to_le_radix = Directive::ToLeRadix {
         a: Expression::default(),

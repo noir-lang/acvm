@@ -3,14 +3,14 @@ use std::collections::BTreeMap;
 use acir::{
     circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
     native_types::Witness,
-    BlackBoxFunc, FieldElement,
+    FieldElement,
 };
 
 use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
 
 use super::{
-    hash::{blake2s, hash_to_field_128_security, keccak256, sha256},
-    logic::solve_logic_opcode,
+    hash::{blake2s256, hash_to_field_128_security, keccak256, sha256},
+    logic::{and, xor},
     range::solve_range_opcode,
     signature::ecdsa::secp256k1_prehashed,
     OpcodeResolution,
@@ -45,37 +45,70 @@ pub(crate) fn solve(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     bb_func: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    if !contains_all_inputs(initial_witness, &bb_func.inputs) {
-        if let Some(unassigned_witness) = first_missing_assignment(initial_witness, &bb_func.inputs)
-        {
-            return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                unassigned_witness.0,
-            )));
-        }
+    let inputs = bb_func.get_inputs_vec();
+    if !contains_all_inputs(initial_witness, &inputs) {
+        let unassigned_witness = first_missing_assignment(initial_witness, &inputs)
+            .expect("Some assignments must be missing because it does not contains all inputs");
+        return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
+            unassigned_witness.0,
+        )));
     }
-    match bb_func.name {
-        BlackBoxFunc::AND | BlackBoxFunc::XOR => solve_logic_opcode(initial_witness, bb_func),
-        BlackBoxFunc::RANGE => solve_range_opcode(initial_witness, bb_func),
-        BlackBoxFunc::SHA256 => sha256(initial_witness, bb_func),
-        BlackBoxFunc::Blake2s => blake2s(initial_witness, bb_func),
-        BlackBoxFunc::Keccak256 => keccak256(initial_witness, bb_func),
-        BlackBoxFunc::HashToField128Security => {
-            hash_to_field_128_security(initial_witness, bb_func)
-        }
-        BlackBoxFunc::EcdsaSecp256k1 => secp256k1_prehashed(initial_witness, bb_func),
-        BlackBoxFunc::ComputeMerkleRoot => {
-            backend.compute_merkle_root(initial_witness, &bb_func.inputs, &bb_func.outputs)
-        }
-        BlackBoxFunc::SchnorrVerify => {
-            backend.schnorr_verify(initial_witness, &bb_func.inputs, &bb_func.outputs)
-        }
-        BlackBoxFunc::Pedersen => {
-            backend.pedersen(initial_witness, &bb_func.inputs, &bb_func.outputs)
-        }
 
-        BlackBoxFunc::FixedBaseScalarMul => {
-            backend.fixed_base_scalar_mul(initial_witness, &bb_func.inputs, &bb_func.outputs)
+    match bb_func {
+        acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
+            and(initial_witness, lhs, rhs, output)
         }
-        BlackBoxFunc::AES => backend.aes(initial_witness, &bb_func.inputs, &bb_func.outputs),
+        BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
+        BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
+        BlackBoxFuncCall::SHA256 { inputs, outputs } => sha256(initial_witness, inputs, outputs),
+        BlackBoxFuncCall::Blake2s { inputs, outputs } => {
+            blake2s256(initial_witness, inputs, outputs)
+        }
+        BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
+            keccak256(initial_witness, inputs, outputs)
+        }
+        BlackBoxFuncCall::HashToField128Security { inputs, output } => {
+            hash_to_field_128_security(initial_witness, inputs, output)
+        }
+        BlackBoxFuncCall::EcdsaSecp256k1 {
+            public_key_x,
+            public_key_y,
+            signature,
+            hashed_message: message,
+            output,
+        } => secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *output,
+        ),
+        BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, output } => {
+            backend.compute_merkle_root(initial_witness, leaf, index, hash_path, output)
+        }
+        BlackBoxFuncCall::SchnorrVerify {
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        } => backend.schnorr_verify(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            output,
+        ),
+        BlackBoxFuncCall::Pedersen { inputs, outputs } => {
+            backend.pedersen(initial_witness, inputs, outputs)
+        }
+        BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
+            backend.fixed_base_scalar_mul(initial_witness, input, outputs)
+        }
+        BlackBoxFuncCall::AES { inputs, outputs } => {
+            backend.aes(initial_witness, inputs, outputs)
+        }
     }
 }

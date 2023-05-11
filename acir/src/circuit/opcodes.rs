@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use super::directives::{Directive, LogInfo};
+use super::directives::{Directive, LogInfo, QuotientDirective};
 use crate::native_types::Expression;
 use crate::serialization::{read_n, write_bytes};
 
@@ -43,7 +43,7 @@ impl Opcode {
         match self {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
-            Opcode::BlackBoxFuncCall(g) => g.name.name(),
+            Opcode::BlackBoxFuncCall(g) => g.name(),
             Opcode::Block(_) => "block",
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
@@ -149,7 +149,7 @@ impl std::fmt::Display for Opcode {
                 write!(f, "DIR::INVERT ")?;
                 write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
             }
-            Opcode::Directive(Directive::Quotient { a, b, q, r, predicate }) => {
+            Opcode::Directive(Directive::Quotient(QuotientDirective { a, b, q, r, predicate })) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
                     writeln!(f, "PREDICATE = {pred}")?;
@@ -228,7 +228,6 @@ impl std::fmt::Debug for Opcode {
 #[test]
 fn serialization_roundtrip() {
     use crate::native_types::Witness;
-    use crate::BlackBoxFunc;
 
     fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
         let mut bytes = Vec::new();
@@ -239,8 +238,7 @@ fn serialization_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-        name: BlackBoxFunc::AES,
+    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {
         inputs: vec![
             FunctionInput { witness: Witness(1u32), num_bits: 12 },
             FunctionInput { witness: Witness(24u32), num_bits: 32 },

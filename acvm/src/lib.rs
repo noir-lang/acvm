@@ -15,6 +15,7 @@ use acir::{
     native_types::{Expression, Witness},
     BlackBoxFunc,
 };
+use core::fmt::Debug;
 use std::collections::BTreeMap;
 use thiserror::Error;
 
@@ -46,15 +47,16 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
-    #[error("unexpected opcode, expected {0}, but got {1}")]
-    UnexpectedOpcode(&'static str, BlackBoxFunc),
     #[error("expected {0} inputs for function {1}, but got {2}")]
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default {}
+pub trait Backend:
+    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default + Debug
+{
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
@@ -69,20 +71,21 @@ pub trait PartialWitnessGenerator {
     fn and(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn xor(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn range(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        input: &FunctionInput,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn sha256(
         &self,
@@ -99,14 +102,19 @@ pub trait PartialWitnessGenerator {
     fn compute_merkle_root(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        leaf: &FunctionInput,
+        index: &FunctionInput,
+        hash_path: &[FunctionInput],
+        output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        public_key_x: &FunctionInput,
+        public_key_y: &FunctionInput,
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        output: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn pedersen(
         &self,
@@ -114,22 +122,25 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
-    fn hash_to_field128_security(
+    fn hash_to_field_128_security(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
-        outputs: &[Witness],
+        outputs: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn ecdsa_secp256k1(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        public_key_x: &[FunctionInput],
+        public_key_y: &[FunctionInput],
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        outputs: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        input: &FunctionInput,
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn keccak256(
@@ -242,11 +253,7 @@ pub fn default_is_opcode_supported(
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(
-            opcode,
-            Opcode::BlackBoxFuncCall(BlackBoxFuncCall { name: BlackBoxFunc::AES, .. })
-                | Opcode::Block(_)
-        )
+        !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES { .. }) | Opcode::Block(_))
     }
 
     match language {
@@ -283,39 +290,32 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn and(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _lhs: &FunctionInput,
+            _rhs: &FunctionInput,
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn xor(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _lhs: &FunctionInput,
+            _rhs: &FunctionInput,
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn range(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _input: &FunctionInput,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn sha256(
             &self,
@@ -323,9 +323,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn blake2s(
             &self,
@@ -333,29 +331,28 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn compute_merkle_root(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _leaf: &FunctionInput,
+            _index: &FunctionInput,
+            _hash_path: &[FunctionInput],
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn schnorr_verify(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _public_key_x: &FunctionInput,
+            _public_key_y: &FunctionInput,
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn pedersen(
             &self,
@@ -363,39 +360,34 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
-        fn hash_to_field128_security(
+        fn hash_to_field_128_security(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn ecdsa_secp256k1(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
+            _public_key_x: &[FunctionInput],
+            _public_key_y: &[FunctionInput],
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
+            _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn fixed_base_scalar_mul(
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _inputs: &[FunctionInput],
+            _input: &FunctionInput,
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
         fn keccak256(
             &self,
@@ -403,9 +395,7 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            {
-                panic!("Path not trodden by this test")
-            }
+            panic!("Path not trodden by this test")
         }
     }
 
