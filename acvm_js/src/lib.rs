@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
+mod abi;
+
+pub use abi::{abi_decode, abi_encode};
+
 #[derive(Serialize, Deserialize)]
 pub struct BuildInfo {
     git_hash: &'static str,

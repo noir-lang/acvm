@@ -11,8 +11,9 @@ rust-version = "1.66"
 crate-type = ["cdylib"]
 
 [dependencies]
-
-acvm = "0.11.0"
+acvm = "0.10.3"
+iter-extended = { git = "https://github.com/noir-lang/noir", rev = "7f6dede414c46790545b1994713d1976c5623711"}
+noirc_abi = { git = "https://github.com/noir-lang/noir", rev = "7f6dede414c46790545b1994713d1976c5623711"}
 wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"] }
 serde = { version = "1.0.136", features = ["derive"] }
 log = "0.4.17"
