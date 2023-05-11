@@ -262,21 +262,6 @@ pub fn default_is_opcode_supported(
     }
 }
 
-pub fn default_is_bb_supported(language: Language) -> impl Fn(BlackBoxFunc) -> bool {
-    fn r1cs_is_supported(_: BlackBoxFunc) -> bool {
-        false
-    }
-
-    fn plonk_is_supported(opcode: BlackBoxFunc) -> bool {
-        !matches!(opcode, BlackBoxFunc::AES)
-    }
-
-    match language {
-        Language::R1CS => r1cs_is_supported,
-        Language::PLONKCSat { .. } => plonk_is_supported,
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::collections::BTreeMap;
