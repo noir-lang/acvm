@@ -68,12 +68,12 @@ pub fn keccak256(
 pub fn hash_to_field_128_security(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
-    outputs: &[Witness],
+    output: &Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Blake2s256>(initial_witness, inputs)?;
 
     let reduced_res = FieldElement::from_be_bytes_reduce(&hash);
-    insert_value(&outputs[0], reduced_res, initial_witness)?;
+    insert_value(output, reduced_res, initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }

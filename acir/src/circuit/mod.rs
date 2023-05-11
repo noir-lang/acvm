@@ -168,20 +168,15 @@ mod test {
     use acir_field::FieldElement;
 
     fn and_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::AND,
-            inputs: vec![
-                FunctionInput { witness: Witness(1), num_bits: 4 },
-                FunctionInput { witness: Witness(2), num_bits: 4 },
-            ],
-            outputs: vec![Witness(3)],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
+            lhs: FunctionInput { witness: Witness(1), num_bits: 4 },
+            rhs: FunctionInput { witness: Witness(2), num_bits: 4 },
+            output: Witness(3),
         })
     }
     fn range_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![FunctionInput { witness: Witness(1), num_bits: 8 }],
-            outputs: vec![],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: Witness(1), num_bits: 8 },
         })
     }
     fn oracle_opcode() -> Opcode {

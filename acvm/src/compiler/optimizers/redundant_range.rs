@@ -1,7 +1,6 @@
 use acir::{
-    circuit::{Circuit, Opcode},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Witness,
-    BlackBoxFunc,
 };
 use std::collections::{BTreeMap, HashSet};
 
@@ -121,13 +120,10 @@ fn extract_range_opcode(opcode: &Opcode) -> Option<(Witness, u32)> {
     };
 
     // Skip if it is not a range constraint
-    if func_call.name != BlackBoxFunc::RANGE {
-        return None;
+    match func_call {
+        BlackBoxFuncCall::RANGE { input } => Some((input.witness, input.num_bits)),
+        _ => None,
     }
-
-    let func_input =
-        func_call.inputs.first().expect("we expect there to be one input for a range call");
-    Some((func_input.witness, func_input.num_bits))
 }
 
 #[cfg(test)]
@@ -139,15 +135,12 @@ mod tests {
             Circuit, Opcode, PublicInputs,
         },
         native_types::{Expression, Witness},
-        BlackBoxFunc,
     };
 
     fn test_circuit(ranges: Vec<(Witness, u32)>) -> Circuit {
         fn test_range_constraint(witness: Witness, num_bits: u32) -> Opcode {
-            Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-                name: BlackBoxFunc::RANGE,
-                inputs: vec![FunctionInput { witness, num_bits }],
-                outputs: vec![],
+            Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+                input: FunctionInput { witness, num_bits },
             })
         }
 
