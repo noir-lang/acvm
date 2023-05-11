@@ -62,6 +62,7 @@ pub enum BlackBoxFuncCall {
     },
     Pedersen {
         inputs: Vec<FunctionInput>,
+        hash_index: u32,
         outputs: Vec<Witness>,
     },
     // 128 here specifies that this function
@@ -179,7 +180,7 @@ impl BlackBoxFuncCall {
                 output: Witness(0),
             },
             BlackBoxFunc::Pedersen => {
-                BlackBoxFuncCall::Pedersen { inputs: vec![], outputs: vec![] }
+                BlackBoxFuncCall::Pedersen { inputs: vec![], hash_index: 0, outputs: vec![] }
             }
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
@@ -300,7 +301,13 @@ impl BlackBoxFuncCall {
         write_inputs(&self.get_inputs_vec(), &mut writer)?;
         write_outputs(&self.get_outputs_vec(), &mut writer)?;
 
-        Ok(())
+        match self {
+            BlackBoxFuncCall::Pedersen { hash_index, .. } => {
+                write_u32(&mut writer, *hash_index)?;
+                Ok(())
+            }
+            _ => Ok(()),
+        }
     }
 
     pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
@@ -366,7 +373,11 @@ impl BlackBoxFuncCall {
                     })
                 }
             }
-            BlackBoxFunc::Pedersen => Ok(BlackBoxFuncCall::Pedersen { inputs, outputs }),
+            BlackBoxFunc::Pedersen => Ok(BlackBoxFuncCall::Pedersen {
+                inputs,
+                hash_index: read_u32(&mut reader)?,
+                outputs,
+            }),
             BlackBoxFunc::HashToField128Security => {
                 if outputs.len() != 1 {
                     Err(std::io::ErrorKind::InvalidData.into())
@@ -477,7 +488,15 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         write!(f, "{outputs_str}")?;
 
-        write!(f, "]")
+        write!(f, "]")?;
+
+        // SPECIFIC PARAMETERS
+        match self {
+            BlackBoxFuncCall::Pedersen { hash_index, .. } => {
+                write!(f, " hash_index: {hash_index}")
+            }
+            _ => write!(f, ""),
+        }
     }
 }
 
