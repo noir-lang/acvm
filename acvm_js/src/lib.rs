@@ -8,8 +8,10 @@ use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
 mod abi;
+mod execute;
 
 pub use abi::{abi_decode, abi_encode};
+pub use execute::execute_circuit;
 
 #[derive(Serialize, Deserialize)]
 pub struct BuildInfo {
