@@ -1,8 +1,8 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::cmp::Ordering;
 
 use acir::{
     circuit::directives::{Directive, LogInfo, QuotientDirective},
-    native_types::Witness,
+    native_types::WitnessMap,
     FieldElement,
 };
 use num_bigint::BigUint;
@@ -19,7 +19,7 @@ use super::{get_value, insert_value, sorting::route, witness_to_value};
 ///
 /// Returns `Err(OpcodeResolutionError)` if a circuit constraint is unsatisfied.
 pub fn solve_directives(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     directive: &Directive,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match solve_directives_internal(initial_witness, directive) {
@@ -32,7 +32,7 @@ pub fn solve_directives(
 }
 
 fn solve_directives_internal(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     directive: &Directive,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {

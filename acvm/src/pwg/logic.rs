@@ -1,12 +1,15 @@
 use super::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
-use std::collections::BTreeMap;
+use acir::{
+    circuit::opcodes::FunctionInput,
+    native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 
 /// Solves a [`BlackBoxFunc::And`][acir::circuit::black_box_functions::BlackBoxFunc::AND] opcode and inserts
 /// the result into the supplied witness map
 pub fn and(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
@@ -23,7 +26,7 @@ pub fn and(
 /// Solves a [`BlackBoxFunc::XOR`][acir::circuit::black_box_functions::BlackBoxFunc::XOR] opcode and inserts
 /// the result into the supplied witness map
 pub fn xor(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
@@ -39,7 +42,7 @@ pub fn xor(
 
 /// Derives the rest of the witness based on the initial low level variables
 fn solve_logic_gate(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     a: &Witness,
     b: &Witness,
     result: Witness,

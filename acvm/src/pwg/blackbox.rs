@@ -1,9 +1,6 @@
-use std::collections::BTreeMap;
-
 use acir::{
     circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
-    native_types::Witness,
-    FieldElement,
+    native_types::{Witness, WitnessMap},
 };
 
 use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
@@ -20,7 +17,7 @@ use super::{
 ///
 /// Returns the first missing assignment if any are missing
 fn first_missing_assignment(
-    witness_assignments: &BTreeMap<Witness, FieldElement>,
+    witness_assignments: &WitnessMap,
     inputs: &[FunctionInput],
 ) -> Option<Witness> {
     inputs.iter().find_map(|input| {
@@ -33,16 +30,13 @@ fn first_missing_assignment(
 }
 
 /// Check if all of the inputs to the function have assignments
-fn contains_all_inputs(
-    witness_assignments: &BTreeMap<Witness, FieldElement>,
-    inputs: &[FunctionInput],
-) -> bool {
+fn contains_all_inputs(witness_assignments: &WitnessMap, inputs: &[FunctionInput]) -> bool {
     inputs.iter().all(|input| witness_assignments.contains_key(&input.witness))
 }
 
 pub(crate) fn solve(
     backend: &impl PartialWitnessGenerator,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     bb_func: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let inputs = bb_func.get_inputs_vec();

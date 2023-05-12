@@ -3,10 +3,9 @@
 use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
 use acir::{
     circuit::opcodes::{Opcode, OracleData},
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
-use std::collections::BTreeMap;
 
 use self::{
     arithmetic::ArithmeticSolver, block::Blocks, directives::solve_directives, oracle::OracleSolver,
@@ -50,7 +49,7 @@ pub enum OpcodeResolution {
 
 pub fn solve(
     backend: &impl PartialWitnessGenerator,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     blocks: &mut Blocks,
     mut opcode_to_solve: Vec<Opcode>,
 ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
@@ -133,7 +132,7 @@ pub fn solve(
 // If the witness has no assignment, then
 // an error is returned
 pub fn witness_to_value(
-    initial_witness: &BTreeMap<Witness, FieldElement>,
+    initial_witness: &WitnessMap,
     witness: Witness,
 ) -> Result<&FieldElement, OpcodeResolutionError> {
     match initial_witness.get(&witness) {
@@ -146,7 +145,7 @@ pub fn witness_to_value(
 // TODO versus just getting values from Witness
 pub fn get_value(
     expr: &Expression,
-    initial_witness: &BTreeMap<Witness, FieldElement>,
+    initial_witness: &WitnessMap,
 ) -> Result<FieldElement, OpcodeResolutionError> {
     let expr = ArithmeticSolver::evaluate(expr, initial_witness);
     match expr.to_const() {
@@ -166,7 +165,7 @@ pub fn get_value(
 fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
 ) -> Result<(), OpcodeResolutionError> {
     let optional_old_value = initial_witness.insert(*witness, value_to_insert);
 
