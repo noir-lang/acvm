@@ -34,6 +34,7 @@
         "stdlib",
         "struct",
         "TORADIX",
+        "Msgpack",
         // Dependencies
         //
         "bufread",
