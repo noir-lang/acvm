@@ -62,7 +62,7 @@ pub enum BlackBoxFuncCall {
     },
     Pedersen {
         inputs: Vec<FunctionInput>,
-        hash_index: u32,
+        domain_separator: u32,
         outputs: Vec<Witness>,
     },
     // 128 here specifies that this function
@@ -180,7 +180,7 @@ impl BlackBoxFuncCall {
                 output: Witness(0),
             },
             BlackBoxFunc::Pedersen => {
-                BlackBoxFuncCall::Pedersen { inputs: vec![], hash_index: 0, outputs: vec![] }
+                BlackBoxFuncCall::Pedersen { inputs: vec![], domain_separator: 0, outputs: vec![] }
             }
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
@@ -302,8 +302,8 @@ impl BlackBoxFuncCall {
         write_outputs(&self.get_outputs_vec(), &mut writer)?;
 
         match self {
-            BlackBoxFuncCall::Pedersen { hash_index, .. } => {
-                write_u32(&mut writer, *hash_index)?;
+            BlackBoxFuncCall::Pedersen { domain_separator, .. } => {
+                write_u32(&mut writer, *domain_separator)?;
                 Ok(())
             }
             _ => Ok(()),
@@ -375,7 +375,7 @@ impl BlackBoxFuncCall {
             }
             BlackBoxFunc::Pedersen => Ok(BlackBoxFuncCall::Pedersen {
                 inputs,
-                hash_index: read_u32(&mut reader)?,
+                domain_separator: read_u32(&mut reader)?,
                 outputs,
             }),
             BlackBoxFunc::HashToField128Security => {
@@ -492,8 +492,8 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         // SPECIFIC PARAMETERS
         match self {
-            BlackBoxFuncCall::Pedersen { hash_index, .. } => {
-                write!(f, " hash_index: {hash_index}")
+            BlackBoxFuncCall::Pedersen { domain_separator, .. } => {
+                write!(f, " domain_separator: {domain_separator}")
             }
             _ => write!(f, ""),
         }

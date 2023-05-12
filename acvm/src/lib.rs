@@ -120,7 +120,7 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
-        hash_index: u32,
+        domain_separator: u32,
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn hash_to_field_128_security(
@@ -359,7 +359,7 @@ mod test {
             &self,
             _initial_witness: &mut BTreeMap<Witness, FieldElement>,
             _inputs: &[FunctionInput],
-            _hash_index: u32,
+            _domain_separator: u32,
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
