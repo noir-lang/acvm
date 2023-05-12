@@ -107,8 +107,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
             backend.fixed_base_scalar_mul(initial_witness, input, outputs)
         }
-        BlackBoxFuncCall::AES { inputs, outputs } => {
-            backend.aes(initial_witness, inputs, outputs)
-        }
+        BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
     }
 }
