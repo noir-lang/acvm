@@ -65,6 +65,11 @@ pub trait Backend:
 {
 }
 
+// Unfortunately, Rust doesn't natively allow async functions in traits yet.
+// So we need to annotate our trait with this macro and backends need to attach the macro to their `impl`.
+//
+// For more details, see https://docs.rs/async-trait/latest/async_trait/
+// and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
 #[async_trait]
 pub trait CommonReferenceString {
     /// The Error type returned by failed function calls in the CommonReferenceString trait.
