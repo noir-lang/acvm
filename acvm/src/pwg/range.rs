@@ -1,9 +1,8 @@
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
-use std::collections::BTreeMap;
+use acir::{circuit::opcodes::FunctionInput, native_types::WitnessMap};
 
 pub fn solve_range_opcode(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     input: &FunctionInput,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let w_value = witness_to_value(initial_witness, input.witness)?;

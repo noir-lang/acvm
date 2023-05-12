@@ -12,6 +12,7 @@ rust-version.workspace = true
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 
 rmp-serde = "1.1.0"
 flate2 = "1.0.24"
