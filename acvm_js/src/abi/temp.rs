@@ -1,3 +1,6 @@
+//! This module contains vendored code from `noirc_abi` for converting JSON to `InputValue`s.
+//! This should be removed in time.
+
 use acvm::FieldElement;
 use iter_extended::{btree_map, try_btree_map, try_vecmap, vecmap};
 use noirc_abi::{errors::InputParserError, input_parser::InputValue, AbiType};
