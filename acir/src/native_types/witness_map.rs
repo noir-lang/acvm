@@ -15,7 +15,7 @@ use thiserror::Error;
 use crate::native_types::Witness;
 
 #[derive(Debug, Error)]
-pub enum WitnessMapError {
+enum SerializationError {
     #[error(transparent)]
     MsgpackEncode(#[from] rmp_serde::encode::Error),
 
@@ -25,6 +25,10 @@ pub enum WitnessMapError {
     #[error(transparent)]
     Deflate(#[from] std::io::Error),
 }
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct WitnessMapError(#[from] SerializationError);
 
 /// A map from the witnesses in a constraint system to the field element values
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize)]
@@ -85,10 +89,10 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
-        let buf = rmp_serde::to_vec(&val)?;
+        let buf = rmp_serde::to_vec(&val).map_err(|err| WitnessMapError(err.into()))?;
         let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
         let mut buf_c = Vec::new();
-        deflater.read_to_end(&mut buf_c)?;
+        deflater.read_to_end(&mut buf_c).map_err(|err| WitnessMapError(err.into()))?;
         Ok(buf_c)
     }
 }
@@ -99,7 +103,9 @@ impl TryFrom<&[u8]> for WitnessMap {
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         let mut deflater = DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
-        deflater.read_to_end(&mut buf_d)?;
-        Ok(Self(rmp_serde::from_slice(buf_d.as_slice())?))
+        deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
+        let witness_map =
+            rmp_serde::from_slice(buf_d.as_slice()).map_err(|err| WitnessMapError(err.into()))?;
+        Ok(Self(witness_map))
     }
 }
