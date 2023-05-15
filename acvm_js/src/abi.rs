@@ -1,4 +1,3 @@
-use acvm::{acir::native_types::Witness, FieldElement};
 use iter_extended::{btree_map, try_btree_map};
 use noirc_abi::{errors::InputParserError, input_parser::InputValue, Abi, MAIN_RETURN_NAME};
 use serde::Serialize;
@@ -9,10 +8,12 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 mod temp;
 
+use crate::{js_map_to_witness_map, witness_map_to_js_map};
+
 use self::temp::{input_value_from_json_type, JsonTypes};
 
 #[wasm_bindgen]
-pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> Vec<u8> {
+pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> js_sys::Map {
     console_error_panic_hook::set_once();
     let abi: Abi = JsValueSerdeExt::into_serde(&abi).expect("could not decode abi");
     let inputs: BTreeMap<String, JsonTypes> =
@@ -47,14 +48,15 @@ pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> Vec<u
 
     let witness_map = abi.encode(&parsed_inputs, return_value).expect("abi encoding error");
 
-    Witness::to_bytes(&witness_map)
+    witness_map_to_js_map(witness_map)
 }
 
 #[wasm_bindgen]
-pub fn abi_decode(abi: JsValue, witness_map: Vec<u8>) -> JsValue {
+pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> JsValue {
     console_error_panic_hook::set_once();
     let abi: Abi = JsValueSerdeExt::into_serde(&abi).expect("could not decode abi");
-    let witness_map: BTreeMap<Witness, FieldElement> = Witness::from_bytes(&witness_map);
+
+    let witness_map = js_map_to_witness_map(witness_map);
 
     let (inputs, return_value) = abi.decode(&witness_map).expect("abi decoding error");
 

@@ -12,6 +12,8 @@ use std::collections::BTreeMap;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
+use crate::{js_map_to_witness_map, witness_map_to_js_map};
+
 struct SimulatedBackend;
 
 impl PartialWitnessGenerator for SimulatedBackend {
@@ -46,10 +48,10 @@ impl PartialWitnessGenerator for SimulatedBackend {
 }
 
 #[wasm_bindgen]
-pub fn execute_circuit(circuit: Vec<u8>, initial_witness: Vec<u8>) -> Vec<u8> {
+pub fn execute_circuit(circuit: Vec<u8>, initial_witness: js_sys::Map) -> js_sys::Map {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
-    let mut witness_map: BTreeMap<Witness, FieldElement> = Witness::from_bytes(&initial_witness);
+    let mut witness_map = js_map_to_witness_map(initial_witness);
 
     let mut blocks = Blocks::default();
     let solver_status = SimulatedBackend
@@ -57,5 +59,5 @@ pub fn execute_circuit(circuit: Vec<u8>, initial_witness: Vec<u8>) -> Vec<u8> {
         .expect("Threw error while executing circuit");
     assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved);
 
-    Witness::to_bytes(&witness_map)
+    witness_map_to_js_map(witness_map)
 }

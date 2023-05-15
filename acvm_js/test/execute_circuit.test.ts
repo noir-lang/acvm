@@ -1,6 +1,7 @@
-import { test } from "@jest/globals"
+import { expect, test } from "@jest/globals"
 import { abi_encode, abi_decode, execute_circuit } from "../pkg/"
 
+// Noir program which enforces that x != y and returns x + y.
 const abi = {
   parameters:[
     { name:"x", type: { kind: "field" }, visibility:"private" },
@@ -21,9 +22,21 @@ test('recovers original inputs when abi encoding and decoding', () => {
     x: "1",
     y: "2"
   };
-  const initial_witness = abi_encode(abi, inputs, null);
-  const solved_witness = execute_circuit(bytecode, initial_witness)
+  const return_witness: string = abi.return_witnesses[0].toString()
+
+  const initial_witness: Map<string, string> = abi_encode(abi, inputs, null);
+  const solved_witness: Map<string, string> = execute_circuit(bytecode, initial_witness)
+  
+  // Solved witness should be consistent with initial witness
+  initial_witness.forEach((value, key) => {
+    expect(solved_witness.get(key) as string).toBe(value)
+
+  }) 
+  // Solved witness should contain expected return value
+  expect(BigInt(solved_witness.get(return_witness) as string)).toBe(3n)
+
   const decoded_inputs = abi_decode(abi, solved_witness);
-  console.log(decoded_inputs);
+
+  expect(BigInt(decoded_inputs.return_value)).toBe(3n)
 });
 

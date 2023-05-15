@@ -1,4 +1,4 @@
-import { test } from "@jest/globals"
+import { expect, test } from "@jest/globals"
 import { abi_encode, abi_decode } from "../pkg/"
 
 test('recovers original inputs when abi encoding and decoding', () => {
@@ -16,7 +16,11 @@ test('recovers original inputs when abi encoding and decoding', () => {
     foo: "1",
     bar: ["1", "2"]
   };
-  const initial_witness = abi_encode(abi, inputs, null);
-  const decoded_inputs = abi_decode(abi, initial_witness);
-  console.log(decoded_inputs);
+  const initial_witness: Map<string, string> = abi_encode(abi, inputs, null);
+  const decoded_inputs: {inputs: Record<string, any>, return_value: any} = abi_decode(abi, initial_witness);
+  
+  expect(BigInt(decoded_inputs.inputs.foo)).toBe(BigInt(inputs.foo))
+  expect(BigInt(decoded_inputs.inputs.bar[0])).toBe(BigInt(inputs.bar[0]))
+  expect(BigInt(decoded_inputs.inputs.bar[1])).toBe(BigInt(inputs.bar[1]))
+  expect(decoded_inputs.return_value).toBe(null)
 });
