@@ -4,8 +4,7 @@ use std::collections::BTreeMap;
 use wasm_bindgen::JsValue;
 
 pub(crate) fn js_value_to_field_element(js_value: JsValue) -> Result<FieldElement, JsString> {
-    let hex_str =
-        js_value.as_string().ok_or_else(|| "failed to parse field element from non-string")?;
+    let hex_str = js_value.as_string().ok_or("failed to parse field element from non-string")?;
 
     FieldElement::from_hex(&hex_str)
         .ok_or_else(|| format!("Invalid hex string: '{}'", hex_str).into())
