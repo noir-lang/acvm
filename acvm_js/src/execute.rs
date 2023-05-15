@@ -58,7 +58,7 @@ pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: js_sys::Map,
     oracle_resolver: js_sys::Function,
-) -> js_sys::Map {
+) -> Result<js_sys::Map, JsValue> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
     let mut witness_map = js_map_to_witness_map(initial_witness);
@@ -69,7 +69,7 @@ pub async fn execute_circuit(
     loop {
         let solver_status = SimulatedBackend
             .solve(&mut witness_map, &mut blocks, opcodes)
-            .expect("Threw error while executing circuit");
+            .map_err(|err| err.to_string())?;
 
         match solver_status {
             PartialWitnessGeneratorStatus::Solved => break,
@@ -92,7 +92,7 @@ pub async fn execute_circuit(
                             resolved_oracle_call.output_values[i],
                             &mut witness_map,
                         )
-                        .expect("inserted inconsistent witness value");
+                        .map_err(|err| err.to_string())?;
                     }
                 }
 
@@ -102,7 +102,7 @@ pub async fn execute_circuit(
         }
     }
 
-    witness_map_to_js_map(witness_map)
+    Ok(witness_map_to_js_map(witness_map))
 }
 
 async fn resolve_oracle(

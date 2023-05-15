@@ -13,11 +13,15 @@ use crate::js_transforms::{js_map_to_witness_map, witness_map_to_js_map};
 use self::temp::{input_value_from_json_type, JsonTypes};
 
 #[wasm_bindgen]
-pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> js_sys::Map {
+pub fn abi_encode(
+    abi: JsValue,
+    inputs: JsValue,
+    return_value: JsValue,
+) -> Result<js_sys::Map, JsValue> {
     console_error_panic_hook::set_once();
-    let abi: Abi = JsValueSerdeExt::into_serde(&abi).expect("could not decode abi");
+    let abi: Abi = JsValueSerdeExt::into_serde(&abi).map_err(|err| err.to_string())?;
     let inputs: BTreeMap<String, JsonTypes> =
-        JsValueSerdeExt::into_serde(&inputs).expect("could not decode inputs");
+        JsValueSerdeExt::into_serde(&inputs).map_err(|err| err.to_string())?;
     let return_value: Option<InputValue> = if return_value.is_undefined() || return_value.is_null()
     {
         None
@@ -30,7 +34,7 @@ pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> js_sy
                 abi.return_type.as_ref().unwrap(),
                 MAIN_RETURN_NAME,
             )
-            .expect("Could not decode return value"),
+            .map_err(|err| err.to_string())?,
         )
     };
 
@@ -44,21 +48,21 @@ pub fn abi_encode(abi: JsValue, inputs: JsValue, return_value: JsValue) -> js_sy
             input_value_from_json_type(value.clone(), &abi_type, &arg_name)
                 .map(|input_value| (arg_name, input_value))
         })
-        .expect("Could not convert from jsontypes to inputvalues");
+        .map_err(|err| err.to_string())?;
 
-    let witness_map = abi.encode(&parsed_inputs, return_value).expect("abi encoding error");
+    let witness_map = abi.encode(&parsed_inputs, return_value).map_err(|err| err.to_string())?;
 
-    witness_map_to_js_map(witness_map)
+    Ok(witness_map_to_js_map(witness_map))
 }
 
 #[wasm_bindgen]
-pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> JsValue {
+pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> Result<JsValue, JsValue> {
     console_error_panic_hook::set_once();
-    let abi: Abi = JsValueSerdeExt::into_serde(&abi).expect("could not decode abi");
+    let abi: Abi = JsValueSerdeExt::into_serde(&abi).map_err(|err| err.to_string())?;
 
     let witness_map = js_map_to_witness_map(witness_map);
 
-    let (inputs, return_value) = abi.decode(&witness_map).expect("abi decoding error");
+    let (inputs, return_value) = abi.decode(&witness_map).map_err(|err| err.to_string())?;
 
     let inputs_map: BTreeMap<String, JsonTypes> =
         btree_map(inputs, |(key, value)| (key, JsonTypes::from(value)));
@@ -71,5 +75,6 @@ pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> JsValue {
     }
 
     let return_struct = InputsAndReturn { inputs: inputs_map, return_value };
-    <wasm_bindgen::JsValue as JsValueSerdeExt>::from_serde(&return_struct).unwrap()
+    <wasm_bindgen::JsValue as JsValueSerdeExt>::from_serde(&return_struct)
+        .map_err(|err| err.to_string().into())
 }
