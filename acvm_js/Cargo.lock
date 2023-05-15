@@ -60,6 +60,7 @@ dependencies = [
  "noirc_abi",
  "serde",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "wasm-logger",
 ]

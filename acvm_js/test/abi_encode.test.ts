@@ -18,7 +18,7 @@ test('recovers original inputs when abi encoding and decoding', () => {
   };
   const initial_witness: Map<string, string> = abi_encode(abi, inputs, null);
   const decoded_inputs: {inputs: Record<string, any>, return_value: any} = abi_decode(abi, initial_witness);
-  
+
   expect(BigInt(decoded_inputs.inputs.foo)).toBe(BigInt(inputs.foo))
   expect(BigInt(decoded_inputs.inputs.bar[0])).toBe(BigInt(inputs.bar[0]))
   expect(BigInt(decoded_inputs.inputs.bar[1])).toBe(BigInt(inputs.bar[1]))

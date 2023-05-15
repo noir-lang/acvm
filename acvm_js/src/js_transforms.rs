@@ -1,18 +1,29 @@
 use acvm::{acir::native_types::Witness, FieldElement};
+use js_sys::JsString;
 use std::collections::BTreeMap;
+use wasm_bindgen::JsValue;
+
+pub(crate) fn js_value_to_field_element(js_value: JsValue) -> Result<FieldElement, JsString> {
+    let hex_str =
+        js_value.as_string().ok_or_else(|| "failed to parse field element from non-string")?;
+
+    FieldElement::from_hex(&hex_str)
+        .ok_or_else(|| format!("Invalid hex string: '{}'", hex_str).into())
+}
+
+pub(crate) fn field_element_to_js_string(field_element: &FieldElement) -> JsString {
+    // This currently maps `0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000000`
+    // to the bigint `-1n`. This fails when converting back to a `FieldElement`.
+    // js_sys::BigInt::from_str(&value.to_hex()).unwrap()
+
+    format!("0x{}", field_element.to_hex()).into()
+}
 
 pub(crate) fn js_map_to_witness_map(js_map: js_sys::Map) -> BTreeMap<Witness, FieldElement> {
     let mut witness_map: BTreeMap<Witness, FieldElement> = BTreeMap::new();
     js_map.for_each(&mut |value, key| {
-        let witness_index = Witness(key.as_string().unwrap().parse::<u32>().unwrap());
-        // let witness_value: String = js_sys::BigInt::from(value)
-        //     .to_string(16)
-        //     .expect("Could not get value of witness")
-        //     .into();
-        let witness_value: String = value.as_string().expect("Could not get value of witness");
-
-        let witness_value =
-            FieldElement::from_hex(&witness_value).expect("could not convert bigint to fields");
+        let witness_index = Witness(key.as_f64().unwrap() as u32);
+        let witness_value = js_value_to_field_element(value).unwrap();
         witness_map.insert(witness_index, witness_value);
     });
     witness_map
@@ -21,18 +32,7 @@ pub(crate) fn js_map_to_witness_map(js_map: js_sys::Map) -> BTreeMap<Witness, Fi
 pub(crate) fn witness_map_to_js_map(witness_map: BTreeMap<Witness, FieldElement>) -> js_sys::Map {
     let js_map = js_sys::Map::new();
     for (key, value) in witness_map {
-        // This currently maps `0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000000`
-        // to the bigint `-1n`. This fails when converting back to a `FieldElement`.
-
-        // let witness_bigint = js_sys::BigInt::from_str(&value.to_hex())
-        // .expect("could not convert field to bigint");
-
-        let witness_bigint = wasm_bindgen::JsValue::from_str(&value.to_hex());
-
-        js_map.set(
-            &wasm_bindgen::JsValue::from_str(&key.witness_index().to_string()),
-            &witness_bigint,
-        );
+        js_map.set(&js_sys::Number::from(key.witness_index()), &field_element_to_js_string(&value));
     }
     js_map
 }
