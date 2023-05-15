@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{js_map_to_witness_map, witness_map_to_js_map};
+use crate::js_transforms::{js_map_to_witness_map, witness_map_to_js_map};
 
 struct SimulatedBackend;
 

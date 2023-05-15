@@ -8,7 +8,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 mod temp;
 
-use crate::{js_map_to_witness_map, witness_map_to_js_map};
+use crate::js_transforms::{js_map_to_witness_map, witness_map_to_js_map};
 
 use self::temp::{input_value_from_json_type, JsonTypes};
 
