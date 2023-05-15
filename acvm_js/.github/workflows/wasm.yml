@@ -25,5 +25,4 @@ jobs:
         run: cargo install wasm-pack
 
       - name: Build wasm crate
-        working-directory: ./crates/wasm
         run: ./build-wasm
