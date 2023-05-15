@@ -66,15 +66,10 @@ pub async fn execute_circuit(
     let mut blocks = Blocks::default();
     let mut opcodes = circuit.opcodes;
 
-    let mut i = 0;
     loop {
         let solver_status = SimulatedBackend
             .solve(&mut witness_map, &mut blocks, opcodes)
             .expect("Threw error while executing circuit");
-        i += 1;
-        if i > 4 {
-            panic!("too many loops");
-        }
 
         match solver_status {
             PartialWitnessGeneratorStatus::Solved => break,
