@@ -62,7 +62,7 @@ pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> JsValue {
 
     let inputs_map: BTreeMap<String, JsonTypes> =
         btree_map(inputs, |(key, value)| (key, JsonTypes::from(value)));
-    let return_value = return_value.map(|rv| JsonTypes::from(rv));
+    let return_value = return_value.map(JsonTypes::from);
 
     #[derive(Serialize)]
     struct InputsAndReturn {
