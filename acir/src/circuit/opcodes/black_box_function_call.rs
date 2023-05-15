@@ -149,6 +149,143 @@ fn read_outputs<R: Read>(mut reader: R) -> std::io::Result<Vec<Witness>> {
     Ok(outputs)
 }
 
+fn read_aes<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    Ok(BlackBoxFuncCall::AES { inputs, outputs })
+}
+
+fn read_and<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    if inputs.len() != 2 || outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        let lhs = inputs[0];
+        let rhs = inputs[1];
+        let output = outputs[0];
+        Ok(BlackBoxFuncCall::AND { lhs, rhs, output })
+    }
+}
+
+fn read_xor<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    if inputs.len() != 2 || outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        let lhs = inputs[0];
+        let rhs = inputs[1];
+        let output = outputs[0];
+        Ok(BlackBoxFuncCall::XOR { lhs, rhs, output })
+    }
+}
+
+fn read_range<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    read_outputs(&mut reader)?;
+    if inputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::RANGE { input: inputs[0] })
+    }
+}
+
+fn read_sha256<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    Ok(BlackBoxFuncCall::SHA256 { inputs, outputs })
+}
+
+fn read_blake2s<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    Ok(BlackBoxFuncCall::Blake2s { inputs, outputs })
+}
+
+fn read_compute_merkle_root<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    if inputs.len() < 2 || outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::ComputeMerkleRoot {
+            leaf: inputs[0],
+            index: inputs[1],
+            hash_path: inputs[2..].to_vec(),
+            output: outputs[0],
+        })
+    }
+}
+
+fn read_schnorr<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    if inputs.len() < 66 || outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::SchnorrVerify {
+            public_key_x: inputs[0],
+            public_key_y: inputs[1],
+            signature: inputs[2..66].to_vec(),
+            message: inputs[66..].to_vec(),
+            output: outputs[0],
+        })
+    }
+}
+
+fn read_pedersen<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    let domain_separator = read_u32(&mut reader)?;
+
+    Ok(BlackBoxFuncCall::Pedersen { inputs, domain_separator, outputs })
+}
+
+fn read_hash_to_field<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+
+    if outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] })
+    }
+}
+
+fn read_ecdsa_secp256k1<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+
+    if inputs.len() < 128 || outputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::EcdsaSecp256k1 {
+            public_key_x: inputs[0..32].to_vec(),
+            public_key_y: inputs[32..64].to_vec(),
+            signature: inputs[64..128].to_vec(),
+            hashed_message: inputs[128..].to_vec(),
+            output: outputs[0],
+        })
+    }
+}
+
+fn read_fixed_base_scalar_mul<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    if inputs.len() != 1 {
+        Err(std::io::ErrorKind::InvalidData.into())
+    } else {
+        Ok(BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs })
+    }
+}
+
+fn read_keccak256<R: Read>(mut reader: R) -> std::io::Result<BlackBoxFuncCall> {
+    let inputs = read_inputs(&mut reader)?;
+    let outputs = read_outputs(&mut reader)?;
+    Ok(BlackBoxFuncCall::Keccak256 { inputs, outputs })
+}
+
 impl BlackBoxFuncCall {
     pub fn dummy(bb_func: BlackBoxFunc) -> Self {
         match bb_func {
@@ -314,98 +451,20 @@ impl BlackBoxFuncCall {
         let func_index = read_u16(&mut reader)?;
         let name = BlackBoxFunc::from_u16(func_index).ok_or(std::io::ErrorKind::InvalidData)?;
 
-        let inputs = read_inputs(&mut reader)?;
-        let outputs = read_outputs(&mut reader)?;
-
         match name {
-            BlackBoxFunc::AES => Ok(BlackBoxFuncCall::AES { inputs, outputs }),
-            BlackBoxFunc::AND => {
-                if inputs.len() != 2 || outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    let lhs = inputs[0];
-                    let rhs = inputs[1];
-                    let output = outputs[0];
-                    Ok(BlackBoxFuncCall::AND { lhs, rhs, output })
-                }
-            }
-            BlackBoxFunc::XOR => {
-                if inputs.len() != 2 || outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    let lhs = inputs[0];
-                    let rhs = inputs[1];
-                    let output = outputs[0];
-                    Ok(BlackBoxFuncCall::XOR { lhs, rhs, output })
-                }
-            }
-            BlackBoxFunc::RANGE => {
-                if inputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::RANGE { input: inputs[0] })
-                }
-            }
-            BlackBoxFunc::SHA256 => Ok(BlackBoxFuncCall::SHA256 { inputs, outputs }),
-            BlackBoxFunc::Blake2s => Ok(BlackBoxFuncCall::Blake2s { inputs, outputs }),
-            BlackBoxFunc::ComputeMerkleRoot => {
-                if inputs.len() < 2 || outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::ComputeMerkleRoot {
-                        leaf: inputs[0],
-                        index: inputs[1],
-                        hash_path: inputs[2..].to_vec(),
-                        output: outputs[0],
-                    })
-                }
-            }
-            BlackBoxFunc::SchnorrVerify => {
-                if inputs.len() < 66 || outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::SchnorrVerify {
-                        public_key_x: inputs[0],
-                        public_key_y: inputs[1],
-                        signature: inputs[2..66].to_vec(),
-                        message: inputs[66..].to_vec(),
-                        output: outputs[0],
-                    })
-                }
-            }
-            BlackBoxFunc::Pedersen => Ok(BlackBoxFuncCall::Pedersen {
-                inputs,
-                domain_separator: read_u32(&mut reader)?,
-                outputs,
-            }),
-            BlackBoxFunc::HashToField128Security => {
-                if outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::HashToField128Security { inputs, output: outputs[0] })
-                }
-            }
-            BlackBoxFunc::EcdsaSecp256k1 => {
-                if inputs.len() < 128 || outputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::EcdsaSecp256k1 {
-                        public_key_x: inputs[0..32].to_vec(),
-                        public_key_y: inputs[32..64].to_vec(),
-                        signature: inputs[64..128].to_vec(),
-                        hashed_message: inputs[128..].to_vec(),
-                        output: outputs[0],
-                    })
-                }
-            }
-            BlackBoxFunc::FixedBaseScalarMul => {
-                if inputs.len() != 1 {
-                    Err(std::io::ErrorKind::InvalidData.into())
-                } else {
-                    Ok(BlackBoxFuncCall::FixedBaseScalarMul { input: inputs[0], outputs })
-                }
-            }
-            BlackBoxFunc::Keccak256 => Ok(BlackBoxFuncCall::Keccak256 { inputs, outputs }),
+            BlackBoxFunc::AES => read_aes(&mut reader),
+            BlackBoxFunc::AND => read_and(&mut reader),
+            BlackBoxFunc::XOR => read_xor(&mut reader),
+            BlackBoxFunc::SHA256 => read_sha256(&mut reader),
+            BlackBoxFunc::Blake2s => read_blake2s(&mut reader),
+            BlackBoxFunc::FixedBaseScalarMul => read_fixed_base_scalar_mul(&mut reader),
+            BlackBoxFunc::Pedersen => read_pedersen(&mut reader),
+            BlackBoxFunc::Keccak256 => read_keccak256(&mut reader),
+            BlackBoxFunc::HashToField128Security => read_hash_to_field(&mut reader),
+            BlackBoxFunc::RANGE => read_range(&mut reader),
+            BlackBoxFunc::ComputeMerkleRoot => read_compute_merkle_root(&mut reader),
+            BlackBoxFunc::SchnorrVerify => read_schnorr(&mut reader),
+            BlackBoxFunc::EcdsaSecp256k1 => read_ecdsa_secp256k1(&mut reader),
         }
     }
 }
