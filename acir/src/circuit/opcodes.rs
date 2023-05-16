@@ -238,7 +238,7 @@ fn serialization_roundtrip() {
 
     let opcode_arith = Opcode::Arithmetic(Expression::default());
 
-    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {
+    let aes_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {
         inputs: vec![
             FunctionInput { witness: Witness(1u32), num_bits: 12 },
             FunctionInput { witness: Witness(24u32), num_bits: 32 },
@@ -246,10 +246,24 @@ fn serialization_roundtrip() {
         outputs: vec![Witness(123u32), Witness(245u32)],
     });
 
+    let ecdsa_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::EcdsaSecp256k1 {
+        public_key_x: vec![
+            FunctionInput { witness: Witness(10u32), num_bits: 8 },
+            FunctionInput { witness: Witness(11u32), num_bits: 8 },
+        ],
+        public_key_y: vec![
+            FunctionInput { witness: Witness(12u32), num_bits: 8 },
+            FunctionInput { witness: Witness(13u32), num_bits: 8 },
+        ],
+        signature: vec![FunctionInput { witness: Witness(14u32), num_bits: 8 }],
+        hashed_message: vec![FunctionInput { witness: Witness(15u32), num_bits: 8 }],
+        output: Witness(300u32),
+    });
+
     let opcode_directive =
         Opcode::Directive(Directive::Invert { x: Witness(1234u32), result: Witness(56789u32) });
 
-    let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
+    let opcodes = vec![opcode_arith, aes_black_box_func, opcode_directive, ecdsa_black_box_func];
 
     for opcode in opcodes {
         let (op, got_op) = read_write(opcode);
