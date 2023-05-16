@@ -1,7 +1,4 @@
-use std::io::{Read, Write};
-
 use crate::native_types::Expression;
-use crate::serialization::{read_u32, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
@@ -30,33 +27,6 @@ pub struct MemoryBlock {
 }
 
 impl MemoryBlock {
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let id = read_u32(&mut reader)?;
-        let len = read_u32(&mut reader)?;
-        let trace_len = read_u32(&mut reader)?;
-        let mut trace = Vec::with_capacity(len as usize);
-        for _i in 0..trace_len {
-            let operation = Expression::read(&mut reader)?;
-            let index = Expression::read(&mut reader)?;
-            let value = Expression::read(&mut reader)?;
-            trace.push(MemOp { operation, index, value });
-        }
-        Ok(MemoryBlock { id: BlockId(id), len, trace })
-    }
-
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        write_u32(&mut writer, self.id.0)?;
-        write_u32(&mut writer, self.len)?;
-        write_u32(&mut writer, self.trace.len() as u32)?;
-
-        for op in &self.trace {
-            op.operation.write(&mut writer)?;
-            op.index.write(&mut writer)?;
-            op.value.write(&mut writer)?;
-        }
-        Ok(())
-    }
-
     /// Returns the initialization vector of the MemoryBlock
     pub fn init_phase(&self) -> Vec<Expression> {
         let mut init = Vec::new();
