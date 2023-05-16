@@ -188,10 +188,10 @@ impl CSatTransformer {
         new_gate
     }
 
-    /// Normalise an expression by dividing it with its first coefficient
-    /// The first coefficient here means linear_combinations[0].0 of mul_terms[0].0 if the linear_combinations is empty
+    /// Normalize an expression by dividing it by its first coefficient
+    /// The first coefficient here means coefficient of the first linear term, or of the first quadratic term if no linear terms exist.
     /// The function panic if the input expression is constant
-    fn normalise(expr: &Expression) -> (FieldElement, Expression) {
+    fn normalize(expr: &Expression) -> (FieldElement, Expression) {
         let mut norm = expr.clone();
         norm.sort();
         let a = if !norm.linear_combinations.is_empty() {
@@ -211,7 +211,7 @@ impl CSatTransformer {
         expr: &Expression,
         num_witness: &mut u32,
     ) -> Witness {
-        let (l, normalised_expr) = Self::normalise(expr);
+        let (l, normalised_expr) = Self::normalize(expr);
 
         if intermediate_variables.contains_key(&normalised_expr) {
             intermediate_variables[&normalised_expr].1
@@ -282,7 +282,7 @@ impl CSatTransformer {
 
             // Push mul term into the gate
             intermediate_gate.mul_terms.push(mul_term);
-            // Get an intermediate variable which squash the multiplication term
+            // Get an intermediate variable which squashes the multiplication term
             let inter_var = Self::get_or_create_intermediate_vars(
                 intermediate_variables,
                 &intermediate_gate,
@@ -393,7 +393,7 @@ fn simple_reduction_smoke_test() {
         linear_combinations: vec![(-FieldElement::one(), d), (-FieldElement::one(), c)],
         q_c: FieldElement::zero(),
     };
-    let normalized_gate = CSatTransformer::normalise(&expected_intermediate_gate);
-    assert!(intermediate_variables.contains_key(&normalized_gate.1));
-    assert_eq!(intermediate_variables[&normalized_gate.1].1, e);
+    let (_, normalized_gate) = CSatTransformer::normalize(&expected_intermediate_gate);
+    assert!(intermediate_variables.contains_key(&normalized_gate));
+    assert_eq!(intermediate_variables[&normalized_gate].1, e);
 }
