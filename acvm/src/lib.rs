@@ -18,6 +18,9 @@ use acir::{
 use core::fmt::Debug;
 use thiserror::Error;
 
+// We re-export async-trait so consumers can attach it to their impl
+pub use async_trait::async_trait;
+
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
@@ -53,8 +56,44 @@ pub enum OpcodeResolutionError {
 }
 
 pub trait Backend:
-    SmartContract + ProofSystemCompiler + PartialWitnessGenerator + Default + Debug
+    SmartContract
+    + ProofSystemCompiler
+    + PartialWitnessGenerator
+    + CommonReferenceString
+    + Default
+    + Debug
 {
+}
+
+// Unfortunately, Rust doesn't natively allow async functions in traits yet.
+// So we need to annotate our trait with this macro and backends need to attach the macro to their `impl`.
+//
+// For more details, see https://docs.rs/async-trait/latest/async_trait/
+// and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
+#[async_trait]
+pub trait CommonReferenceString {
+    /// The Error type returned by failed function calls in the CommonReferenceString trait.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+
+    /// Provides the common reference string that is needed by other traits
+    async fn generate_common_reference_string(
+        &self,
+        circuit: &Circuit,
+    ) -> Result<Vec<u8>, Self::Error>;
+
+    /// Updates a cached common reference string within the context of a circuit
+    ///
+    /// This function will be called if the common reference string has been cached previously
+    /// and the backend can update it if necessary. This may happen if the common reference string
+    /// contains fewer than the number of points needed by the circuit, or fails any other checks the backend
+    /// must perform.
+    ///
+    /// If the common reference string doesn't need any updates, implementors can return the value passed.
+    async fn update_common_reference_string(
+        &self,
+        common_reference_string: Vec<u8>,
+        circuit: &Circuit,
+    ) -> Result<Vec<u8>, Self::Error>;
 }
 
 /// This component will generate the backend specific output for
@@ -156,8 +195,12 @@ pub trait SmartContract {
 
     // TODO: Allow a backend to support multiple smart contract platforms
 
-    /// Returns an Ethereum smart contract to verify proofs against a given verification key.
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error>;
+    /// Returns an Ethereum smart contract to verify proofs against a given common reference string and verification key.
+    fn eth_contract_from_vk(
+        &self,
+        common_reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error>;
 }
 
 pub trait ProofSystemCompiler {
@@ -178,13 +221,18 @@ pub trait ProofSystemCompiler {
 
     /// Generates a proving and verification key given the circuit description
     /// These keys can then be used to construct a proof and for its verification
-    fn preprocess(&self, circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error>;
+    fn preprocess(
+        &self,
+        common_reference_string: &[u8],
+        circuit: &Circuit,
+    ) -> Result<(Vec<u8>, Vec<u8>), Self::Error>;
 
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     fn prove_with_pk(
         &self,
+        common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
@@ -193,6 +241,7 @@ pub trait ProofSystemCompiler {
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
     fn verify_with_vk(
         &self,
+        common_reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
