@@ -222,7 +222,7 @@ pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
 }
 
 #[deprecated(
-    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for opcode support based on the np language. \n Backends should simply specify what they support."
 )]
 // This is set to match the previous functionality that we had
 // Where we could deduce what opcodes were supported
