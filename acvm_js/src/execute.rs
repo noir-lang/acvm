@@ -7,7 +7,7 @@ use acvm::{
         native_types::Witness,
         BlackBoxFunc,
     },
-    pwg::{block::Blocks, directives::insert_witness, hash, logic, range, signature},
+    pwg::{block::Blocks, hash, logic, range, signature},
     FieldElement, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
     PartialWitnessGeneratorStatus,
 };
@@ -39,9 +39,9 @@ impl PartialWitnessGenerator for SimulatedBackend {
             }
             BlackBoxFunc::RANGE => range::solve_range_opcode(initial_witness, func_call),
             BlackBoxFunc::HashToField128Security => {
-                acvm::pwg::hash::hash_to_field_128_security(initial_witness, func_call)
+                hash::hash_to_field_128_security(initial_witness, func_call)
             }
-            BlackBoxFunc::Keccak256 => todo!("need to update to a newer version of ACVM"),
+            BlackBoxFunc::Keccak256 => hash::keccak256(initial_witness, func_call),
             BlackBoxFunc::AES
             | BlackBoxFunc::Pedersen
             | BlackBoxFunc::ComputeMerkleRoot
@@ -87,8 +87,8 @@ pub async fn execute_circuit(
                 for oracle_call_future in oracle_call_futures {
                     let resolved_oracle_call: OracleData = oracle_call_future.await.unwrap();
                     for (i, witness_index) in resolved_oracle_call.outputs.iter().enumerate() {
-                        insert_witness(
-                            *witness_index,
+                        insert_value(
+                            witness_index,
                             resolved_oracle_call.output_values[i],
                             &mut witness_map,
                         )
@@ -103,6 +103,25 @@ pub async fn execute_circuit(
     }
 
     Ok(witness_map_to_js_map(witness_map))
+}
+
+fn insert_value(
+    witness: &Witness,
+    value_to_insert: FieldElement,
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+) -> Result<(), OpcodeResolutionError> {
+    let optional_old_value = initial_witness.insert(*witness, value_to_insert);
+
+    let old_value = match optional_old_value {
+        Some(old_value) => old_value,
+        None => return Ok(()),
+    };
+
+    if old_value != value_to_insert {
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+    }
+
+    Ok(())
 }
 
 async fn resolve_oracle(
