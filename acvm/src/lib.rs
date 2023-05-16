@@ -7,19 +7,19 @@
 pub mod compiler;
 pub mod pwg;
 
-use crate::pwg::{arithmetic::ArithmeticSolver, oracle::OracleSolver};
 use acir::{
     circuit::{
-        directives::Directive,
-        opcodes::{BlackBoxFuncCall, OracleData},
+        opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode,
     },
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc,
 };
-use pwg::block::Blocks;
-use std::collections::BTreeMap;
+use core::fmt::Debug;
 use thiserror::Error;
+
+// We re-export async-trait so consumers can attach it to their impl
+pub use async_trait::async_trait;
 
 // re-export acir
 pub use acir;
@@ -49,168 +49,164 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
-    #[error("unexpected opcode, expected {0}, but got {1}")]
-    UnexpectedOpcode(&'static str, BlackBoxFunc),
     #[error("expected {0} inputs for function {1}, but got {2}")]
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
+    #[error("failed to solve blackbox function: {0}, reason: {1}")]
+    BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum OpcodeResolution {
-    /// The opcode is resolved
-    Solved,
-    /// The opcode is not solvable             
-    Stalled(OpcodeNotSolvable),
-    /// The opcode is not solvable but could resolved some witness
-    InProgress,
+pub trait Backend:
+    SmartContract
+    + ProofSystemCompiler
+    + PartialWitnessGenerator
+    + CommonReferenceString
+    + Default
+    + Debug
+{
 }
 
-pub trait Backend: SmartContract + ProofSystemCompiler + PartialWitnessGenerator {}
+// Unfortunately, Rust doesn't natively allow async functions in traits yet.
+// So we need to annotate our trait with this macro and backends need to attach the macro to their `impl`.
+//
+// For more details, see https://docs.rs/async-trait/latest/async_trait/
+// and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
+#[async_trait]
+pub trait CommonReferenceString {
+    /// The Error type returned by failed function calls in the CommonReferenceString trait.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+
+    /// Provides the common reference string that is needed by other traits
+    async fn generate_common_reference_string(
+        &self,
+        circuit: &Circuit,
+    ) -> Result<Vec<u8>, Self::Error>;
+
+    /// Updates a cached common reference string within the context of a circuit
+    ///
+    /// This function will be called if the common reference string has been cached previously
+    /// and the backend can update it if necessary. This may happen if the common reference string
+    /// contains fewer than the number of points needed by the circuit, or fails any other checks the backend
+    /// must perform.
+    ///
+    /// If the common reference string doesn't need any updates, implementors can return the value passed.
+    async fn update_common_reference_string(
+        &self,
+        common_reference_string: Vec<u8>,
+        circuit: &Circuit,
+    ) -> Result<Vec<u8>, Self::Error>;
+}
 
 /// This component will generate the backend specific output for
 /// each OPCODE.
 /// Returns an Error if the backend does not support that OPCODE
 pub trait PartialWitnessGenerator {
-    fn solve(
+    fn aes(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        blocks: &mut Blocks,
-        mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<(Vec<Opcode>, Vec<OracleData>), OpcodeResolutionError> {
-        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        let mut unresolved_oracles: Vec<OracleData> = Vec::new();
-        while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
-            unresolved_opcodes.clear();
-            let mut stalled = true;
-            let mut opcode_not_solvable = None;
-            for opcode in &opcode_to_solve {
-                let mut solved_oracle_data = None;
-                let resolution = match opcode {
-                    Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                    Opcode::BlackBoxFuncCall(bb_func) => {
-                        if let Some(unassigned_witness) =
-                            Self::any_missing_assignment(initial_witness, bb_func)
-                        {
-                            Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                                unassigned_witness.0,
-                            )))
-                        } else {
-                            Self::solve_black_box_function_call(initial_witness, bb_func)
-                        }
-                    }
-                    Opcode::Directive(directive) => {
-                        Self::solve_directives(initial_witness, directive)
-                    }
-                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                        blocks.solve(block.id, &block.trace, initial_witness)
-                    }
-                    Opcode::Oracle(data) => {
-                        let mut data_clone = data.clone();
-                        let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
-                        solved_oracle_data = Some(data_clone);
-                        Ok(result)
-                    }
-                };
-                match resolution {
-                    Ok(OpcodeResolution::Solved) => {
-                        stalled = false;
-                    }
-                    Ok(OpcodeResolution::InProgress) => {
-                        stalled = false;
-                        // InProgress Oracles must be externally re-solved
-                        if let Some(oracle) = solved_oracle_data {
-                            unresolved_oracles.push(oracle);
-                        } else {
-                            unresolved_opcodes.push(opcode.clone());
-                        }
-                    }
-                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                        if opcode_not_solvable.is_none() {
-                            // we keep track of the first unsolvable opcode
-                            opcode_not_solvable = Some(not_solvable);
-                        }
-                        // We push those opcodes not solvable to the back as
-                        // it could be because the opcodes are out of order, i.e. this assignment
-                        // relies on a later opcodes' results
-                        unresolved_opcodes.push(match solved_oracle_data {
-                            Some(oracle_data) => Opcode::Oracle(oracle_data),
-                            None => opcode.clone(),
-                        });
-                    }
-                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                        unreachable!("ICE - Result should have been converted to GateResolution")
-                    }
-                    Err(err) => return Err(err),
-                }
-            }
-            // We have oracles that must be externally resolved
-            if !unresolved_oracles.is_empty() {
-                return Ok((unresolved_opcodes, unresolved_oracles));
-            }
-            // We are stalled because of an opcode being bad
-            if stalled && !unresolved_opcodes.is_empty() {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    opcode_not_solvable
-                        .expect("infallible: cannot be stalled and None at the same time"),
-                ));
-            }
-            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
-        }
-        Ok((Vec::new(), Vec::new()))
-    }
-
-    fn solve_black_box_function_call(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        func_call: &BlackBoxFuncCall,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-
-    // Check if all of the inputs to the function have assignments
-    // Returns the first missing assignment if any are missing
-    fn any_missing_assignment(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        func_call: &BlackBoxFuncCall,
-    ) -> Option<Witness> {
-        func_call.inputs.iter().find_map(|input| {
-            if initial_witness.contains_key(&input.witness) {
-                None
-            } else {
-                Some(input.witness)
-            }
-        })
-    }
-
-    fn solve_directives(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        directive: &Directive,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        match pwg::directives::solve_directives(initial_witness, directive) {
-            Ok(_) => Ok(OpcodeResolution::Solved),
-            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
-                Ok(OpcodeResolution::Stalled(unsolved))
-            }
-            Err(err) => Err(err),
-        }
-    }
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn and(
+        &self,
+        initial_witness: &mut WitnessMap,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn xor(
+        &self,
+        initial_witness: &mut WitnessMap,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn range(
+        &self,
+        initial_witness: &mut WitnessMap,
+        input: &FunctionInput,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn sha256(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn blake2s(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn compute_merkle_root(
+        &self,
+        initial_witness: &mut WitnessMap,
+        leaf: &FunctionInput,
+        index: &FunctionInput,
+        hash_path: &[FunctionInput],
+        output: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn schnorr_verify(
+        &self,
+        initial_witness: &mut WitnessMap,
+        public_key_x: &FunctionInput,
+        public_key_y: &FunctionInput,
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        output: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn pedersen(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn hash_to_field_128_security(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn ecdsa_secp256k1(
+        &self,
+        initial_witness: &mut WitnessMap,
+        public_key_x: &[FunctionInput],
+        public_key_y: &[FunctionInput],
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        outputs: &Witness,
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn fixed_base_scalar_mul(
+        &self,
+        initial_witness: &mut WitnessMap,
+        input: &FunctionInput,
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn keccak256(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
+    /// The Error type returned by failed function calls in the SmartContract trait.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+
     // TODO: Allow a backend to support multiple smart contract platforms
 
-    /// Takes an ACIR circuit, the number of witnesses and the number of public inputs
-    /// Then returns an Ethereum smart contract
-    ///
-    /// XXX: This will be deprecated in future releases for the above method.
-    /// This deprecation may happen in two stages:
-    /// The first stage will remove `num_witnesses` and `num_public_inputs` parameters.
-    /// If we cannot avoid `num_witnesses`, it can be added into the Circuit struct.
-    #[deprecated]
-    fn eth_contract_from_cs(&self, circuit: Circuit) -> String;
-
-    /// Returns an Ethereum smart contract to verify proofs against a given verification key.
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String;
+    /// Returns an Ethereum smart contract to verify proofs against a given common reference string and verification key.
+    fn eth_contract_from_vk(
+        &self,
+        common_reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error>;
 }
 
 pub trait ProofSystemCompiler {
+    /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
+    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
@@ -221,30 +217,36 @@ pub trait ProofSystemCompiler {
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
 
     /// Returns the number of gates in a circuit
-    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32;
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
 
     /// Generates a proving and verification key given the circuit description
     /// These keys can then be used to construct a proof and for its verification
-    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>);
+    fn preprocess(
+        &self,
+        common_reference_string: &[u8],
+        circuit: &Circuit,
+    ) -> Result<(Vec<u8>, Vec<u8>), Self::Error>;
 
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     fn prove_with_pk(
         &self,
+        common_reference_string: &[u8],
         circuit: &Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
+        witness_values: WitnessMap,
         proving_key: &[u8],
-    ) -> Vec<u8>;
+    ) -> Result<Vec<u8>, Self::Error>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
     fn verify_with_vk(
         &self,
+        common_reference_string: &[u8],
         proof: &[u8],
-        public_inputs: BTreeMap<Witness, FieldElement>,
+        public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
-    ) -> bool;
+    ) -> Result<bool, Self::Error>;
 }
 
 /// Supported NP complete languages
@@ -255,6 +257,7 @@ pub enum Language {
     PLONKCSat { width: usize },
 }
 
+#[deprecated]
 pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     let mut bytes = Vec::new();
     cs.write(&mut bytes).expect("could not serialize circuit");
@@ -266,6 +269,7 @@ pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
     hasher.finalize_fixed().into()
 }
 
+#[deprecated]
 pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
     let mut bytes = Vec::new();
     cs.write(&mut bytes).expect("could not serialize circuit");
@@ -297,11 +301,7 @@ pub fn default_is_opcode_supported(
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(
-            opcode,
-            Opcode::BlackBoxFuncCall(BlackBoxFuncCall { name: BlackBoxFunc::AES, .. })
-                | Opcode::Block(_)
-        )
+        !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES { .. }) | Opcode::Block(_))
     }
 
     match language {
@@ -317,23 +317,131 @@ mod test {
     use acir::{
         circuit::{
             directives::Directive,
-            opcodes::{BlackBoxFuncCall, OracleData},
+            opcodes::{FunctionInput, OracleData},
             Opcode,
         },
-        native_types::{Expression, Witness},
+        native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
     use crate::{
-        pwg::block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
+        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus},
+        OpcodeResolutionError, PartialWitnessGenerator,
     };
 
     struct StubbedPwg;
 
     impl PartialWitnessGenerator for StubbedPwg {
-        fn solve_black_box_function_call(
-            _initial_witness: &mut BTreeMap<Witness, FieldElement>,
-            _func_call: &BlackBoxFuncCall,
+        fn aes(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn and(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _lhs: &FunctionInput,
+            _rhs: &FunctionInput,
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn xor(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _lhs: &FunctionInput,
+            _rhs: &FunctionInput,
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn range(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _input: &FunctionInput,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn sha256(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn blake2s(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn compute_merkle_root(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _leaf: &FunctionInput,
+            _index: &FunctionInput,
+            _hash_path: &[FunctionInput],
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn schnorr_verify(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _public_key_x: &FunctionInput,
+            _public_key_y: &FunctionInput,
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn pedersen(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn hash_to_field_128_security(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn ecdsa_secp256k1(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _public_key_x: &[FunctionInput],
+            _public_key_y: &[FunctionInput],
+            _signature: &[FunctionInput],
+            _message: &[FunctionInput],
+            _output: &Witness,
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn fixed_base_scalar_mul(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _input: &FunctionInput,
+            _outputs: &[Witness],
+        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn keccak256(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _inputs: &[FunctionInput],
+            _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
@@ -384,29 +492,32 @@ mod test {
             }),
         ];
 
-        let pwg = StubbedPwg;
+        let backend = StubbedPwg;
 
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
-        ]);
+        ])
+        .into();
         let mut blocks = Blocks::default();
-        let (unsolved_opcodes, mut unresolved_oracles) = pwg
-            .solve(&mut witness_assignments, &mut blocks, opcodes)
+        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresOracleData { mut required_oracle_data, unsolved_opcodes } = solver_status else {
+            panic!("Should require oracle data")
+        };
         assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
-        assert_eq!(unresolved_oracles.len(), 1, "should have an oracle request");
-        let mut oracle_data = unresolved_oracles.remove(0);
+        assert_eq!(required_oracle_data.len(), 1, "should have an oracle request");
+        let mut oracle_data = required_oracle_data.remove(0);
+
         assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
 
         // Filling data request and continue solving
         oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
         let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-        let (unsolved_opcodes, unresolved_oracles) = pwg
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should be solvable");
-        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
-        assert!(unresolved_oracles.is_empty(), "should have no unresolved oracles");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should be solvable");
+        assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }

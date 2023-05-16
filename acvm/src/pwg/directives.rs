@@ -1,19 +1,38 @@
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::cmp::Ordering;
 
 use acir::{
-    circuit::directives::{Directive, LogInfo},
-    native_types::Witness,
+    circuit::directives::{Directive, LogInfo, QuotientDirective},
+    native_types::WitnessMap,
     FieldElement,
 };
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-use crate::OpcodeResolutionError;
+use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value, sorting::route, witness_to_value};
 
+/// Attempts to solve the [`Directive`] opcode `directive`.
+/// If successful, `initial_witness` will be mutated to contain the new witness assignment.
+///
+/// Returns `Ok(OpcodeResolution)` to signal whether the directive was successful solved.
+///
+/// Returns `Err(OpcodeResolutionError)` if a circuit constraint is unsatisfied.
 pub fn solve_directives(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
+    directive: &Directive,
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    match solve_directives_internal(initial_witness, directive) {
+        Ok(_) => Ok(OpcodeResolution::Solved),
+        Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
+            Ok(OpcodeResolution::Stalled(unsolved))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn solve_directives_internal(
+    initial_witness: &mut WitnessMap,
     directive: &Directive,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
@@ -23,7 +42,7 @@ pub fn solve_directives(
             initial_witness.insert(*result, inverse);
             Ok(())
         }
-        Directive::Quotient { a, b, q, r, predicate } => {
+        Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;
             let int_a = BigUint::from_bytes_be(&val_a.to_be_bytes());
@@ -42,13 +61,13 @@ pub fn solve_directives(
                 (&int_a % &int_b, &int_a / &int_b)
             };
 
-            insert_witness(
-                *q,
+            insert_value(
+                q,
                 FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
                 initial_witness,
             )?;
-            insert_witness(
-                *r,
+            insert_value(
+                r,
                 FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
                 initial_witness,
             )?;
@@ -110,7 +129,7 @@ pub fn solve_directives(
             let control = route(base, b);
             for (w, value) in bits.iter().zip(control) {
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
-                insert_witness(*w, value, initial_witness)?;
+                insert_value(w, value, initial_witness)?;
             }
             Ok(())
         }
@@ -151,24 +170,6 @@ pub fn solve_directives(
             Ok(())
         }
     }
-}
-
-pub fn insert_witness(
-    w: Witness,
-    value: FieldElement,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
-) -> Result<(), OpcodeResolutionError> {
-    match initial_witness.entry(w) {
-        std::collections::btree_map::Entry::Vacant(e) => {
-            e.insert(value);
-        }
-        std::collections::btree_map::Entry::Occupied(e) => {
-            if e.get() != &value {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
-            }
-        }
-    }
-    Ok(())
 }
 
 /// This trims any leading zeroes.

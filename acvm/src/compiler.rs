@@ -13,6 +13,9 @@ use optimizers::GeneralOptimizer;
 use thiserror::Error;
 use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
 
+use self::optimizers::RangeOptimizer;
+use self::optimizers::Simplifier;
+
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
@@ -23,13 +26,14 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: IsOpcodeSupported,
+    simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Fallback transformer pass
-    let acir = FallbackTransformer::transform(acir, is_opcode_supported)?;
+    let acir = FallbackTransformer::transform(acir, is_opcode_supported, simplifier)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();
@@ -42,6 +46,10 @@ pub fn compile(
         };
     }
     let acir = Circuit { opcodes, ..acir };
+
+    // Range optimization pass
+    let range_optimizer = RangeOptimizer::new(acir);
+    let acir = range_optimizer.replace_redundant_ranges();
 
     let transformer = match &np_language {
         crate::Language::R1CS => {

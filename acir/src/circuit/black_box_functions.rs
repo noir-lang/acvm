@@ -13,7 +13,7 @@ pub enum BlackBoxFunc {
     RANGE,
     SHA256,
     Blake2s,
-    MerkleMembership,
+    ComputeMerkleRoot,
     SchnorrVerify,
     Pedersen,
     // 128 here specifies that this function
@@ -35,7 +35,7 @@ impl BlackBoxFunc {
         match self {
             BlackBoxFunc::AES => 0,
             BlackBoxFunc::SHA256 => 1,
-            BlackBoxFunc::MerkleMembership => 2,
+            BlackBoxFunc::ComputeMerkleRoot => 2,
             BlackBoxFunc::SchnorrVerify => 3,
             BlackBoxFunc::Blake2s => 4,
             BlackBoxFunc::Pedersen => 5,
@@ -52,7 +52,7 @@ impl BlackBoxFunc {
         let function = match index {
             0 => BlackBoxFunc::AES,
             1 => BlackBoxFunc::SHA256,
-            2 => BlackBoxFunc::MerkleMembership,
+            2 => BlackBoxFunc::ComputeMerkleRoot,
             3 => BlackBoxFunc::SchnorrVerify,
             4 => BlackBoxFunc::Blake2s,
             5 => BlackBoxFunc::Pedersen,
@@ -71,7 +71,7 @@ impl BlackBoxFunc {
         match self {
             BlackBoxFunc::AES => "aes",
             BlackBoxFunc::SHA256 => "sha256",
-            BlackBoxFunc::MerkleMembership => "merkle_membership",
+            BlackBoxFunc::ComputeMerkleRoot => "compute_merkle_root",
             BlackBoxFunc::SchnorrVerify => "schnorr_verify",
             BlackBoxFunc::Blake2s => "blake2s",
             BlackBoxFunc::Pedersen => "pedersen",
@@ -88,7 +88,7 @@ impl BlackBoxFunc {
         match op_name {
             "aes" => Some(BlackBoxFunc::AES),
             "sha256" => Some(BlackBoxFunc::SHA256),
-            "merkle_membership" => Some(BlackBoxFunc::MerkleMembership),
+            "compute_merkle_root" => Some(BlackBoxFunc::ComputeMerkleRoot),
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
             "blake2s" => Some(BlackBoxFunc::Blake2s),
             "pedersen" => Some(BlackBoxFunc::Pedersen),
@@ -105,90 +105,6 @@ impl BlackBoxFunc {
     pub fn is_valid_black_box_func_name(op_name: &str) -> bool {
         BlackBoxFunc::lookup(op_name).is_some()
     }
-    pub fn definition(&self) -> FuncDefinition {
-        let name = self.name();
-        match self {
-            BlackBoxFunc::AES => unimplemented!(),
-            BlackBoxFunc::SHA256 => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(32),
-            },
-            BlackBoxFunc::Blake2s => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(32),
-            },
-            BlackBoxFunc::HashToField128Security => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::MerkleMembership => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::SchnorrVerify => FuncDefinition {
-                name,
-                // XXX: input_size can be changed to fixed, once we hash
-                // the message before passing it to schnorr.
-                // This is assuming all hashes will be 256 bits. Reasonable?
-                input_size: InputSize::Variable,
-                output_size: OutputSize(1),
-            },
-            BlackBoxFunc::Pedersen => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(2) }
-            }
-            BlackBoxFunc::EcdsaSecp256k1 => {
-                FuncDefinition { name, input_size: InputSize::Variable, output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::FixedBaseScalarMul => {
-                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(2) }
-            }
-            BlackBoxFunc::AND => {
-                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::XOR => {
-                FuncDefinition { name, input_size: InputSize::Fixed(2), output_size: OutputSize(1) }
-            }
-            BlackBoxFunc::RANGE => {
-                FuncDefinition { name, input_size: InputSize::Fixed(1), output_size: OutputSize(0) }
-            }
-            BlackBoxFunc::Keccak256 => FuncDefinition {
-                name,
-                input_size: InputSize::Variable,
-                output_size: OutputSize(32),
-            },
-        }
-    }
-}
-
-// Descriptor as to whether the input/output is fixed or variable
-// Example: The input for Sha256 is Variable and the output is fixed at 2 witnesses
-// each holding 128 bits of the actual Sha256 function
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum InputSize {
-    Variable,
-    Fixed(u128),
-}
-
-impl InputSize {
-    pub fn fixed_size(&self) -> Option<u128> {
-        match self {
-            InputSize::Variable => None,
-            InputSize::Fixed(size) => Some(*size),
-        }
-    }
-}
-
-// Output size Cannot currently vary, so we use a separate struct
-// XXX: In the future, we may be able to allow the output to vary based on the input size, however this implies support for dynamic circuits
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct OutputSize(pub u128);
-
-#[derive(Clone, Debug, Hash)]
-// Specs for how many inputs/outputs the method takes.
-pub struct FuncDefinition {
-    pub name: &'static str,
-    pub input_size: InputSize,
-    pub output_size: OutputSize,
 }
 
 #[cfg(test)]

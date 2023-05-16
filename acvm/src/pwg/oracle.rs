@@ -1,17 +1,15 @@
-use std::collections::BTreeMap;
+use acir::{circuit::opcodes::OracleData, native_types::WitnessMap, FieldElement};
 
-use acir::{circuit::opcodes::OracleData, native_types::Witness, FieldElement};
+use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
-
-use super::{arithmetic::ArithmeticSolver, directives::insert_witness, get_value};
+use super::{arithmetic::ArithmeticSolver, get_value, insert_value};
 
 pub struct OracleSolver;
 
 impl OracleSolver {
     /// Derives the rest of the witness based on the initial low level variables
     pub fn solve(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         data: &mut OracleData,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
@@ -31,7 +29,7 @@ impl OracleSolver {
         // A zero predicate indicates the oracle should be skipped, and its outputs zeroed.
         if pred_value.is_zero() {
             for output in &data.outputs {
-                insert_witness(*output, FieldElement::zero(), initial_witness)?;
+                insert_value(output, FieldElement::zero(), initial_witness)?;
             }
             return Ok(OpcodeResolution::Solved);
         }
@@ -50,7 +48,7 @@ impl OracleSolver {
         if data.input_values.len() == data.inputs.len() {
             if data.output_values.len() == data.outputs.len() {
                 for (out, value) in data.outputs.iter().zip(data.output_values.iter()) {
-                    insert_witness(*out, *value, initial_witness)?;
+                    insert_value(out, *value, initial_witness)?;
                 }
                 Ok(OpcodeResolution::Solved)
             } else {

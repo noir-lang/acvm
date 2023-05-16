@@ -5,11 +5,8 @@ pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
 use crate::serialization::{read_u32, write_u32};
-use rmp_serde;
 use serde::{Deserialize, Serialize};
 
-use flate2::bufread::{DeflateDecoder, DeflateEncoder};
-use flate2::Compression;
 use std::collections::BTreeSet;
 use std::io::prelude::*;
 
@@ -42,27 +39,6 @@ impl Circuit {
         let public_inputs =
             self.public_parameters.0.union(&self.return_values.0).cloned().collect();
         PublicInputs(public_inputs)
-    }
-
-    #[deprecated(
-        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi). use `read` instead"
-    )]
-    pub fn from_bytes(bytes: &[u8]) -> Circuit {
-        let mut deflater = DeflateDecoder::new(bytes);
-        let mut buf_d = Vec::new();
-        deflater.read_to_end(&mut buf_d).unwrap();
-        rmp_serde::from_slice(buf_d.as_slice()).unwrap()
-    }
-
-    #[deprecated(
-        note = "we want to use a serialization strategy that is easy to implement in many languages (without ffi).use `write` instead"
-    )]
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let buf = rmp_serde::to_vec(&self).unwrap();
-        let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
-        let mut buf_c = Vec::new();
-        deflater.read_to_end(&mut buf_c).unwrap();
-        buf_c
     }
 
     pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
@@ -115,7 +91,11 @@ impl Circuit {
         }
 
         let num_opcodes = read_u32(&mut reader)?;
-        let mut opcodes = Vec::with_capacity(num_opcodes as usize);
+
+        let mut opcodes = Vec::new();
+        opcodes
+            .try_reserve_exact(num_opcodes as usize)
+            .map_err(|_| std::io::ErrorKind::InvalidData)?;
         for _ in 0..num_opcodes {
             let opcode = Opcode::read(&mut reader)?;
             opcodes.push(opcode)
@@ -188,20 +168,15 @@ mod test {
     use acir_field::FieldElement;
 
     fn and_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::AND,
-            inputs: vec![
-                FunctionInput { witness: Witness(1), num_bits: 4 },
-                FunctionInput { witness: Witness(2), num_bits: 4 },
-            ],
-            outputs: vec![Witness(3)],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
+            lhs: FunctionInput { witness: Witness(1), num_bits: 4 },
+            rhs: FunctionInput { witness: Witness(2), num_bits: 4 },
+            output: Witness(3),
         })
     }
     fn range_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![FunctionInput { witness: Witness(1), num_bits: 8 }],
-            outputs: vec![],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: Witness(1), num_bits: 8 },
         })
     }
     fn oracle_opcode() -> Opcode {
@@ -260,31 +235,6 @@ mod test {
         let json = serde_json::to_string_pretty(&circuit).unwrap();
 
         let deserialized = serde_json::from_str(&json).unwrap();
-        assert_eq!(circuit, deserialized);
-    }
-
-    #[allow(deprecated)]
-    #[test]
-    fn test_to_byte() {
-        let circuit = Circuit {
-            current_witness_index: 0,
-            opcodes: vec![
-                Opcode::Arithmetic(crate::native_types::Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![],
-                    q_c: FieldElement::from_hex("FFFF").unwrap(),
-                }),
-                range_opcode(),
-                and_opcode(),
-                oracle_opcode(),
-            ],
-            public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
-            return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
-        };
-
-        let bytes = circuit.to_bytes();
-
-        let deserialized = Circuit::from_bytes(bytes.as_slice());
         assert_eq!(circuit, deserialized);
     }
 }
