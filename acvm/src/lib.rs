@@ -227,7 +227,7 @@ pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
 // This is set to match the previous functionality that we had
 // Where we could deduce what opcodes were supported
 // by knowing the np complete language
-pub fn default_is_opcode_supported(language: Language) -> impl Fn(&Opcode) -> bool {
+pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // R1CS does not support any of the opcode except Arithmetic by default.
     // The compiler will replace those that it can -- ie range, xor, and
     fn r1cs_is_supported(opcode: &Opcode) -> bool {
