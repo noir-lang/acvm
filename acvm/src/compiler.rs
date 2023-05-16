@@ -68,6 +68,8 @@ pub fn compile(
     let mut transformed_gates = Vec::new();
 
     let mut next_witness_index = acir.current_witness_index + 1;
+    // maps a normalized expression to the intermediate variable which represents the expression, along with its 'norm'
+    // the 'norm' is simply the value of the first non zero coefficient in the expression, taken from the linear terms, or quadratic terms if there is none.
     let mut intermediate_variables: IndexMap<Expression, (FieldElement, Witness)> = IndexMap::new();
     for opcode in acir.opcodes {
         match opcode {
