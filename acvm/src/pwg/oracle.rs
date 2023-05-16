@@ -28,7 +28,7 @@ impl OracleSolver {
             Err(err) => return Err(err),
         };
 
-        // A zero predicate indicates the oracle should be skipped, and its ouputs zeroed.
+        // A zero predicate indicates the oracle should be skipped, and its outputs zeroed.
         if pred_value.is_zero() {
             for output in &data.outputs {
                 insert_witness(*output, FieldElement::zero(), initial_witness)?;
