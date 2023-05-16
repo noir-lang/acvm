@@ -202,7 +202,7 @@ impl CSatTransformer {
     }
 
     /// Get or generate a witness which is equal to the provided expression
-    /// The sets of previously generated witness and their (normalised) expression is cached in the intermediate_variables map
+    /// The sets of previously generated witness and their (normalized) expression is cached in the intermediate_variables map
     /// If there is no cache hit, we generate a new witness (and add the expression to the cache)
     /// else, we return the cached witness
     fn get_or_create_intermediate_vars(
@@ -210,15 +210,15 @@ impl CSatTransformer {
         expr: Expression,
         num_witness: &mut u32,
     ) -> Witness {
-        let (l, normalised_expr) = Self::normalize(expr);
+        let (l, normalized_expr) = Self::normalize(expr);
 
-        if intermediate_variables.contains_key(&normalised_expr) {
-            intermediate_variables[&normalised_expr].1
+        if intermediate_variables.contains_key(&normalized_expr) {
+            intermediate_variables[&normalized_expr].1
         } else {
             let inter_var = Witness(*num_witness);
             *num_witness += 1;
             // Add intermediate gate and variable to map
-            intermediate_variables.insert(normalised_expr, (l, inter_var));
+            intermediate_variables.insert(normalized_expr, (l, inter_var));
             inter_var
         }
     }

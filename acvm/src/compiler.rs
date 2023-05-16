@@ -86,7 +86,7 @@ pub fn compile(
                 next_witness_index += (intermediate_variables.len() - len) as u32;
                 let mut new_gates = Vec::new();
                 for (g, (norm, w)) in intermediate_variables.iter().skip(len) {
-                    // de-normalise
+                    // de-normalize
                     let mut intermediate_gate = g * *norm;
                     // constrain the intermediate gate to the intermediate variable
                     intermediate_gate.linear_combinations.push((-FieldElement::one(), *w));
