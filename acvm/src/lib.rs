@@ -207,6 +207,9 @@ pub trait ProofSystemCompiler {
     /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
     type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
 
+    /// Returns the identifier for the backend.
+    fn backend_identifier(&self) -> String;
+
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
     /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
