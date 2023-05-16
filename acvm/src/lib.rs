@@ -85,8 +85,8 @@ pub trait CommonReferenceString {
     ///
     /// This function will be called if the common reference string has been cached previously
     /// and the backend can update it if necessary. This may happen if the common reference string
-    /// contains fewer than the number of points needed by the circuit, or any other checks the backend
-    /// must do.
+    /// contains fewer than the number of points needed by the circuit, or fails any other checks the backend
+    /// must perform.
     ///
     /// If the common reference string doesn't need any updates, implementors can return the value passed.
     async fn update_common_reference_string(
