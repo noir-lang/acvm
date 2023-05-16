@@ -213,8 +213,8 @@ pub trait ProofSystemCompiler {
     /// if the language and proof system does not line up.
     fn np_language(&self) -> Language;
 
-    // Returns true if the backend supports the selected black box function
-    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool;
+    // Returns true if the backend supports the selected opcode
+    fn supports_opcode(&self, opcode: &Opcode) -> bool;
 
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
@@ -282,14 +282,12 @@ pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
 }
 
 #[deprecated(
-    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for black box function support based on the np language. \n Backends should simply specify what they support."
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for opcode support based on the np language. \n Backends should simply specify what they support."
 )]
 // This is set to match the previous functionality that we had
 // Where we could deduce what opcodes were supported
 // by knowing the np complete language
-pub fn default_is_opcode_supported(
-    language: Language,
-) -> compiler::transformers::IsOpcodeSupported {
+pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // R1CS does not support any of the opcode except Arithmetic by default.
     // The compiler will replace those that it can -- ie range, xor, and
     fn r1cs_is_supported(opcode: &Opcode) -> bool {
