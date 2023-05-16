@@ -168,7 +168,7 @@ impl CSatTransformer {
 
                     let inter_var = Self::get_or_create_intermediate_vars(
                         intermediate_variables,
-                        &intermediate_gate,
+                        intermediate_gate,
                         num_witness,
                     );
 
@@ -191,15 +191,14 @@ impl CSatTransformer {
     /// Normalize an expression by dividing it by its first coefficient
     /// The first coefficient here means coefficient of the first linear term, or of the first quadratic term if no linear terms exist.
     /// The function panic if the input expression is constant
-    fn normalize(expr: &Expression) -> (FieldElement, Expression) {
-        let mut norm = expr.clone();
-        norm.sort();
-        let a = if !norm.linear_combinations.is_empty() {
-            norm.linear_combinations[0].0
+    fn normalize(mut expr: Expression) -> (FieldElement, Expression) {
+        expr.sort();
+        let a = if !expr.linear_combinations.is_empty() {
+            expr.linear_combinations[0].0
         } else {
-            norm.mul_terms[0].0
+            expr.mul_terms[0].0
         };
-        (a, Expression::default().add_mul(a.inverse(), &norm))
+        (a, Expression::default().add_mul(a.inverse(), &expr))
     }
 
     /// Get or generate a witness which is equal to the provided expression
@@ -208,7 +207,7 @@ impl CSatTransformer {
     /// else, we return the cached witness
     fn get_or_create_intermediate_vars(
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
-        expr: &Expression,
+        expr: Expression,
         num_witness: &mut u32,
     ) -> Witness {
         let (l, normalised_expr) = Self::normalize(expr);
@@ -285,7 +284,7 @@ impl CSatTransformer {
             // Get an intermediate variable which squashes the multiplication term
             let inter_var = Self::get_or_create_intermediate_vars(
                 intermediate_variables,
-                &intermediate_gate,
+                intermediate_gate,
                 num_witness,
             );
 
@@ -324,12 +323,11 @@ impl CSatTransformer {
             }
             let inter_var = Self::get_or_create_intermediate_vars(
                 intermediate_variables,
-                &intermediate_gate,
+                intermediate_gate,
                 num_witness,
             );
 
             added.push((FieldElement::one(), inter_var));
-            intermediate_gate.linear_combinations.push((-FieldElement::one(), inter_var));
         }
 
         // Add back the intermediate variables to
@@ -393,7 +391,7 @@ fn simple_reduction_smoke_test() {
         linear_combinations: vec![(-FieldElement::one(), d), (-FieldElement::one(), c)],
         q_c: FieldElement::zero(),
     };
-    let (_, normalized_gate) = CSatTransformer::normalize(&expected_intermediate_gate);
+    let (_, normalized_gate) = CSatTransformer::normalize(expected_intermediate_gate);
     assert!(intermediate_variables.contains_key(&normalized_gate));
     assert_eq!(intermediate_variables[&normalized_gate].1, e);
 }
