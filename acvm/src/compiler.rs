@@ -85,13 +85,13 @@ pub fn compile(
                 // Update next_witness counter
                 next_witness_index += (intermediate_variables.len() - len) as u32;
                 let mut new_gates = Vec::new();
-                for (g, (l, w)) in intermediate_variables.iter().skip(len) {
+                for (g, (norm, w)) in intermediate_variables.iter().skip(len) {
                     // de-normalise
-                    let mut new_g = Expression::default().add_mul(*l, g);
+                    let mut intermediate_gate = g * *norm;
                     // constrain the intermediate gate to the intermediate variable
-                    new_g.linear_combinations.push((-FieldElement::one(), *w));
-                    new_g.sort();
-                    new_gates.push(new_g);
+                    intermediate_gate.linear_combinations.push((-FieldElement::one(), *w));
+                    intermediate_gate.sort();
+                    new_gates.push(intermediate_gate);
                 }
                 new_gates.push(arith_expr);
                 new_gates.sort();

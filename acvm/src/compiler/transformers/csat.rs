@@ -198,7 +198,7 @@ impl CSatTransformer {
         } else {
             expr.mul_terms[0].0
         };
-        (a, Expression::default().add_mul(a.inverse(), &expr))
+        (a, &expr * a.inverse())
     }
 
     /// Get or generate a witness which is equal to the provided expression
