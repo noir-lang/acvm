@@ -160,7 +160,7 @@ pub trait ProofSystemCompiler {
     fn np_language(&self) -> Language;
 
     // Returns true if the backend supports the selected opcode
-    fn opcode_supported(&self, opcode: &Opcode) -> bool;
+    fn supports_opcode(&self, opcode: &Opcode) -> bool;
 
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
