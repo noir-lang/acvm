@@ -82,6 +82,16 @@ pub enum BlackBoxFuncCall {
         inputs: Vec<FunctionInput>,
         outputs: Vec<Witness>,
     },
+    VerifyProof {
+        key: Vec<FunctionInput>,
+        proof: Vec<FunctionInput>,
+        public_inputs: Vec<FunctionInput>,
+        key_hash: FunctionInput,
+        input_aggregation_object: Vec<FunctionInput>,
+        // This is the recursive verification output aggregation object.
+        // The name `outputs` was kept to simplify code reuse with the other BlackBoxFuncCall's
+        outputs: Vec<Witness>,
+    },
 }
 
 impl BlackBoxFuncCall {
@@ -134,6 +144,14 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::Keccak256 => {
                 BlackBoxFuncCall::Keccak256 { inputs: vec![], outputs: vec![] }
             }
+            BlackBoxFunc::VerifyProof => BlackBoxFuncCall::VerifyProof {
+                key: vec![],
+                proof: vec![],
+                public_inputs: vec![],
+                key_hash: FunctionInput::dummy(),
+                input_aggregation_object: vec![],
+                outputs: vec![],
+            },
         }
     }
 
@@ -152,6 +170,7 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
             BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
             BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
+            BlackBoxFuncCall::VerifyProof { .. } => BlackBoxFunc::VerifyProof,
         }
     }
 
@@ -209,6 +228,28 @@ impl BlackBoxFuncCall {
                 inputs.extend(message.iter().copied());
                 inputs
             }
+            BlackBoxFuncCall::VerifyProof {
+                key,
+                proof,
+                public_inputs,
+                key_hash,
+                input_aggregation_object,
+                outputs,
+            } => {
+                let mut inputs = Vec::with_capacity(
+                    key.len()
+                        + proof.len()
+                        + public_inputs.len()
+                        + 1
+                        + input_aggregation_object.len(),
+                );
+                inputs.extend(key.iter().copied());
+                inputs.extend(proof.iter().copied());
+                inputs.extend(public_inputs.iter().copied());
+                inputs.push(*key_hash);
+                inputs.extend(input_aggregation_object.iter().copied());
+                inputs
+            }
         }
     }
 
@@ -219,7 +260,8 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::Blake2s { outputs, .. }
             | BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
             | BlackBoxFuncCall::Pedersen { outputs, .. }
-            | BlackBoxFuncCall::Keccak256 { outputs, .. } => outputs.to_vec(),
+            | BlackBoxFuncCall::Keccak256 { outputs, .. }
+            | BlackBoxFuncCall::VerifyProof { outputs, .. } => outputs.to_vec(),
             BlackBoxFuncCall::AND { output, .. }
             | BlackBoxFuncCall::XOR { output, .. }
             | BlackBoxFuncCall::HashToField128Security { output, .. }

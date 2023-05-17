@@ -187,6 +187,16 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    fn verify_proof(
+        &self,
+        initial_witness: &mut WitnessMap,
+        key: &[FunctionInput],
+        proof: &[FunctionInput],
+        public_inputs: &[FunctionInput],
+        key_hash: &FunctionInput,
+        input_aggregation_object: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
@@ -441,6 +451,18 @@ mod test {
             _inputs: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+            panic!("Path not trodden by this test")
+        }
+        fn verify_proof(
+            &self,
+            _initial_witness: &mut WitnessMap,
+            _key: &[FunctionInput],
+            _proof: &[FunctionInput],
+            _public_inputs: &[FunctionInput],
+            _key_hash: &FunctionInput,
+            _input_aggregation_object: &[FunctionInput],
+            _outputs: &[Witness],
+        ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
     }

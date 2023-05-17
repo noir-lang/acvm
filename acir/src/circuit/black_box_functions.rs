@@ -22,6 +22,7 @@ pub enum BlackBoxFunc {
     EcdsaSecp256k1,
     FixedBaseScalarMul,
     Keccak256,
+    VerifyProof,
 }
 
 impl std::fmt::Display for BlackBoxFunc {
@@ -46,6 +47,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::XOR => 10,
             BlackBoxFunc::RANGE => 11,
             BlackBoxFunc::Keccak256 => 12,
+            BlackBoxFunc::VerifyProof => 13,
         }
     }
     pub fn from_u16(index: u16) -> Option<Self> {
@@ -63,6 +65,7 @@ impl BlackBoxFunc {
             10 => BlackBoxFunc::XOR,
             11 => BlackBoxFunc::RANGE,
             12 => BlackBoxFunc::Keccak256,
+            13 => BlackBoxFunc::VerifyProof,
             _ => return None,
         };
         Some(function)
@@ -82,6 +85,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::XOR => "xor",
             BlackBoxFunc::RANGE => "range",
             BlackBoxFunc::Keccak256 => "keccak256",
+            BlackBoxFunc::VerifyProof => "verify_proof",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -99,6 +103,7 @@ impl BlackBoxFunc {
             "xor" => Some(BlackBoxFunc::XOR),
             "range" => Some(BlackBoxFunc::RANGE),
             "keccak256" => Some(BlackBoxFunc::Keccak256),
+            "verify_proof" => Some(BlackBoxFunc::VerifyProof),
             _ => None,
         }
     }

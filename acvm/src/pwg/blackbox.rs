@@ -103,5 +103,21 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
             backend.keccak256(initial_witness, inputs, outputs)
         }
+        BlackBoxFuncCall::VerifyProof {
+            key,
+            proof,
+            public_inputs,
+            key_hash,
+            input_aggregation_object,
+            outputs,
+        } => backend.verify_proof(
+            initial_witness,
+            key,
+            proof,
+            public_inputs,
+            key_hash,
+            input_aggregation_object,
+            outputs,
+        ),
     }
 }
