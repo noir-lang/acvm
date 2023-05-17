@@ -257,6 +257,17 @@ pub trait ProofSystemCompiler {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<bool, Self::Error>;
+
+    fn proof_as_fields(
+        &self,
+        proof: &[u8],
+        public_inputs: WitnessMap,
+    ) -> Result<Vec<FieldElement>, Self::Error>;
+
+    fn vk_as_fields(
+        &self,
+        verification_key: &[u8],
+    ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error>;
 }
 
 /// Supported NP complete languages
