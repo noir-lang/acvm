@@ -257,30 +257,6 @@ pub enum Language {
     PLONKCSat { width: usize },
 }
 
-#[deprecated]
-pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
-    let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialize circuit");
-
-    use sha2::{digest::FixedOutput, Digest, Sha256};
-    let mut hasher = Sha256::new();
-
-    hasher.update(bytes);
-    hasher.finalize_fixed().into()
-}
-
-#[deprecated]
-pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
-    let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialize circuit");
-
-    use crc32fast::Hasher;
-    let mut hasher = Hasher::new();
-
-    hasher.update(&bytes);
-    hasher.finalize()
-}
-
 #[deprecated(
     note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for opcode support based on the np language. \n Backends should simply specify what they support."
 )]
