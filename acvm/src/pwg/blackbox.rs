@@ -109,6 +109,7 @@ pub(crate) fn solve(
             public_inputs,
             key_hash,
             input_aggregation_object,
+            nested_aggregation_object,
             outputs,
         } => backend.verify_proof(
             initial_witness,
@@ -117,6 +118,7 @@ pub(crate) fn solve(
             public_inputs,
             key_hash,
             input_aggregation_object,
+            nested_aggregation_object,
             outputs,
         ),
     }

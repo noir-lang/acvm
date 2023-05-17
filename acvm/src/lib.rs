@@ -195,6 +195,7 @@ pub trait PartialWitnessGenerator {
         public_inputs: &[FunctionInput],
         key_hash: &FunctionInput,
         input_aggregation_object: &[FunctionInput],
+        nested_aggregation_object: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
 }
@@ -266,6 +267,7 @@ pub trait ProofSystemCompiler {
 
     fn vk_as_fields(
         &self,
+        common_reference_string: &[u8],
         verification_key: &[u8],
     ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error>;
 }
@@ -472,6 +474,7 @@ mod test {
             _public_inputs: &[FunctionInput],
             _key_hash: &FunctionInput,
             _input_aggregation_object: &[FunctionInput],
+            _nested_aggregation_object: &[FunctionInput],
             _outputs: &[Witness],
         ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")

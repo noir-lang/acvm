@@ -88,6 +88,7 @@ pub enum BlackBoxFuncCall {
         public_inputs: Vec<FunctionInput>,
         key_hash: FunctionInput,
         input_aggregation_object: Vec<FunctionInput>,
+        nested_aggregation_object: Vec<FunctionInput>,
         // This is the recursive verification output aggregation object.
         // The name `outputs` was kept to simplify code reuse with the other BlackBoxFuncCall's
         outputs: Vec<Witness>,
@@ -150,6 +151,7 @@ impl BlackBoxFuncCall {
                 public_inputs: vec![],
                 key_hash: FunctionInput::dummy(),
                 input_aggregation_object: vec![],
+                nested_aggregation_object: vec![],
                 outputs: vec![],
             },
         }
@@ -234,6 +236,7 @@ impl BlackBoxFuncCall {
                 public_inputs,
                 key_hash,
                 input_aggregation_object,
+                nested_aggregation_object,
                 outputs,
             } => {
                 let mut inputs = Vec::with_capacity(
@@ -248,6 +251,7 @@ impl BlackBoxFuncCall {
                 inputs.extend(public_inputs.iter().copied());
                 inputs.push(*key_hash);
                 inputs.extend(input_aggregation_object.iter().copied());
+                inputs.extend(nested_aggregation_object.iter().copied());
                 inputs
             }
         }
