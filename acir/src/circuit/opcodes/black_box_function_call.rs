@@ -261,16 +261,19 @@ impl BlackBoxFuncCall {
                 public_key_x,
                 public_key_y,
                 signature,
-                hashed_message: message,
+                hashed_message,
                 ..
             } => {
                 let mut inputs = Vec::with_capacity(
-                    public_key_x.len() + public_key_y.len() + signature.len() + message.len(),
+                    public_key_x.len()
+                        + public_key_y.len()
+                        + signature.len()
+                        + hashed_message.len(),
                 );
                 inputs.extend(public_key_x.iter().copied());
                 inputs.extend(public_key_y.iter().copied());
                 inputs.extend(signature.iter().copied());
-                inputs.extend(message.iter().copied());
+                inputs.extend(hashed_message.iter().copied());
                 inputs
             }
         }

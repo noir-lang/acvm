@@ -172,7 +172,7 @@ pub trait PartialWitnessGenerator {
         public_key_x: &[FunctionInput],
         public_key_y: &[FunctionInput],
         signature: &[FunctionInput],
-        message: &[FunctionInput],
+        hashed_message: &[FunctionInput],
         outputs: &Witness,
     ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
@@ -398,7 +398,7 @@ mod test {
             _public_key_x: &[FunctionInput],
             _public_key_y: &[FunctionInput],
             _signature: &[FunctionInput],
-            _message: &[FunctionInput],
+            _hashed_message: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")

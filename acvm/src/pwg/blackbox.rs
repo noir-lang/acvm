@@ -87,14 +87,14 @@ pub(crate) fn solve(
             public_key_x,
             public_key_y,
             signature,
-            hashed_message: message,
+            hashed_message,
             output,
         } => backend.ecdsa_secp256k1(
             initial_witness,
             public_key_x,
             public_key_y,
             signature,
-            message,
+            hashed_message,
             output,
         ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
