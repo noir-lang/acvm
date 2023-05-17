@@ -3,9 +3,8 @@ use acir::{
     native_types::{Witness, WitnessMap},
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
-
-use super::OpcodeResolution;
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::PartialWitnessGenerator;
 
 /// Check if all of the inputs to the function have assignments
 ///

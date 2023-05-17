@@ -1,15 +1,17 @@
 // Re-usable methods that backends can use to implement their PWG
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
+use crate::PartialWitnessGenerator;
 use acir::{
     circuit::opcodes::{Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
-    FieldElement,
+    BlackBoxFunc, FieldElement,
 };
 
 use self::{
     arithmetic::ArithmeticSolver, block::Blocks, directives::solve_directives, oracle::OracleSolver,
 };
+
+use thiserror::Error;
 
 // arithmetic
 pub mod arithmetic;
@@ -45,6 +47,36 @@ pub enum OpcodeResolution {
     Stalled(OpcodeNotSolvable),
     /// The opcode is not solvable but could resolved some witness
     InProgress,
+}
+
+// This enum represents the different cases in which an
+// opcode can be unsolvable.
+// The most common being that one of its input has not been
+// assigned a value.
+//
+// TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
+// TODO: we could have a error enum for arithmetic failure cases in that module
+// TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
+#[derive(PartialEq, Eq, Debug, Error)]
+pub enum OpcodeNotSolvable {
+    #[error("missing assignment for witness index {0}")]
+    MissingAssignment(u32),
+    #[error("expression has too many unknowns {0}")]
+    ExpressionHasTooManyUnknowns(Expression),
+}
+
+#[derive(PartialEq, Eq, Debug, Error)]
+pub enum OpcodeResolutionError {
+    #[error("cannot solve opcode: {0}")]
+    OpcodeNotSolvable(#[from] OpcodeNotSolvable),
+    #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
+    UnsupportedBlackBoxFunc(BlackBoxFunc),
+    #[error("could not satisfy all constraints")]
+    UnsatisfiedConstrain,
+    #[error("expected {0} inputs for function {1}, but got {2}")]
+    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
+    #[error("failed to solve blackbox function: {0}, reason: {1}")]
+    BlackBoxFunctionFailed(BlackBoxFunc, String),
 }
 
 pub fn solve(

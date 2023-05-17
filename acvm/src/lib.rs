@@ -12,11 +12,11 @@ use acir::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
         Circuit, Opcode,
     },
-    native_types::{Expression, Witness, WitnessMap},
+    native_types::{Witness, WitnessMap},
     BlackBoxFunc,
 };
 use core::fmt::Debug;
-use thiserror::Error;
+use pwg::{OpcodeResolution, OpcodeResolutionError};
 
 // We re-export async-trait so consumers can attach it to their impl
 pub use async_trait::async_trait;
@@ -24,36 +24,6 @@ pub use async_trait::async_trait;
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
-
-// This enum represents the different cases in which an
-// opcode can be unsolvable.
-// The most common being that one of its input has not been
-// assigned a value.
-//
-// TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
-// TODO: we could have a error enum for arithmetic failure cases in that module
-// TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
-#[derive(PartialEq, Eq, Debug, Error)]
-pub enum OpcodeNotSolvable {
-    #[error("missing assignment for witness index {0}")]
-    MissingAssignment(u32),
-    #[error("expression has too many unknowns {0}")]
-    ExpressionHasTooManyUnknowns(Expression),
-}
-
-#[derive(PartialEq, Eq, Debug, Error)]
-pub enum OpcodeResolutionError {
-    #[error("cannot solve opcode: {0}")]
-    OpcodeNotSolvable(#[from] OpcodeNotSolvable),
-    #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
-    UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain,
-    #[error("expected {0} inputs for function {1}, but got {2}")]
-    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
-    #[error("failed to solve blackbox function: {0}, reason: {1}")]
-    BlackBoxFunctionFailed(BlackBoxFunc, String),
-}
 
 pub trait Backend:
     SmartContract
@@ -105,38 +75,38 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn and(
         &self,
         initial_witness: &mut WitnessMap,
         lhs: &FunctionInput,
         rhs: &FunctionInput,
         output: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn xor(
         &self,
         initial_witness: &mut WitnessMap,
         lhs: &FunctionInput,
         rhs: &FunctionInput,
         output: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn range(
         &self,
         initial_witness: &mut WitnessMap,
         input: &FunctionInput,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn sha256(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn blake2s(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn compute_merkle_root(
         &self,
         initial_witness: &mut WitnessMap,
@@ -144,7 +114,7 @@ pub trait PartialWitnessGenerator {
         index: &FunctionInput,
         hash_path: &[FunctionInput],
         output: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
@@ -153,19 +123,19 @@ pub trait PartialWitnessGenerator {
         signature: &[FunctionInput],
         message: &[FunctionInput],
         output: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn pedersen(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn hash_to_field_128_security(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn ecdsa_secp256k1(
         &self,
         initial_witness: &mut WitnessMap,
@@ -174,24 +144,24 @@ pub trait PartialWitnessGenerator {
         signature: &[FunctionInput],
         message: &[FunctionInput],
         outputs: &Witness,
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut WitnessMap,
         input: &FunctionInput,
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn keccak256(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
-    ) -> Result<pwg::OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
     /// The Error type returned by failed function calls in the SmartContract trait.
-    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+    type Error: std::error::Error;
 
     // TODO: Allow a backend to support multiple smart contract platforms
 
@@ -205,7 +175,7 @@ pub trait SmartContract {
 
 pub trait ProofSystemCompiler {
     /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
-    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
+    type Error: std::error::Error;
 
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend

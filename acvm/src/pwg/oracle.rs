@@ -1,8 +1,7 @@
 use acir::{circuit::opcodes::OracleData, native_types::WitnessMap};
 
-use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
-
 use super::{arithmetic::ArithmeticSolver, insert_value};
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 pub struct OracleSolver;
 
