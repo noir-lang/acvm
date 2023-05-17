@@ -478,6 +478,20 @@ mod test {
         let w_equal_res = Witness(7);
         let w_lt_res = Witness(8);
 
+        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+            op: BinaryFieldOp::Cmp(Comparison::Eq),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
+            destination: RegisterIndex(2),
+        };
+
+        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+            op: BinaryFieldOp::Cmp(Comparison::Lt),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
+            destination: RegisterIndex(3),
+        };
+
         let brillig_data = Brillig {
             inputs: vec![
                 BrilligInputs::Simple(Expression {
@@ -496,18 +510,8 @@ mod test {
             // stack of foreign call/oracle resolutions, starts empty
             foreign_call_results: vec![],
             bytecode: vec![
-                brillig_bytecode::Opcode::BinaryFieldOp {
-                    destination: RegisterIndex(2),
-                    lhs: RegisterIndex(0),
-                    op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Eq),
-                    rhs: RegisterIndex(1),
-                },
-                brillig_bytecode::Opcode::BinaryFieldOp {
-                    destination: RegisterIndex(3),
-                    lhs: RegisterIndex(0),
-                    op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Lt),
-                    rhs: RegisterIndex(1),
-                },
+                equal_opcode,
+                less_than_opcode,
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
