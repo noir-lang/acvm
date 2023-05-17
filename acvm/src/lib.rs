@@ -208,7 +208,7 @@ pub trait ProofSystemCompiler {
     type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
 
     /// Returns the identifier for the backend.
-    fn backend_identifier(&self) -> String;
+    fn identifier(&self) -> String;
 
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
