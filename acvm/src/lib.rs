@@ -66,9 +66,9 @@ pub trait CommonReferenceString {
     ) -> Result<Vec<u8>, Self::Error>;
 }
 
-/// This component will generate the backend specific output for
-/// each OPCODE.
-/// Returns an Error if the backend does not support that OPCODE
+/// This component will generate the backend specific output for each [`Opcode::BlackBoxFuncCall`].
+///
+/// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
     fn aes(
         &self,
