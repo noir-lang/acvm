@@ -497,18 +497,18 @@ mod test {
                     lhs: RegisterIndex(0),
                     op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Eq),
                     rhs: RegisterIndex(1),
-                }, 
+                },
                 brillig_bytecode::Opcode::BinaryFieldOp {
                     destination: RegisterIndex(3),
                     lhs: RegisterIndex(0),
                     op: brillig_bytecode::BinaryFieldOp::Cmp(Comparison::Lt),
                     rhs: RegisterIndex(1),
-                }, 
+                },
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
                 }
             ],
             predicate: None,
@@ -568,100 +568,96 @@ mod test {
 
     #[test]
     fn brillig_oracle_predicate() {
-    //     // Opcodes below describe the following:
-    //     // fn main(x : Field, y : pub Field, cond: bool) {
-    //     //     let z = x + y;
-    //     //     let z_inverse = 1/z
-    //     //     if cond {
-    //     //         constrain z_inverse == Oracle("inverse", x + y);
-    //     //     }
-    //     // }
-    //     let fe_0 = FieldElement::zero();
-    //     let fe_1 = FieldElement::one();
-    //     let w_x = Witness(1);
-    //     let w_y = Witness(2);
-    //     let w_oracle = Witness(3);
-    //     let w_z = Witness(4);
-    //     let w_z_inverse = Witness(5);
-    //     let w_x_plus_y = Witness(6);
-    //     let w_equal_res = Witness(7);
-    //     let w_lt_res = Witness(8);
+        // Opcodes below describe the following:
+        // fn main(x : Field, y : pub Field, cond: bool) {
+        //     let z = x + y;
+        //     let z_inverse = 1/z
+        //     if cond {
+        //         constrain z_inverse == Oracle("inverse", x + y);
+        //     }
+        // }
+        let fe_0 = FieldElement::zero();
+        let fe_1 = FieldElement::one();
+        let w_x = Witness(1);
+        let w_y = Witness(2);
+        let w_oracle = Witness(3);
+        let w_z = Witness(4);
+        let w_z_inverse = Witness(5);
+        let w_x_plus_y = Witness(6);
+        let w_equal_res = Witness(7);
+        let w_lt_res = Witness(8);
 
-    //     let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-    //         op: BinaryFieldOp::Cmp(Comparison::Eq),
-    //         lhs: RegisterIndex(0),
-    //         rhs: RegisterIndex(1),
-    //         destination: RegisterIndex(2),
-    //     };
+        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+            op: BinaryFieldOp::Cmp(Comparison::Eq),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
+            destination: RegisterIndex(2),
+        };
 
-    //     let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
-    //         op: BinaryFieldOp::Cmp(Comparison::Lt),
-    //         lhs: RegisterIndex(0),
-    //         rhs: RegisterIndex(1),
-    //         destination: RegisterIndex(3),
-    //     };
+        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+            op: BinaryFieldOp::Cmp(Comparison::Lt),
+            lhs: RegisterIndex(0),
+            rhs: RegisterIndex(1),
+            destination: RegisterIndex(3),
+        };
 
-    //     let invert_oracle_input = OracleInput::RegisterIndex(RegisterIndex(0));
-    //     let invert_oracle_output = OracleOutput::RegisterIndex(RegisterIndex(1));
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![
+                BrilligInputs::Simple(Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                    q_c: fe_0,
+                }),
+                BrilligInputs::Simple(Expression::default()),
+            ],
+            outputs: vec![
+                BrilligOutputs::Simple(w_x_plus_y),
+                BrilligOutputs::Simple(w_oracle),
+                BrilligOutputs::Simple(w_equal_res),
+                BrilligOutputs::Simple(w_lt_res),
+            ],
+            bytecode: vec![
+                equal_opcode, 
+                less_than_opcode, 
+                // Oracles are named 'foreign calls' in brillig
+                brillig_bytecode::Opcode::ForeignCall {
+                    function: "invert".into(),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
+                }
+            ],
+            predicate: Some(Expression::default()),
+            // oracle results
+            foreign_call_results: vec![]
+        });
 
-    //     let invert_oracle = brillig_bytecode::Opcode::Oracle(brillig_bytecode::OracleData {
-    //         name: "invert".into(),
-    //         inputs: vec![invert_oracle_input],
-    //         input_values: vec![],
-    //         outputs: vec![invert_oracle_output],
-    //         output_values: vec![],
-    //     });
+        let opcodes = vec![
+            brillig_opcode,
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
+                q_c: fe_0,
+            }),
+            Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+            Opcode::Arithmetic(Expression {
+                mul_terms: vec![(fe_1, w_z, w_z_inverse)],
+                linear_combinations: vec![],
+                q_c: -fe_1,
+            }),
+        ];
 
-    //     let brillig_bytecode = vec![equal_opcode, less_than_opcode, invert_oracle];
+        let pwg = StubbedPwg;
 
-    //     let brillig_opcode = Opcode::Brillig(Brillig {
-    //         inputs: vec![
-    //             BrilligInputs::Simple(Expression {
-    //                 mul_terms: vec![],
-    //                 linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
-    //                 q_c: fe_0,
-    //             }),
-    //             BrilligInputs::Simple(Expression::default()),
-    //         ],
-    //         outputs: vec![
-    //             BrilligOutputs::Simple(w_x_plus_y),
-    //             BrilligOutputs::Simple(w_oracle),
-    //             BrilligOutputs::Simple(w_equal_res),
-    //             BrilligOutputs::Simple(w_lt_res),
-    //         ],
-    //         bytecode: brillig_bytecode,
-    //         predicate: Some(Expression::default()),
-    //         // oracle results
-    //         foreign_call_results: vec![]
-    //     });
+        let mut witness_assignments = BTreeMap::from([
+            (Witness(1), FieldElement::from(2u128)),
+            (Witness(2), FieldElement::from(3u128)),
+        ]);
+        let mut blocks = Blocks::default();
+        let UnresolvedData { unresolved_opcodes, unresolved_brilligs, .. } = pwg
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
 
-    //     let opcodes = vec![
-    //         brillig_opcode,
-    //         Opcode::Arithmetic(Expression {
-    //             mul_terms: vec![],
-    //             linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-    //             q_c: fe_0,
-    //         }),
-    //         Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-    //         Opcode::Arithmetic(Expression {
-    //             mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-    //             linear_combinations: vec![],
-    //             q_c: -fe_1,
-    //         }),
-    //     ];
-
-    //     let pwg = StubbedPwg;
-
-    //     let mut witness_assignments = BTreeMap::from([
-    //         (Witness(1), FieldElement::from(2u128)),
-    //         (Witness(2), FieldElement::from(3u128)),
-    //     ]);
-    //     let mut blocks = Blocks::default();
-    //     let UnresolvedData { unresolved_opcodes, unresolved_brilligs, .. } = pwg
-    //         .solve(&mut witness_assignments, &mut blocks, opcodes)
-    //         .expect("should stall on oracle");
-
-    //     assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
-    //     assert!(unresolved_brilligs.is_empty(), "should have no unresolved oracles");
+        assert!(unresolved_opcodes.is_empty(), "opcode should be removed");
+        assert!(unresolved_brilligs.is_empty(), "should have no unresolved oracles");
     }
 }
