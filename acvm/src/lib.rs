@@ -65,13 +65,19 @@ pub trait Backend:
 {
 }
 
+// TODO: improve this name
+pub trait BackendInfo {
+    /// Returns the identifier for the backend.
+    fn identifier(&self) -> String;
+}
+
 // Unfortunately, Rust doesn't natively allow async functions in traits yet.
 // So we need to annotate our trait with this macro and backends need to attach the macro to their `impl`.
 //
 // For more details, see https://docs.rs/async-trait/latest/async_trait/
 // and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
 #[async_trait]
-pub trait CommonReferenceString {
+pub trait CommonReferenceString: BackendInfo {
     /// The Error type returned by failed function calls in the CommonReferenceString trait.
     type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
 
@@ -203,12 +209,9 @@ pub trait SmartContract {
     ) -> Result<String, Self::Error>;
 }
 
-pub trait ProofSystemCompiler {
+pub trait ProofSystemCompiler: BackendInfo {
     /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
     type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
-
-    /// Returns the identifier for the backend.
-    fn identifier(&self) -> String;
 
     /// The NPC language that this proof system directly accepts.
     /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
