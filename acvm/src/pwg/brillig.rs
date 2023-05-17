@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Opcode, OracleData, Registers, VMStatus, Value, VM},
+    brillig_bytecode::{Registers, VMStatus, Value, VM, RegisterIndex},
     circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::Witness,
     FieldElement,
@@ -12,6 +12,8 @@ use crate::{
 };
 
 use super::{directives::insert_witness, get_value};
+
+const MIN_BRILLIG_REGISTERS: usize = 16;
 
 pub struct BrilligSolver;
 
@@ -65,9 +67,10 @@ impl BrilligSolver {
                         break;
                     }
                 }
-                BrilligInputs::Array(id, expr_arr) => {
+                BrilligInputs::Array(expr_arr) => {
                     // Attempt to fetch all array input values
                     let mut continue_eval = true;
+                    let memory_pointer = input_memory.len();
                     for expr in expr_arr.iter() {
                         let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                         if let Some(value) = solve.to_const() {
@@ -83,10 +86,8 @@ impl BrilligSolver {
                         break;
                     }
 
-                    let id_as_value: Value =
-                        Value { inner: FieldElement::from(*id as u128) };
-                    // Push value of the array id as a register
-                    input_register_values.push(id_as_value);
+                    // Push value of the array pointer as a register
+                    input_register_values.push(Value::from(memory_pointer));
                 }
             }
         }
@@ -96,7 +97,7 @@ impl BrilligSolver {
                 brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
             let expr = match brillig_input {
                 BrilligInputs::Simple(expr) => expr,
-                BrilligInputs::Array(_, expr_arr) => {
+                BrilligInputs::Array(expr_arr) => {
                     expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
                 }
             };
@@ -105,21 +106,28 @@ impl BrilligSolver {
             )));
         }
 
-        let input_registers = Registers { inner: input_register_values };
-        let vm = VM::new(input_registers, input_memory, brillig.bytecode.clone(), None);
+        // Ensure at least MIN_BRILLIG_REGISTERS registers are available
+        while input_register_values.len() < MIN_BRILLIG_REGISTERS {
+            input_register_values.push(Value::from(0u128));
+        }
 
-        let vm_output = vm.process_opcodes();
+        let input_registers = Registers { inner: input_register_values };
+        let mut vm = VM::new(input_registers, input_memory, brillig.bytecode.clone(), brillig.foreign_call_results.clone(), None);
+
+        let vm_status = vm.process_opcodes();
         
-        let result = match vm_output.status {
+        let result = match vm_status {
             VMStatus::Finished => {
-                for (output, register_value) in brillig.outputs.iter().zip(vm_output.registers) {
+                for (i, output) in brillig.outputs.iter().enumerate() {
+                    let register_value = vm.get_registers().get(RegisterIndex(i));
                     match output {
                         BrilligOutputs::Simple(witness) => {
                             insert_witness(*witness, register_value.inner, initial_witness)?;
                         }
                         BrilligOutputs::Array(witness_arr) => {
+                            // Treat the register value as a pointer to memory
                             for (i, witness) in witness_arr.iter().enumerate() {
-                                let value = &vm_output.memory[register_value.to_usize() + i];
+                                let value = &vm.get_memory()[register_value.to_usize() + i];
                                 insert_witness(*witness, value.inner, initial_witness)?;
                             }
                         }
@@ -129,26 +137,10 @@ impl BrilligSolver {
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
             VMStatus::Failure => return Err(OpcodeResolutionError::UnsatisfiedConstrain),
-            VMStatus::OracleWait => {
-                let program_counter = vm_output.program_counter;
-
-                let current_opcode = &brillig.bytecode[program_counter];
-                let mut data = match current_opcode.clone() {
-                    Opcode::Oracle(data) => data,
-                    _ => {
-                        return Err(OpcodeResolutionError::UnexpectedOpcode(
-                            "brillig oracle",
-                            current_opcode.name(),
-                        ))
-                    }
-                };
-
-                let input_values = vm_output.map_input_values(&data);
-                data.input_values = input_values;
-
-                OpcodeResolution::InProgressBrillig(OracleWaitInfo {
-                    data,
-                    program_counter,
+            VMStatus::ForeignCallWait { function, inputs } => {
+                OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo {
+                    function,
+                    inputs
                 })
             }
         };
@@ -158,7 +150,7 @@ impl BrilligSolver {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct OracleWaitInfo {
-    pub data: OracleData,
-    pub program_counter: usize,
+pub struct ForeignCallWaitInfo {
+    pub function: String,
+    pub inputs: Vec<Value>,
 }

@@ -1,10 +1,16 @@
 use crate::{
-    RegisterIndex,
+    RegisterIndex, Value,
 };
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
+pub enum RegisterValueOrArray {
+    RegisterIndex(RegisterIndex),
+    HeapArray(RegisterIndex, usize)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
@@ -48,13 +54,21 @@ pub enum Opcode {
     },
     Const {
         destination: RegisterIndex,
-        value: FieldElement,  
+        value: Value,  
     },
     Return,
-    // TODO:These are special functions like sha256
-    Intrinsics,
-    /// Used to get data from an outside source
-    Oracle(OracleData),
+    /// Used to get data from an outside source.
+    /// Also referred to as an Oracle. However, we don't use that name as
+    /// this is intended for things like state tree reads, and shouldn't be confused 
+    /// with e.g. blockchain price oracles.
+    ForeignCall {
+        // Interpreted by simulator context
+        function: String,
+        // Destination register (may be a memory pointer).
+        destination: RegisterValueOrArray,
+        // Input register (may be a memory pointer).
+        input: RegisterValueOrArray,
+    },
     Mov {
         destination: RegisterIndex,
         source: RegisterIndex,
@@ -84,8 +98,7 @@ impl Opcode {
             Opcode::Call { .. } => "call",
             Opcode::Const { .. } => "const",
             Opcode::Return => "return",
-            Opcode::Intrinsics => "intrinsics",
-            Opcode::Oracle(_) => "oracle",
+            Opcode::ForeignCall { .. } => "foreign_call",
             Opcode::Mov { .. } => "mov",
             Opcode::Load { .. } => "load",
             Opcode::Store { .. } => "store",
@@ -96,26 +109,7 @@ impl Opcode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OracleData {
-    /// Name of the oracle
-    pub name: String,
-    /// Input registers
-    pub inputs: Vec<OracleInput>,
-    /// Input values
-    pub input_values: Vec<FieldElement>,
-    /// Output registers
-    pub outputs: Vec<OracleOutput>,
-    /// Output values - they are computed by the (external) oracle once the inputs are known
-    pub output_values: Vec<FieldElement>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OracleInput {
-    RegisterIndex(RegisterIndex),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OracleOutput {
     RegisterIndex(RegisterIndex),
 }
 

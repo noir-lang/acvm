@@ -11,7 +11,7 @@ pub enum Typ {
 }
 
 /// Value represents a Value in the VM
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Value {
     pub inner: FieldElement,
 }
@@ -25,7 +25,9 @@ impl Value {
         self.inner.to_u128()
     }
     pub fn to_usize(&self) -> usize {
-        self.inner.to_u128() as usize
+        usize::try_from(
+            self.inner.try_to_u64().expect("register does not fit into u64"),
+        ).expect("register does not fit into usize")
     }
 }
 
