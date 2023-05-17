@@ -1,6 +1,4 @@
-use crate::{
-    RegisterIndex, Value,
-};
+use crate::{RegisterIndex, Value};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
@@ -9,7 +7,7 @@ pub type Label = usize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
 pub enum RegisterValueOrArray {
     RegisterIndex(RegisterIndex),
-    HeapArray(RegisterIndex, usize)
+    HeapArray(RegisterIndex, usize),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,12 +52,12 @@ pub enum Opcode {
     },
     Const {
         destination: RegisterIndex,
-        value: Value,  
+        value: Value,
     },
     Return,
     /// Used to get data from an outside source.
     /// Also referred to as an Oracle. However, we don't use that name as
-    /// this is intended for things like state tree reads, and shouldn't be confused 
+    /// this is intended for things like state tree reads, and shouldn't be confused
     /// with e.g. blockchain price oracles.
     ForeignCall {
         // Interpreted by simulator context
@@ -113,7 +111,6 @@ pub enum OracleInput {
     RegisterIndex(RegisterIndex),
 }
 
-
 // Binary fixed-length integer expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryFieldOp {
@@ -156,8 +153,8 @@ impl BinaryFieldOp {
             BinaryFieldOp::Sub => a - b,
             BinaryFieldOp::Mul => a * b,
             BinaryFieldOp::Div => a / b,
-             // Perform a comparison between a and b based on the Comparison variant.
-             BinaryFieldOp::Cmp(comparison) => match comparison {
+            // Perform a comparison between a and b based on the Comparison variant.
+            BinaryFieldOp::Cmp(comparison) => match comparison {
                 Comparison::Eq => ((a == b) as u128).into(),
                 Comparison::Lt => ((a < b) as u128).into(),
                 Comparison::Lte => ((a <= b) as u128).into(),
@@ -178,7 +175,9 @@ impl BinaryIntOp {
             // Perform unsigned division using the modulo operation on a and b.
             BinaryIntOp::UnsignedDiv => (a % bit_modulo) / (b % bit_modulo),
             // Perform signed division by first converting a and b to signed integers and then back to unsigned after the operation.
-            BinaryIntOp::SignedDiv => to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size),
+            BinaryIntOp::SignedDiv => {
+                to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size)
+            }
             // Perform a comparison between a and b based on the Comparison variant.
             BinaryIntOp::Cmp(comparison) => match comparison {
                 Comparison::Eq => (a == b) as u128,
@@ -186,21 +185,11 @@ impl BinaryIntOp {
                 Comparison::Lte => (a <= b) as u128,
             },
             // Perform bitwise AND, OR, XOR, left shift, and right shift operations, applying a modulo operation to keep the result within the bit size.
-            BinaryIntOp::And => {
-                (a & b) % bit_modulo
-            }
-            BinaryIntOp::Or => {
-                (a | b) % bit_modulo
-            }
-            BinaryIntOp::Xor => {
-                (a ^ b) % bit_modulo
-            }
-            BinaryIntOp::Shl => {
-                (a << b) % bit_modulo
-            }
-            BinaryIntOp::Shr => {
-                (a >> b) % bit_modulo
-            }
+            BinaryIntOp::And => (a & b) % bit_modulo,
+            BinaryIntOp::Or => (a | b) % bit_modulo,
+            BinaryIntOp::Xor => (a ^ b) % bit_modulo,
+            BinaryIntOp::Shl => (a << b) % bit_modulo,
+            BinaryIntOp::Shr => (a >> b) % bit_modulo,
         }
     }
 }

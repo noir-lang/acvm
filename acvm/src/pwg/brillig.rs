@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_bytecode::{Registers, VMStatus, Value, VM, RegisterIndex},
+    brillig_bytecode::{RegisterIndex, Registers, VMStatus, Value, VM},
     circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::Witness,
     FieldElement,
@@ -112,10 +112,16 @@ impl BrilligSolver {
         }
 
         let input_registers = Registers { inner: input_register_values };
-        let mut vm = VM::new(input_registers, input_memory, brillig.bytecode.clone(), brillig.foreign_call_results.clone(), None);
+        let mut vm = VM::new(
+            input_registers,
+            input_memory,
+            brillig.bytecode.clone(),
+            brillig.foreign_call_results.clone(),
+            None,
+        );
 
         let vm_status = vm.process_opcodes();
-        
+
         let result = match vm_status {
             VMStatus::Finished => {
                 for (i, output) in brillig.outputs.iter().enumerate() {
@@ -138,10 +144,7 @@ impl BrilligSolver {
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
             VMStatus::Failure => return Err(OpcodeResolutionError::UnsatisfiedConstrain),
             VMStatus::ForeignCallWait { function, inputs } => {
-                OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo {
-                    function,
-                    inputs
-                })
+                OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo { function, inputs })
             }
         };
 

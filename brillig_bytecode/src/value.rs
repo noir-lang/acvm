@@ -25,9 +25,8 @@ impl Value {
         self.inner.to_u128()
     }
     pub fn to_usize(&self) -> usize {
-        usize::try_from(
-            self.inner.try_to_u64().expect("register does not fit into u64"),
-        ).expect("register does not fit into usize")
+        usize::try_from(self.inner.try_to_u64().expect("register does not fit into u64"))
+            .expect("register does not fit into usize")
     }
 }
 

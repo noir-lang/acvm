@@ -1,4 +1,4 @@
-use crate::{Value};
+use crate::Value;
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
@@ -57,8 +57,7 @@ impl Registers {
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
         if index.inner() >= self.inner.len() {
             let diff = index.inner() - self.inner.len() + 1;
-            self.inner
-                .extend(vec![Value {inner: FieldElement::from(0u128) }; diff])
+            self.inner.extend(vec![Value { inner: FieldElement::from(0u128) }; diff])
         }
         self.inner[index.inner()] = value
     }

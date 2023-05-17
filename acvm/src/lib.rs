@@ -141,7 +141,10 @@ pub trait PartialWitnessGenerator {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
-                        unresolved_brilligs.push(UnresolvedBrillig { brillig, foreign_call_wait_info: oracle_wait_info })
+                        unresolved_brilligs.push(UnresolvedBrillig {
+                            brillig,
+                            foreign_call_wait_info: oracle_wait_info,
+                        })
                     }
                     Ok(OpcodeResolution::Stalled(not_solvable)) => {
                         if opcode_not_solvable.is_none() {
@@ -359,7 +362,8 @@ mod test {
     use acir::{
         brillig_bytecode,
         brillig_bytecode::{
-             Comparison, RegisterIndex, BinaryFieldOp, RegisterValueOrArray, ForeignCallResult, Value,
+            BinaryFieldOp, Comparison, ForeignCallResult, RegisterIndex, RegisterValueOrArray,
+            Value,
         },
         circuit::{
             directives::Directive,
@@ -509,7 +513,7 @@ mod test {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
-                }
+                },
             ],
             predicate: None,
         };
@@ -549,11 +553,12 @@ mod test {
         assert_eq!(unresolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrillig { foreign_call_wait_info, mut brillig } = unresolved_brilligs.remove(0);
+        let UnresolvedBrillig { foreign_call_wait_info, mut brillig } =
+            unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
         // Alter Brillig oracle opcode
         brillig.foreign_call_results.push(ForeignCallResult {
-            values: vec![Value::from(foreign_call_wait_info.inputs[0].inner.inverse())]
+            values: vec![Value::from(foreign_call_wait_info.inputs[0].inner.inverse())],
         });
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unresolved_opcodes[..]);
@@ -617,18 +622,18 @@ mod test {
                 BrilligOutputs::Simple(w_lt_res),
             ],
             bytecode: vec![
-                equal_opcode, 
-                less_than_opcode, 
+                equal_opcode,
+                less_than_opcode,
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
-                }
+                },
             ],
             predicate: Some(Expression::default()),
             // oracle results
-            foreign_call_results: vec![]
+            foreign_call_results: vec![],
         });
 
         let opcodes = vec![
