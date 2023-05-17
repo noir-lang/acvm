@@ -13,7 +13,6 @@ use acir::{
         Circuit, Opcode,
     },
     native_types::{Witness, WitnessMap},
-    BlackBoxFunc,
 };
 use core::fmt::Debug;
 use pwg::{OpcodeResolution, OpcodeResolutionError};
