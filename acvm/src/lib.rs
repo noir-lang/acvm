@@ -21,6 +21,14 @@ pub use async_trait::async_trait;
 pub use acir;
 pub use acir::FieldElement;
 
+/// Supported NP complete languages
+/// This might need to be in ACIR instead
+#[derive(Debug, Clone)]
+pub enum Language {
+    R1CS,
+    PLONKCSat { width: usize },
+}
+
 pub trait Backend:
     SmartContract
     + ProofSystemCompiler
@@ -213,36 +221,4 @@ pub trait ProofSystemCompiler {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<bool, Self::Error>;
-}
-
-/// Supported NP complete languages
-/// This might need to be in ACIR instead
-#[derive(Debug, Clone)]
-pub enum Language {
-    R1CS,
-    PLONKCSat { width: usize },
-}
-
-#[deprecated]
-pub fn hash_constraint_system(cs: &Circuit) -> [u8; 32] {
-    let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialize circuit");
-
-    use sha2::{digest::FixedOutput, Digest, Sha256};
-    let mut hasher = Sha256::new();
-
-    hasher.update(bytes);
-    hasher.finalize_fixed().into()
-}
-
-#[deprecated]
-pub fn checksum_constraint_system(cs: &Circuit) -> u32 {
-    let mut bytes = Vec::new();
-    cs.write(&mut bytes).expect("could not serialize circuit");
-
-    use crc32fast::Hasher;
-    let mut hasher = Hasher::new();
-
-    hasher.update(&bytes);
-    hasher.finalize()
 }
