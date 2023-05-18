@@ -49,6 +49,7 @@ pub(crate) fn solve(
     }
 
     match bb_func {
+        BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
         acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
             and(initial_witness, lhs, rhs, output)
         }
@@ -58,26 +59,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Blake2s { inputs, outputs } => {
             blake2s256(initial_witness, inputs, outputs)
         }
-        BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
-            keccak256(initial_witness, inputs, outputs)
-        }
-        BlackBoxFuncCall::HashToField128Security { inputs, output } => {
-            hash_to_field_128_security(initial_witness, inputs, output)
-        }
-        BlackBoxFuncCall::EcdsaSecp256k1 {
-            public_key_x,
-            public_key_y,
-            signature,
-            hashed_message: message,
-            output,
-        } => secp256k1_prehashed(
-            initial_witness,
-            public_key_x,
-            public_key_y,
-            signature,
-            message,
-            *output,
-        ),
         BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, output } => {
             backend.compute_merkle_root(initial_witness, leaf, index, hash_path, output)
         }
@@ -98,9 +79,28 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Pedersen { inputs, outputs } => {
             backend.pedersen(initial_witness, inputs, outputs)
         }
+        BlackBoxFuncCall::HashToField128Security { inputs, output } => {
+            hash_to_field_128_security(initial_witness, inputs, output)
+        }
+        BlackBoxFuncCall::EcdsaSecp256k1 {
+            public_key_x,
+            public_key_y,
+            signature,
+            hashed_message: message,
+            output,
+        } => secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *output,
+        ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
             backend.fixed_base_scalar_mul(initial_witness, input, outputs)
         }
-        BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
+        BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
+            keccak256(initial_witness, inputs, outputs)
+        }
     }
 }
