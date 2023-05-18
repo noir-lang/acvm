@@ -13,8 +13,6 @@ use crate::{
 
 use super::{directives::insert_witness, get_value};
 
-const MIN_BRILLIG_REGISTERS: usize = 16;
-
 pub struct BrilligSolver;
 
 impl BrilligSolver {
@@ -104,11 +102,6 @@ impl BrilligSolver {
             return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
                 expr.clone(),
             )));
-        }
-
-        // Ensure at least MIN_BRILLIG_REGISTERS registers are available
-        while input_register_values.len() < MIN_BRILLIG_REGISTERS {
-            input_register_values.push(Value::from(0u128));
         }
 
         let input_registers = Registers { inner: input_register_values };
