@@ -146,7 +146,7 @@ pub trait PartialWitnessGenerator {
         public_key_x: &[FunctionInput],
         public_key_y: &[FunctionInput],
         signature: &[FunctionInput],
-        message: &[FunctionInput],
+        hashed_message: &[FunctionInput],
         outputs: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(

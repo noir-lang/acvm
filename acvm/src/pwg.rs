@@ -354,7 +354,7 @@ mod test {
             _public_key_x: &[FunctionInput],
             _public_key_y: &[FunctionInput],
             _signature: &[FunctionInput],
-            _message: &[FunctionInput],
+            _hashed_message: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
