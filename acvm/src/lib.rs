@@ -247,6 +247,7 @@ pub trait ProofSystemCompiler {
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
@@ -257,6 +258,7 @@ pub trait ProofSystemCompiler {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> Result<bool, Self::Error>;
 
     fn proof_as_fields(
