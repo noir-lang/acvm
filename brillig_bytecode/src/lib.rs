@@ -48,24 +48,11 @@ pub struct VM {
 
 impl VM {
     pub fn new(
-        mut inputs: Registers,
+        inputs: Registers,
         memory: Vec<Value>,
         bytecode: Vec<Opcode>,
         foreign_call_results: Vec<ForeignCallResult>,
-        register_allocation_indices: Option<Vec<u32>>,
     ) -> VM {
-        if let Some(register_allocation_indices) = register_allocation_indices {
-            // TODO(AD): simplify this all to be done before calling VM.new()
-            let mut registers_modified = Registers::load(vec![Value::from(0u128)]);
-
-            for (i, register_index) in register_allocation_indices.iter().enumerate() {
-                let register_value = inputs.get(RegisterIndex(i));
-                registers_modified.set(RegisterIndex(*register_index as usize), register_value)
-            }
-
-            inputs = registers_modified;
-        }
-
         Self {
             registers: inputs,
             program_counter: 0,
@@ -141,11 +128,7 @@ impl VM {
             }
             Opcode::Return => {
                 if let Some(register) = self.call_stack.pop() {
-                    let label = usize::try_from(
-                        register.inner.try_to_u64().expect("register does not fit into u64"),
-                    )
-                    .expect("register does not fit into usize");
-                    self.set_program_counter(label)
+                    self.set_program_counter(register.to_usize())
                 } else {
                     self.fail("return opcode hit, but callstack already empty")
                 }
@@ -313,7 +296,7 @@ mod tests {
         };
 
         // Start VM
-        let mut vm = VM::new(input_registers, vec![], vec![opcode], vec![], None);
+        let mut vm = VM::new(input_registers, vec![], vec![opcode], vec![]);
 
         // Process a single VM opcode
         //
@@ -361,7 +344,7 @@ mod tests {
         opcodes.push(Opcode::Jump { location: 2 });
         opcodes.push(Opcode::JumpIf { condition: RegisterIndex(2), location: 3 });
 
-        let mut vm = VM::new(Registers { inner: registers }, vec![], opcodes, vec![], None);
+        let mut vm = VM::new(Registers { inner: registers }, vec![], opcodes, vec![]);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
@@ -406,7 +389,6 @@ mod tests {
             vec![],
             vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
             vec![],
-            None,
         );
 
         let status = vm.process_opcode();
@@ -437,7 +419,7 @@ mod tests {
 
         let mov_opcode = Opcode::Mov { destination: RegisterIndex(2), source: RegisterIndex(0) };
 
-        let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], vec![], None);
+        let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], vec![]);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::Finished);
@@ -498,7 +480,6 @@ mod tests {
             vec![],
             vec![equal_opcode, not_equal_opcode, less_than_opcode, less_than_equal_opcode],
             vec![],
-            None,
         );
 
         let status = vm.process_opcode();
@@ -743,7 +724,7 @@ mod tests {
     }
     /// Helper to execute brillig code
     fn brillig_execute_and_get_vm(memory: Vec<Value>, opcodes: Vec<Opcode>) -> VM {
-        let mut vm = VM::new(empty_registers(), memory, opcodes, vec![], None);
+        let mut vm = VM::new(empty_registers(), memory, opcodes, vec![]);
         brillig_execute(&mut vm);
         assert_eq!(vm.call_stack, vec![]);
         vm

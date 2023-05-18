@@ -109,8 +109,7 @@ impl BrilligSolver {
             input_registers,
             input_memory,
             brillig.bytecode.clone(),
-            brillig.foreign_call_results.clone(),
-            None,
+            brillig.foreign_call_results.clone()
         );
 
         let vm_status = vm.process_opcodes();
