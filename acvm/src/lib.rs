@@ -80,37 +80,6 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn and(
-        &self,
-        initial_witness: &mut WitnessMap,
-        lhs: &FunctionInput,
-        rhs: &FunctionInput,
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn xor(
-        &self,
-        initial_witness: &mut WitnessMap,
-        lhs: &FunctionInput,
-        rhs: &FunctionInput,
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn range(
-        &self,
-        initial_witness: &mut WitnessMap,
-        input: &FunctionInput,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn sha256(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn blake2s(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn compute_merkle_root(
         &self,
         initial_witness: &mut WitnessMap,
@@ -134,31 +103,10 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn hash_to_field_128_security(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn ecdsa_secp256k1(
-        &self,
-        initial_witness: &mut WitnessMap,
-        public_key_x: &[FunctionInput],
-        public_key_y: &[FunctionInput],
-        signature: &[FunctionInput],
-        hashed_message: &[FunctionInput],
-        outputs: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut WitnessMap,
         input: &FunctionInput,
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn keccak256(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
