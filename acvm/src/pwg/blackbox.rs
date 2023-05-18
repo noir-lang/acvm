@@ -3,15 +3,15 @@ use acir::{
     native_types::{Witness, WitnessMap},
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
-
 use super::{
     hash::{blake2s256, hash_to_field_128_security, keccak256, sha256},
     logic::{and, xor},
     range::solve_range_opcode,
     signature::ecdsa::secp256k1_prehashed,
-    OpcodeResolution,
+    OpcodeResolution, OpcodeResolutionError,
 };
+use crate::pwg::OpcodeNotSolvable;
+use crate::PartialWitnessGenerator;
 
 /// Check if all of the inputs to the function have assignments
 ///
