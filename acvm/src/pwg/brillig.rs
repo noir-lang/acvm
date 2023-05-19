@@ -6,7 +6,8 @@ use acir::{
 };
 
 use crate::{
-    pwg::{arithmetic::ArithmeticSolver, OpcodeNotSolvable}, OpcodeResolution, OpcodeResolutionError, 
+    pwg::{arithmetic::ArithmeticSolver, OpcodeNotSolvable},
+    OpcodeResolution, OpcodeResolutionError,
 };
 
 use super::{get_value, insert_value};

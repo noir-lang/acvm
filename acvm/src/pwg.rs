@@ -2,13 +2,14 @@
 
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
-    circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData, Brillig},
+    circuit::opcodes::{BlackBoxFuncCall, Brillig, Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
 
 use self::{
-    arithmetic::ArithmeticSolver, block::Blocks, directives::solve_directives, oracle::OracleSolver, brillig::BrilligSolver,
+    arithmetic::ArithmeticSolver, block::Blocks, brillig::BrilligSolver,
+    directives::solve_directives, oracle::OracleSolver,
 };
 
 use thiserror::Error;
@@ -38,7 +39,11 @@ pub enum PartialWitnessGeneratorStatus {
     ///
     /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
-    RequiresOracleData { required_oracle_data: Vec<OracleData>, unsolved_opcodes: Vec<Opcode>, unresolved_brilligs: Vec<UnresolvedBrillig>, },
+    RequiresOracleData {
+        required_oracle_data: Vec<OracleData>,
+        unsolved_opcodes: Vec<Opcode>,
+        unresolved_brilligs: Vec<UnresolvedBrillig>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -154,10 +159,13 @@ pub fn solve(
                     // We push those opcodes not solvable to the back as
                     // it could be because the opcodes are out of order, i.e. this assignment
                     // relies on a later opcodes' results
-                    unresolved_opcodes.push(match solved_oracle_data {
-                        Some(oracle_data) => Opcode::Oracle(oracle_data),
-                        None => opcode.clone(),
-                    });
+                    if let Some(oracle_data) = solved_oracle_data {
+                        unresolved_opcodes.push(Opcode::Oracle(oracle_data));
+                    } else if let Some(brillig) = solved_brillig_data {
+                        unresolved_opcodes.push(Opcode::Brillig(brillig));
+                    } else {
+                        unresolved_opcodes.push(opcode.clone());
+                    }
                 }
                 Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                     unreachable!("ICE - Result should have been converted to GateResolution")
@@ -170,7 +178,7 @@ pub fn solve(
             return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
                 required_oracle_data: unresolved_oracles,
                 unsolved_opcodes: unresolved_opcodes,
-                unresolved_brilligs
+                unresolved_brilligs,
             });
         }
         // We are stalled because of an opcode being bad
@@ -283,17 +291,23 @@ mod test {
     use std::collections::BTreeMap;
 
     use acir::{
+        brillig_bytecode::{
+            self, BinaryFieldOp, Comparison, ForeignCallResult, RegisterIndex,
+            RegisterValueOrArray, Value,
+        },
         circuit::{
             directives::Directive,
-            opcodes::{FunctionInput, OracleData, Brillig, BrilligInputs, BrilligOutputs},
+            opcodes::{Brillig, BrilligInputs, BrilligOutputs, FunctionInput, OracleData},
             Opcode,
         },
         native_types::{Expression, Witness, WitnessMap},
-        FieldElement, brillig_bytecode::{self, BinaryFieldOp, Comparison, RegisterIndex, RegisterValueOrArray, ForeignCallResult, Value},
+        FieldElement,
     };
 
     use crate::{
-        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus, UnresolvedBrillig},
+        pwg::{
+            self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus, UnresolvedBrillig,
+        },
         OpcodeResolutionError, PartialWitnessGenerator,
     };
 
@@ -413,7 +427,6 @@ mod test {
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
-
     #[test]
     fn inversion_brillig_oracle_equivalence() {
         // Opcodes below describe the following:
@@ -501,7 +514,8 @@ mod test {
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
-        ]).into();
+        ])
+        .into();
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
@@ -523,8 +537,9 @@ mod test {
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should not stall on oracle");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -634,7 +649,8 @@ mod test {
             (Witness(2), FieldElement::from(3u128)),
             (Witness(9), FieldElement::from(5u128)),
             (Witness(10), FieldElement::from(10u128)),
-        ]).into();
+        ])
+        .into();
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
@@ -659,8 +675,9 @@ mod test {
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should stall on oracle");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brilligs, .. } = solver_status else {
             panic!("Should require oracle data")
         };
@@ -682,8 +699,9 @@ mod test {
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
 
         // After filling data request, continue solving
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should not stall on oracle");
+        let solver_status =
+            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+                .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -772,7 +790,8 @@ mod test {
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
-        ]).into();
+        ])
+        .into();
         let mut blocks = Blocks::default();
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should not stall on oracle");
