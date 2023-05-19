@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { abi_encode, abi_decode } from "../pkg/";
+import { abi_encode, abi_decode } from "../../pkg/";
 
 test("recovers original inputs when abi encoding and decoding", () => {
   // TODO use ts-rs to get ABI type bindings.

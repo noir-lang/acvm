@@ -1,7 +1,12 @@
-import { expect, test } from "@jest/globals";
-import { abi_encode, abi_decode, execute_circuit } from "../pkg/";
+import initACVMSimulator, {
+  abi_encode,
+  abi_decode,
+  execute_circuit,
+} from "../../pkg/";
 
 test("successfully executes circuit and extracts return value", async () => {
+  await initACVMSimulator();
+
   // Noir program which enforces that x != y and returns x + y.
   const abi = {
     parameters: [
@@ -76,6 +81,8 @@ test("successfully executes circuit and extracts return value", async () => {
 });
 
 test("successfully processes oracle opcodes", async () => {
+  await initACVMSimulator();
+
   // We use a handwritten circuit which uses an oracle to calculate the sum of witnesses 1 and 2
   // and stores the result in witness 3. This is then enforced by an arithmetic opcode to check the result is correct.
 

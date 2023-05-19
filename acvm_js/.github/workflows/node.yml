@@ -1,4 +1,4 @@
-name: Wasm
+name: Node
 
 on: [push, pull_request]
 
@@ -8,8 +8,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build Wasm
+  test:
+    name: Test Wasm in Node.js
     runs-on: ubuntu-latest
 
     steps:
@@ -26,3 +26,9 @@ jobs:
 
       - name: Build wasm crate
         run: ./build-wasm
+
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+
+      - name: Run node tests
+        run: yarn test
