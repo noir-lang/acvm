@@ -37,6 +37,7 @@ pub(crate) fn solve(
     match bb_func {
         _ if !contains_all_inputs(initial_witness, &inputs) => {
             if let Some(unassigned_witness) = first_missing_assignment(initial_witness, &inputs) {
+                dbg!("missing assignment");
                 Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
                     unassigned_witness.0,
                 )))
@@ -107,18 +108,15 @@ pub(crate) fn solve(
             key,
             proof,
             public_inputs,
-            key_hash,
             input_aggregation_object,
-            nested_aggregation_object,
             outputs,
+            ..
         } => backend.verify_proof(
             initial_witness,
             key,
             proof,
             public_inputs,
-            key_hash,
             input_aggregation_object,
-            nested_aggregation_object,
             outputs,
         ),
     }

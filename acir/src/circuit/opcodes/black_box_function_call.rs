@@ -237,7 +237,7 @@ impl BlackBoxFuncCall {
                 key_hash,
                 input_aggregation_object,
                 nested_aggregation_object,
-                outputs,
+                ..
             } => {
                 let mut inputs = Vec::with_capacity(
                     key.len()
@@ -250,7 +250,11 @@ impl BlackBoxFuncCall {
                 inputs.extend(proof.iter().copied());
                 inputs.extend(public_inputs.iter().copied());
                 inputs.push(*key_hash);
-                inputs.extend(input_aggregation_object.iter().copied());
+                // If we do not have an input aggregation object assigned
+                // do not return it as part of the input vector as to not trigger
+                if !input_aggregation_object.iter().any(|v| v.witness == Witness(0)) {
+                    inputs.extend(input_aggregation_object.iter().copied());
+                }
                 inputs.extend(nested_aggregation_object.iter().copied());
                 inputs
             }
