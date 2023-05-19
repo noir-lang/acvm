@@ -51,7 +51,7 @@ pub enum BrilligOutputs {
 pub struct Brillig {
     pub inputs: Vec<BrilligInputs>,
     pub outputs: Vec<BrilligOutputs>,
-    // results of oracles/functions external to brillig like a database read
+    /// Results of oracles/functions external to brillig like a database read
     pub foreign_call_results: Vec<ForeignCallResult>,
     pub bytecode: Vec<brillig_bytecode::Opcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
