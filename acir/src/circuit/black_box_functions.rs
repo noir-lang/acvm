@@ -31,42 +31,6 @@ impl std::fmt::Display for BlackBoxFunc {
 }
 
 impl BlackBoxFunc {
-    pub fn to_u16(self) -> u16 {
-        match self {
-            BlackBoxFunc::AES => 0,
-            BlackBoxFunc::SHA256 => 1,
-            BlackBoxFunc::ComputeMerkleRoot => 2,
-            BlackBoxFunc::SchnorrVerify => 3,
-            BlackBoxFunc::Blake2s => 4,
-            BlackBoxFunc::Pedersen => 5,
-            BlackBoxFunc::HashToField128Security => 6,
-            BlackBoxFunc::EcdsaSecp256k1 => 7,
-            BlackBoxFunc::FixedBaseScalarMul => 8,
-            BlackBoxFunc::AND => 9,
-            BlackBoxFunc::XOR => 10,
-            BlackBoxFunc::RANGE => 11,
-            BlackBoxFunc::Keccak256 => 12,
-        }
-    }
-    pub fn from_u16(index: u16) -> Option<Self> {
-        let function = match index {
-            0 => BlackBoxFunc::AES,
-            1 => BlackBoxFunc::SHA256,
-            2 => BlackBoxFunc::ComputeMerkleRoot,
-            3 => BlackBoxFunc::SchnorrVerify,
-            4 => BlackBoxFunc::Blake2s,
-            5 => BlackBoxFunc::Pedersen,
-            6 => BlackBoxFunc::HashToField128Security,
-            7 => BlackBoxFunc::EcdsaSecp256k1,
-            8 => BlackBoxFunc::FixedBaseScalarMul,
-            9 => BlackBoxFunc::AND,
-            10 => BlackBoxFunc::XOR,
-            11 => BlackBoxFunc::RANGE,
-            12 => BlackBoxFunc::Keccak256,
-            _ => return None,
-        };
-        Some(function)
-    }
     pub fn name(&self) -> &'static str {
         match self {
             BlackBoxFunc::AES => "aes",
@@ -123,15 +87,6 @@ mod test {
                 resolved_func, bb_func,
                 "BlackBoxFunc::lookup returns unexpected BlackBoxFunc"
             )
-        }
-    }
-    #[test]
-    fn consistent_index() {
-        for bb_func in BlackBoxFunc::iter() {
-            let func_index = bb_func.to_u16();
-            let got_bb_func =
-                BlackBoxFunc::from_u16(func_index).expect("blackbox function should have an index");
-            assert_eq!(got_bb_func, bb_func, "BlackBox function index lookup is inconsistent")
         }
     }
 }
