@@ -59,9 +59,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Blake2s { inputs, outputs } => {
             blake2s256(initial_witness, inputs, outputs)
         }
-        BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, output } => {
-            backend.compute_merkle_root(initial_witness, leaf, index, hash_path, output)
-        }
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
             public_key_y,

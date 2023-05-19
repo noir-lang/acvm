@@ -13,7 +13,6 @@ pub enum BlackBoxFunc {
     RANGE,
     SHA256,
     Blake2s,
-    ComputeMerkleRoot,
     SchnorrVerify,
     Pedersen,
     // 128 here specifies that this function
@@ -35,7 +34,6 @@ impl BlackBoxFunc {
         match self {
             BlackBoxFunc::AES => "aes",
             BlackBoxFunc::SHA256 => "sha256",
-            BlackBoxFunc::ComputeMerkleRoot => "compute_merkle_root",
             BlackBoxFunc::SchnorrVerify => "schnorr_verify",
             BlackBoxFunc::Blake2s => "blake2s",
             BlackBoxFunc::Pedersen => "pedersen",
@@ -52,7 +50,6 @@ impl BlackBoxFunc {
         match op_name {
             "aes" => Some(BlackBoxFunc::AES),
             "sha256" => Some(BlackBoxFunc::SHA256),
-            "compute_merkle_root" => Some(BlackBoxFunc::ComputeMerkleRoot),
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
             "blake2s" => Some(BlackBoxFunc::Blake2s),
             "pedersen" => Some(BlackBoxFunc::Pedersen),
