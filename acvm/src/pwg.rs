@@ -249,7 +249,7 @@ fn insert_value(
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnresolvedBrillig {
     pub brillig: Brillig,
-    // information for if there is a pending foreign call/oracle
+    // Information for, if there is a pending foreign call/oracle
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
 }
 
