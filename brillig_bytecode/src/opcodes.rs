@@ -121,7 +121,7 @@ pub enum BinaryFieldOp {
     Cmp(Comparison),
 }
 
-// Binary fixed-length integer expressions
+/// Binary fixed-length integer expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryIntOp {
     Add,
