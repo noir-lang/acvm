@@ -270,16 +270,7 @@ mod test {
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
-        fn compute_merkle_root(
-            &self,
-            _initial_witness: &mut WitnessMap,
-            _leaf: &FunctionInput,
-            _index: &FunctionInput,
-            _hash_path: &[FunctionInput],
-            _output: &Witness,
-        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
-        }
+
         fn schnorr_verify(
             &self,
             _initial_witness: &mut WitnessMap,
@@ -291,6 +282,7 @@ mod test {
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
+
         fn pedersen(
             &self,
             _initial_witness: &mut WitnessMap,
@@ -299,6 +291,7 @@ mod test {
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
+
         fn fixed_base_scalar_mul(
             &self,
             _initial_witness: &mut WitnessMap,
