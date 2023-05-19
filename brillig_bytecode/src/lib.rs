@@ -30,7 +30,7 @@ pub enum VMStatus {
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
-    // resolved foreign call values
+    /// Resolved foreign call values
     pub values: Vec<Value>,
 }
 
