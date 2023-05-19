@@ -80,14 +80,6 @@ pub trait PartialWitnessGenerator {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn compute_merkle_root(
-        &self,
-        initial_witness: &mut WitnessMap,
-        leaf: &FunctionInput,
-        index: &FunctionInput,
-        hash_path: &[FunctionInput],
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
