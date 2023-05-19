@@ -143,6 +143,16 @@ impl<F: PrimeField> From<u128> for FieldElement<F> {
     }
 }
 
+impl<F: PrimeField> From<bool> for FieldElement<F> {
+    fn from(boolean: bool) -> FieldElement<F> {
+        if boolean {
+            FieldElement::one()
+        } else {
+            FieldElement::zero()
+        }
+    }
+}
+
 impl<F: PrimeField> FieldElement<F> {
     pub fn one() -> FieldElement<F> {
         FieldElement(F::one())
@@ -312,7 +322,7 @@ impl<F: PrimeField> FieldElement<F> {
     fn mask_to_be_bytes(&self, num_bits: u32) -> Vec<u8> {
         let mut bytes = self.to_be_bytes();
         mask_vector_le(&mut bytes, num_bits as usize);
-        bytes.to_vec()
+        bytes
     }
 
     fn and_xor(&self, rhs: &FieldElement<F>, num_bits: u32, is_xor: bool) -> FieldElement<F> {

@@ -1,17 +1,16 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use acir::{
     circuit::opcodes::{BlockId, MemOp},
-    native_types::Witness,
+    native_types::{Witness, WitnessMap},
     FieldElement,
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
-
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
-    directives::insert_witness,
+    insert_value,
 };
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// Maps a block to its emulated state
 #[derive(Default)]
@@ -24,7 +23,7 @@ impl Blocks {
         &mut self,
         id: BlockId,
         trace: &[MemOp],
-        solved_witness: &mut BTreeMap<Witness, FieldElement>,
+        solved_witness: &mut WitnessMap,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
         solver.solve(solved_witness, trace)
@@ -54,7 +53,7 @@ impl BlockSolver {
     // We stop when an operation cannot be resolved
     fn solve_helper(
         &mut self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         trace: &[MemOp],
     ) -> Result<(), OpcodeResolutionError> {
         let missing_assignment = |witness: Option<Witness>| {
@@ -83,7 +82,7 @@ impl BlockSolver {
                     GateStatus::GateSolvable(sum, (coef, w)) => {
                         let map_value =
                             self.get_value(index).ok_or_else(|| missing_assignment(Some(w)))?;
-                        insert_witness(w, (map_value - sum - value.q_c) / coef, initial_witness)?;
+                        insert_value(&w, (map_value - sum - value.q_c) / coef, initial_witness)?;
                     }
                     GateStatus::GateSatisfied(sum) => {
                         self.insert_value(index, sum + value.q_c);
@@ -102,7 +101,7 @@ impl BlockSolver {
     // and converts its result into GateResolution
     pub(crate) fn solve(
         &mut self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         trace: &[MemOp],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let initial_solved_operations = self.solved_operations;
@@ -123,15 +122,13 @@ impl BlockSolver {
 
 #[cfg(test)]
 mod test {
-    use std::collections::BTreeMap;
-
     use acir::{
         circuit::opcodes::{BlockId, MemOp},
-        native_types::{Expression, Witness},
+        native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
-    use crate::pwg::directives::insert_witness;
+    use crate::pwg::insert_value;
 
     use super::Blocks;
 
@@ -141,33 +138,33 @@ mod test {
         let mut trace = vec![MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(1)),
+            value: Expression::from(Witness(1)),
         }];
         index += FieldElement::one();
         trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(2)),
+            value: Expression::from(Witness(2)),
         });
         index += FieldElement::one();
         trace.push(MemOp {
             operation: Expression::one(),
             index: Expression::from_field(index),
-            value: Expression::from(&Witness(3)),
+            value: Expression::from(Witness(3)),
         });
         trace.push(MemOp {
             operation: Expression::zero(),
             index: Expression::one(),
-            value: Expression::from(&Witness(4)),
+            value: Expression::from(Witness(4)),
         });
         let id = BlockId::default();
-        let mut initial_witness = BTreeMap::new();
+        let mut initial_witness = WitnessMap::new();
         let mut value = FieldElement::zero();
-        insert_witness(Witness(1), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(1), value, &mut initial_witness).unwrap();
         value = FieldElement::one();
-        insert_witness(Witness(2), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(2), value, &mut initial_witness).unwrap();
         value = value + value;
-        insert_witness(Witness(3), value, &mut initial_witness).unwrap();
+        insert_value(&Witness(3), value, &mut initial_witness).unwrap();
         let mut blocks = Blocks::default();
         blocks.solve(id, &trace, &mut initial_witness).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());

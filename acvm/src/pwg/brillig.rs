@@ -1,23 +1,21 @@
-use std::collections::BTreeMap;
-
 use acir::{
     brillig_bytecode::{RegisterIndex, Registers, VMStatus, Value, VM},
     circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
-    native_types::Witness,
+    native_types::WitnessMap,
     FieldElement,
 };
 
 use crate::{
-    pwg::arithmetic::ArithmeticSolver, OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError,
+    pwg::{arithmetic::ArithmeticSolver, OpcodeNotSolvable}, OpcodeResolution, OpcodeResolutionError, 
 };
 
-use super::{directives::insert_witness, get_value};
+use super::{get_value, insert_value};
 
 pub struct BrilligSolver;
 
 impl BrilligSolver {
     pub fn solve(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         brillig: &mut Brillig,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
@@ -39,11 +37,11 @@ impl BrilligSolver {
             for output in &brillig.outputs {
                 match output {
                     BrilligOutputs::Simple(witness) => {
-                        insert_witness(*witness, FieldElement::zero(), initial_witness)?
+                        insert_value(witness, FieldElement::zero(), initial_witness)?
                     }
                     BrilligOutputs::Array(witness_arr) => {
                         for w in witness_arr {
-                            insert_witness(*w, FieldElement::zero(), initial_witness)?
+                            insert_value(w, FieldElement::zero(), initial_witness)?
                         }
                     }
                 }
@@ -120,13 +118,13 @@ impl BrilligSolver {
                     let register_value = vm.get_registers().get(RegisterIndex(i));
                     match output {
                         BrilligOutputs::Simple(witness) => {
-                            insert_witness(*witness, register_value.inner, initial_witness)?;
+                            insert_value(witness, register_value.inner, initial_witness)?;
                         }
                         BrilligOutputs::Array(witness_arr) => {
                             // Treat the register value as a pointer to memory
                             for (i, witness) in witness_arr.iter().enumerate() {
                                 let value = &vm.get_memory()[register_value.to_usize() + i];
-                                insert_witness(*witness, value.inner, initial_witness)?;
+                                insert_value(witness, value.inner, initial_witness)?;
                             }
                         }
                     }

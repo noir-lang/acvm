@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.12.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.11.0...acvm_stdlib-v0.12.0) (2023-05-17)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+## [0.11.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.3...acvm_stdlib-v0.11.0) (2023-05-04)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+## [0.10.3](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.2...acvm_stdlib-v0.10.3) (2023-04-28)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+## [0.10.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.1...acvm_stdlib-v0.10.2) (2023-04-28)
+
+
+### Bug Fixes
+
+* add default flag to `acvm_stdlib` ([#242](https://github.com/noir-lang/acvm/issues/242)) ([83b6fa8](https://github.com/noir-lang/acvm/commit/83b6fa8302569add7e3ac8481b2fd2a6a1ff3576))
+
+## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.0...acvm_stdlib-v0.10.1) (2023-04-28)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.9.0...acvm_stdlib-v0.10.0) (2023-04-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* organise operator implementations for Expression ([#190](https://github.com/noir-lang/acvm/issues/190))
+
+### Bug Fixes
+
+* prevent `bn254` feature flag always being enabled ([#225](https://github.com/noir-lang/acvm/issues/225)) ([82eee6a](https://github.com/noir-lang/acvm/commit/82eee6ab08ae480f04904ca8571fd88f4466c000))
+
+
+### Miscellaneous Chores
+
+* organise operator implementations for Expression ([#190](https://github.com/noir-lang/acvm/issues/190)) ([a619df6](https://github.com/noir-lang/acvm/commit/a619df614bbb9b2518b788b42a7553b069823a0f))
+
+## [0.9.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.8.1...acvm_stdlib-v0.9.0) (2023-04-07)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * acir bumped from 0.8.1 to 0.9.0
+
+## [0.8.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.8.0...acvm_stdlib-v0.8.1) (2023-03-30)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize undefined versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * acir bumped from 0.8.0 to 0.8.1
+
 ## [0.8.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.7.1...acvm_stdlib-v0.8.0) (2023-03-28)
 
 
