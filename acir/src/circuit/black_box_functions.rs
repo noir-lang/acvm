@@ -7,7 +7,7 @@ use strum_macros::EnumIter;
 #[cfg_attr(test, derive(EnumIter))]
 pub enum BlackBoxFunc {
     #[allow(clippy::upper_case_acronyms)]
-    AES,
+    AES128,
     AND,
     XOR,
     RANGE,
@@ -32,7 +32,7 @@ impl std::fmt::Display for BlackBoxFunc {
 impl BlackBoxFunc {
     pub fn name(&self) -> &'static str {
         match self {
-            BlackBoxFunc::AES => "aes",
+            BlackBoxFunc::AES128 => "aes128",
             BlackBoxFunc::SHA256 => "sha256",
             BlackBoxFunc::SchnorrVerify => "schnorr_verify",
             BlackBoxFunc::Blake2s => "blake2s",
@@ -48,7 +48,7 @@ impl BlackBoxFunc {
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
         match op_name {
-            "aes" => Some(BlackBoxFunc::AES),
+            "aes128" => Some(BlackBoxFunc::AES128),
             "sha256" => Some(BlackBoxFunc::SHA256),
             "schnorr_verify" => Some(BlackBoxFunc::SchnorrVerify),
             "blake2s" => Some(BlackBoxFunc::Blake2s),

@@ -74,7 +74,7 @@ pub trait CommonReferenceString {
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
-    fn aes(
+    fn aes128(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
