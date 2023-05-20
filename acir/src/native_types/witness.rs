@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Serialize, Deserialize,
 )]
-pub struct Witness(pub u32);
+pub struct Witness(pub(crate) u32);
 
 impl Witness {
     pub fn new(witness_index: u32) -> Witness {
