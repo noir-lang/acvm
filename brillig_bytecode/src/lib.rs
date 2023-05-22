@@ -1,8 +1,8 @@
-// ACVM is capable of running brillig-bytecode
-// This bytecode is ran in the traditional sense
-// and allows one to do non-determinism.
-// This is a generalization over the fixed directives
-// that we have in ACVM.
+//! ACVM is capable of running brillig-bytecode
+//! This bytecode is run in the traditional sense
+//! and allows one to do non-determinism.
+//! This is a generalization over the fixed directives
+//! that we have in ACVM.
 
 mod opcodes;
 mod registers;

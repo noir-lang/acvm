@@ -21,7 +21,7 @@ pub enum Opcode {
         lhs: RegisterIndex,
         rhs: RegisterIndex,
     },
-    /// Takes the bit_size size integers in registers `lhs` and `rhs`
+    /// Takes the `bit_size` size integers in registers `lhs` and `rhs`
     /// Performs the specified binary operation
     /// and stores the value in the `result` register.  
     BinaryIntOp {
@@ -36,7 +36,7 @@ pub enum Opcode {
         location: Label,
     },
     /// Sets the program counter to the value located at `destination`
-    /// If the value at condition is non-zero
+    /// If the value at `condition` is non-zero
     JumpIf {
         condition: RegisterIndex,
         location: Label,
