@@ -268,8 +268,7 @@ impl CircuitSimplifier {
     ) -> SimplifyResult {
         self.use_witness(result, gate_idx, first);
         if let Some(f) = self.solved.get(&x) {
-            let result_value = if f.is_zero() { FieldElement::zero() } else { f.inverse() };
-            self.insert(result, result_value, gate_idx)
+            self.insert(result, f.inverse(), gate_idx)
         } else {
             if let Some(f) = self.solved.get(&result) {
                 if f.is_zero() {
