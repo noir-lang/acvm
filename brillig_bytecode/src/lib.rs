@@ -96,7 +96,7 @@ impl VM {
         ) {}
         self.status.clone()
     }
-
+/// Returns all of the registers in the VM.
     pub fn get_registers(&self) -> &Registers {
         &self.registers
     }
