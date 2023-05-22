@@ -75,7 +75,8 @@ impl VM {
         self.status(VMStatus::Finished)
     }
 
-    /// Waits for a foreign call/oracle
+    /// Sets the status of the VM to `ForeignCallWait`.
+    /// Indicating that the VM is no waiting for a foreign call to be resolved.
     fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
