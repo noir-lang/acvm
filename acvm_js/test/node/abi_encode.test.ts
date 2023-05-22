@@ -1,5 +1,6 @@
 import { expect, test } from "@jest/globals";
 import { abiEncode, abiDecode } from "../../pkg/";
+import { DecodedInputs, WitnessMap } from "../types";
 
 test("recovers original inputs when abi encoding and decoding", () => {
   // TODO use ts-rs to get ABI type bindings.
@@ -20,10 +21,8 @@ test("recovers original inputs when abi encoding and decoding", () => {
     foo: "1",
     bar: ["1", "2"],
   };
-  const initial_witness: Map<string, string> = abiEncode(abi, inputs, null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const decoded_inputs: { inputs: Record<string, any>; return_value: any } =
-    abiDecode(abi, initial_witness);
+  const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
+  const decoded_inputs: DecodedInputs = abiDecode(abi, initial_witness);
 
   expect(BigInt(decoded_inputs.inputs.foo)).toBe(BigInt(inputs.foo));
   expect(BigInt(decoded_inputs.inputs.bar[0])).toBe(BigInt(inputs.bar[0]));
