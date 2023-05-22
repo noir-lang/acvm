@@ -1839,6 +1839,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"acvm-simulator@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "acvm-simulator@workspace:."
+  dependencies:
+    "@types/jest": ^29.5.1
+    "@typescript-eslint/eslint-plugin": ^5.59.5
+    "@typescript-eslint/parser": ^5.59.5
+    "@web/dev-server-esbuild": ^0.3.6
+    "@web/test-runner": ^0.15.3
+    eslint: ^8.40.0
+    eslint-plugin-prettier: ^4.2.1
+    jest: ^29.5.0
+    jest-browser-globals: ^25.1.0-beta
+    prettier: ^2.8.8
+    ts-jest: ^29.1.0
+    typescript: ^5.0.4
+  languageName: unknown
+  linkType: soft
+
 "agent-base@npm:6, agent-base@npm:^6.0.2":
   version: 6.0.2
   resolution: "agent-base@npm:6.0.2"
@@ -4996,25 +5015,6 @@ __metadata:
   checksum: 7d0eda657002738aa5206107bd0580aead6c95c460ef1bdd0b1a87a9c7ae6277ac2e9b945306aaa5b32c6dcb7feaf462d0f552e7f8b5718abfc6ead5c94a71b3
   languageName: node
   linkType: hard
-
-"nargo-wasm@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "nargo-wasm@workspace:."
-  dependencies:
-    "@types/jest": ^29.5.1
-    "@typescript-eslint/eslint-plugin": ^5.59.5
-    "@typescript-eslint/parser": ^5.59.5
-    "@web/dev-server-esbuild": ^0.3.6
-    "@web/test-runner": ^0.15.3
-    eslint: ^8.40.0
-    eslint-plugin-prettier: ^4.2.1
-    jest: ^29.5.0
-    jest-browser-globals: ^25.1.0-beta
-    prettier: ^2.8.8
-    ts-jest: ^29.1.0
-    typescript: ^5.0.4
-  languageName: unknown
-  linkType: soft
 
 "natural-compare-lite@npm:^1.4.0":
   version: 1.4.0

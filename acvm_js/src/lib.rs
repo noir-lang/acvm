@@ -40,7 +40,7 @@ const BUILD_INFO: BuildInfo = BuildInfo {
     dirty: env!("GIT_DIRTY"),
 };
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = buildInfo)]
 pub fn build_info() -> JsValue {
     console_error_panic_hook::set_once();
     <JsValue as JsValueSerdeExt>::from_serde(&BUILD_INFO).unwrap()
