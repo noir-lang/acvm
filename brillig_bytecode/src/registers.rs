@@ -34,7 +34,7 @@ impl Iterator for RegistersIntoIterator {
         Some(self.registers.inner[self.index - 1])
     }
 }
-
+RegisterIndex refers to the index of a register in the VM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RegisterIndex(pub usize);
 
