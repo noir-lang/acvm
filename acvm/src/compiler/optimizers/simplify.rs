@@ -236,21 +236,22 @@ impl CircuitSimplifier {
     ) -> SimplifyResult {
         let expr = self.evaluate_arith(expression, gate_idx, first);
 
-        if expr.is_linear() {
-            if expr.linear_combinations.len() == 1 {
-                let solved = expr.linear_combinations[0].1;
-                if expr.linear_combinations[0].0.is_zero() {
-                    return SimplifyResult::UnsatisfiedConstrain(gate_idx);
-                }
-                return self.insert(solved, -expr.q_c / expr.linear_combinations[0].0, gate_idx);
-            } else if expr.linear_combinations.is_empty() {
-                if expr.q_c.is_zero() {
-                    return SimplifyResult::Solved;
-                } else {
-                    return SimplifyResult::UnsatisfiedConstrain(gate_idx);
-                }
+        if expr.is_const() {
+            if expr.is_zero() {
+                return SimplifyResult::Solved;
+            } else {
+                return SimplifyResult::UnsatisfiedConstrain(gate_idx);
+            }
+        } else if expr.is_degree_one_univariate() {
+            let (coeff, solved) = expr.linear_combinations[0];
+            if coeff.is_zero() {
+                return SimplifyResult::UnsatisfiedConstrain(gate_idx);
+            } else {
+                return self.insert(solved, -expr.q_c / coeff, gate_idx);
             }
         }
+        // `expr` is either non-linear or multilinear.
+
         if expr != *expression {
             SimplifyResult::Replace(Box::new(Opcode::Arithmetic(expr)))
         } else {
