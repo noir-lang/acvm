@@ -106,7 +106,7 @@ impl VM {
         &self.memory
     }
 
-    // Process a single opcode and modify the program counter
+    /// Process a single opcode and modify the program counter.
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
         match opcode {
