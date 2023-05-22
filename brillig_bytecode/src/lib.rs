@@ -69,7 +69,8 @@ impl VM {
         self.status = status.clone();
         status
     }
-
+/// Sets the current status of the VM to `finished`.
+/// Indicating that the VM has completed execution.
     fn finish(&mut self) -> VMStatus {
         self.status(VMStatus::Finished)
     }
