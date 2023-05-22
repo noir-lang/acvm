@@ -266,7 +266,6 @@ impl CircuitSimplifier {
         gate_idx: usize,
         first: bool,
     ) -> SimplifyResult {
-        if result.0 == 44 {}
         self.use_witness(result, gate_idx, first);
         if let Some(f) = self.solved.get(&x) {
             let result_value = if f.is_zero() { FieldElement::zero() } else { f.inverse() };
