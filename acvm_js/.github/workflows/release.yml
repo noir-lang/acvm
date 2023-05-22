@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release-please:
+    name: Create Release
+    outputs:
+      tag-name: ${{ steps.release.outputs.tag_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        id: release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          release-type: node
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+          pull-request-title-pattern: "chore: Release ${version}"
+          extra-files: |
+            Cargo.toml
+
+  update-lockfile:
+    name: Update lockfile
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release-pr }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.release-pr).headBranchName }}
+          token: ${{ secrets.NOIR_RELEASES_TOKEN }}
+
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@1.66.0
+
+      - name: Update lockfile
+        run: |
+          cargo update --workspace
+
+      - name: Configure git
+        run: |
+          git config user.name tomafrench
+          git config user.email tomfrench@aztecprotocol.com
+
+      - name: Commit updates
+        run: |
+          git add Cargo.lock
+          git commit -m 'chore: Update lockfile'
+          git push

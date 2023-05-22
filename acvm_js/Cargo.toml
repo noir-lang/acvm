@@ -1,6 +1,6 @@
 [package]
 name = "acvm-simulator"
-version = "0.0.0"
+version = "0.0.0" # x-release-please-version
 authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 rust-version = "1.66"
