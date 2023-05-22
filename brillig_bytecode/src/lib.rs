@@ -69,13 +69,16 @@ impl VM {
         self.status = status.clone();
         status
     }
+
     fn finish(&mut self) -> VMStatus {
         self.status(VMStatus::Finished)
     }
+
     /// Waits for a foreign call/oracle
     fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
+
     fn fail(&mut self, error_msg: &str) -> VMStatus {
         self.status(VMStatus::Failure);
         // TODO(AD): Proper error handling
@@ -91,12 +94,15 @@ impl VM {
         ) {}
         self.status.clone()
     }
+
     pub fn get_registers(&self) -> &Registers {
         &self.registers
     }
+
     pub fn get_memory(&self) -> &Vec<Value> {
         &self.memory
     }
+
     // Process a single opcode and modify the program counter
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
