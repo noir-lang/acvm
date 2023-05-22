@@ -254,12 +254,6 @@ pub struct UnresolvedBrillig {
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
 }
 
-pub struct UnresolvedData {
-    pub unresolved_opcodes: Vec<Opcode>,
-    pub unresolved_oracles: Vec<OracleData>,
-    pub unresolved_brilligs: Vec<UnresolvedBrillig>,
-}
-
 #[deprecated(
     note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for opcode support based on the np language. \n Backends should simply specify what they support."
 )]
