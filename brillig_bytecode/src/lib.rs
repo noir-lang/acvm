@@ -21,9 +21,9 @@ pub enum VMStatus {
     InProgress,
     Failure,
     ForeignCallWait {
-        // Interpreted by simulator context
+        /// Interpreted by simulator context
         function: String,
-        // Input values
+        /// Input values
         inputs: Vec<Value>,
     },
 }
