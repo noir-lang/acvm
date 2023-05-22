@@ -63,7 +63,7 @@ pub enum Opcode {
         /// Interpreted by caller context, ie this will have different meanings depending on 
         /// who the caller is.
         function: String,
-        // Destination register (may be a memory pointer).
+        /// Destination register (may be a memory pointer).
         destination: RegisterValueOrArray,
         // Input register (may be a memory pointer).
         input: RegisterValueOrArray,
