@@ -53,11 +53,29 @@ impl PartialWitnessGenerator for SimulatedBackend {
     }
 }
 
-#[wasm_bindgen(js_name = executeCircuit)]
+// TODO: enforce this type, this is reliant on Brillig (see https://github.com/noir-lang/acvm/issues/298)
+#[wasm_bindgen(typescript_custom_section)]
+const ORACLE_CALLBACK: &'static str = r#"
+/**
+ * A callback which performs an oracle call and returns the response as an array of outputs.
+ * @callback OracleCallback
+ * @param {string} name - The identifier for the type of oracle call being performed.
+ * @param {string[]} inputs - An array of hex encoded inputs to the oracle call.
+ * @returns {Promise<string[]>} outputs - An array of hex encoded outputs containing the results of the oracle call.
+ */
+"#;
+
+/// Executes an ACIR circuit to generate the solved witness from the initial witness.
+///
+/// @param {Uint8Array} circuit - A serialized representation of an ACIR circuit
+/// @param {WitnessMap} initial_witness - The initial witness map defining all of the inputs to `circuit`..
+/// @param {OracleCallback} oracle_callback - A callback to process oracle calls from the circuit.
+/// @returns {WitnessMap} The solved witness calculated by executing the circuit on the provided inputs.
+#[wasm_bindgen(js_name = executeCircuit, skip_jsdoc)]
 pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
-    oracle_resolver: js_sys::Function,
+    oracle_callback: js_sys::Function,
 ) -> Result<JsWitnessMap, JsValue> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
@@ -80,7 +98,7 @@ pub async fn execute_circuit(
                 // Perform all oracle queries
                 let oracle_call_futures: Vec<_> = required_oracle_data
                     .into_iter()
-                    .map(|oracle_call| resolve_oracle(&oracle_resolver, oracle_call))
+                    .map(|oracle_call| resolve_oracle(&oracle_callback, oracle_call))
                     .collect();
 
                 // Insert results into the witness map
