@@ -432,7 +432,7 @@ mod test {
         // Opcodes below describe the following:
         // fn main(x : Field, y : pub Field) {
         //     let z = x + y;
-        //     constrain 1/z == Oracle("inverse", x + y);
+        //     assert( 1/z == Oracle("inverse", x + y) );
         // }
         let fe_0 = FieldElement::zero();
         let fe_1 = FieldElement::one();
