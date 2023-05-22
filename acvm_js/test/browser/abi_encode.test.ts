@@ -1,5 +1,9 @@
-import initACVMSimulator, { abiEncode, abiDecode } from "../../pkg/";
-import { DecodedInputs, WitnessMap } from "../types";
+import initACVMSimulator, {
+  abiEncode,
+  abiDecode,
+  WitnessMap,
+} from "../../pkg/";
+import { DecodedInputs } from "../types";
 
 test("recovers original inputs when abi encoding and decoding", async () => {
   await initACVMSimulator();

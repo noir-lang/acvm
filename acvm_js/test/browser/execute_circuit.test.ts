@@ -2,8 +2,8 @@ import initACVMSimulator, {
   abiEncode,
   abiDecode,
   executeCircuit,
+  WitnessMap,
 } from "../../pkg/";
-import { WitnessMap } from "../types";
 
 test("successfully executes circuit and extracts return value", async () => {
   await initACVMSimulator();

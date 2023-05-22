@@ -1,3 +1,4 @@
+use acvm::{acir::native_types::Witness, FieldElement};
 use iter_extended::{btree_map, try_btree_map};
 use noirc_abi::{errors::InputParserError, input_parser::InputValue, Abi, MAIN_RETURN_NAME};
 use serde::Serialize;
@@ -8,7 +9,7 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 mod temp;
 
-use crate::js_transforms::{js_map_to_witness_map, witness_map_to_js_map};
+use crate::JsWitnessMap;
 
 use self::temp::{input_value_from_json_type, JsonTypes};
 
@@ -17,7 +18,7 @@ pub fn abi_encode(
     abi: JsValue,
     inputs: JsValue,
     return_value: JsValue,
-) -> Result<js_sys::Map, JsValue> {
+) -> Result<JsWitnessMap, JsValue> {
     console_error_panic_hook::set_once();
     let abi: Abi = JsValueSerdeExt::into_serde(&abi).map_err(|err| err.to_string())?;
     let inputs: BTreeMap<String, JsonTypes> =
@@ -52,15 +53,15 @@ pub fn abi_encode(
 
     let witness_map = abi.encode(&parsed_inputs, return_value).map_err(|err| err.to_string())?;
 
-    Ok(witness_map_to_js_map(witness_map))
+    Ok(witness_map.into())
 }
 
 #[wasm_bindgen(js_name = abiDecode)]
-pub fn abi_decode(abi: JsValue, witness_map: js_sys::Map) -> Result<JsValue, JsValue> {
+pub fn abi_decode(abi: JsValue, witness_map: JsWitnessMap) -> Result<JsValue, JsValue> {
     console_error_panic_hook::set_once();
     let abi: Abi = JsValueSerdeExt::into_serde(&abi).map_err(|err| err.to_string())?;
 
-    let witness_map = js_map_to_witness_map(witness_map);
+    let witness_map: BTreeMap<Witness, FieldElement> = witness_map.into();
 
     let (inputs, return_value) = abi.decode(&witness_map).map_err(|err| err.to_string())?;
 
