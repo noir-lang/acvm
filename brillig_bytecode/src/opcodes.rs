@@ -60,7 +60,8 @@ pub enum Opcode {
     /// this is intended for things like state tree reads, and shouldn't be confused
     /// with e.g. blockchain price oracles.
     ForeignCall {
-        // Interpreted by simulator context
+        /// Interpreted by caller context, ie this will have different meanings depending on 
+        /// who the caller is.
         function: String,
         // Destination register (may be a memory pointer).
         destination: RegisterValueOrArray,
