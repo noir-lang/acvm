@@ -76,7 +76,7 @@ impl VM {
     }
 
     /// Sets the status of the VM to `ForeignCallWait`.
-    /// Indicating that the VM is no waiting for a foreign call to be resolved.
+    /// Indicating that the VM is not waiting for a foreign call to be resolved.
     fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
