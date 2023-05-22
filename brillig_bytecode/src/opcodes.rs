@@ -145,9 +145,12 @@ pub enum BinaryIntOp {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Comparison {
-    Eq,  //(==) equal
-    Lt,  //(<) field less
-    Lte, //(<=) field less or equal
+    /// (==) equal
+    Eq,
+    /// (<) Field less than 
+    Lt,
+     /// (<=) field less or equal
+    Lte,
 }
 
 impl BinaryFieldOp {
