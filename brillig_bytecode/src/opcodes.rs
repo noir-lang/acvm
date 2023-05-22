@@ -131,11 +131,16 @@ pub enum BinaryIntOp {
     SignedDiv,
     UnsignedDiv,
     Cmp(Comparison),
-    And, // (&) Bitwise AND
-    Or,  // (|) Bitwise OR
-    Xor, // (^) Bitwise XOR
-    Shl, // (<<) Shift left
-    Shr, // (>>) Shift right
+    /// (&) Bitwise AND
+    And, 
+    /// (|) Bitwise OR
+    Or, 
+    /// (^) Bitwise XOR
+    Xor, 
+    /// (<<) Shift left
+    Shl,
+    /// (>>) Shift right
+    Shr, 
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
