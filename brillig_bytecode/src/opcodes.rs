@@ -80,7 +80,7 @@ pub enum Opcode {
         destination_pointer: RegisterIndex,
         source: RegisterIndex,
     },
-    /// Used if execution fails during evaluation
+    /// Used to denote execution failure
     Trap,
     /// Stop execution
     Stop,
