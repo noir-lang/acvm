@@ -107,7 +107,7 @@ impl Opcode {
     }
 }
 
-/// Binary fixed-length integer expressions
+/// Binary fixed-length field expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryFieldOp {
     Add,
