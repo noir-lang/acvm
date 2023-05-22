@@ -712,7 +712,7 @@ mod test {
         //     let z = x + y;
         //     let z_inverse = 1/z
         //     if cond {
-        //         constrain z_inverse == Oracle("inverse", x + y);
+        //         assert( z_inverse == Oracle("inverse", x + y) );
         //     }
         // }
         let fe_0 = FieldElement::zero();
