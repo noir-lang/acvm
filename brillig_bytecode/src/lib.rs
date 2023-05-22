@@ -230,24 +230,6 @@ impl VM {
         self.status.clone()
     }
 
-    /// Process a binary operation.
-    /// This method will not modify the program counter.
-    fn process_binary_int_op(
-        &mut self,
-        op: BinaryIntOp,
-        bit_size: u32,
-        lhs: RegisterIndex,
-        rhs: RegisterIndex,
-        result: RegisterIndex,
-    ) {
-        let lhs_value = self.registers.get(lhs);
-        let rhs_value = self.registers.get(rhs);
-
-        let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
-
-        self.registers.set(result, result_value.into());
-    }
-
     fn resolve_foreign_call_input(&self, input: RegisterValueOrArray) -> Vec<Value> {
         match input {
             RegisterValueOrArray::RegisterIndex(index) => vec![self.registers.get(index)],
@@ -273,6 +255,24 @@ impl VM {
         let result_value = op.evaluate_field(lhs_value.inner, rhs_value.inner);
 
         self.registers.set(result, result_value.into())
+    }
+
+    /// Process a binary operation.
+    /// This method will not modify the program counter.
+    fn process_binary_int_op(
+        &mut self,
+        op: BinaryIntOp,
+        bit_size: u32,
+        lhs: RegisterIndex,
+        rhs: RegisterIndex,
+        result: RegisterIndex,
+    ) {
+        let lhs_value = self.registers.get(lhs);
+        let rhs_value = self.registers.get(rhs);
+
+        let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
+
+        self.registers.set(result, result_value.into());
     }
 }
 
