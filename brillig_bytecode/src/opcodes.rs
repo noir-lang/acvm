@@ -65,7 +65,7 @@ pub enum Opcode {
         function: String,
         /// Destination register (may be a memory pointer).
         destination: RegisterValueOrArray,
-        // Input register (may be a memory pointer).
+        /// Input register (may be a memory pointer).
         input: RegisterValueOrArray,
     },
     Mov {
