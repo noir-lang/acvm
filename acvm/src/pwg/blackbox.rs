@@ -3,9 +3,15 @@ use acir::{
     native_types::{Witness, WitnessMap},
 };
 
-use crate::{OpcodeNotSolvable, OpcodeResolutionError, PartialWitnessGenerator};
-
-use super::OpcodeResolution;
+use super::{
+    hash::{blake2s256, hash_to_field_128_security, keccak256, sha256},
+    logic::{and, xor},
+    range::solve_range_opcode,
+    signature::ecdsa::secp256k1_prehashed,
+    OpcodeResolution, OpcodeResolutionError,
+};
+use crate::pwg::OpcodeNotSolvable;
+use crate::PartialWitnessGenerator;
 
 /// Check if all of the inputs to the function have assignments
 ///
@@ -34,35 +40,24 @@ pub(crate) fn solve(
     bb_func: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let inputs = bb_func.get_inputs_vec();
+    if !contains_all_inputs(initial_witness, &inputs) {
+        let unassigned_witness = first_missing_assignment(initial_witness, &inputs)
+            .expect("Some assignments must be missing because it does not contains all inputs");
+        return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
+            unassigned_witness.0,
+        )));
+    }
+
     match bb_func {
-        _ if !contains_all_inputs(initial_witness, &inputs) => {
-            if let Some(unassigned_witness) = first_missing_assignment(initial_witness, &inputs) {
-                dbg!("missing assignment");
-                Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-                    unassigned_witness.0,
-                )))
-            } else {
-                // This only exists because Rust won't let us bind in a pattern guard.
-                // See https://github.com/rust-lang/rust/issues/51114
-                unreachable!("Only reachable if the blackbox is stalled")
-            }
-        }
         BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
-        BlackBoxFuncCall::AND { lhs, rhs, output } => {
-            backend.and(initial_witness, lhs, rhs, output)
+        acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
+            and(initial_witness, lhs, rhs, output)
         }
-        BlackBoxFuncCall::XOR { lhs, rhs, output } => {
-            backend.xor(initial_witness, lhs, rhs, output)
-        }
-        BlackBoxFuncCall::RANGE { input } => backend.range(initial_witness, input),
-        BlackBoxFuncCall::SHA256 { inputs, outputs } => {
-            backend.sha256(initial_witness, inputs, outputs)
-        }
+        BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
+        BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
+        BlackBoxFuncCall::SHA256 { inputs, outputs } => sha256(initial_witness, inputs, outputs),
         BlackBoxFuncCall::Blake2s { inputs, outputs } => {
-            backend.blake2s(initial_witness, inputs, outputs)
-        }
-        BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, output } => {
-            backend.compute_merkle_root(initial_witness, leaf, index, hash_path, output)
+            blake2s256(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
@@ -82,7 +77,7 @@ pub(crate) fn solve(
             backend.pedersen(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
-            backend.hash_to_field_128_security(initial_witness, inputs, output)
+            hash_to_field_128_security(initial_witness, inputs, output)
         }
         BlackBoxFuncCall::EcdsaSecp256k1 {
             public_key_x,
@@ -90,19 +85,19 @@ pub(crate) fn solve(
             signature,
             hashed_message: message,
             output,
-        } => backend.ecdsa_secp256k1(
+        } => secp256k1_prehashed(
             initial_witness,
             public_key_x,
             public_key_y,
             signature,
             message,
-            output,
+            *output,
         ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
             backend.fixed_base_scalar_mul(initial_witness, input, outputs)
         }
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
-            backend.keccak256(initial_witness, inputs, outputs)
+            keccak256(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::VerifyProof {
             key,

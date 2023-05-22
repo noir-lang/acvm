@@ -44,12 +44,6 @@ pub enum BlackBoxFuncCall {
         inputs: Vec<FunctionInput>,
         outputs: Vec<Witness>,
     },
-    ComputeMerkleRoot {
-        leaf: FunctionInput,
-        index: FunctionInput,
-        hash_path: Vec<FunctionInput>,
-        output: Witness,
-    },
     SchnorrVerify {
         public_key_x: FunctionInput,
         public_key_y: FunctionInput,
@@ -88,7 +82,6 @@ pub enum BlackBoxFuncCall {
         public_inputs: Vec<FunctionInput>,
         key_hash: FunctionInput,
         input_aggregation_object: Vec<FunctionInput>,
-        nested_aggregation_object: Vec<FunctionInput>,
         // This is the recursive verification output aggregation object.
         // The name `outputs` was kept to simplify code reuse with the other BlackBoxFuncCall's
         outputs: Vec<Witness>,
@@ -112,12 +105,6 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::RANGE => BlackBoxFuncCall::RANGE { input: FunctionInput::dummy() },
             BlackBoxFunc::SHA256 => BlackBoxFuncCall::SHA256 { inputs: vec![], outputs: vec![] },
             BlackBoxFunc::Blake2s => BlackBoxFuncCall::Blake2s { inputs: vec![], outputs: vec![] },
-            BlackBoxFunc::ComputeMerkleRoot => BlackBoxFuncCall::ComputeMerkleRoot {
-                leaf: FunctionInput::dummy(),
-                index: FunctionInput::dummy(),
-                hash_path: vec![],
-                output: Witness(0),
-            },
             BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
                 public_key_x: FunctionInput::dummy(),
                 public_key_y: FunctionInput::dummy(),
@@ -151,7 +138,6 @@ impl BlackBoxFuncCall {
                 public_inputs: vec![],
                 key_hash: FunctionInput::dummy(),
                 input_aggregation_object: vec![],
-                nested_aggregation_object: vec![],
                 outputs: vec![],
             },
         }
@@ -165,7 +151,6 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::RANGE { .. } => BlackBoxFunc::RANGE,
             BlackBoxFuncCall::SHA256 { .. } => BlackBoxFunc::SHA256,
             BlackBoxFuncCall::Blake2s { .. } => BlackBoxFunc::Blake2s,
-            BlackBoxFuncCall::ComputeMerkleRoot { .. } => BlackBoxFunc::ComputeMerkleRoot,
             BlackBoxFuncCall::SchnorrVerify { .. } => BlackBoxFunc::SchnorrVerify,
             BlackBoxFuncCall::Pedersen { .. } => BlackBoxFunc::Pedersen,
             BlackBoxFuncCall::HashToField128Security { .. } => BlackBoxFunc::HashToField128Security,
@@ -193,13 +178,6 @@ impl BlackBoxFuncCall {
             }
             BlackBoxFuncCall::FixedBaseScalarMul { input, .. }
             | BlackBoxFuncCall::RANGE { input } => vec![*input],
-            BlackBoxFuncCall::ComputeMerkleRoot { leaf, index, hash_path, .. } => {
-                let mut inputs = Vec::with_capacity(2 + hash_path.len());
-                inputs.push(*leaf);
-                inputs.push(*index);
-                inputs.extend(hash_path.iter().copied());
-                inputs
-            }
             BlackBoxFuncCall::SchnorrVerify {
                 public_key_x,
                 public_key_y,
@@ -218,16 +196,19 @@ impl BlackBoxFuncCall {
                 public_key_x,
                 public_key_y,
                 signature,
-                hashed_message: message,
+                hashed_message,
                 ..
             } => {
                 let mut inputs = Vec::with_capacity(
-                    public_key_x.len() + public_key_y.len() + signature.len() + message.len(),
+                    public_key_x.len()
+                        + public_key_y.len()
+                        + signature.len()
+                        + hashed_message.len(),
                 );
                 inputs.extend(public_key_x.iter().copied());
                 inputs.extend(public_key_y.iter().copied());
                 inputs.extend(signature.iter().copied());
-                inputs.extend(message.iter().copied());
+                inputs.extend(hashed_message.iter().copied());
                 inputs
             }
             BlackBoxFuncCall::VerifyProof {
@@ -236,7 +217,6 @@ impl BlackBoxFuncCall {
                 public_inputs,
                 key_hash,
                 input_aggregation_object,
-                nested_aggregation_object,
                 ..
             } => {
                 let mut inputs = Vec::with_capacity(
@@ -255,7 +235,6 @@ impl BlackBoxFuncCall {
                 if !input_aggregation_object.iter().any(|v| v.witness == Witness(0)) {
                     inputs.extend(input_aggregation_object.iter().copied());
                 }
-                inputs.extend(nested_aggregation_object.iter().copied());
                 inputs
             }
         }
@@ -273,7 +252,6 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::AND { output, .. }
             | BlackBoxFuncCall::XOR { output, .. }
             | BlackBoxFuncCall::HashToField128Security { output, .. }
-            | BlackBoxFuncCall::ComputeMerkleRoot { output, .. }
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
             | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. } => vec![*output],
             BlackBoxFuncCall::RANGE { .. } => vec![],

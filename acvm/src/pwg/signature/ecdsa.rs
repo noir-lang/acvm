@@ -24,7 +24,7 @@ pub fn secp256k1_prehashed(
     public_key_x_inputs: &[FunctionInput],
     public_key_y_inputs: &[FunctionInput],
     signature_inputs: &[FunctionInput],
-    message_inputs: &[FunctionInput],
+    hashed_message_inputs: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let pub_key_x: [u8; 32] =
@@ -51,7 +51,7 @@ pub fn secp256k1_prehashed(
             )
         })?;
 
-    let hashed_message = to_u8_vec(initial_witness, message_inputs)?;
+    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
     let result =
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();

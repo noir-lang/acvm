@@ -6,12 +6,11 @@ use acir::{
     FieldElement,
 };
 
-use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
-
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
     insert_value,
 };
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// Maps a block to its emulated state
 #[derive(Default)]
