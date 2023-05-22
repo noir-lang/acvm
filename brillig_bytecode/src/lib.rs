@@ -64,7 +64,7 @@ impl VM {
             call_stack: Vec::new(),
         }
     }
-
+/// Returns the current status of the VM.
     fn status(&mut self, status: VMStatus) -> VMStatus {
         self.status = status.clone();
         status
