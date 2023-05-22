@@ -78,7 +78,9 @@ impl VM {
     fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
-
+/// Sets the current status of the VM to `fail`.
+/// Indicating that the VM encoutered a `Trap` Opcode
+/// or an invalid state.
     fn fail(&mut self, error_msg: &str) -> VMStatus {
         self.status(VMStatus::Failure);
         // TODO(AD): Proper error handling
