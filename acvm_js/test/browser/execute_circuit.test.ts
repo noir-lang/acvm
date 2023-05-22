@@ -3,6 +3,7 @@ import initACVMSimulator, {
   abiDecode,
   executeCircuit,
   WitnessMap,
+  OracleCallback,
 } from "../../pkg/";
 
 test("successfully executes circuit and extracts return value", async () => {
@@ -139,19 +140,32 @@ test("successfully processes oracle opcodes", async () => {
     "0x0000000000000000000000000000000000000000000000000000000000000001"
   );
 
+  let observedName = "";
+  let observedInputs: string[] = [];
+  const oracleCallback: OracleCallback = async (
+    name: string,
+    inputs: string[]
+  ) => {
+    // Throwing inside the oracle callback causes a timeout so we log the observed values
+    // and defer the check against expected values until after the execution is complete.
+    observedName = name;
+    observedInputs = inputs;
+
+    // Witness(1) + Witness(2) = 1 + 1 = 2
+    return ["0x02"];
+  };
   const solved_witness: WitnessMap = await executeCircuit(
     oracle_bytecode,
     initial_witness,
-    async (_name: string, _inputs: string[]) => {
-      // We cannot use jest matchers here (or write to a variable in the outside scope) so cannot test that
-      // the values for `name` and `inputs` are correct, we can `console.log` them however.
-      // console.log(name)
-      // console.log(inputs)
-
-      // Witness(1) + Witness(2) = 1 + 1 = 2
-      return ["0x02"];
-    }
+    oracleCallback
   );
+
+  // Check that expected values were passed to oracle callback.
+  expect(observedName).toBe("example_oracle");
+  expect(observedInputs).toStrictEqual([
+    initial_witness.get(1) as string,
+    initial_witness.get(2) as string,
+  ]);
 
   // If incorrect value is written into circuit then execution should halt due to unsatisfied constraint in
   // arithmetic opcode. Nevertheless, check that returned value was inserted correctly.

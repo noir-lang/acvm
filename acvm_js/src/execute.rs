@@ -53,7 +53,6 @@ impl PartialWitnessGenerator for SimulatedBackend {
     }
 }
 
-// TODO: enforce this type, this is reliant on Brillig (see https://github.com/noir-lang/acvm/issues/298)
 #[wasm_bindgen(typescript_custom_section)]
 const ORACLE_CALLBACK: &'static str = r#"
 /**
@@ -63,7 +62,14 @@ const ORACLE_CALLBACK: &'static str = r#"
  * @param {string[]} inputs - An array of hex encoded inputs to the oracle call.
  * @returns {Promise<string[]>} outputs - An array of hex encoded outputs containing the results of the oracle call.
  */
+export type OracleCallback = (name: string, inputs: string[]) => Promise<string[]>;
 "#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends = js_sys::Function, typescript_type = "OracleCallback")]
+    pub type OracleCallback;
+}
 
 /// Executes an ACIR circuit to generate the solved witness from the initial witness.
 ///
@@ -75,7 +81,7 @@ const ORACLE_CALLBACK: &'static str = r#"
 pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
-    oracle_callback: js_sys::Function,
+    oracle_callback: OracleCallback,
 ) -> Result<JsWitnessMap, JsValue> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
@@ -143,7 +149,7 @@ fn insert_value(
 }
 
 async fn resolve_oracle(
-    oracle_resolver: &js_sys::Function,
+    oracle_callback: &OracleCallback,
     mut unresolved_oracle_call: OracleData,
 ) -> Result<OracleData, String> {
     // Prepare to call
@@ -157,7 +163,7 @@ async fn resolve_oracle(
 
     // Call and await
     let this = JsValue::null();
-    let ret_js_val = oracle_resolver
+    let ret_js_val = oracle_callback
         .call2(&this, &name, &inputs)
         .map_err(|err| format!("Error calling oracle_resolver: {}", format_js_err(err)))?;
     let ret_js_prom: js_sys::Promise = ret_js_val.into();
