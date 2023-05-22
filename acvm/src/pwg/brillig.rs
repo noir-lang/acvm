@@ -1,6 +1,6 @@
 use acir::{
     brillig_bytecode::{RegisterIndex, Registers, VMStatus, Value, VM},
-    circuit::opcodes::{Brillig, BrilligInputs, BrilligOutputs},
+    circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::WitnessMap,
     FieldElement,
 };

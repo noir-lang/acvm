@@ -2,7 +2,8 @@
 
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
-    circuit::opcodes::{BlackBoxFuncCall, Brillig, Opcode, OracleData},
+    circuit::brillig::Brillig,
+    circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -296,8 +297,9 @@ mod test {
             RegisterValueOrArray, Value,
         },
         circuit::{
+            brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
-            opcodes::{Brillig, BrilligInputs, BrilligOutputs, FunctionInput, OracleData},
+            opcodes::{FunctionInput, OracleData},
             Opcode,
         },
         native_types::{Expression, Witness, WitnessMap},
