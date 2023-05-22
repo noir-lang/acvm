@@ -107,10 +107,6 @@ impl Opcode {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OracleInput {
-    RegisterIndex(RegisterIndex),
-}
 
 /// Binary fixed-length integer expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
