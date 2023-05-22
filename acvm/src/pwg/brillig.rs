@@ -55,7 +55,7 @@ impl BrilligSolver {
         let mut input_memory: Vec<Value> = Vec::new();
         for input in &brillig.inputs {
             match input {
-                BrilligInputs::Simple(expr) => {
+                BrilligInputs::Single(expr) => {
                     // TODO: switch this to `get_value` and map the err
                     let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                     if let Some(value) = solve.to_const() {
@@ -93,7 +93,7 @@ impl BrilligSolver {
             let brillig_input =
                 brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
             let expr = match brillig_input {
-                BrilligInputs::Simple(expr) => expr,
+                BrilligInputs::Single(expr) => expr,
                 BrilligInputs::Array(expr_arr) => {
                     expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
                 }

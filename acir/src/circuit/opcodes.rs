@@ -35,12 +35,16 @@ pub enum Opcode {
     Brillig(Brillig),
 }
 
+/// Inputs for the Brillig VM. These are the initial inputs
+/// that the Brillig VM will use to start.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum BrilligInputs {
-    Simple(Expression),
+    Single(Expression),
     Array(Vec<Expression>),
 }
 
+/// Outputs for the Brillig VM. Once the VM has completed
+/// execution, this will the object that is returned.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum BrilligOutputs {
     Simple(Witness),

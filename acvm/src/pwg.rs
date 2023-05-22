@@ -461,12 +461,12 @@ mod test {
 
         let brillig_data = Brillig {
             inputs: vec![
-                BrilligInputs::Simple(Expression {
+                BrilligInputs::Single(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
-                BrilligInputs::Simple(Expression::default()),
+                BrilligInputs::Single(Expression::default()),
             ],
             outputs: vec![
                 BrilligOutputs::Simple(w_x_plus_y),
@@ -582,13 +582,13 @@ mod test {
 
         let brillig_data = Brillig {
             inputs: vec![
-                BrilligInputs::Simple(Expression {
+                BrilligInputs::Single(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
-                BrilligInputs::Simple(Expression::default()),
-                BrilligInputs::Simple(Expression {
+                BrilligInputs::Single(Expression::default()),
+                BrilligInputs::Single(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_i), (fe_1, w_j)],
                     q_c: fe_0,
@@ -742,12 +742,12 @@ mod test {
 
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
-                BrilligInputs::Simple(Expression {
+                BrilligInputs::Single(Expression {
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
-                BrilligInputs::Simple(Expression::default()),
+                BrilligInputs::Single(Expression::default()),
             ],
             outputs: vec![
                 BrilligOutputs::Simple(w_x_plus_y),
