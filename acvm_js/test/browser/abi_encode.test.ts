@@ -1,4 +1,4 @@
-import initACVMSimulator, { abi_encode, abi_decode } from "../../pkg/";
+import initACVMSimulator, { abiEncode, abiDecode } from "../../pkg/";
 
 test("recovers original inputs when abi encoding and decoding", async () => {
   await initACVMSimulator();
@@ -21,10 +21,10 @@ test("recovers original inputs when abi encoding and decoding", async () => {
     foo: "1",
     bar: ["1", "2"],
   };
-  const initial_witness: Map<string, string> = abi_encode(abi, inputs, null);
+  const initial_witness: Map<string, string> = abiEncode(abi, inputs, null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const decoded_inputs: { inputs: Record<string, any>; return_value: any } =
-    abi_decode(abi, initial_witness);
+    abiDecode(abi, initial_witness);
 
   expect(BigInt(decoded_inputs.inputs.foo)).toBe(BigInt(inputs.foo));
   expect(BigInt(decoded_inputs.inputs.bar[0])).toBe(BigInt(inputs.bar[0]));

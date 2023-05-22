@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { abi_encode, abi_decode, execute_circuit } from "../../pkg/";
+import { abiEncode, abiDecode, executeCircuit } from "../../pkg/";
 
 test("successfully executes circuit and extracts return value", async () => {
   // Noir program which enforces that x != y and returns x + y.
@@ -54,8 +54,8 @@ test("successfully executes circuit and extracts return value", async () => {
   };
   const return_witness: number = abi.return_witnesses[0];
 
-  const initial_witness: Map<number, string> = abi_encode(abi, inputs, null);
-  const solved_witness: Map<number, string> = await execute_circuit(
+  const initial_witness: Map<number, string> = abiEncode(abi, inputs, null);
+  const solved_witness: Map<number, string> = await executeCircuit(
     bytecode,
     initial_witness,
     () => {
@@ -70,7 +70,7 @@ test("successfully executes circuit and extracts return value", async () => {
   // Solved witness should contain expected return value
   expect(BigInt(solved_witness.get(return_witness) as string)).toBe(3n);
 
-  const decoded_inputs = abi_decode(abi, solved_witness);
+  const decoded_inputs = abiDecode(abi, solved_witness);
 
   expect(BigInt(decoded_inputs.return_value)).toBe(3n);
 });
@@ -131,7 +131,7 @@ test("successfully processes oracle opcodes", async () => {
     "0x0000000000000000000000000000000000000000000000000000000000000001"
   );
 
-  const solved_witness: Map<number, string> = await execute_circuit(
+  const solved_witness: Map<number, string> = await executeCircuit(
     oracle_bytecode,
     initial_witness,
     async (_name: string, _inputs: string[]) => {

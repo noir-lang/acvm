@@ -53,7 +53,7 @@ impl PartialWitnessGenerator for SimulatedBackend {
     }
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = executeCircuit)]
 pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: js_sys::Map,
