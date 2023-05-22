@@ -60,7 +60,7 @@ pub enum Opcode {
     /// this is intended for things like state tree reads, and shouldn't be confused
     /// with e.g. blockchain price oracles.
     ForeignCall {
-        /// Interpreted by caller context, ie this will have different meanings depending on 
+        /// Interpreted by caller context, ie this will have different meanings depending on
         /// who the caller is.
         function: String,
         /// Destination register (may be a memory pointer).
@@ -107,7 +107,6 @@ impl Opcode {
     }
 }
 
-
 /// Binary fixed-length integer expressions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BinaryFieldOp {
@@ -128,24 +127,24 @@ pub enum BinaryIntOp {
     UnsignedDiv,
     Cmp(Comparison),
     /// (&) Bitwise AND
-    And, 
+    And,
     /// (|) Bitwise OR
-    Or, 
+    Or,
     /// (^) Bitwise XOR
-    Xor, 
+    Xor,
     /// (<<) Shift left
     Shl,
     /// (>>) Shift right
-    Shr, 
+    Shr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Comparison {
     /// (==) equal
     Eq,
-    /// (<) Field less than 
+    /// (<) Field less than
     Lt,
-     /// (<=) field less or equal
+    /// (<=) field less or equal
     Lte,
 }
 

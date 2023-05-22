@@ -64,13 +64,13 @@ impl VM {
             call_stack: Vec::new(),
         }
     }
-/// Returns the current status of the VM.
+    /// Returns the current status of the VM.
     fn status(&mut self, status: VMStatus) -> VMStatus {
         self.status = status.clone();
         status
     }
-/// Sets the current status of the VM to `finished`.
-/// Indicating that the VM has completed execution.
+    /// Sets the current status of the VM to `finished`.
+    /// Indicating that the VM has completed execution.
     fn finish(&mut self) -> VMStatus {
         self.status(VMStatus::Finished)
     }
@@ -80,9 +80,9 @@ impl VM {
     fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
-/// Sets the current status of the VM to `fail`.
-/// Indicating that the VM encoutered a `Trap` Opcode
-/// or an invalid state.
+    /// Sets the current status of the VM to `fail`.
+    /// Indicating that the VM encoutered a `Trap` Opcode
+    /// or an invalid state.
     fn fail(&mut self, error_msg: &str) -> VMStatus {
         self.status(VMStatus::Failure);
         // TODO(AD): Proper error handling
@@ -98,7 +98,7 @@ impl VM {
         ) {}
         self.status.clone()
     }
-/// Returns all of the registers in the VM.
+    /// Returns all of the registers in the VM.
     pub fn get_registers(&self) -> &Registers {
         &self.registers
     }
@@ -208,7 +208,7 @@ impl VM {
             }
         }
     }
-/// Returns the current value of the program counter.
+    /// Returns the current value of the program counter.
     pub fn program_counter(self) -> usize {
         self.program_counter
     }
