@@ -44,7 +44,7 @@ pub trait Backend:
 //
 // For more details, see https://docs.rs/async-trait/latest/async_trait/
 // and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
-#[async_trait]
+#[async_trait(?Send)]
 pub trait CommonReferenceString {
     /// The Error type returned by failed function calls in the CommonReferenceString trait.
     type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
