@@ -45,8 +45,8 @@ pub enum Opcode {
     Jump {
         location: Label,
     },
-    // We don't support dynamic jumps or calls
-    // See https://github.com/ethereum/aleth/issues/3404 for reasoning
+    /// We don't support dynamic jumps or calls
+    /// See https://github.com/ethereum/aleth/issues/3404 for reasoning
     Call {
         location: Label,
     },
