@@ -362,7 +362,18 @@ impl CircuitSimplifier {
         // use witness
         self.use_witness(quotient.q, gate_idx, first);
         self.use_witness(quotient.r, gate_idx, first);
-        if a_expr.is_const() && b_expr.is_const() && pred_expr.is_const() {
+
+        if a_expr.is_zero() || pred_expr.is_zero() {
+            let r1 = self.insert(quotient.q, FieldElement::zero(), gate_idx);
+            let r2 = self.insert(quotient.r, FieldElement::zero(), gate_idx);
+            if r1 == SimplifyResult::UnsatisfiedConstrain(gate_idx)
+                || r2 == SimplifyResult::UnsatisfiedConstrain(gate_idx)
+            {
+                SimplifyResult::UnsatisfiedConstrain(gate_idx)
+            } else {
+                SimplifyResult::Solved
+            }
+        } else if a_expr.is_const() && b_expr.is_const() && pred_expr.is_const() {
             let val_a = a_expr.q_c;
             let val_b = b_expr.q_c;
             //
@@ -403,16 +414,6 @@ impl CircuitSimplifier {
                 b_expr.q_c * self.solved[&quotient.q] + self.solved[&quotient.r],
                 gate_idx,
             )
-        } else if a_expr.is_zero() || pred_expr.is_zero() {
-            let r1 = self.insert(quotient.q, FieldElement::zero(), gate_idx);
-            let r2 = self.insert(quotient.r, FieldElement::zero(), gate_idx);
-            if r1 == SimplifyResult::UnsatisfiedConstrain(gate_idx)
-                || r2 == SimplifyResult::UnsatisfiedConstrain(gate_idx)
-            {
-                SimplifyResult::UnsatisfiedConstrain(gate_idx)
-            } else {
-                SimplifyResult::Solved
-            }
         } else if a_expr != quotient.a || b_expr != quotient.b {
             let new_quotient = QuotientDirective {
                 a: a_expr,
