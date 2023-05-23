@@ -175,7 +175,7 @@ pub fn solve(
             }
         }
         // We have oracles that must be externally resolved
-        if !unresolved_oracles.is_empty() | !unresolved_brilligs.is_empty() {
+        if !unresolved_oracles.is_empty() || !unresolved_brilligs.is_empty() {
             return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
                 required_oracle_data: unresolved_oracles,
                 unsolved_opcodes: unresolved_opcodes,
