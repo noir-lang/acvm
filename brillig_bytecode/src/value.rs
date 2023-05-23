@@ -21,11 +21,13 @@ impl Value {
     pub fn is_zero(&self) -> bool {
         self.inner.is_zero()
     }
+
     /// Converts `Value` into a u128.
     // TODO: Check what happens if `Value` cannot fit into a u128
     pub fn to_u128(&self) -> u128 {
         self.inner.to_u128()
     }
+
     /// Converts `Value` into a u64 and then casts it into a usize.
     /// Panics: If `Value` cannot fit into a u64 or `Value` does
     //// not fit into a usize.

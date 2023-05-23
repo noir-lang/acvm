@@ -49,10 +49,12 @@ impl Registers {
     pub fn load(values: Vec<Value>) -> Registers {
         Self { inner: values }
     }
+
     /// Gets the values at register with address `index`
     pub fn get(&self, register: RegisterIndex) -> Value {
         self.inner[register.inner()]
     }
+
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
         if index.inner() >= self.inner.len() {
@@ -61,6 +63,7 @@ impl Registers {
         }
         self.inner[index.inner()] = value
     }
+
     /// Returns all of the values in the register
     /// This should be done at the end of the VM
     /// run and will be useful for mapping the values
