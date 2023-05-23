@@ -257,7 +257,7 @@ impl VM {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.evaluate_field(lhs_value.inner, rhs_value.inner);
+        let result_value = op.evaluate_field(lhs_value.to_field(), rhs_value.to_field());
 
         self.registers.set(result, result_value.into())
     }
@@ -305,9 +305,9 @@ mod tests {
         let opcode = Opcode::BinaryIntOp {
             op: BinaryIntOp::Add,
             bit_size: 2,
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         // Start VM
@@ -323,7 +323,7 @@ mod tests {
         // The register at index `2` should have the value of 3 since we had an
         // add opcode
         let VM { registers, .. } = vm;
-        let output_value = registers.get(RegisterIndex(2));
+        let output_value = registers.get(RegisterIndex::from(2));
 
         assert_eq!(output_value, Value::from(3u128))
     }
@@ -335,17 +335,17 @@ mod tests {
 
         let lhs = {
             registers.push(Value::from(2u128));
-            RegisterIndex(registers.len() - 1)
+            RegisterIndex::from(registers.len() - 1)
         };
 
         let rhs = {
             registers.push(Value::from(2u128));
-            RegisterIndex(registers.len() - 1)
+            RegisterIndex::from(registers.len() - 1)
         };
 
         let destination = {
             registers.push(Value::from(0u128));
-            RegisterIndex(registers.len() - 1)
+            RegisterIndex::from(registers.len() - 1)
         };
 
         let equal_cmp_opcode = Opcode::BinaryIntOp {
@@ -357,14 +357,14 @@ mod tests {
         };
         opcodes.push(equal_cmp_opcode);
         opcodes.push(Opcode::Jump { location: 2 });
-        opcodes.push(Opcode::JumpIf { condition: RegisterIndex(2), location: 3 });
+        opcodes.push(Opcode::JumpIf { condition: RegisterIndex::from(2), location: 3 });
 
         let mut vm = VM::new(Registers { inner: registers }, vec![], opcodes, vec![]);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterIndex(2));
+        let output_cmp_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(output_cmp_value, Value::from(true));
 
         let status = vm.process_opcode();
@@ -383,20 +383,21 @@ mod tests {
 
         let not_equal_cmp_opcode = Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         let jump_opcode = Opcode::Jump { location: 2 };
 
-        let jump_if_not_opcode = Opcode::JumpIfNot { condition: RegisterIndex(2), location: 1 };
+        let jump_if_not_opcode =
+            Opcode::JumpIfNot { condition: RegisterIndex::from(2), location: 1 };
 
         let add_opcode = Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Add,
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         let mut vm = VM::new(
@@ -412,7 +413,7 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_cmp_value = vm.registers.get(RegisterIndex(2));
+        let output_cmp_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(output_cmp_value, Value::from(false));
 
         let status = vm.process_opcode();
@@ -423,7 +424,7 @@ mod tests {
 
         // The register at index `2` should have not changed as we jumped over the add opcode
         let VM { registers, .. } = vm;
-        let output_value = registers.get(RegisterIndex(2));
+        let output_value = registers.get(RegisterIndex::from(2));
         assert_eq!(output_value, Value::from(false));
     }
 
@@ -432,7 +433,8 @@ mod tests {
         let input_registers =
             Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
-        let mov_opcode = Opcode::Mov { destination: RegisterIndex(2), source: RegisterIndex(0) };
+        let mov_opcode =
+            Opcode::Mov { destination: RegisterIndex::from(2), source: RegisterIndex::from(0) };
 
         let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], vec![]);
 
@@ -441,10 +443,10 @@ mod tests {
 
         let VM { registers, .. } = vm;
 
-        let destination_value = registers.get(RegisterIndex(2));
+        let destination_value = registers.get(RegisterIndex::from(2));
         assert_eq!(destination_value, Value::from(1u128));
 
-        let source_value = registers.get(RegisterIndex(0));
+        let source_value = registers.get(RegisterIndex::from(0));
         assert_eq!(source_value, Value::from(1u128));
     }
 
@@ -461,33 +463,33 @@ mod tests {
         let equal_opcode = Opcode::BinaryIntOp {
             bit_size: 1,
             op: BinaryIntOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         let not_equal_opcode = Opcode::BinaryIntOp {
             bit_size: 1,
             op: BinaryIntOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(3),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(3),
+            destination: RegisterIndex::from(2),
         };
 
         let less_than_opcode = Opcode::BinaryIntOp {
             bit_size: 1,
             op: BinaryIntOp::Cmp(Comparison::Lt),
-            lhs: RegisterIndex(3),
-            rhs: RegisterIndex(4),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(3),
+            rhs: RegisterIndex::from(4),
+            destination: RegisterIndex::from(2),
         };
 
         let less_than_equal_opcode = Opcode::BinaryIntOp {
             bit_size: 1,
             op: BinaryIntOp::Cmp(Comparison::Lte),
-            lhs: RegisterIndex(3),
-            rhs: RegisterIndex(4),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(3),
+            rhs: RegisterIndex::from(4),
+            destination: RegisterIndex::from(2),
         };
 
         let mut vm = VM::new(
@@ -500,25 +502,25 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_eq_value = vm.registers.get(RegisterIndex(2));
+        let output_eq_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(output_eq_value, Value::from(true));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let output_neq_value = vm.registers.get(RegisterIndex(2));
+        let output_neq_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(output_neq_value, Value::from(false));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
 
-        let lt_value = vm.registers.get(RegisterIndex(2));
+        let lt_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(lt_value, Value::from(true));
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::Finished);
 
-        let lte_value = vm.registers.get(RegisterIndex(2));
+        let lte_value = vm.registers.get(RegisterIndex::from(2));
         assert_eq!(lte_value, Value::from(true));
     }
     #[test]
@@ -531,9 +533,9 @@ mod tests {
         ///         i += 1;
         ///     }
         fn brillig_write_memory(memory: Vec<Value>) -> Vec<Value> {
-            let r_i = RegisterIndex(0);
-            let r_len = RegisterIndex(1);
-            let r_tmp = RegisterIndex(2);
+            let r_i = RegisterIndex::from(0);
+            let r_len = RegisterIndex::from(1);
+            let r_tmp = RegisterIndex::from(2);
             let start = [
                 // i = 0
                 Opcode::Const { destination: r_i, value: 0u128.into() },
@@ -594,10 +596,10 @@ mod tests {
         ///         i += 1;
         ///     }
         fn brillig_sum_memory(memory: Vec<Value>) -> Value {
-            let r_i = RegisterIndex(0);
-            let r_len = RegisterIndex(1);
-            let r_sum = RegisterIndex(2);
-            let r_tmp = RegisterIndex(3);
+            let r_i = RegisterIndex::from(0);
+            let r_len = RegisterIndex::from(1);
+            let r_sum = RegisterIndex::from(2);
+            let r_tmp = RegisterIndex::from(3);
             let start = [
                 // sum = 0
                 Opcode::Const { destination: r_sum, value: 0u128.into() },
@@ -667,9 +669,9 @@ mod tests {
         ///     }
         /// Note we represent a 100% in-register optimized form in brillig
         fn brillig_recursive_write_memory(memory: Vec<Value>) -> Vec<Value> {
-            let r_i = RegisterIndex(0);
-            let r_len = RegisterIndex(1);
-            let r_tmp = RegisterIndex(2);
+            let r_i = RegisterIndex::from(0);
+            let r_len = RegisterIndex::from(1);
+            let r_tmp = RegisterIndex::from(2);
 
             let start = [
                 // i = 0
@@ -757,8 +759,8 @@ mod tests {
 
     #[test]
     fn foreign_call_opcode_register_result() {
-        let r_input = RegisterIndex(0);
-        let r_result = RegisterIndex(1);
+        let r_input = RegisterIndex::from(0);
+        let r_result = RegisterIndex::from(1);
 
         let double_program = vec![
             // Load input register with value 5
@@ -802,8 +804,8 @@ mod tests {
     }
     #[test]
     fn foreign_call_opcode_memory_result() {
-        let r_input = RegisterIndex(0);
-        let r_output = RegisterIndex(1);
+        let r_input = RegisterIndex::from(0);
+        let r_output = RegisterIndex::from(1);
 
         // Define a simple 2x2 matrix in memory
         let initial_matrix =

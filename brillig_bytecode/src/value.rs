@@ -13,7 +13,7 @@ pub enum Typ {
 /// `Value` represents the base descriptor for a value in the VM.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Value {
-    pub inner: FieldElement,
+    inner: FieldElement,
 }
 
 impl Value {
@@ -22,10 +22,15 @@ impl Value {
         self.inner.is_zero()
     }
 
-    /// Converts `Value` into a u128.
+    /// Converts `Value` into a `FieldElement`.
+    pub fn to_field(&self) -> FieldElement {
+        self.inner
+    }
+
+    /// Converts `Value` into a `u128`.
     // TODO: Check what happens if `Value` cannot fit into a u128
     pub fn to_u128(&self) -> u128 {
-        self.inner.to_u128()
+        self.to_field().to_u128()
     }
 
     /// Converts `Value` into a u64 and then casts it into a usize.
@@ -57,11 +62,7 @@ impl From<FieldElement> for Value {
 
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
-        if value {
-            Value { inner: FieldElement::one() }
-        } else {
-            Value { inner: FieldElement::zero() }
-        }
+        Value { inner: FieldElement::from(value) }
     }
 }
 

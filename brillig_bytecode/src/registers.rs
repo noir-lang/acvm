@@ -1,5 +1,4 @@
 use crate::Value;
-use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 /// Registers will store field element values during the
@@ -34,13 +33,19 @@ impl Iterator for RegistersIntoIterator {
         Some(self.registers.inner[self.index - 1])
     }
 }
-/// RegisterIndex refers to the index of a register in the VM.
+/// `RegisterIndex` refers to the index of a register in the VM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RegisterIndex(pub usize);
+pub struct RegisterIndex(usize);
 
 impl RegisterIndex {
-    pub fn inner(self) -> usize {
+    pub fn to_usize(self) -> usize {
         self.0
+    }
+}
+
+impl From<usize> for RegisterIndex {
+    fn from(value: usize) -> Self {
+        RegisterIndex(value)
     }
 }
 
@@ -52,16 +57,16 @@ impl Registers {
 
     /// Gets the values at register with address `index`
     pub fn get(&self, register: RegisterIndex) -> Value {
-        self.inner[register.inner()]
+        self.inner[register.to_usize()]
     }
 
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, index: RegisterIndex, value: Value) {
-        if index.inner() >= self.inner.len() {
-            let diff = index.inner() - self.inner.len() + 1;
-            self.inner.extend(vec![Value { inner: FieldElement::from(0u128) }; diff])
+        if index.to_usize() >= self.inner.len() {
+            let diff = index.to_usize() - self.inner.len() + 1;
+            self.inner.extend(vec![Value::from(0u128); diff])
         }
-        self.inner[index.inner()] = value
+        self.inner[index.to_usize()] = value
     }
 
     /// Returns all of the values in the register
