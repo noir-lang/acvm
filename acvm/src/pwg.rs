@@ -286,7 +286,7 @@ mod test {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_bytecode::{
+        brillig_vm::{
             self, BinaryFieldOp, Comparison, ForeignCallResult, RegisterIndex,
             RegisterValueOrArray, Value,
         },
@@ -441,14 +441,14 @@ mod test {
         let w_equal_res = Witness(7);
         let w_lt_res = Witness(8);
 
-        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(2),
         };
 
-        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let less_than_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -476,7 +476,7 @@ mod test {
                 equal_opcode,
                 less_than_opcode,
                 // Oracles are named 'foreign calls' in brillig
-                brillig_bytecode::Opcode::ForeignCall {
+                brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
@@ -562,14 +562,14 @@ mod test {
         let w_ij_oracle = Witness(11);
         let w_i_plus_j = Witness(12);
 
-        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(4),
         };
 
-        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let less_than_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -604,12 +604,12 @@ mod test {
                 equal_opcode,
                 less_than_opcode,
                 // Oracles are named 'foreign calls' in brillig
-                brillig_bytecode::Opcode::ForeignCall {
+                brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
                 },
-                brillig_bytecode::Opcode::ForeignCall {
+                brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2)),
@@ -722,14 +722,14 @@ mod test {
         let w_equal_res = Witness(7);
         let w_lt_res = Witness(8);
 
-        let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(2),
         };
 
-        let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
+        let less_than_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -755,7 +755,7 @@ mod test {
                 equal_opcode,
                 less_than_opcode,
                 // Oracles are named 'foreign calls' in brillig
-                brillig_bytecode::Opcode::ForeignCall {
+                brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
                     destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
                     input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),

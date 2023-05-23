@@ -1,5 +1,5 @@
 use acir::{
-    brillig_bytecode::{RegisterIndex, Registers, VMStatus, Value, VM},
+    brillig_vm::{RegisterIndex, Registers, VMStatus, Value, VM},
     circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::WitnessMap,
     FieldElement,

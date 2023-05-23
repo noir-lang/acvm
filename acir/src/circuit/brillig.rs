@@ -1,5 +1,5 @@
 use crate::native_types::{Expression, Witness};
-use brillig_bytecode::ForeignCallResult;
+use brillig_vm::ForeignCallResult;
 use serde::{Deserialize, Serialize};
 
 /// Inputs for the Brillig VM. These are the initial inputs
@@ -24,7 +24,7 @@ pub struct Brillig {
     pub outputs: Vec<BrilligOutputs>,
     /// Results of oracles/functions external to brillig like a database read
     pub foreign_call_results: Vec<ForeignCallResult>,
-    pub bytecode: Vec<brillig_bytecode::Opcode>,
+    pub bytecode: Vec<brillig_vm::Opcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,
 }

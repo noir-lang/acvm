@@ -29,9 +29,9 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.ACVM_CRATES_IO_TOKEN }}
 
-      - name: Publish brillig_bytecode
+      - name: Publish brillig_vm
         run: |
-          cargo publish --package brillig_bytecode
+          cargo publish --package brillig_vm
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.ACVM_CRATES_IO_TOKEN }}
 
