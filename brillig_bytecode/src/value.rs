@@ -30,7 +30,7 @@ impl Value {
     /// Converts `Value` into a `u128`.
     // TODO: Check what happens if `Value` cannot fit into a u128
     pub fn to_u128(&self) -> u128 {
-        self.inner.to_u128()
+        self.to_field().to_u128()
     }
 
     /// Converts `Value` into a u64 and then casts it into a usize.
