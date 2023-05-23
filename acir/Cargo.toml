@@ -12,6 +12,7 @@ rust-version.workspace = true
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
+brillig_vm = { version = "0.1.0", path = "../brillig_vm", default-features = false }
 thiserror.workspace = true
 
 rmp-serde = "1.1.0"
@@ -24,5 +25,5 @@ strum_macros = "0.24"
 
 [features]
 default = ["bn254"]
-bn254 = ["acir_field/bn254"]
-bls12_381 = ["acir_field/bls12_381"]
+bn254 = ["acir_field/bn254", "brillig_vm/bn254"]
+bls12_381 = ["acir_field/bls12_381", "brillig_vm/bls12_381"]

@@ -1,6 +1,8 @@
-use super::directives::{Directive, LogInfo, QuotientDirective};
+use super::{
+    brillig::Brillig,
+    directives::{Directive, LogInfo, QuotientDirective},
+};
 use crate::native_types::Expression;
-
 use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
@@ -31,6 +33,7 @@ pub enum Opcode {
     /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
+    Brillig(Brillig),
 }
 
 impl Opcode {
@@ -45,6 +48,7 @@ impl Opcode {
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
             Opcode::Oracle(data) => &data.name,
+            Opcode::Brillig(_) => "brillig",
         }
     }
 
@@ -144,6 +148,12 @@ impl std::fmt::Display for Opcode {
             Opcode::Oracle(data) => {
                 write!(f, "ORACLE: ")?;
                 write!(f, "{data}")
+            }
+            Opcode::Brillig(brillig) => {
+                write!(f, "BRILLIG: ")?;
+                writeln!(f, "inputs: {:?}", brillig.inputs)?;
+                writeln!(f, "outputs: {:?}", brillig.outputs)?;
+                writeln!(f, "{:?}", brillig.bytecode)
             }
         }
     }
