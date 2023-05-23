@@ -17,7 +17,7 @@ pub struct Value {
 }
 
 impl Value {
-    /// Returns `true` if the Value represents `zero`
+    /// Returns `true` if the `Value` represents `zero`
     pub fn is_zero(&self) -> bool {
         self.inner.is_zero()
     }
