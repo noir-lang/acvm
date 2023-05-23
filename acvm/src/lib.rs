@@ -153,6 +153,10 @@ pub trait ProofSystemCompiler {
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
+    /// 
+    /// The `is_recursive` flag represents whether one wants to create proofs that are to be natively verified.
+    /// A proof system may use a certain hash type for the Fiat-Shamir normally that is not hash friendly (such as keccak to enable Solidity verification),
+    /// but may want to use a snark-friendly hash function when performing native verification.
     fn prove_with_pk(
         &self,
         common_reference_string: &[u8],
@@ -163,6 +167,9 @@ pub trait ProofSystemCompiler {
     ) -> Result<Vec<u8>, Self::Error>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
+    /// 
+    /// The `is_recursive` flag represents whether one wants to verify proofs that are to be natively verified.
+    /// The flag must match the `is_recursive` flag used to generate the proof passed into this method, otherwise verification will return false.
     fn verify_with_vk(
         &self,
         common_reference_string: &[u8],
