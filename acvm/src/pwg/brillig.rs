@@ -116,16 +116,16 @@ impl BrilligSolver {
         let result = match vm_status {
             VMStatus::Finished => {
                 for (i, output) in brillig.outputs.iter().enumerate() {
-                    let register_value = vm.get_registers().get(RegisterIndex(i));
+                    let register_value = vm.get_registers().get(RegisterIndex::from(i));
                     match output {
                         BrilligOutputs::Simple(witness) => {
-                            insert_value(witness, register_value.inner, initial_witness)?;
+                            insert_value(witness, register_value.to_field(), initial_witness)?;
                         }
                         BrilligOutputs::Array(witness_arr) => {
                             // Treat the register value as a pointer to memory
                             for (i, witness) in witness_arr.iter().enumerate() {
                                 let value = &vm.get_memory()[register_value.to_usize() + i];
-                                insert_value(witness, value.inner, initial_witness)?;
+                                insert_value(witness, value.to_field(), initial_witness)?;
                             }
                         }
                     }

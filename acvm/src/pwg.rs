@@ -443,16 +443,16 @@ mod test {
 
         let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(3),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(3),
         };
 
         let brillig_data = Brillig {
@@ -478,8 +478,8 @@ mod test {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
                 },
             ],
             predicate: None,
@@ -528,7 +528,7 @@ mod test {
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
         // Alter Brillig oracle opcode
         brillig.foreign_call_results.push(ForeignCallResult {
-            values: vec![Value::from(foreign_call_wait_info.inputs[0].inner.inverse())],
+            values: vec![Value::from(foreign_call_wait_info.inputs[0].to_field().inverse())],
         });
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -564,16 +564,16 @@ mod test {
 
         let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(4),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(4),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(5),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(5),
         };
 
         let brillig_data = Brillig {
@@ -606,13 +606,13 @@ mod test {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
                 },
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(3)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(2)),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2)),
                 },
             ],
             predicate: None,
@@ -662,7 +662,7 @@ mod test {
             unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
-        let x_plus_y_inverse = foreign_call_wait_info.inputs[0].inner.inverse();
+        let x_plus_y_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
         // Alter Brillig oracle opcode
         brillig
             .foreign_call_results
@@ -685,7 +685,7 @@ mod test {
             unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
-        let i_plus_j_inverse = foreign_call_wait_info.inputs[0].inner.inverse();
+        let i_plus_j_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
         brillig
@@ -724,16 +724,16 @@ mod test {
 
         let equal_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Eq),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(2),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(2),
         };
 
         let less_than_opcode = brillig_bytecode::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Cmp(Comparison::Lt),
-            lhs: RegisterIndex(0),
-            rhs: RegisterIndex(1),
-            destination: RegisterIndex(3),
+            lhs: RegisterIndex::from(0),
+            rhs: RegisterIndex::from(1),
+            destination: RegisterIndex::from(3),
         };
 
         let brillig_opcode = Opcode::Brillig(Brillig {
@@ -757,8 +757,8 @@ mod test {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_bytecode::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex(0)),
+                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
+                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
                 },
             ],
             predicate: Some(Expression::default()),
