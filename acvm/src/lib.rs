@@ -107,8 +107,8 @@ pub trait PartialWitnessGenerator {
         key: &[FunctionInput],
         proof: &[FunctionInput],
         public_inputs: &[FunctionInput],
-        input_aggregation_object: &[FunctionInput],
-        outputs: &[Witness],
+        input_aggregation_object: Option<&[FunctionInput]>,
+        output_aggregation_object: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 
@@ -173,12 +173,16 @@ pub trait ProofSystemCompiler {
         is_recursive: bool,
     ) -> Result<bool, Self::Error>;
 
+    /// When performing recursive aggregation in a circuit it is most efficient to use a proof formatted using a backend's native field.
+    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
     fn proof_as_fields(
         &self,
         proof: &[u8],
         public_inputs: WitnessMap,
     ) -> Result<Vec<FieldElement>, Self::Error>;
 
+    /// When performing recursive aggregation in a circuit it is most efficient to use a verification key formatted using a backend's native field.
+    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
     fn vk_as_fields(
         &self,
         common_reference_string: &[u8],
