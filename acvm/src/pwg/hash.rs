@@ -1,15 +1,18 @@
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
+use acir::{
+    circuit::opcodes::FunctionInput,
+    native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 use blake2::{Blake2s256, Digest};
 use sha2::Sha256;
 use sha3::Keccak256;
-use std::collections::BTreeMap;
 
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 use super::{insert_value, witness_to_value};
 
 pub fn blake2s256(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -27,7 +30,7 @@ pub fn blake2s256(
 }
 
 pub fn sha256(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -45,7 +48,7 @@ pub fn sha256(
 }
 
 pub fn keccak256(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -63,20 +66,20 @@ pub fn keccak256(
 }
 
 pub fn hash_to_field_128_security(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
-    outputs: &[Witness],
+    output: &Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hash = generic_hash_256::<Blake2s256>(initial_witness, inputs)?;
 
     let reduced_res = FieldElement::from_be_bytes_reduce(&hash);
-    insert_value(&outputs[0], reduced_res, initial_witness)?;
+    insert_value(output, reduced_res, initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }
 
 fn generic_hash_256<D: Digest>(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
 ) -> Result<[u8; 32], OpcodeResolutionError> {
     let mut hasher = D::new();

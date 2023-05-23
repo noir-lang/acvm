@@ -11,7 +11,7 @@ use acir::{
 use indexmap::IndexMap;
 use optimizers::GeneralOptimizer;
 use thiserror::Error;
-use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
+use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
 use self::optimizers::RangeOptimizer;
 use self::optimizers::Simplifier;
@@ -25,7 +25,7 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_opcode_supported: IsOpcodeSupported,
+    is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.

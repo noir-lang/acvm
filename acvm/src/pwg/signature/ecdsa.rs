@@ -1,57 +1,62 @@
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
-use std::collections::BTreeMap;
+use acir::{
+    circuit::opcodes::FunctionInput,
+    native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
-pub fn secp256k1_prehashed(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+fn to_u8_vec(
+    initial_witness: &WitnessMap,
     inputs: &[FunctionInput],
-    outputs: &[Witness],
+) -> Result<Vec<u8>, OpcodeResolutionError> {
+    let mut result = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        let witness_value_bytes = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
+        let byte = witness_value_bytes.last().unwrap();
+        result.push(*byte);
+    }
+    Ok(result)
+}
+
+pub fn secp256k1_prehashed(
+    initial_witness: &mut WitnessMap,
+    public_key_x_inputs: &[FunctionInput],
+    public_key_y_inputs: &[FunctionInput],
+    signature_inputs: &[FunctionInput],
+    hashed_message_inputs: &[FunctionInput],
+    output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let mut inputs_iter = inputs.iter();
+    let pub_key_x: [u8; 32] =
+        to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
+            OpcodeResolutionError::BlackBoxFunctionFailed(
+                acir::BlackBoxFunc::EcdsaSecp256k1,
+                format!("expected pubkey_x size 32 but received {}", public_key_x_inputs.len()),
+            )
+        })?;
 
-    let mut pub_key_x = [0u8; 32];
-    for (i, pkx) in pub_key_x.iter_mut().enumerate() {
-        let _x_i = inputs_iter
-            .next()
-            .unwrap_or_else(|| panic!("pub_key_x should be 32 bytes long, found only {i} bytes"));
+    let pub_key_y: [u8; 32] =
+        to_u8_vec(initial_witness, public_key_y_inputs)?.try_into().map_err(|_| {
+            OpcodeResolutionError::BlackBoxFunctionFailed(
+                acir::BlackBoxFunc::EcdsaSecp256k1,
+                format!("expected pubkey_y size 32 but received {}", public_key_y_inputs.len()),
+            )
+        })?;
 
-        let x_i = witness_to_value(initial_witness, _x_i.witness)?;
-        *pkx = *x_i.to_be_bytes().last().unwrap();
-    }
+    let signature: [u8; 64] =
+        to_u8_vec(initial_witness, signature_inputs)?.try_into().map_err(|_| {
+            OpcodeResolutionError::BlackBoxFunctionFailed(
+                acir::BlackBoxFunc::EcdsaSecp256k1,
+                format!("expected signature size 64 but received {}", signature_inputs.len()),
+            )
+        })?;
 
-    let mut pub_key_y = [0u8; 32];
-    for (i, pky) in pub_key_y.iter_mut().enumerate() {
-        let _y_i = inputs_iter
-            .next()
-            .unwrap_or_else(|| panic!("pub_key_y should be 32 bytes long, found only {i} bytes"));
-
-        let y_i = witness_to_value(initial_witness, _y_i.witness)?;
-        *pky = *y_i.to_be_bytes().last().unwrap();
-    }
-
-    let mut signature = [0u8; 64];
-    for (i, sig) in signature.iter_mut().enumerate() {
-        let _sig_i = inputs_iter
-            .next()
-            .unwrap_or_else(|| panic!("signature should be 64 bytes long, found only {i} bytes"));
-
-        let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-        *sig = *sig_i.to_be_bytes().last().unwrap()
-    }
-
-    let mut hashed_message = Vec::new();
-    for msg in inputs_iter {
-        let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
-        let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
-        hashed_message.push(msg_i);
-    }
-
+    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
     let result =
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();
 
-    initial_witness.insert(outputs[0], FieldElement::from(result));
+    initial_witness.insert(output, FieldElement::from(result));
     Ok(OpcodeResolution::Solved)
 }
 
