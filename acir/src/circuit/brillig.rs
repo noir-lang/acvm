@@ -11,7 +11,7 @@ pub enum BrilligInputs {
 }
 
 /// Outputs for the Brillig VM. Once the VM has completed
-/// execution, this will the object that is returned.
+/// execution, this will be the object that is returned.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub enum BrilligOutputs {
     Simple(Witness),
