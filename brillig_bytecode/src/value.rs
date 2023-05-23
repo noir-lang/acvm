@@ -10,14 +10,14 @@ pub enum Typ {
     Signed { bit_size: u32 },
 }
 
-/// Value represents the base descriptor for a value in the VM.
+/// `Value` represents the base descriptor for a value in the VM.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Value {
     pub inner: FieldElement,
 }
 
 impl Value {
-    /// Returns true if the Value represents `zero`
+    /// Returns `true` if the Value represents `zero`
     pub fn is_zero(&self) -> bool {
         self.inner.is_zero()
     }
