@@ -43,7 +43,7 @@ pub enum PartialWitnessGeneratorStatus {
     RequiresOracleData {
         required_oracle_data: Vec<OracleData>,
         unsolved_opcodes: Vec<Opcode>,
-        unresolved_brilligs: Vec<UnresolvedBrilligCall>,
+        unresolved_brillig_calls: Vec<UnresolvedBrilligCall>,
     },
 }
 
@@ -97,7 +97,7 @@ pub fn solve(
 ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
     let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
     let mut unresolved_oracles: Vec<OracleData> = Vec::new();
-    let mut unresolved_brilligs: Vec<UnresolvedBrilligCall> = Vec::new();
+    let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
     while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
         unresolved_opcodes.clear();
         let mut stalled = true;
@@ -147,7 +147,7 @@ pub fn solve(
                         Opcode::Brillig(brillig) => brillig.clone(),
                         _ => unreachable!("Brillig resolution for non brillig opcode"),
                     };
-                    unresolved_brilligs.push(UnresolvedBrilligCall {
+                    unresolved_brillig_calls.push(UnresolvedBrilligCall {
                         brillig,
                         foreign_call_wait_info: oracle_wait_info,
                     })
@@ -175,11 +175,11 @@ pub fn solve(
             }
         }
         // We have oracles that must be externally resolved
-        if !unresolved_oracles.is_empty() || !unresolved_brilligs.is_empty() {
+        if !unresolved_oracles.is_empty() || !unresolved_brillig_calls.is_empty() {
             return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
                 required_oracle_data: unresolved_oracles,
                 unsolved_opcodes: unresolved_opcodes,
-                unresolved_brilligs,
+                unresolved_brillig_calls,
             });
         }
         // We are stalled because of an opcode being bad
@@ -517,15 +517,15 @@ mod test {
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brilligs, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
-        assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
+        assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
         let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brilligs.remove(0);
+            unresolved_brillig_calls.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
         // Alter Brillig oracle opcode
         brillig.foreign_call_results.push(ForeignCallResult {
@@ -652,15 +652,15 @@ mod test {
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brilligs, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
-        assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
+        assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
         let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brilligs.remove(0);
+            unresolved_brillig_calls.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
         let x_plus_y_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
@@ -675,15 +675,15 @@ mod test {
         let solver_status =
             pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
                 .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brilligs, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
-        assert_eq!(unresolved_brilligs.len(), 1, "should have no unresolved oracles");
+        assert_eq!(unresolved_brillig_calls.len(), 1, "should have no unresolved oracles");
 
         let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brilligs.remove(0);
+            unresolved_brillig_calls.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
         let i_plus_j_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
