@@ -43,7 +43,7 @@ pub enum PartialWitnessGeneratorStatus {
     RequiresOracleData {
         required_oracle_data: Vec<OracleData>,
         unsolved_opcodes: Vec<Opcode>,
-        unresolved_brilligs: Vec<UnresolvedBrillig>,
+        unresolved_brilligs: Vec<UnresolvedBrilligCall>,
     },
 }
 
@@ -97,7 +97,7 @@ pub fn solve(
 ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
     let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
     let mut unresolved_oracles: Vec<OracleData> = Vec::new();
-    let mut unresolved_brilligs: Vec<UnresolvedBrillig> = Vec::new();
+    let mut unresolved_brilligs: Vec<UnresolvedBrilligCall> = Vec::new();
     while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
         unresolved_opcodes.clear();
         let mut stalled = true;
@@ -147,7 +147,7 @@ pub fn solve(
                         Opcode::Brillig(brillig) => brillig.clone(),
                         _ => unreachable!("Brillig resolution for non brillig opcode"),
                     };
-                    unresolved_brilligs.push(UnresolvedBrillig {
+                    unresolved_brilligs.push(UnresolvedBrilligCall {
                         brillig,
                         foreign_call_wait_info: oracle_wait_info,
                     })
@@ -248,7 +248,7 @@ fn insert_value(
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct UnresolvedBrillig {
+pub struct UnresolvedBrilligCall {
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
@@ -302,7 +302,8 @@ mod test {
 
     use crate::{
         pwg::{
-            self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus, UnresolvedBrillig,
+            self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus,
+            UnresolvedBrilligCall,
         },
         OpcodeResolutionError, PartialWitnessGenerator,
     };
@@ -523,7 +524,7 @@ mod test {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrillig { foreign_call_wait_info, mut brillig } =
+        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
             unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
         // Alter Brillig oracle opcode
@@ -658,7 +659,7 @@ mod test {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brilligs.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrillig { foreign_call_wait_info, mut brillig } =
+        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
             unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
@@ -681,7 +682,7 @@ mod test {
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert_eq!(unresolved_brilligs.len(), 1, "should have no unresolved oracles");
 
-        let UnresolvedBrillig { foreign_call_wait_info, mut brillig } =
+        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
             unresolved_brilligs.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
