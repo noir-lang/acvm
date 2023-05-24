@@ -200,7 +200,7 @@ impl BlackBoxFuncCall {
             }
             BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, .. } => {
                 let mut inputs = inputs.clone();
-                inputs.push(var_message_size.clone());
+                inputs.push(*var_message_size);
                 inputs
             }
         }
