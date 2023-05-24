@@ -1,3 +1,9 @@
+//! Black box functions are ACIR opcodes which rely on backends implementing support for specialized constraints.
+//! This makes certain zk-snark unfriendly computations cheaper than if they were implemented in more basic constraints.
+//!
+//! It is possible to fallback to less efficient implementations written in ACIR in some cases.
+//! These are implemented inside the ACVM stdlib.
+
 use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use strum_macros::EnumIter;
@@ -7,19 +13,33 @@ use strum_macros::EnumIter;
 #[cfg_attr(test, derive(EnumIter))]
 pub enum BlackBoxFunc {
     #[allow(clippy::upper_case_acronyms)]
+    // Currently unspecified.
     AES,
+    /// Bitwise AND.
     AND,
+    /// Bitwise XOR.
     XOR,
+    /// Range constraint to ensure that a [`FieldElement`][acir_field::FieldElement] can be represented in a specified number of bits.
     RANGE,
+    /// Calculates the SHA256 hash of the inputs.
     SHA256,
+    /// Calculates the Blake2s hash of the inputs.
     Blake2s,
+    /// Verifies a Schnorr signature over the embedded curve.
     SchnorrVerify,
+    /// Calculates a Pedersen commitment to the inputs.
     Pedersen,
-    // 128 here specifies that this function
-    // should have 128 bits of security
+    /// Hashes a set of inputs and applies the field modulus to the result
+    /// to return a value which can be represented as a [`FieldElement`][acir_field::FieldElement]
+    ///
+    /// This is implemented using the `Blake2s` hash function.
+    /// The "128" in the name specifies that this function should have 128 bits of security.
     HashToField128Security,
+    /// Verifies a ECDSA signature over the secp256k1 curve.
     EcdsaSecp256k1,
+    /// Performs scalar multiplication over the embedded curve on which [`FieldElement`][acir_field::FieldElement] is defined.
     FixedBaseScalarMul,
+    /// Calculates the Keccak256 hash of the inputs.
     Keccak256,
 }
 

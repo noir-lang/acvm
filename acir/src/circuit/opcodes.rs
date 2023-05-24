@@ -16,21 +16,25 @@ pub use oracle_data::OracleData;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     Arithmetic(Expression),
+    /// Calls to "gadgets" which rely on backends implementing support for specialized constraints.
+    ///
+    /// Often used for exposing more efficient implementations of SNARK-unfriendly computations.  
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
     /// Abstract read/write operations on a block of data. In particular;
-    /// It does not require an initialisation phase
-    /// Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
+    /// - It does not require an initialisation phase
+    /// - Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
     Block(MemoryBlock),
     /// Same as Block, but it starts with an initialisation phase and then have only read operation
     /// - init: write operations with index from 0..MemoryBlock.len
     /// - after MemoryBlock.len; all operations are read
+    ///
     /// ROM can be more efficiently handled because we do not need to check for the operation value (which is always 0).
     ROM(MemoryBlock),
     /// Same as ROM, but can have read or write operations
     /// - init = write operations with index 0..MemoryBlock.len
     /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
-    /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
+    // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
     Brillig(Brillig),
