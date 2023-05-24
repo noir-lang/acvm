@@ -6,7 +6,7 @@ use acir::{
 };
 
 use crate::{
-    pwg::{arithmetic::ArithmeticSolver, OpcodeNotSolvable},
+    pwg::OpcodeNotSolvable,
     OpcodeResolution, OpcodeResolutionError,
 };
 
