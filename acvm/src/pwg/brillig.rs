@@ -1,5 +1,5 @@
 use acir::{
-    brillig_vm::{RegisterIndex, Registers, VMStatus, Value, VM},
+    brillig_vm::{Opcode, RegisterIndex, Registers, VMStatus, Value, VM},
     circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::WitnessMap,
     FieldElement,
@@ -143,8 +143,14 @@ impl BrilligSolver {
     }
 }
 
+/// Encapsulates a request from a VM process that encounters a [foreign call opcode][Opcode::ForeignCall]  
+/// where the result of the foreign call has not yet been provided.
+///
+/// The caller must resolve this opcode externally based upon the information in the request.
 #[derive(Debug, PartialEq, Clone)]
 pub struct ForeignCallWaitInfo {
+    /// An identifier interpreted by the caller process
     pub function: String,
+    /// Resolved inputs to a foreign call computed in the previous steps of a Brillig VM process
     pub inputs: Vec<Value>,
 }

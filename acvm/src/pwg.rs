@@ -2,6 +2,7 @@
 
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
+    brillig_vm,
     circuit::brillig::Brillig,
     circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
@@ -36,7 +37,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle].
+    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][brillig_vm::Opcode::ForeignCall].
     ///
     /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
@@ -247,8 +248,16 @@ fn insert_value(
     Ok(())
 }
 
+/// A Brillig VM process has requested the caller to solve a [foreign call][brillig_vm::Opcode::ForeignCall] externally
+/// and to re-run the process with the foreign call's resolved outputs.
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnresolvedBrilligCall {
+    /// The current Brillig VM process that has been paused.
+    /// This process will be updated by the caller after resolving a foreign call's outputs.
+    ///
+    /// The [foreign call's result][acir::brillig_vm::ForeignCallResult] should be appended to this current [Brillig call][Brillig].
+    /// The [PartialWitnessGenerator] can then be restarted with an updated [Brillig opcode][Opcode::Brillig]
+    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
