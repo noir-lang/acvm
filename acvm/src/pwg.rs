@@ -2,7 +2,6 @@
 
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
-    brillig_vm,
     circuit::brillig::Brillig,
     circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
@@ -37,7 +36,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][brillig_vm::Opcode::ForeignCall].
+    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
     ///
     /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
