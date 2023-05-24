@@ -5,10 +5,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{
-    pwg::OpcodeNotSolvable,
-    OpcodeResolution, OpcodeResolutionError,
-};
+use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value};
 
