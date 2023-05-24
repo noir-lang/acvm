@@ -50,9 +50,7 @@ pub(crate) fn solve(
 
     match bb_func {
         BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
-        acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
-            and(initial_witness, lhs, rhs, output)
-        }
+        BlackBoxFuncCall::AND { lhs, rhs, output } => and(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => sha256(initial_witness, inputs, outputs),
@@ -97,6 +95,9 @@ pub(crate) fn solve(
             backend.fixed_base_scalar_mul(initial_witness, input, outputs)
         }
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
+            keccak256(initial_witness, inputs, outputs)
+        }
+        BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, outputs } => {
             keccak256(initial_witness, inputs, outputs)
         }
     }
