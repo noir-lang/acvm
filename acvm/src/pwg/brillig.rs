@@ -55,52 +55,32 @@ impl BrilligSolver {
         let mut input_memory: Vec<Value> = Vec::new();
         for input in &brillig.inputs {
             match input {
-                BrilligInputs::Single(expr) => {
-                    // TODO: switch this to `get_value` and map the err
-                    let solve = ArithmeticSolver::evaluate(expr, initial_witness);
-                    if let Some(value) = solve.to_const() {
-                        input_register_values.push(value.into())
-                    } else {
-                        break;
+                BrilligInputs::Single(expr) => match get_value(expr, initial_witness) {
+                    Ok(value) => input_register_values.push(value.into()),
+                    Err(_) => {
+                        return Ok(OpcodeResolution::Stalled(
+                            OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
+                        ))
                     }
-                }
+                },
                 BrilligInputs::Array(expr_arr) => {
                     // Attempt to fetch all array input values
-                    let mut continue_eval = true;
                     let memory_pointer = input_memory.len();
                     for expr in expr_arr.iter() {
-                        let solve = ArithmeticSolver::evaluate(expr, initial_witness);
-                        if let Some(value) = solve.to_const() {
-                            input_memory.push(value.into());
-                        } else {
-                            continue_eval = false;
-                            break;
+                        match get_value(expr, initial_witness) {
+                            Ok(value) => input_memory.push(value.into()),
+                            Err(_) => {
+                                return Ok(OpcodeResolution::Stalled(
+                                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
+                                ))
+                            }
                         }
-                    }
-
-                    // If an array value is missing exit the input solver and do not insert the array id as an input register
-                    if !continue_eval {
-                        break;
                     }
 
                     // Push value of the array pointer as a register
                     input_register_values.push(Value::from(memory_pointer));
                 }
             }
-        }
-
-        if input_register_values.len() != brillig.inputs.len() {
-            let brillig_input =
-                brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
-            let expr = match brillig_input {
-                BrilligInputs::Single(expr) => expr,
-                BrilligInputs::Array(expr_arr) => {
-                    expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
-                }
-            };
-            return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
-                expr.clone(),
-            )));
         }
 
         let input_registers = Registers { inner: input_register_values };
