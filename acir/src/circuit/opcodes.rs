@@ -22,10 +22,10 @@ pub enum Opcode {
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
     /// Abstract read/write operations on a block of data. In particular;
-    /// - It does not require an initialisation phase
+    /// - It does not require an initialization phase
     /// - Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
     Block(MemoryBlock),
-    /// Same as Block, but it starts with an initialisation phase and then have only read operation
+    /// Same as Block, but it starts with an initialization phase and then have only read operation
     /// - init: write operations with index from 0..MemoryBlock.len
     /// - after MemoryBlock.len; all operations are read
     ///
@@ -34,7 +34,7 @@ pub enum Opcode {
     /// Same as ROM, but can have read or write operations
     /// - init = write operations with index 0..MemoryBlock.len
     /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
-    // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
+    // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
     Brillig(Brillig),
