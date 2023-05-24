@@ -4,7 +4,7 @@ use acir::{
 };
 
 use super::{
-    hash::{blake2s256, hash_to_field_128_security, keccak256, sha256},
+    hash::{blake2s256, hash_to_field_128_security, keccak256, keccak256_variable_length, sha256},
     logic::{and, xor},
     range::solve_range_opcode,
     signature::ecdsa::secp256k1_prehashed,
@@ -98,7 +98,7 @@ pub(crate) fn solve(
             keccak256(initial_witness, inputs, outputs)
         }
         BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, outputs } => {
-            keccak256(initial_witness, inputs, outputs)
+            keccak256_variable_length(initial_witness, inputs, *var_message_size, outputs)
         }
     }
 }
