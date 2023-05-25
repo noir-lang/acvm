@@ -3,7 +3,7 @@
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
     circuit::brillig::Brillig,
-    circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
+    circuit::opcodes::{Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -280,7 +280,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES { .. }) | Opcode::Block(_))
+        !matches!(opcode, Opcode::Block(_))
     }
 
     match language {
@@ -319,15 +319,6 @@ mod test {
     struct StubbedPwg;
 
     impl PartialWitnessGenerator for StubbedPwg {
-        fn aes(
-            &self,
-            _initial_witness: &mut WitnessMap,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
-        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
-        }
-
         fn schnorr_verify(
             &self,
             _initial_witness: &mut WitnessMap,
