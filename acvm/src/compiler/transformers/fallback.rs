@@ -54,6 +54,9 @@ impl FallbackTransformer {
                             acir_supported_opcodes.extend(opcodes_fallback);
                         }
                     }
+                    Opcode::Brillig(_) => unreachable!(
+                        "Brillig is not required by the backend and so there is nothing to support"
+                    ),
                 }
             }
         }
