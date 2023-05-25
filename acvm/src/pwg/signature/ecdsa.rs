@@ -64,10 +64,10 @@ mod ecdsa_secp256k1 {
     use std::convert::TryInto;
 
     use blake2::digest::generic_array::GenericArray;
-    
+
     use k256::elliptic_curve::sec1::FromEncodedPoint;
     use k256::elliptic_curve::PrimeField;
-    
+
     use k256::{ecdsa::Signature, Scalar};
     use k256::{
         elliptic_curve::{
