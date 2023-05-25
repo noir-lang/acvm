@@ -3,7 +3,7 @@
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
     circuit::brillig::Brillig,
-    circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
+    circuit::opcodes::{Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
