@@ -96,7 +96,7 @@ impl VM {
     }
 
     /// Sets the current status of the VM to `fail`.
-    /// Indicating that the VM encoutered a `Trap` Opcode
+    /// Indicating that the VM encountered a `Trap` Opcode
     /// or an invalid state.
     fn fail(&mut self, error_msg: &str) -> VMStatus {
         self.status(VMStatus::Failure);
