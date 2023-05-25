@@ -18,11 +18,6 @@ impl FunctionInput {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BlackBoxFuncCall {
-    #[allow(clippy::upper_case_acronyms)]
-    AES128 {
-        inputs: Vec<FunctionInput>,
-        outputs: Vec<Witness>,
-    },
     AND {
         lhs: FunctionInput,
         rhs: FunctionInput,
@@ -81,7 +76,6 @@ pub enum BlackBoxFuncCall {
 impl BlackBoxFuncCall {
     pub fn dummy(bb_func: BlackBoxFunc) -> Self {
         match bb_func {
-            BlackBoxFunc::AES128 => BlackBoxFuncCall::AES128 { inputs: vec![], outputs: vec![] },
             BlackBoxFunc::AND => BlackBoxFuncCall::AND {
                 lhs: FunctionInput::dummy(),
                 rhs: FunctionInput::dummy(),
@@ -127,7 +121,6 @@ impl BlackBoxFuncCall {
 
     pub fn get_black_box_func(&self) -> BlackBoxFunc {
         match self {
-            BlackBoxFuncCall::AES128 { .. } => BlackBoxFunc::AES128,
             BlackBoxFuncCall::AND { .. } => BlackBoxFunc::AND,
             BlackBoxFuncCall::XOR { .. } => BlackBoxFunc::XOR,
             BlackBoxFuncCall::RANGE { .. } => BlackBoxFunc::RANGE,
@@ -148,8 +141,7 @@ impl BlackBoxFuncCall {
 
     pub fn get_inputs_vec(&self) -> Vec<FunctionInput> {
         match self {
-            BlackBoxFuncCall::AES128 { inputs, .. }
-            | BlackBoxFuncCall::SHA256 { inputs, .. }
+            BlackBoxFuncCall::SHA256 { inputs, .. }
             | BlackBoxFuncCall::Blake2s { inputs, .. }
             | BlackBoxFuncCall::Keccak256 { inputs, .. }
             | BlackBoxFuncCall::Pedersen { inputs, .. }
@@ -197,8 +189,7 @@ impl BlackBoxFuncCall {
 
     pub fn get_outputs_vec(&self) -> Vec<Witness> {
         match self {
-            BlackBoxFuncCall::AES128 { outputs, .. }
-            | BlackBoxFuncCall::SHA256 { outputs, .. }
+            BlackBoxFuncCall::SHA256 { outputs, .. }
             | BlackBoxFuncCall::Blake2s { outputs, .. }
             | BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
             | BlackBoxFuncCall::Pedersen { outputs, .. }

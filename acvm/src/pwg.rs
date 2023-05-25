@@ -272,10 +272,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(
-            opcode,
-            Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES128 { .. }) | Opcode::Block(_)
-        )
+        !matches!(opcode, Opcode::Block(_))
     }
 
     match language {
@@ -314,15 +311,6 @@ mod test {
     struct StubbedPwg;
 
     impl PartialWitnessGenerator for StubbedPwg {
-        fn aes128(
-            &self,
-            _initial_witness: &mut WitnessMap,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
-        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
-        }
-
         fn schnorr_verify(
             &self,
             _initial_witness: &mut WitnessMap,

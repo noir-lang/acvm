@@ -49,9 +49,6 @@ pub(crate) fn solve(
     }
 
     match bb_func {
-        BlackBoxFuncCall::AES128 { inputs, outputs } => {
-            backend.aes128(initial_witness, inputs, outputs)
-        }
         acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
             and(initial_witness, lhs, rhs, output)
         }
