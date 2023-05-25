@@ -53,14 +53,22 @@ impl BrilligSolver {
         // Set input values
         let mut input_register_values: Vec<Value> = Vec::new();
         let mut input_memory: Vec<Value> = Vec::new();
+        // Each input represents an expression or array of expressions to evaluate.
+        // Iterate over each input and evaluate the expression(s) associated with it.
+        // Push the results into registers and/or memory.
         for input in &brillig.inputs {
             match input {
                 BrilligInputs::Single(expr) => {
                     // TODO: switch this to `get_value` and map the err
                     let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                     if let Some(value) = solve.to_const() {
+                        // If the expression evaluates to a constant, great!
+                        // Add it to the register set and proceed.
                         input_register_values.push(value.into())
                     } else {
+                        // If the expression has too many unknowns to resolve to a const,
+                        // it can't be added to a register and we can't execute the
+                        // Brillig bytecode on these inputs just yet.
                         break;
                     }
                 }
@@ -71,14 +79,19 @@ impl BrilligSolver {
                     for expr in expr_arr.iter() {
                         let solve = ArithmeticSolver::evaluate(expr, initial_witness);
                         if let Some(value) = solve.to_const() {
+                            // If the expression evaluates to a constant, great!
+                            // Add it to the register set and proceed.
                             input_memory.push(value.into());
                         } else {
+                            // If the expression has too many unknowns to resolve to a const,
+                            // it can't be added to a register and we can't execute the
+                            // Brillig bytecode on these inputs just yet.
                             continue_eval = false;
                             break;
                         }
                     }
 
-                    // If an array value is missing exit the input solver and do not insert the array id as an input register
+                    // If an array value is missing, exit the input solver and do not insert the array id as an input register
                     if !continue_eval {
                         break;
                     }
@@ -89,6 +102,9 @@ impl BrilligSolver {
             }
         }
 
+        // Number of brillig inputs should match number of registers here.
+        // Otherwise some expression (the last one processed before the above loop exited)
+        // was not solvable, in which case we do not proceed with Brillig VM execution.
         if input_register_values.len() != brillig.inputs.len() {
             let brillig_input =
                 brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
@@ -103,6 +119,8 @@ impl BrilligSolver {
             )));
         }
 
+        // Instantiate a Brillig VM given the solved input registers and memory
+        // along with the Brillig bytecode, and any present foreign call results.
         let input_registers = Registers { inner: input_register_values };
         let mut vm = VM::new(
             input_registers,
@@ -111,8 +129,13 @@ impl BrilligSolver {
             brillig.foreign_call_results.clone(),
         );
 
+        // Run the Brillig VM on these inputs, bytecode, etc!
         let vm_status = vm.process_opcodes();
 
+        // Check the status of the Brillig VM.
+        // It may be finished, in-progress, failed, or may be waiting for results of a foreign call.
+        // Return the "resolution" to the caller who may choose to make subsequent calls
+        // (when it gets foreign call results for example).
         let result = match vm_status {
             VMStatus::Finished => {
                 for (i, output) in brillig.outputs.iter().enumerate() {
