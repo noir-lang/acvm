@@ -73,6 +73,10 @@ pub enum BlackBoxFuncCall {
     },
     Keccak256VariableLength {
         inputs: Vec<FunctionInput>,
+        /// This is the number of bytes to take
+        /// from the input. Note: if `var_message_size`
+        /// is more than the number of bytes in the input,
+        /// then an error is returned.
         var_message_size: FunctionInput,
         outputs: Vec<Witness>,
     },
