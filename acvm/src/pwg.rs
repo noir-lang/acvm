@@ -459,7 +459,8 @@ mod test {
 
         let brillig_data = Brillig {
             inputs: vec![
-                BrilligInputs::Single(Expression {            // Input Register 0
+                BrilligInputs::Single(Expression {
+                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
@@ -468,10 +469,10 @@ mod test {
             ],
             // This tells the BrilligSolver which witnesses its output registers correspond to
             outputs: vec![
-                BrilligOutputs::Simple(w_x_plus_y),  // Output Register 0 - from input
-                BrilligOutputs::Simple(w_oracle),    // Output Register 1
+                BrilligOutputs::Simple(w_x_plus_y), // Output Register 0 - from input
+                BrilligOutputs::Simple(w_oracle),   // Output Register 1
                 BrilligOutputs::Simple(w_equal_res), // Output Register 2
-                BrilligOutputs::Simple(w_lt_res),    // Output Register 3
+                BrilligOutputs::Simple(w_lt_res),   // Output Register 3
             ],
             // stack of foreign call/oracle resolutions, starts empty
             foreign_call_results: vec![],
@@ -586,13 +587,15 @@ mod test {
 
         let brillig_data = Brillig {
             inputs: vec![
-                BrilligInputs::Single(Expression {            // Input Register 0
+                BrilligInputs::Single(Expression {
+                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
                 BrilligInputs::Single(Expression::default()), // Input Register 1
-                BrilligInputs::Single(Expression {            // Input Register 2
+                BrilligInputs::Single(Expression {
+                    // Input Register 2
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_i), (fe_1, w_j)],
                     q_c: fe_0,
@@ -602,8 +605,8 @@ mod test {
                 BrilligOutputs::Simple(w_x_plus_y), // Output Register 0 - from input
                 BrilligOutputs::Simple(w_oracle),   // Output Register 1
                 BrilligOutputs::Simple(w_i_plus_j), // Output Register 2 - from input
-                BrilligOutputs::Simple(w_ij_oracle),// Output Register 3
-                BrilligOutputs::Simple(w_equal_res),// Output Register 4
+                BrilligOutputs::Simple(w_ij_oracle), // Output Register 3
+                BrilligOutputs::Simple(w_equal_res), // Output Register 4
                 BrilligOutputs::Simple(w_lt_res),   // Output Register 5
             ],
             // stack of foreign call/oracle resolutions, starts empty
