@@ -122,6 +122,14 @@ fn generic_hash_256<D: Digest>(
             let num_bytes_to_take =
                 witness_to_value(initial_witness, input.witness)?.to_u128() as usize;
 
+            // If the number of bytes to take is more than the amount of bytes available
+            // in the message, then we error.
+            if num_bytes_to_take > message_input.len() {
+                return Err(OpcodeResolutionError::BlackBoxFunctionFailed(
+                    acir::BlackBoxFunc::Keccak256,
+                    format!("the number of bytes to take from the message is more than the number of bytes in the message. {} > {}", num_bytes_to_take, message_input.len()),
+                ));
+            }
             let truncated_message = &message_input[0..num_bytes_to_take];
             hasher.update(truncated_message)
         }
