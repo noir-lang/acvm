@@ -22,6 +22,12 @@ pub enum VMStatus {
     Finished,
     InProgress,
     Failure,
+    /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
+    /// reached where the outputs are yet to be resolved.  
+    ///
+    /// The caller should interpret the information returned to compute a [ForeignCallResult]
+    /// and update the Brillig process. The VM can then be restarted to fully solve the previously
+    /// unresolved foreign call as well as the remaining Brillig opcodes.
     ForeignCallWait {
         /// Interpreted by simulator context
         function: String,
@@ -40,7 +46,11 @@ pub struct ForeignCallResult {
 pub struct VM {
     registers: Registers,
     program_counter: usize,
+    /// A counter maintained throughout a Brillig process that determines
+    /// whether the caller has resolved the results of a [foreign call][Opcode::ForeignCall].
     foreign_call_counter: usize,
+    /// Represents the outputs of all foreign calls during a Brillig process
+    /// List is appended onto by the caller upon reaching a [VMStatus::ForeignCallWait]
     foreign_call_results: Vec<ForeignCallResult>,
     bytecode: Vec<Opcode>,
     status: VMStatus,

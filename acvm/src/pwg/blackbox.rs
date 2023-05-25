@@ -49,8 +49,10 @@ pub(crate) fn solve(
     }
 
     match bb_func {
-        BlackBoxFuncCall::AES { inputs, outputs } => backend.aes(initial_witness, inputs, outputs),
         BlackBoxFuncCall::AND { lhs, rhs, output } => and(initial_witness, lhs, rhs, output),
+        acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
+            and(initial_witness, lhs, rhs, output)
+        }
         BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => sha256(initial_witness, inputs, outputs),

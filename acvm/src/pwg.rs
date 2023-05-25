@@ -3,7 +3,7 @@
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
     circuit::brillig::Brillig,
-    circuit::opcodes::{BlackBoxFuncCall, Opcode, OracleData},
+    circuit::opcodes::{Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -36,7 +36,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle].
+    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
     ///
     /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
@@ -247,8 +247,16 @@ fn insert_value(
     Ok(())
 }
 
+/// A Brillig VM process has requested the caller to solve a [foreign call][brillig_vm::Opcode::ForeignCall] externally
+/// and to re-run the process with the foreign call's resolved outputs.
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnresolvedBrilligCall {
+    /// The current Brillig VM process that has been paused.
+    /// This process will be updated by the caller after resolving a foreign call's outputs.
+    ///
+    /// The [foreign call's result][acir::brillig_vm::ForeignCallResult] should be appended to this current [Brillig call][Brillig].
+    /// The [PartialWitnessGenerator] can then be restarted with an updated [Brillig opcode][Opcode::Brillig]
+    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
@@ -272,7 +280,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES { .. }) | Opcode::Block(_))
+        !matches!(opcode, Opcode::Block(_))
     }
 
     match language {
@@ -311,15 +319,6 @@ mod test {
     struct StubbedPwg;
 
     impl PartialWitnessGenerator for StubbedPwg {
-        fn aes(
-            &self,
-            _initial_witness: &mut WitnessMap,
-            _inputs: &[FunctionInput],
-            _outputs: &[Witness],
-        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
-        }
-
         fn schnorr_verify(
             &self,
             _initial_witness: &mut WitnessMap,
