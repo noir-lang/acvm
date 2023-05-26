@@ -96,7 +96,7 @@ impl VM {
     }
 
     /// Sets the current status of the VM to `fail`.
-    /// Indicating that the VM encoutered a `Trap` Opcode
+    /// Indicating that the VM encountered a `Trap` Opcode
     /// or an invalid state.
     fn fail(&mut self, error_msg: &str) -> VMStatus {
         self.status(VMStatus::Failure);
@@ -161,6 +161,13 @@ impl VM {
             }
             Opcode::ForeignCall { function, destination, input } => {
                 if self.foreign_call_counter >= self.foreign_call_results.len() {
+                    // When this opcode is called, it is possible that the results of a foreign call are
+                    // not yet known (not enough entries in `foreign_call_results`).
+                    // If that is the case, just resolve the inputs and pause the VM with a status
+                    // (VMStatus::ForeignCallWait) that communicates the foreign function name and
+                    // resolved inputs back to the caller. Once the caller pushes to `foreign_call_results`,
+                    // they can then make another call to the VM that starts at this opcode
+                    // but has the necessary results to proceed with execution.
                     let resolved_inputs = self.resolve_foreign_call_input(*input);
                     return self.wait_for_foreign_call(function.clone(), resolved_inputs);
                 }
