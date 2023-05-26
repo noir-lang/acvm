@@ -38,6 +38,8 @@ pub enum BlackBoxFunc {
     FixedBaseScalarMul,
     /// Calculates the Keccak256 hash of the inputs.
     Keccak256,
+    /// Compute a recursive aggregation object when verifying a proof inside another circuit.
+    /// This outputted aggregation object will then be either checked in a top-level verifier or aggregated upon again.
     RecursiveAggregation,
 }
 
