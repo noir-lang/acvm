@@ -102,7 +102,7 @@ pub enum BlackBoxFuncCall {
         /// or perform another recursive aggregation where this output aggregation object
         /// will be the input aggregation object of the next recursive aggregation.
         output_aggregation_object: Vec<Witness>,
-    }
+    },
 }
 
 impl BlackBoxFuncCall {
