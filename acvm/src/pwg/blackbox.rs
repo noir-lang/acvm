@@ -99,28 +99,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
             keccak256(initial_witness, inputs, outputs)
         }
-        BlackBoxFuncCall::RecursiveAggregation {
-            verification_key: key,
-            proof,
-            public_inputs,
-            input_aggregation_object,
-            output_aggregation_object,
-            ..
-        } => {
-            let input_aggregation_object: Option<&[FunctionInput]> =
-                if let Some(input_aggregation_object) = input_aggregation_object {
-                    Some(input_aggregation_object)
-                } else {
-                    None
-                };
-            backend.verify_proof(
-                initial_witness,
-                key,
-                proof,
-                public_inputs,
-                input_aggregation_object,
-                output_aggregation_object,
-            )
-        }
+        BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
     }
 }

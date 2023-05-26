@@ -300,18 +300,6 @@ mod test {
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
-
-        fn verify_proof(
-            &self,
-            _initial_witness: &mut WitnessMap,
-            _key: &[FunctionInput],
-            _proof: &[FunctionInput],
-            _public_inputs: &[FunctionInput],
-            _input_aggregation_object: Option<&[FunctionInput]>,
-            _outputs: &[Witness],
-        ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-            panic!("Path not trodden by this test")
-        }
     }
 
     #[test]

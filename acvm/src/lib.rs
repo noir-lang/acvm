@@ -101,15 +101,6 @@ pub trait PartialWitnessGenerator {
         input: &FunctionInput,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
-    fn verify_proof(
-        &self,
-        initial_witness: &mut WitnessMap,
-        key: &[FunctionInput],
-        proof: &[FunctionInput],
-        public_inputs: &[FunctionInput],
-        input_aggregation_object: Option<&[FunctionInput]>,
-        output_aggregation_object: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
