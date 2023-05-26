@@ -21,7 +21,7 @@ pub enum BlackBoxFunc {
     EcdsaSecp256k1,
     FixedBaseScalarMul,
     Keccak256,
-    VerifyProof,
+    RecursiveAggregation,
 }
 
 impl std::fmt::Display for BlackBoxFunc {
@@ -45,7 +45,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::XOR => "xor",
             BlackBoxFunc::RANGE => "range",
             BlackBoxFunc::Keccak256 => "keccak256",
-            BlackBoxFunc::VerifyProof => "verify_proof",
+            BlackBoxFunc::RecursiveAggregation => "recursive_aggregation",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -62,7 +62,7 @@ impl BlackBoxFunc {
             "xor" => Some(BlackBoxFunc::XOR),
             "range" => Some(BlackBoxFunc::RANGE),
             "keccak256" => Some(BlackBoxFunc::Keccak256),
-            "verify_proof" => Some(BlackBoxFunc::VerifyProof),
+            "recursive_aggregation" => Some(BlackBoxFunc::RecursiveAggregation),
             _ => None,
         }
     }

@@ -145,7 +145,7 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::Keccak256 => {
                 BlackBoxFuncCall::Keccak256 { inputs: vec![], outputs: vec![] }
             }
-            BlackBoxFunc::VerifyProof => BlackBoxFuncCall::RecursiveAggregation {
+            BlackBoxFunc::RecursiveAggregation => BlackBoxFuncCall::RecursiveAggregation {
                 verification_key: vec![],
                 proof: vec![],
                 public_inputs: vec![],
@@ -170,7 +170,7 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
             BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
             BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
-            BlackBoxFuncCall::RecursiveAggregation { .. } => BlackBoxFunc::VerifyProof,
+            BlackBoxFuncCall::RecursiveAggregation { .. } => BlackBoxFunc::RecursiveAggregation,
         }
     }
 
