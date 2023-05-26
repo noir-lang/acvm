@@ -34,6 +34,7 @@ pub enum Opcode {
     /// Same as ROM, but can have read or write operations
     /// - init = write operations with index 0..MemoryBlock.len
     /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
+    // TODO(#319): Review this comment and generalize it to be useful for other backends.
     // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
