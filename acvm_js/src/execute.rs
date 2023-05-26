@@ -1,17 +1,17 @@
 use acvm::{
     acir::{
         circuit::{
-            opcodes::{BlackBoxFuncCall, OracleData},
+            opcodes::{FunctionInput, OracleData},
             Circuit,
         },
-        native_types::Witness,
-        BlackBoxFunc,
+        native_types::{Witness, WitnessMap},
     },
-    pwg::{block::Blocks, hash, logic, range, signature},
-    FieldElement, OpcodeResolution, OpcodeResolutionError, PartialWitnessGenerator,
-    PartialWitnessGeneratorStatus,
+    pwg::{
+        block::Blocks, hash, logic, range, signature, OpcodeResolution,
+        PartialWitnessGeneratorStatus,
+    },
+    FieldElement, OpcodeResolutionError, PartialWitnessGenerator,
 };
-use std::collections::BTreeMap;
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
@@ -20,36 +20,141 @@ use crate::{
     JsWitnessMap,
 };
 
+#[derive(Default)]
 struct SimulatedBackend;
 
 impl PartialWitnessGenerator for SimulatedBackend {
-    fn solve_black_box_function_call(
+    fn aes(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        func_call: &BlackBoxFuncCall,
+        _initial_witness: &mut WitnessMap,
+        _inputs: &[FunctionInput],
+        _outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        match func_call.name {
-            BlackBoxFunc::SHA256 => hash::sha256(initial_witness, func_call),
-            BlackBoxFunc::Blake2s => hash::blake2s(initial_witness, func_call),
-            BlackBoxFunc::EcdsaSecp256k1 => {
-                signature::ecdsa::secp256k1_prehashed(initial_witness, func_call)
-            }
-            BlackBoxFunc::AND | BlackBoxFunc::XOR => {
-                logic::solve_logic_opcode(initial_witness, func_call)
-            }
-            BlackBoxFunc::RANGE => range::solve_range_opcode(initial_witness, func_call),
-            BlackBoxFunc::HashToField128Security => {
-                hash::hash_to_field_128_security(initial_witness, func_call)
-            }
-            BlackBoxFunc::Keccak256 => hash::keccak256(initial_witness, func_call),
-            BlackBoxFunc::AES
-            | BlackBoxFunc::Pedersen
-            | BlackBoxFunc::ComputeMerkleRoot
-            | BlackBoxFunc::FixedBaseScalarMul
-            | BlackBoxFunc::SchnorrVerify => {
-                unimplemented!("opcode does not have a rust implementation")
-            }
-        }
+        todo!("opcode does not have a rust implementation")
+    }
+
+    fn and(
+        &self,
+        initial_witness: &mut WitnessMap,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        logic::and(initial_witness, lhs, rhs, output)
+    }
+
+    fn xor(
+        &self,
+        initial_witness: &mut WitnessMap,
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        logic::xor(initial_witness, lhs, rhs, output)
+    }
+
+    fn range(
+        &self,
+        initial_witness: &mut WitnessMap,
+        input: &FunctionInput,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        range::solve_range_opcode(initial_witness, input)
+    }
+
+    fn sha256(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        hash::sha256(initial_witness, inputs, outputs)
+    }
+
+    fn blake2s(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        hash::blake2s256(initial_witness, inputs, outputs)
+    }
+
+    fn hash_to_field_128_security(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        output: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        hash::hash_to_field_128_security(initial_witness, inputs, output)
+    }
+
+    fn keccak256(
+        &self,
+        initial_witness: &mut WitnessMap,
+        inputs: &[FunctionInput],
+        outputs: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        hash::keccak256(initial_witness, inputs, outputs)
+    }
+
+    fn ecdsa_secp256k1(
+        &self,
+        initial_witness: &mut WitnessMap,
+        public_key_x: &[FunctionInput],
+        public_key_y: &[FunctionInput],
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        outputs: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        signature::ecdsa::secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *outputs,
+        )
+    }
+
+    fn compute_merkle_root(
+        &self,
+        _initial_witness: &mut WitnessMap,
+        _leaf: &FunctionInput,
+        _index: &FunctionInput,
+        _hash_path: &[FunctionInput],
+        _output: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        todo!("opcode does not have a rust implementation")
+    }
+
+    fn schnorr_verify(
+        &self,
+        _initial_witness: &mut WitnessMap,
+        _public_key_x: &FunctionInput,
+        _public_key_y: &FunctionInput,
+        _signature: &[FunctionInput],
+        _message: &[FunctionInput],
+        _output: &Witness,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        todo!("opcode does not have a rust implementation")
+    }
+
+    fn pedersen(
+        &self,
+        _initial_witness: &mut WitnessMap,
+        _inputs: &[FunctionInput],
+        _outputs: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        todo!("opcode does not have a rust implementation")
+    }
+
+    fn fixed_base_scalar_mul(
+        &self,
+        _initial_witness: &mut WitnessMap,
+        _input: &FunctionInput,
+        _outputs: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        todo!("opcode does not have a rust implementation")
     }
 }
 
@@ -85,14 +190,14 @@ pub async fn execute_circuit(
 ) -> Result<JsWitnessMap, JsValue> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
-    let mut witness_map: BTreeMap<Witness, FieldElement> = initial_witness.into();
+    let mut witness_map = WitnessMap::from(initial_witness);
 
+    let backend = SimulatedBackend::default();
     let mut blocks = Blocks::default();
     let mut opcodes = circuit.opcodes;
 
     loop {
-        let solver_status = SimulatedBackend
-            .solve(&mut witness_map, &mut blocks, opcodes)
+        let solver_status = acvm::pwg::solve(&backend, &mut witness_map, &mut blocks, opcodes)
             .map_err(|err| err.to_string())?;
 
         match solver_status {
@@ -132,7 +237,7 @@ pub async fn execute_circuit(
 fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
 ) -> Result<(), OpcodeResolutionError> {
     let optional_old_value = initial_witness.insert(*witness, value_to_insert);
 

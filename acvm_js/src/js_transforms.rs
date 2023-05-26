@@ -1,12 +1,14 @@
-use acvm::{acir::native_types::Witness, FieldElement};
+use acvm::{
+    acir::native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 use js_sys::JsString;
-use std::collections::BTreeMap;
 use wasm_bindgen::JsValue;
 
 use crate::JsWitnessMap;
 
-impl From<BTreeMap<Witness, FieldElement>> for JsWitnessMap {
-    fn from(witness_map: BTreeMap<Witness, FieldElement>) -> Self {
+impl From<WitnessMap> for JsWitnessMap {
+    fn from(witness_map: WitnessMap) -> Self {
         let js_map = JsWitnessMap::new();
         for (key, value) in witness_map {
             js_map.set(
@@ -18,9 +20,9 @@ impl From<BTreeMap<Witness, FieldElement>> for JsWitnessMap {
     }
 }
 
-impl From<JsWitnessMap> for BTreeMap<Witness, FieldElement> {
+impl From<JsWitnessMap> for WitnessMap {
     fn from(js_map: JsWitnessMap) -> Self {
-        let mut witness_map: BTreeMap<Witness, FieldElement> = BTreeMap::new();
+        let mut witness_map = WitnessMap::new();
         js_map.for_each(&mut |value, key| {
             let witness_index = Witness(key.as_f64().unwrap() as u32);
             let witness_value = js_value_to_field_element(value).unwrap();
@@ -49,7 +51,10 @@ pub(crate) fn field_element_to_js_string(field_element: &FieldElement) -> JsStri
 mod test {
     use std::collections::BTreeMap;
 
-    use acvm::{acir::native_types::Witness, FieldElement};
+    use acvm::{
+        acir::native_types::{Witness, WitnessMap},
+        FieldElement,
+    };
     use wasm_bindgen::JsValue;
     use wasm_bindgen_test::*;
 
@@ -62,6 +67,7 @@ mod test {
             (Witness(2), FieldElement::zero()),
             (Witness(3), -FieldElement::one()),
         ]);
+        let witness_map = WitnessMap::from(witness_map);
 
         let js_map = JsWitnessMap::from(witness_map);
 

@@ -47,7 +47,7 @@ pub fn build_info() -> JsValue {
 }
 
 #[wasm_bindgen(typescript_custom_section)]
-const TS_APPEND_CONTENT: &'static str = r#"
+const WITNESS_MAP: &'static str = r#"
 // Map from witness index to hex string value of witness.
 export type WitnessMap = Map<number, string>;
 "#;

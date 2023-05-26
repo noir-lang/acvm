@@ -4,21 +4,22 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "084577e67b44c72d1cdfabe286d48adac6f5e0ad441ef134c5c467f4b6eee291"
+checksum = "c831802bad8d6810bfdb57cd00913157dfe710a185dc360c9a94eecd043bbf12"
 dependencies = [
  "acir_field",
  "flate2",
  "rmp-serde",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
 name = "acir_field"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a267ef529f4b132293199ecdf8c232ade817f01d916039f2d34562cab39e75e9"
+checksum = "d455746f51b4421548e42d34e2ce46b6db637cb048095d78766612d26bf526db"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,19 +31,19 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e1d6795105b50b13fa0dd1779b5191c4d8e9cd98b357b0b9a0b04a847baacf0"
+checksum = "fd8e75cf737b52195a8c109e0ee776e468e1c2ec42f0f88aa4465cd76a09b4ed"
 dependencies = [
  "acir",
  "acvm_stdlib",
+ "async-trait",
  "blake2",
- "crc32fast",
  "indexmap",
  "k256",
  "num-bigint",
  "num-traits",
- "sha2",
+ "sha2 0.10.6",
  "sha3",
  "thiserror",
 ]
@@ -68,9 +69,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3131af53d17ac12340c0ff50f8555d8e040321f8078b8ee3cd8846560b6a44a9"
+checksum = "a2e87549b987593eeb1902990006443f2fe5817db927035f081008e4b8a46a49"
 dependencies = [
  "acir",
 ]
@@ -219,6 +220,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.68"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9ccdd8f2a161be9bd5c023df56f1b2a0bd1d83872ae53b71a84a12c9bf6e842"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.12",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -237,13 +249,11 @@ dependencies = [
 
 [[package]]
 name = "blake2"
-version = "0.9.2"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a4e37d16930f5459780f5621038b6382b9bb37c19016f39fb6b5808d831f174"
+checksum = "46502ad458c9a52b69d4d4d32775c788b7a1b85e8bc9d482d92250fc0e3f8efe"
 dependencies = [
- "crypto-mac 0.8.0",
- "digest 0.9.0",
- "opaque-debug",
+ "digest 0.10.6",
 ]
 
 [[package]]
@@ -252,15 +262,17 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
 dependencies = [
- "block-padding",
  "generic-array",
 ]
 
 [[package]]
-name = "block-padding"
-version = "0.2.1"
+name = "block-buffer"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
+checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
+dependencies = [
+ "generic-array",
+]
 
 [[package]]
 name = "build-data"
@@ -374,16 +386,6 @@ dependencies = [
 
 [[package]]
 name = "crypto-mac"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b584a330336237c1eecd3e94266efb216c56ed91225d634cb2991c5f3fd1aeab"
-dependencies = [
- "generic-array",
- "subtle",
-]
-
-[[package]]
-name = "crypto-mac"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bff07008ec701e8028e2ceb8f83f0e4274ee62bd2dbdc4fefff2e9a91824081a"
@@ -471,7 +473,9 @@ version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
+ "block-buffer 0.10.4",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -597,7 +601,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1441c6b1e930e2817404b5046f1f989899143a12bf92de603b69f4e0aee1e15"
 dependencies = [
- "crypto-mac 0.10.1",
+ "crypto-mac",
  "digest 0.9.0",
 ]
 
@@ -638,7 +642,7 @@ dependencies = [
 [[package]]
 name = "iter-extended"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=0181813203a9e3e46c6d8c3169ad5d25971d4282#0181813203a9e3e46c6d8c3169ad5d25971d4282"
+source = "git+https://github.com/noir-lang/noir?rev=b938c7eeaa5ee493b28cad5451e7d5b7921ad934#b938c7eeaa5ee493b28cad5451e7d5b7921ad934"
 
 [[package]]
 name = "itertools"
@@ -673,7 +677,7 @@ dependencies = [
  "cfg-if",
  "ecdsa",
  "elliptic-curve",
- "sha2",
+ "sha2 0.9.9",
 ]
 
 [[package]]
@@ -727,7 +731,7 @@ dependencies = [
 [[package]]
 name = "noirc_abi"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=0181813203a9e3e46c6d8c3169ad5d25971d4282#0181813203a9e3e46c6d8c3169ad5d25971d4282"
+source = "git+https://github.com/noir-lang/noir?rev=b938c7eeaa5ee493b28cad5451e7d5b7921ad934#b938c7eeaa5ee493b28cad5451e7d5b7921ad934"
 dependencies = [
  "acvm",
  "iter-extended",
@@ -1010,7 +1014,7 @@ version = "0.9.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d58a1e1bf39749807d89cf2d98ac2dfa0ff1cb3faa38fbb64dd88ac8013d800"
 dependencies = [
- "block-buffer",
+ "block-buffer 0.9.0",
  "cfg-if",
  "cpufeatures",
  "digest 0.9.0",
@@ -1018,15 +1022,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha3"
-version = "0.9.1"
+name = "sha2"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f81199417d4e5de3f04b1e871023acea7389672c4135918f05aa9cbf2f2fa809"
+checksum = "82e6b795fe2e3b1e845bafcb27aa35405c4d47cdfc92af5fc8d3002f76cebdc0"
 dependencies = [
- "block-buffer",
- "digest 0.9.0",
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.6",
+]
+
+[[package]]
+name = "sha3"
+version = "0.10.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
+dependencies = [
+ "digest 0.10.6",
  "keccak",
- "opaque-debug",
 ]
 
 [[package]]
