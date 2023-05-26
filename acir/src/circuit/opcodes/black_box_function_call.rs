@@ -18,11 +18,6 @@ impl FunctionInput {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BlackBoxFuncCall {
-    #[allow(clippy::upper_case_acronyms)]
-    AES {
-        inputs: Vec<FunctionInput>,
-        outputs: Vec<Witness>,
-    },
     AND {
         lhs: FunctionInput,
         rhs: FunctionInput,
@@ -76,6 +71,15 @@ pub enum BlackBoxFuncCall {
         inputs: Vec<FunctionInput>,
         outputs: Vec<Witness>,
     },
+    Keccak256VariableLength {
+        inputs: Vec<FunctionInput>,
+        /// This is the number of bytes to take
+        /// from the input. Note: if `var_message_size`
+        /// is more than the number of bytes in the input,
+        /// then an error is returned.
+        var_message_size: FunctionInput,
+        outputs: Vec<Witness>,
+    },
     RecursiveAggregation {
         verification_key: Vec<FunctionInput>,
         proof: Vec<FunctionInput>,
@@ -98,13 +102,12 @@ pub enum BlackBoxFuncCall {
         /// or perform another recursive aggregation where this output aggregation object
         /// will be the input aggregation object of the next recursive aggregation.
         output_aggregation_object: Vec<Witness>,
-    },
+    }
 }
 
 impl BlackBoxFuncCall {
     pub fn dummy(bb_func: BlackBoxFunc) -> Self {
         match bb_func {
-            BlackBoxFunc::AES => BlackBoxFuncCall::AES { inputs: vec![], outputs: vec![] },
             BlackBoxFunc::AND => BlackBoxFuncCall::AND {
                 lhs: FunctionInput::dummy(),
                 rhs: FunctionInput::dummy(),
@@ -158,7 +161,6 @@ impl BlackBoxFuncCall {
 
     pub fn get_black_box_func(&self) -> BlackBoxFunc {
         match self {
-            BlackBoxFuncCall::AES { .. } => BlackBoxFunc::AES,
             BlackBoxFuncCall::AND { .. } => BlackBoxFunc::AND,
             BlackBoxFuncCall::XOR { .. } => BlackBoxFunc::XOR,
             BlackBoxFuncCall::RANGE { .. } => BlackBoxFunc::RANGE,
@@ -170,6 +172,7 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
             BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
             BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
+            BlackBoxFuncCall::Keccak256VariableLength { .. } => BlackBoxFunc::Keccak256,
             BlackBoxFuncCall::RecursiveAggregation { .. } => BlackBoxFunc::RecursiveAggregation,
         }
     }
@@ -180,8 +183,7 @@ impl BlackBoxFuncCall {
 
     pub fn get_inputs_vec(&self) -> Vec<FunctionInput> {
         match self {
-            BlackBoxFuncCall::AES { inputs, .. }
-            | BlackBoxFuncCall::SHA256 { inputs, .. }
+            BlackBoxFuncCall::SHA256 { inputs, .. }
             | BlackBoxFuncCall::Blake2s { inputs, .. }
             | BlackBoxFuncCall::Keccak256 { inputs, .. }
             | BlackBoxFuncCall::Pedersen { inputs, .. }
@@ -224,6 +226,11 @@ impl BlackBoxFuncCall {
                 inputs.extend(hashed_message.iter().copied());
                 inputs
             }
+            BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, .. } => {
+                let mut inputs = inputs.clone();
+                inputs.push(*var_message_size);
+                inputs
+            }
             BlackBoxFuncCall::RecursiveAggregation {
                 verification_key: key,
                 proof,
@@ -249,8 +256,7 @@ impl BlackBoxFuncCall {
 
     pub fn get_outputs_vec(&self) -> Vec<Witness> {
         match self {
-            BlackBoxFuncCall::AES { outputs, .. }
-            | BlackBoxFuncCall::SHA256 { outputs, .. }
+            BlackBoxFuncCall::SHA256 { outputs, .. }
             | BlackBoxFuncCall::Blake2s { outputs, .. }
             | BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
             | BlackBoxFuncCall::Pedersen { outputs, .. }
@@ -264,6 +270,7 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
             | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. } => vec![*output],
             BlackBoxFuncCall::RANGE { .. } => vec![],
+            BlackBoxFuncCall::Keccak256VariableLength { outputs, .. } => outputs.to_vec(),
         }
     }
 }

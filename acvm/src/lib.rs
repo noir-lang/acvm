@@ -1,9 +1,6 @@
 #![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
-// Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
-// Org name is needed because more than one implementation of the same proof system may arise
-
 pub mod compiler;
 pub mod pwg;
 
@@ -74,12 +71,6 @@ pub trait CommonReferenceString {
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
-    fn aes(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
