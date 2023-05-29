@@ -42,4 +42,4 @@ macro_rules! assert_unique_feature {
 }
 // https://internals.rust-lang.org/t/mutually-exclusive-feature-flags/8601/7
 // If another field/feature is added, we add it here too
-assert_unique_feature!("bn254", "bls12_381");
+assert_unique_feature!("bn254", "bls12_381", "pallas");
