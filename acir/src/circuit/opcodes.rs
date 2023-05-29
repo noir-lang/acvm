@@ -1,9 +1,8 @@
-use std::io::{Read, Write};
-
-use super::directives::{Directive, LogInfo, QuotientDirective};
+use super::{
+    brillig::Brillig,
+    directives::{Directive, LogInfo, QuotientDirective},
+};
 use crate::native_types::Expression;
-use crate::serialization::{read_n, write_bytes};
-
 use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
@@ -17,23 +16,29 @@ pub use oracle_data::OracleData;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
     Arithmetic(Expression),
+    /// Calls to "gadgets" which rely on backends implementing support for specialized constraints.
+    ///
+    /// Often used for exposing more efficient implementations of SNARK-unfriendly computations.  
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
     /// Abstract read/write operations on a block of data. In particular;
-    /// It does not require an initialisation phase
-    /// Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
+    /// - It does not require an initialization phase
+    /// - Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
     Block(MemoryBlock),
-    /// Same as Block, but it starts with an initialisation phase and then have only read operation
+    /// Same as Block, but it starts with an initialization phase and then have only read operation
     /// - init: write operations with index from 0..MemoryBlock.len
     /// - after MemoryBlock.len; all operations are read
+    ///
     /// ROM can be more efficiently handled because we do not need to check for the operation value (which is always 0).
     ROM(MemoryBlock),
     /// Same as ROM, but can have read or write operations
     /// - init = write operations with index 0..MemoryBlock.len
     /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
-    /// RAM is required for Aztec Backend as dynamic memory implementation in Barrentenberg requires an intialisation phase and can only handle constant values for operations.
+    // TODO(#319): Review this comment and generalize it to be useful for other backends.
+    // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Oracle(OracleData),
+    Brillig(Brillig),
 }
 
 impl Opcode {
@@ -48,20 +53,7 @@ impl Opcode {
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
             Opcode::Oracle(data) => &data.name,
-        }
-    }
-
-    // When we serialize the opcodes, we use the index
-    // to uniquely identify which category of opcode we are dealing with.
-    pub(crate) fn to_index(&self) -> u8 {
-        match self {
-            Opcode::Arithmetic(_) => 0,
-            Opcode::BlackBoxFuncCall(_) => 1,
-            Opcode::Directive(_) => 2,
-            Opcode::Block(_) => 3,
-            Opcode::ROM(_) => 4,
-            Opcode::RAM(_) => 5,
-            Opcode::Oracle { .. } => 6,
+            Opcode::Brillig(_) => "brillig",
         }
     }
 
@@ -73,59 +65,6 @@ impl Opcode {
         match self {
             Opcode::Arithmetic(expr) => Some(expr),
             _ => None,
-        }
-    }
-
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        let opcode_index = self.to_index();
-        write_bytes(&mut writer, &[opcode_index])?;
-
-        match self {
-            Opcode::Arithmetic(expr) => expr.write(writer),
-            Opcode::BlackBoxFuncCall(func_call) => func_call.write(writer),
-            Opcode::Directive(directive) => directive.write(writer),
-            Opcode::Block(mem_block) | Opcode::ROM(mem_block) | Opcode::RAM(mem_block) => {
-                mem_block.write(writer)
-            }
-            Opcode::Oracle(data) => data.write(writer),
-        }
-    }
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        // First byte indicates the opcode category
-        let opcode_index = read_n::<1, _>(&mut reader)?[0];
-
-        match opcode_index {
-            0 => {
-                let expr = Expression::read(reader)?;
-
-                Ok(Opcode::Arithmetic(expr))
-            }
-            1 => {
-                let func_call = BlackBoxFuncCall::read(reader)?;
-
-                Ok(Opcode::BlackBoxFuncCall(func_call))
-            }
-            2 => {
-                let directive = Directive::read(reader)?;
-                Ok(Opcode::Directive(directive))
-            }
-            3 => {
-                let block = MemoryBlock::read(reader)?;
-                Ok(Opcode::Block(block))
-            }
-            4 => {
-                let block = MemoryBlock::read(reader)?;
-                Ok(Opcode::ROM(block))
-            }
-            5 => {
-                let block = MemoryBlock::read(reader)?;
-                Ok(Opcode::RAM(block))
-            }
-            6 => {
-                let data = OracleData::read(reader)?;
-                Ok(Opcode::Oracle(data))
-            }
-            _ => Err(std::io::ErrorKind::InvalidData.into()),
         }
     }
 }
@@ -215,6 +154,12 @@ impl std::fmt::Display for Opcode {
                 write!(f, "ORACLE: ")?;
                 write!(f, "{data}")
             }
+            Opcode::Brillig(brillig) => {
+                write!(f, "BRILLIG: ")?;
+                writeln!(f, "inputs: {:?}", brillig.inputs)?;
+                writeln!(f, "outputs: {:?}", brillig.outputs)?;
+                writeln!(f, "{:?}", brillig.bytecode)
+            }
         }
     }
 }
@@ -223,45 +168,4 @@ impl std::fmt::Debug for Opcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self, f)
     }
-}
-
-#[test]
-fn serialization_roundtrip() {
-    use crate::native_types::Witness;
-
-    fn read_write(opcode: Opcode) -> (Opcode, Opcode) {
-        let mut bytes = Vec::new();
-        opcode.write(&mut bytes).unwrap();
-        let got_opcode = Opcode::read(&*bytes).unwrap();
-        (opcode, got_opcode)
-    }
-
-    let opcode_arith = Opcode::Arithmetic(Expression::default());
-
-    let opcode_black_box_func = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AES {
-        inputs: vec![
-            FunctionInput { witness: Witness(1u32), num_bits: 12 },
-            FunctionInput { witness: Witness(24u32), num_bits: 32 },
-        ],
-        outputs: vec![Witness(123u32), Witness(245u32)],
-    });
-
-    let opcode_directive =
-        Opcode::Directive(Directive::Invert { x: Witness(1234u32), result: Witness(56789u32) });
-
-    let opcodes = vec![opcode_arith, opcode_black_box_func, opcode_directive];
-
-    for opcode in opcodes {
-        let (op, got_op) = read_write(opcode);
-        assert_eq!(op, got_op)
-    }
-}
-
-#[test]
-fn panic_regression_187() {
-    // See: https://github.com/noir-lang/acvm/issues/187
-    // This issue seems to not be reproducible on Mac.
-    let data = b"\x00\x00\x00\x00\xff\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x77\xdc\xa8\x37\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0\x80\x00\x00\x80\x00\x00\x00\x00\x00\x00\x00\x04";
-    let circuit = crate::circuit::Circuit::read(&data[..]);
-    assert!(circuit.is_err())
 }

@@ -1,10 +1,13 @@
-use acir::{circuit::opcodes::FunctionInput, native_types::Witness, FieldElement};
-use std::collections::BTreeMap;
+use acir::{
+    circuit::opcodes::FunctionInput,
+    native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
 fn to_u8_vec(
-    initial_witness: &BTreeMap<Witness, FieldElement>,
+    initial_witness: &WitnessMap,
     inputs: &[FunctionInput],
 ) -> Result<Vec<u8>, OpcodeResolutionError> {
     let mut result = Vec::with_capacity(inputs.len());
@@ -17,11 +20,11 @@ fn to_u8_vec(
 }
 
 pub fn secp256k1_prehashed(
-    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    initial_witness: &mut WitnessMap,
     public_key_x_inputs: &[FunctionInput],
     public_key_y_inputs: &[FunctionInput],
     signature_inputs: &[FunctionInput],
-    message_inputs: &[FunctionInput],
+    hashed_message_inputs: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let pub_key_x: [u8; 32] =
@@ -48,7 +51,7 @@ pub fn secp256k1_prehashed(
             )
         })?;
 
-    let hashed_message = to_u8_vec(initial_witness, message_inputs)?;
+    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
     let result =
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();

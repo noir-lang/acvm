@@ -1,17 +1,16 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use acir::{
     circuit::opcodes::{BlockId, MemOp},
-    native_types::Witness,
+    native_types::{Witness, WitnessMap},
     FieldElement,
 };
-
-use crate::{pwg::OpcodeResolution, OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{
     arithmetic::{ArithmeticSolver, GateStatus},
     insert_value,
 };
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// Maps a block to its emulated state
 #[derive(Default)]
@@ -24,7 +23,7 @@ impl Blocks {
         &mut self,
         id: BlockId,
         trace: &[MemOp],
-        solved_witness: &mut BTreeMap<Witness, FieldElement>,
+        solved_witness: &mut WitnessMap,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let solver = self.blocks.entry(id).or_default();
         solver.solve(solved_witness, trace)
@@ -54,7 +53,7 @@ impl BlockSolver {
     // We stop when an operation cannot be resolved
     fn solve_helper(
         &mut self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         trace: &[MemOp],
     ) -> Result<(), OpcodeResolutionError> {
         let missing_assignment = |witness: Option<Witness>| {
@@ -102,7 +101,7 @@ impl BlockSolver {
     // and converts its result into GateResolution
     pub(crate) fn solve(
         &mut self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         trace: &[MemOp],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let initial_solved_operations = self.solved_operations;
@@ -123,11 +122,9 @@ impl BlockSolver {
 
 #[cfg(test)]
 mod test {
-    use std::collections::BTreeMap;
-
     use acir::{
         circuit::opcodes::{BlockId, MemOp},
-        native_types::{Expression, Witness},
+        native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
@@ -161,7 +158,7 @@ mod test {
             value: Expression::from(Witness(4)),
         });
         let id = BlockId::default();
-        let mut initial_witness = BTreeMap::new();
+        let mut initial_witness = WitnessMap::new();
         let mut value = FieldElement::zero();
         insert_value(&Witness(1), value, &mut initial_witness).unwrap();
         value = FieldElement::one();

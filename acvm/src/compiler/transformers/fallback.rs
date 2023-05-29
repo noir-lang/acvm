@@ -6,16 +6,13 @@ use acir::{
     native_types::Expression,
 };
 
-// A predicate that returns true if the black box function is supported
-pub type IsOpcodeSupported = fn(&Opcode) -> bool;
-
 pub struct FallbackTransformer;
 
 impl FallbackTransformer {
     //ACIR pass which replace unsupported opcodes using arithmetic fallback
     pub fn transform(
         acir: Circuit,
-        is_supported: IsOpcodeSupported,
+        is_supported: impl Fn(&Opcode) -> bool,
         simplifier: &Simplifier,
     ) -> Result<Circuit, CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
@@ -57,6 +54,9 @@ impl FallbackTransformer {
                             acir_supported_opcodes.extend(opcodes_fallback);
                         }
                     }
+                    Opcode::Brillig(_) => unreachable!(
+                        "Brillig is not required by the backend and so there is nothing to support"
+                    ),
                 }
             }
         }
