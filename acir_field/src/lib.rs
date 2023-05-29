@@ -15,7 +15,7 @@ cfg_if::cfg_if! {
         mod generic_ark;
         pub type FieldElement = generic_ark::FieldElement<ark_pallas::Fr>;
         pub const CHOSEN_FIELD : FieldOptions = FieldOptions::Pallas;
-    }else {
+    } else {
         compile_error!("please specify a field to compile with");
     }
 }
