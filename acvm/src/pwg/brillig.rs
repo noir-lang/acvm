@@ -53,7 +53,7 @@ impl BrilligSolver {
         // Each input represents an expression or array of expressions to evaluate.
         // Iterate over each input and evaluate the expression(s) associated with it.
         // Push the results into registers and/or memory.
-        // If a certain expression is not solvable, we stall the Brillig VM execution.
+        // If a certain expression is not solvable, we stall the ACVM and do not proceed with Brillig VM execution.
         for input in &brillig.inputs {
             match input {
                 BrilligInputs::Single(expr) => match get_value(expr, initial_witness) {
