@@ -441,7 +441,6 @@ mod tests {
         let w_z_inverse = Witness(5);
         let w_x_plus_y = Witness(6);
         let w_equal_res = Witness(7);
-        let w_lt_res = Witness(8);
 
         let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
             op: BinaryFieldOp::Equals,
