@@ -1,5 +1,5 @@
 use std::{
-    collections::{btree_map, btree_map::Values, BTreeMap},
+    collections::{btree_map, BTreeMap},
     io::Read,
     ops::Index,
 };
@@ -49,9 +49,6 @@ impl WitnessMap {
     }
     pub fn insert(&mut self, key: Witness, value: FieldElement) -> Option<FieldElement> {
         self.0.insert(key, value)
-    }
-    pub fn values(&self) -> Values<'_, Witness, FieldElement> {
-        self.0.values()
     }
 }
 
