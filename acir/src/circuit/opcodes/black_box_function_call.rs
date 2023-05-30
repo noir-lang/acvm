@@ -48,6 +48,7 @@ pub enum BlackBoxFuncCall {
     },
     Pedersen {
         inputs: Vec<FunctionInput>,
+        domain_separator: u32,
         outputs: Vec<Witness>,
     },
     // 128 here specifies that this function
@@ -129,7 +130,7 @@ impl BlackBoxFuncCall {
                 output: Witness(0),
             },
             BlackBoxFunc::Pedersen => {
-                BlackBoxFuncCall::Pedersen { inputs: vec![], outputs: vec![] }
+                BlackBoxFuncCall::Pedersen { inputs: vec![], domain_separator: 0, outputs: vec![] }
             }
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
@@ -353,7 +354,15 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         write!(f, "{outputs_str}")?;
 
-        write!(f, "]")
+        write!(f, "]")?;
+
+        // SPECIFIC PARAMETERS
+        match self {
+            BlackBoxFuncCall::Pedersen { domain_separator, .. } => {
+                write!(f, " domain_separator: {domain_separator}")
+            }
+            _ => write!(f, ""),
+        }
     }
 }
 
