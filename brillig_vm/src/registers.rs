@@ -27,11 +27,13 @@ impl From<usize> for RegisterIndex {
 }
 
 impl Registers {
+    /// Create a Registers object initialized with definite values
     pub fn load(values: Vec<Value>) -> Registers {
         let inner = values.into_iter().map(Some).collect();
         Self { inner }
     }
 
+    /// Gets the values at register with address `index`
     pub fn get(&self, register_index: RegisterIndex) -> Value {
         let index = register_index.to_usize();
         assert!(index < MAX_REGISTERS, "Reading register past maximum!");
@@ -44,14 +46,11 @@ impl Registers {
         self.inner[index].expect("Reading uninitialized register!")
     }
 
+    /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, RegisterIndex(index): RegisterIndex, value: Value) {
         assert!(index < MAX_REGISTERS, "Writing register past maximum!");
         let new_register_size = std::cmp::max(index + 1, self.inner.len());
         self.inner.resize(new_register_size, None);
         self.inner[index] = Some(value)
-    }
-
-    pub fn values(self) -> Vec<Option<Value>> {
-        self.inner
     }
 }
