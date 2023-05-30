@@ -86,7 +86,7 @@ impl BrilligSolver {
 
         // Instantiate a Brillig VM given the solved input registers and memory
         // along with the Brillig bytecode, and any present foreign call results.
-        let input_registers = Registers { inner: input_register_values };
+        let input_registers = Registers::load(input_register_values);
         let mut vm = VM::new(
             input_registers,
             input_memory,
