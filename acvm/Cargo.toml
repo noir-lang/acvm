@@ -34,6 +34,7 @@ async-trait = "0.1"
 default = ["bn254"]
 bn254 = ["acir/bn254", "stdlib/bn254"]
 bls12_381 = ["acir/bls12_381", "stdlib/bls12_381"]
+pallas = ["acir/pallas", "stdlib/pallas"]
 
 [dev-dependencies]
 rand = "0.8.5"
