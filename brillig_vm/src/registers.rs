@@ -55,6 +55,7 @@ impl Registers {
     /// Sets the value at register with address `index` to `value`
     pub fn set(&mut self, RegisterIndex(index): RegisterIndex, value: Value) {
         assert!(index < MAX_REGISTERS, "Writing register past maximum!");
+        // if size isn't at least index + 1, resize
         let new_register_size = std::cmp::max(index + 1, self.inner.len());
         self.inner.resize(new_register_size, None);
         self.inner[index] = Some(value)
