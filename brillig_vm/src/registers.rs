@@ -14,6 +14,7 @@ const MAX_REGISTERS: usize = 2_usize.pow(16);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RegisterIndex(usize);
 
+/// `RegisterIndex` refers to the index in VM register space.
 impl RegisterIndex {
     pub fn to_usize(self) -> usize {
         self.0
@@ -26,6 +27,8 @@ impl From<usize> for RegisterIndex {
     }
 }
 
+/// Registers will store field element values during the
+/// duration of the execution of the bytecode.
 impl Registers {
     /// Create a Registers object initialized with definite values
     pub fn load(values: Vec<Value>) -> Registers {
