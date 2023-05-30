@@ -9,6 +9,9 @@ pub struct Registers {
     pub inner: Vec<Option<Value>>,
 }
 
+/// Aims to match a reasonable max register count for a SNARK prover.
+/// As well, catches obvious erroneous use of registers.
+/// This can be revisited if it proves not enough.
 const MAX_REGISTERS: usize = 2_usize.pow(16);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
