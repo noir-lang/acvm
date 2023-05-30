@@ -36,7 +36,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle].
+    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
     ///
     /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
@@ -247,8 +247,16 @@ fn insert_value(
     Ok(())
 }
 
+/// A Brillig VM process has requested the caller to solve a [foreign call][brillig_vm::Opcode::ForeignCall] externally
+/// and to re-run the process with the foreign call's resolved outputs.
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnresolvedBrilligCall {
+    /// The current Brillig VM process that has been paused.
+    /// This process will be updated by the caller after resolving a foreign call's outputs.
+    ///
+    /// The [foreign call's result][acir::brillig_vm::ForeignCallResult] should be appended to this current [Brillig call][Brillig].
+    /// The [PartialWitnessGenerator] can then be restarted with an updated [Brillig opcode][Opcode::Brillig]
+    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
@@ -327,6 +335,7 @@ mod test {
             &self,
             _initial_witness: &mut WitnessMap,
             _inputs: &[FunctionInput],
+            _domain_separator: u32,
             _outputs: &[Witness],
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
@@ -422,6 +431,8 @@ mod test {
         //     let z = x + y;
         //     assert( 1/z == Oracle("inverse", x + y) );
         // }
+        // Also performs an unrelated equality check and less-than check
+        // just for the sake of testing multiple brillig opcodes.
         let fe_0 = FieldElement::zero();
         let fe_1 = FieldElement::one();
         let w_x = Witness(1);
@@ -450,17 +461,19 @@ mod test {
         let brillig_data = Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
+                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
-                BrilligInputs::Single(Expression::default()),
+                BrilligInputs::Single(Expression::default()), // Input Register 1
             ],
+            // This tells the BrilligSolver which witnesses its output registers correspond to
             outputs: vec![
-                BrilligOutputs::Simple(w_x_plus_y),
-                BrilligOutputs::Simple(w_oracle),
-                BrilligOutputs::Simple(w_equal_res),
-                BrilligOutputs::Simple(w_lt_res),
+                BrilligOutputs::Simple(w_x_plus_y), // Output Register 0 - from input
+                BrilligOutputs::Simple(w_oracle),   // Output Register 1
+                BrilligOutputs::Simple(w_equal_res), // Output Register 2
+                BrilligOutputs::Simple(w_lt_res),   // Output Register 3
             ],
             // stack of foreign call/oracle resolutions, starts empty
             foreign_call_results: vec![],
@@ -518,7 +531,8 @@ mod test {
         let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
             unresolved_brillig_calls.remove(0);
         assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
-        // Alter Brillig oracle opcode
+        // As caller of VM, need to resolve foreign calls
+        // Alter Brillig oracle opcode with foreign call resolution
         brillig.foreign_call_results.push(ForeignCallResult {
             values: vec![Value::from(foreign_call_wait_info.inputs[0].to_field().inverse())],
         });
@@ -536,8 +550,12 @@ mod test {
         // Opcodes below describe the following:
         // fn main(x : Field, y : pub Field) {
         //     let z = x + y;
+        //     let ij = i + j;
         //     assert( 1/z == Oracle("inverse", x + y) );
+        //     assert( 1/ij == Oracle("inverse", i + j) );
         // }
+        // Also performs an unrelated equality check and less-than check
+        // just for the sake of testing multiple brillig opcodes.
         let fe_0 = FieldElement::zero();
         let fe_1 = FieldElement::one();
         let w_x = Witness(1);
@@ -571,24 +589,26 @@ mod test {
         let brillig_data = Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
+                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
                     q_c: fe_0,
                 }),
-                BrilligInputs::Single(Expression::default()),
+                BrilligInputs::Single(Expression::default()), // Input Register 1
                 BrilligInputs::Single(Expression {
+                    // Input Register 2
                     mul_terms: vec![],
                     linear_combinations: vec![(fe_1, w_i), (fe_1, w_j)],
                     q_c: fe_0,
                 }),
             ],
             outputs: vec![
-                BrilligOutputs::Simple(w_x_plus_y),
-                BrilligOutputs::Simple(w_oracle),
-                BrilligOutputs::Simple(w_i_plus_j),
-                BrilligOutputs::Simple(w_ij_oracle),
-                BrilligOutputs::Simple(w_equal_res),
-                BrilligOutputs::Simple(w_lt_res),
+                BrilligOutputs::Simple(w_x_plus_y), // Output Register 0 - from input
+                BrilligOutputs::Simple(w_oracle),   // Output Register 1
+                BrilligOutputs::Simple(w_i_plus_j), // Output Register 2 - from input
+                BrilligOutputs::Simple(w_ij_oracle), // Output Register 3
+                BrilligOutputs::Simple(w_equal_res), // Output Register 4
+                BrilligOutputs::Simple(w_lt_res),   // Output Register 5
             ],
             // stack of foreign call/oracle resolutions, starts empty
             foreign_call_results: vec![],

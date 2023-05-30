@@ -4,7 +4,7 @@ use acir::{
 };
 
 use super::{
-    hash::{blake2s256, hash_to_field_128_security, keccak256, sha256},
+    hash::{blake2s256, hash_to_field_128_security, keccak256, keccak256_variable_length, sha256},
     logic::{and, xor},
     range::solve_range_opcode,
     signature::ecdsa::secp256k1_prehashed,
@@ -49,9 +49,7 @@ pub(crate) fn solve(
     }
 
     match bb_func {
-        acir::circuit::opcodes::BlackBoxFuncCall::AND { lhs, rhs, output } => {
-            and(initial_witness, lhs, rhs, output)
-        }
+        BlackBoxFuncCall::AND { lhs, rhs, output } => and(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => sha256(initial_witness, inputs, outputs),
@@ -72,8 +70,8 @@ pub(crate) fn solve(
             message,
             output,
         ),
-        BlackBoxFuncCall::Pedersen { inputs, outputs } => {
-            backend.pedersen(initial_witness, inputs, outputs)
+        BlackBoxFuncCall::Pedersen { inputs, domain_separator, outputs } => {
+            backend.pedersen(initial_witness, inputs, *domain_separator, outputs)
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
             hash_to_field_128_security(initial_witness, inputs, output)
@@ -97,6 +95,9 @@ pub(crate) fn solve(
         }
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
             keccak256(initial_witness, inputs, outputs)
+        }
+        BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, outputs } => {
+            keccak256_variable_length(initial_witness, inputs, *var_message_size, outputs)
         }
     }
 }

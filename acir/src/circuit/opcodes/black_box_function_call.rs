@@ -48,6 +48,7 @@ pub enum BlackBoxFuncCall {
     },
     Pedersen {
         inputs: Vec<FunctionInput>,
+        domain_separator: u32,
         outputs: Vec<Witness>,
     },
     // 128 here specifies that this function
@@ -69,6 +70,15 @@ pub enum BlackBoxFuncCall {
     },
     Keccak256 {
         inputs: Vec<FunctionInput>,
+        outputs: Vec<Witness>,
+    },
+    Keccak256VariableLength {
+        inputs: Vec<FunctionInput>,
+        /// This is the number of bytes to take
+        /// from the input. Note: if `var_message_size`
+        /// is more than the number of bytes in the input,
+        /// then an error is returned.
+        var_message_size: FunctionInput,
         outputs: Vec<Witness>,
     },
 }
@@ -97,7 +107,7 @@ impl BlackBoxFuncCall {
                 output: Witness(0),
             },
             BlackBoxFunc::Pedersen => {
-                BlackBoxFuncCall::Pedersen { inputs: vec![], outputs: vec![] }
+                BlackBoxFuncCall::Pedersen { inputs: vec![], domain_separator: 0, outputs: vec![] }
             }
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
@@ -132,6 +142,7 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
             BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
             BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
+            BlackBoxFuncCall::Keccak256VariableLength { .. } => BlackBoxFunc::Keccak256,
         }
     }
 
@@ -184,6 +195,11 @@ impl BlackBoxFuncCall {
                 inputs.extend(hashed_message.iter().copied());
                 inputs
             }
+            BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, .. } => {
+                let mut inputs = inputs.clone();
+                inputs.push(*var_message_size);
+                inputs
+            }
         }
     }
 
@@ -200,6 +216,7 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
             | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. } => vec![*output],
             BlackBoxFuncCall::RANGE { .. } => vec![],
+            BlackBoxFuncCall::Keccak256VariableLength { outputs, .. } => outputs.to_vec(),
         }
     }
 }
@@ -282,7 +299,15 @@ impl std::fmt::Display for BlackBoxFuncCall {
 
         write!(f, "{outputs_str}")?;
 
-        write!(f, "]")
+        write!(f, "]")?;
+
+        // SPECIFIC PARAMETERS
+        match self {
+            BlackBoxFuncCall::Pedersen { domain_separator, .. } => {
+                write!(f, " domain_separator: {domain_separator}")
+            }
+            _ => write!(f, ""),
+        }
     }
 }
 
