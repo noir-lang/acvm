@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Registers {
     // Keep track of registers as an option to represent uninitialized registers
-    // These occur when we set a register value at an uncontiguous index, past currently defined registers
+    // These occur when we set a register value at a noncontiguous index, past currently defined registers
     // This could just store 0's, but it would be
     pub inner: Vec<Option<Value>>,
 }
