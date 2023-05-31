@@ -121,7 +121,9 @@ impl BrilligSolver {
                 OpcodeResolution::Solved
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
-            VMStatus::Failure => return Err(OpcodeResolutionError::UnsatisfiedConstrain),
+            VMStatus::Failure { message } => {
+                return Err(OpcodeResolutionError::BrilligFunctionFailed(message))
+            }
             VMStatus::ForeignCallWait { function, inputs } => {
                 OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo { function, inputs })
             }

@@ -21,7 +21,9 @@ pub use value::Value;
 pub enum VMStatus {
     Finished,
     InProgress,
-    Failure,
+    Failure {
+        message: String,
+    },
     /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
     /// reached where the outputs are yet to be resolved.  
     ///
@@ -106,18 +108,16 @@ impl VM {
     /// Sets the current status of the VM to `fail`.
     /// Indicating that the VM encountered a `Trap` Opcode
     /// or an invalid state.
-    fn fail(&mut self, error_msg: &str) -> VMStatus {
-        self.status(VMStatus::Failure);
-        // TODO(AD): Proper error handling
-        println!("Brillig error: {}", error_msg);
-        VMStatus::Failure
+    fn fail(&mut self, message: String) -> VMStatus {
+        self.status(VMStatus::Failure { message });
+        self.status.clone()
     }
 
     /// Loop over the bytecode and update the program counter
     pub fn process_opcodes(&mut self) -> VMStatus {
         while !matches!(
             self.process_opcode(),
-            VMStatus::Finished | VMStatus::Failure | VMStatus::ForeignCallWait { .. }
+            VMStatus::Finished | VMStatus::Failure { .. } | VMStatus::ForeignCallWait { .. }
         ) {}
         self.status.clone()
     }
@@ -164,7 +164,7 @@ impl VM {
                 if let Some(register) = self.call_stack.pop() {
                     self.set_program_counter(register.to_usize())
                 } else {
-                    self.fail("return opcode hit, but callstack already empty")
+                    self.fail("return opcode hit, but callstack already empty".to_string())
                 }
             }
             Opcode::ForeignCall { function, destination, input } => {
@@ -211,7 +211,7 @@ impl VM {
                 self.registers.set(*destination_register, source_value);
                 self.increment_program_counter()
             }
-            Opcode::Trap => self.fail("explicit trap hit in brillig"),
+            Opcode::Trap => self.fail("explicit trap hit in brillig".to_string()),
             Opcode::Stop => self.finish(),
             Opcode::Load { destination: destination_register, source_pointer } => {
                 // Convert our source_pointer to a usize
@@ -434,7 +434,10 @@ mod tests {
         assert_eq!(status, VMStatus::InProgress);
 
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Failure);
+        assert_eq!(
+            status,
+            VMStatus::Failure { message: "explicit trap hit in brillig".to_string() }
+        );
 
         // The register at index `2` should have not changed as we jumped over the add opcode
         let VM { registers, .. } = vm;
