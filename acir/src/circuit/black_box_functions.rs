@@ -84,7 +84,7 @@ impl BlackBoxFunc {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use strum::IntoEnumIterator;
 
     use crate::BlackBoxFunc;
