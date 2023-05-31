@@ -43,23 +43,25 @@ pub struct ForeignCallResult {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-// VM encapsulates the state of the Brillig VM during execution.
+/// VM encapsulates the state of the Brillig VM during execution.
 pub struct VM {
-    // Register storage
+    /// Register storage
     registers: Registers,
-    // Instruction pointer
+    /// Instruction pointer
     program_counter: usize,
-    // Tracks foreign calls
+    /// A counter maintained throughout a Brillig process that determines
+    /// whether the caller has resolved the results of a [foreign call][Opcode::ForeignCall].
     foreign_call_counter: usize,
-    // Holds foreign call results
+    /// Represents the outputs of all foreign calls during a Brillig process
+    /// List is appended onto by the caller upon reaching a [VMStatus::ForeignCallWait]
     foreign_call_results: Vec<ForeignCallResult>,
-    // Executable opcodes
+    /// Executable opcodes
     bytecode: Vec<Opcode>,
-    // Status of the VM
+    /// Status of the VM
     status: VMStatus,
-    // Memory of the VM
+    /// Memory of the VM
     memory: Vec<Value>,
-    // Call stack
+    /// Call stack
     call_stack: Vec<Value>,
 }
 

@@ -3,9 +3,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Registers {
-    // Keep track of registers as an option to represent uninitialized registers
-    // These occur when we set a register value at a noncontiguous index, past currently defined registers
-    // This could just store 0's, but it would be
+    // Registers are a vector of values that might be None.
+    // None is used to mark uninitialized registers so we can catch potential mistakes.
+    // The reasoning is that instead of returning 0, it is much more likely that such an access is a mistake
+    // (e.g. didn't emit the set operation).
+    // We grow the register as registers past the end are set, extending with None's.
     pub inner: Vec<Option<Value>>,
 }
 
