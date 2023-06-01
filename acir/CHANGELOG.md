@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.1](https://github.com/noir-lang/acvm/compare/acir-v0.13.0...acir-v0.13.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **ci:** Correct typo to avoid `undefined` in changelogs ([#333](https://github.com/noir-lang/acvm/issues/333)) ([d3424c0](https://github.com/noir-lang/acvm/commit/d3424c04fd303c9cbe25d03118d8b358cbb84b83))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.1.1 to 0.13.1
+
 ## [0.13.0](https://github.com/noir-lang/acvm/compare/acir-v0.12.0...acir-v0.13.0) (2023-06-01)
 
 
