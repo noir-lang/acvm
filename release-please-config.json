@@ -1,5 +1,4 @@
 {
-  "bootstrap-sha": "97149adb99f53e1f78de6d7ad938f4af262483e6",
   "release-type": "rust",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": true,
@@ -35,6 +34,9 @@
     "acvm": {
       "component": "acvm"
     },
+    "brillig_vm": {
+      "component": "brillig_vm"
+    },
     "stdlib": {
       "component": "acvm_stdlib"
     }
@@ -52,6 +54,7 @@
         "acir",
         "acir_field",
         "acvm",
+        "brillig_vm",
         "acvm_stdlib"
       ]
     }
