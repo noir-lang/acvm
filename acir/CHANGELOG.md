@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.13.0](https://github.com/noir-lang/acvm/compare/acir-v0.12.0...acir-v0.13.0) (2023-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314))
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302))
+* **acir, acvm:** Remove ComputeMerkleRoot opcode #296
+* Remove manual serialization of `Opcode`s in favour of `serde` ([#286](https://github.com/noir-lang/acvm/issues/286))
+
+### Features
+
+* **acir, acvm:** Remove ComputeMerkleRoot opcode [#296](https://github.com/noir-lang/acvm/issues/296) ([8b3923e](https://github.com/noir-lang/acvm/commit/8b3923e191e4ac399400025496e8bb4453734040))
+* Add `Brillig` opcode to introduce custom non-determinism to ACVM ([#152](https://github.com/noir-lang/acvm/issues/152)) ([3c6740a](https://github.com/noir-lang/acvm/commit/3c6740af75125afc8ebb4379f781f8274015e2e2))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314)) ([7bfd169](https://github.com/noir-lang/acvm/commit/7bfd1695b6f119cd70fce4866314c9bb4991eaab))
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281)) ([61820b6](https://github.com/noir-lang/acvm/commit/61820b651900aac8d9557b4b9477ed0e1763c124))
+
+
+### Miscellaneous Chores
+
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302)) ([a429a54](https://github.com/noir-lang/acvm/commit/a429a5422d6f001b6db0d0a0f30c79ec0f96de89))
+* Remove manual serialization of `Opcode`s in favour of `serde` ([#286](https://github.com/noir-lang/acvm/issues/286)) ([8a3812f](https://github.com/noir-lang/acvm/commit/8a3812fe6ed3b267692284bdcd909d9dd32b9747))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.1.0 to 0.1.1
+
 ## [0.12.0](https://github.com/noir-lang/acvm/compare/acir-v0.11.0...acir-v0.12.0) (2023-05-17)
 
 
