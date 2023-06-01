@@ -87,6 +87,8 @@ pub enum OpcodeResolutionError {
     IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
+    #[error("failed to solve brillig function, reason: {0}")]
+    BrilligFunctionFailed(String),
 }
 
 pub fn solve(
