@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.13.1](https://github.com/noir-lang/acvm/compare/acvm-v0.13.0...acvm-v0.13.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **brillig:** Proper error handling for Brillig failures ([#329](https://github.com/noir-lang/acvm/issues/329)) ([cffa110](https://github.com/noir-lang/acvm/commit/cffa110c8df30ee3dd8b635d38b17b1fcd54b03e))
+* **ci:** Correct typo to avoid `undefined` in changelogs ([#333](https://github.com/noir-lang/acvm/issues/333)) ([d3424c0](https://github.com/noir-lang/acvm/commit/d3424c04fd303c9cbe25d03118d8b358cbb84b83))
+
+## [0.13.0](https://github.com/noir-lang/acvm/compare/acvm-v0.12.0...acvm-v0.13.0) (2023-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314))
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302))
+* **acir, acvm:** Remove ComputeMerkleRoot opcode #296
+* Remove backend solvable methods from the interface and solve them in ACVM ([#264](https://github.com/noir-lang/acvm/issues/264))
+* Reorganize code related to `PartialWitnessGenerator` ([#287](https://github.com/noir-lang/acvm/issues/287))
+
+### Features
+
+* **acir, acvm:** Remove ComputeMerkleRoot opcode [#296](https://github.com/noir-lang/acvm/issues/296) ([8b3923e](https://github.com/noir-lang/acvm/commit/8b3923e191e4ac399400025496e8bb4453734040))
+* Add `Brillig` opcode to introduce custom non-determinism to ACVM ([#152](https://github.com/noir-lang/acvm/issues/152)) ([3c6740a](https://github.com/noir-lang/acvm/commit/3c6740af75125afc8ebb4379f781f8274015e2e2))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314)) ([7bfd169](https://github.com/noir-lang/acvm/commit/7bfd1695b6f119cd70fce4866314c9bb4991eaab))
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281)) ([61820b6](https://github.com/noir-lang/acvm/commit/61820b651900aac8d9557b4b9477ed0e1763c124))
+* Remove backend solvable methods from the interface and solve them in ACVM ([#264](https://github.com/noir-lang/acvm/issues/264)) ([69916cb](https://github.com/noir-lang/acvm/commit/69916cbdd928875b2e8fe4775f2251f71c3f3c92))
+
+
+### Bug Fixes
+
+* Allow async functions without send on async trait ([#292](https://github.com/noir-lang/acvm/issues/292)) ([9f9fc21](https://github.com/noir-lang/acvm/commit/9f9fc216a6d09ca97352ffd365bfd347e94ad8eb))
+
+
+### Miscellaneous Chores
+
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302)) ([a429a54](https://github.com/noir-lang/acvm/commit/a429a5422d6f001b6db0d0a0f30c79ec0f96de89))
+* Reorganize code related to `PartialWitnessGenerator` ([#287](https://github.com/noir-lang/acvm/issues/287)) ([b9d61a1](https://github.com/noir-lang/acvm/commit/b9d61a16210d70e350a7e953951362c94f497f89))
+
 ## [0.12.0](https://github.com/noir-lang/acvm/compare/acvm-v0.11.0...acvm-v0.12.0) (2023-05-17)
 
 
@@ -62,14 +101,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm-v0.10.0...acvm-v0.10.1) (2023-04-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm-v0.9.0...acvm-v0.10.0) (2023-04-26)
 
@@ -126,14 +165,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.8.0](https://github.com/noir-lang/acvm/compare/acvm-v0.7.1...acvm-v0.8.0) (2023-03-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.7.1](https://github.com/noir-lang/acvm/compare/acvm-v0.7.0...acvm-v0.7.1) (2023-03-27)
 

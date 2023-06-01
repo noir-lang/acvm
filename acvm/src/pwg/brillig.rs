@@ -5,10 +5,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{
-    pwg::{arithmetic::ArithmeticSolver, OpcodeNotSolvable},
-    OpcodeResolution, OpcodeResolutionError,
-};
+use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value};
 
@@ -56,44 +53,29 @@ impl BrilligSolver {
         // Each input represents an expression or array of expressions to evaluate.
         // Iterate over each input and evaluate the expression(s) associated with it.
         // Push the results into registers and/or memory.
+        // If a certain expression is not solvable, we stall the ACVM and do not proceed with Brillig VM execution.
         for input in &brillig.inputs {
             match input {
-                BrilligInputs::Single(expr) => {
-                    // TODO: switch this to `get_value` and map the err
-                    let solve = ArithmeticSolver::evaluate(expr, initial_witness);
-                    if let Some(value) = solve.to_const() {
-                        // If the expression evaluates to a constant, great!
-                        // Add it to the register set and proceed.
-                        input_register_values.push(value.into())
-                    } else {
-                        // If the expression has too many unknowns to resolve to a const,
-                        // it can't be added to a register and we can't execute the
-                        // Brillig bytecode on these inputs just yet.
-                        break;
+                BrilligInputs::Single(expr) => match get_value(expr, initial_witness) {
+                    Ok(value) => input_register_values.push(value.into()),
+                    Err(_) => {
+                        return Ok(OpcodeResolution::Stalled(
+                            OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
+                        ))
                     }
-                }
+                },
                 BrilligInputs::Array(expr_arr) => {
                     // Attempt to fetch all array input values
-                    let mut continue_eval = true;
                     let memory_pointer = input_memory.len();
                     for expr in expr_arr.iter() {
-                        let solve = ArithmeticSolver::evaluate(expr, initial_witness);
-                        if let Some(value) = solve.to_const() {
-                            // If the expression evaluates to a constant, great!
-                            // Add it to the register set and proceed.
-                            input_memory.push(value.into());
-                        } else {
-                            // If the expression has too many unknowns to resolve to a const,
-                            // it can't be added to a register and we can't execute the
-                            // Brillig bytecode on these inputs just yet.
-                            continue_eval = false;
-                            break;
+                        match get_value(expr, initial_witness) {
+                            Ok(value) => input_memory.push(value.into()),
+                            Err(_) => {
+                                return Ok(OpcodeResolution::Stalled(
+                                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
+                                ))
+                            }
                         }
-                    }
-
-                    // If an array value is missing, exit the input solver and do not insert the array id as an input register
-                    if !continue_eval {
-                        break;
                     }
 
                     // Push value of the array pointer as a register
@@ -102,26 +84,9 @@ impl BrilligSolver {
             }
         }
 
-        // Number of brillig inputs should match number of registers here.
-        // Otherwise some expression (the last one processed before the above loop exited)
-        // was not solvable, in which case we do not proceed with Brillig VM execution.
-        if input_register_values.len() != brillig.inputs.len() {
-            let brillig_input =
-                brillig.inputs.last().expect("Infallible: cannot reach this point if no inputs");
-            let expr = match brillig_input {
-                BrilligInputs::Single(expr) => expr,
-                BrilligInputs::Array(expr_arr) => {
-                    expr_arr.last().expect("Infallible: cannot reach this point if no inputs")
-                }
-            };
-            return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::ExpressionHasTooManyUnknowns(
-                expr.clone(),
-            )));
-        }
-
         // Instantiate a Brillig VM given the solved input registers and memory
         // along with the Brillig bytecode, and any present foreign call results.
-        let input_registers = Registers { inner: input_register_values };
+        let input_registers = Registers::load(input_register_values);
         let mut vm = VM::new(
             input_registers,
             input_memory,
@@ -156,7 +121,9 @@ impl BrilligSolver {
                 OpcodeResolution::Solved
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
-            VMStatus::Failure => return Err(OpcodeResolutionError::UnsatisfiedConstrain),
+            VMStatus::Failure { message } => {
+                return Err(OpcodeResolutionError::BrilligFunctionFailed(message))
+            }
             VMStatus::ForeignCallWait { function, inputs } => {
                 OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo { function, inputs })
             }

@@ -121,7 +121,7 @@ impl BlockSolver {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use acir::{
         circuit::opcodes::{BlockId, MemOp},
         native_types::{Expression, Witness, WitnessMap},

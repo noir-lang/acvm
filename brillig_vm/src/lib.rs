@@ -10,8 +10,8 @@ mod opcodes;
 mod registers;
 mod value;
 
+pub use opcodes::Opcode;
 pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterValueOrArray};
-pub use opcodes::{Comparison, Opcode};
 pub use registers::{RegisterIndex, Registers};
 use serde::{Deserialize, Serialize};
 pub use value::Typ;
@@ -21,7 +21,9 @@ pub use value::Value;
 pub enum VMStatus {
     Finished,
     InProgress,
-    Failure,
+    Failure {
+        message: String,
+    },
     /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
     /// reached where the outputs are yet to be resolved.  
     ///
@@ -43,8 +45,11 @@ pub struct ForeignCallResult {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+/// VM encapsulates the state of the Brillig VM during execution.
 pub struct VM {
+    /// Register storage
     registers: Registers,
+    /// Instruction pointer
     program_counter: usize,
     /// A counter maintained throughout a Brillig process that determines
     /// whether the caller has resolved the results of a [foreign call][Opcode::ForeignCall].
@@ -52,13 +57,18 @@ pub struct VM {
     /// Represents the outputs of all foreign calls during a Brillig process
     /// List is appended onto by the caller upon reaching a [VMStatus::ForeignCallWait]
     foreign_call_results: Vec<ForeignCallResult>,
+    /// Executable opcodes
     bytecode: Vec<Opcode>,
+    /// Status of the VM
     status: VMStatus,
+    /// Memory of the VM
     memory: Vec<Value>,
+    /// Call stack
     call_stack: Vec<Value>,
 }
 
 impl VM {
+    /// Constructs a new VM instance
     pub fn new(
         inputs: Registers,
         memory: Vec<Value>,
@@ -77,14 +87,14 @@ impl VM {
         }
     }
 
-    /// Returns the current status of the VM.
+    /// Updates the current status of the VM.
+    /// Returns the given status.
     fn status(&mut self, status: VMStatus) -> VMStatus {
         self.status = status.clone();
         status
     }
 
-    /// Sets the current status of the VM to `finished`.
-    /// Indicating that the VM has completed execution.
+    /// Sets the current status of the VM to Finished (completed execution).
     fn finish(&mut self) -> VMStatus {
         self.status(VMStatus::Finished)
     }
@@ -98,18 +108,16 @@ impl VM {
     /// Sets the current status of the VM to `fail`.
     /// Indicating that the VM encountered a `Trap` Opcode
     /// or an invalid state.
-    fn fail(&mut self, error_msg: &str) -> VMStatus {
-        self.status(VMStatus::Failure);
-        // TODO(AD): Proper error handling
-        println!("Brillig error: {}", error_msg);
-        VMStatus::Failure
+    fn fail(&mut self, message: String) -> VMStatus {
+        self.status(VMStatus::Failure { message });
+        self.status.clone()
     }
 
     /// Loop over the bytecode and update the program counter
     pub fn process_opcodes(&mut self) -> VMStatus {
         while !matches!(
             self.process_opcode(),
-            VMStatus::Finished | VMStatus::Failure | VMStatus::ForeignCallWait { .. }
+            VMStatus::Finished | VMStatus::Failure { .. } | VMStatus::ForeignCallWait { .. }
         ) {}
         self.status.clone()
     }
@@ -156,7 +164,7 @@ impl VM {
                 if let Some(register) = self.call_stack.pop() {
                     self.set_program_counter(register.to_usize())
                 } else {
-                    self.fail("return opcode hit, but callstack already empty")
+                    self.fail("return opcode hit, but callstack already empty".to_string())
                 }
             }
             Opcode::ForeignCall { function, destination, input } => {
@@ -168,7 +176,7 @@ impl VM {
                     // resolved inputs back to the caller. Once the caller pushes to `foreign_call_results`,
                     // they can then make another call to the VM that starts at this opcode
                     // but has the necessary results to proceed with execution.
-                    let resolved_inputs = self.resolve_foreign_call_input(*input);
+                    let resolved_inputs = self.get_register_value_or_memory_values(*input);
                     return self.wait_for_foreign_call(function.clone(), resolved_inputs);
                 }
 
@@ -203,7 +211,7 @@ impl VM {
                 self.registers.set(*destination_register, source_value);
                 self.increment_program_counter()
             }
-            Opcode::Trap => self.fail("explicit trap hit in brillig"),
+            Opcode::Trap => self.fail("explicit trap hit in brillig".to_string()),
             Opcode::Stop => self.finish(),
             Opcode::Load { destination: destination_register, source_pointer } => {
                 // Convert our source_pointer to a usize
@@ -254,7 +262,7 @@ impl VM {
         self.status.clone()
     }
 
-    fn resolve_foreign_call_input(&self, input: RegisterValueOrArray) -> Vec<Value> {
+    fn get_register_value_or_memory_values(&self, input: RegisterValueOrArray) -> Vec<Value> {
         match input {
             RegisterValueOrArray::RegisterIndex(index) => vec![self.registers.get(index)],
             RegisterValueOrArray::HeapArray(index, size) => {
@@ -298,14 +306,6 @@ impl VM {
 
         self.registers.set(result, result_value.into());
     }
-}
-
-pub struct VMOutputState {
-    pub registers: Registers,
-    pub program_counter: usize,
-    pub foreign_call_results: Vec<ForeignCallResult>,
-    pub status: VMStatus,
-    pub memory: Vec<Value>,
 }
 
 #[cfg(test)]
@@ -367,18 +367,13 @@ mod tests {
             RegisterIndex::from(registers.len() - 1)
         };
 
-        let equal_cmp_opcode = Opcode::BinaryIntOp {
-            op: BinaryIntOp::Cmp(Comparison::Eq),
-            bit_size: 1,
-            lhs,
-            rhs,
-            destination,
-        };
+        let equal_cmp_opcode =
+            Opcode::BinaryIntOp { op: BinaryIntOp::Equals, bit_size: 1, lhs, rhs, destination };
         opcodes.push(equal_cmp_opcode);
         opcodes.push(Opcode::Jump { location: 2 });
         opcodes.push(Opcode::JumpIf { condition: RegisterIndex::from(2), location: 3 });
 
-        let mut vm = VM::new(Registers { inner: registers }, vec![], opcodes, vec![]);
+        let mut vm = VM::new(Registers::load(registers), vec![], opcodes, vec![]);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
@@ -401,7 +396,7 @@ mod tests {
         let trap_opcode = Opcode::Trap;
 
         let not_equal_cmp_opcode = Opcode::BinaryFieldOp {
-            op: BinaryFieldOp::Cmp(Comparison::Eq),
+            op: BinaryFieldOp::Equals,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(2),
@@ -439,7 +434,10 @@ mod tests {
         assert_eq!(status, VMStatus::InProgress);
 
         let status = vm.process_opcode();
-        assert_eq!(status, VMStatus::Failure);
+        assert_eq!(
+            status,
+            VMStatus::Failure { message: "explicit trap hit in brillig".to_string() }
+        );
 
         // The register at index `2` should have not changed as we jumped over the add opcode
         let VM { registers, .. } = vm;
@@ -471,6 +469,7 @@ mod tests {
 
     #[test]
     fn cmp_binary_ops() {
+        let bit_size = 32;
         let input_registers = Registers::load(vec![
             Value::from(2u128),
             Value::from(2u128),
@@ -480,32 +479,32 @@ mod tests {
         ]);
 
         let equal_opcode = Opcode::BinaryIntOp {
-            bit_size: 1,
-            op: BinaryIntOp::Cmp(Comparison::Eq),
+            bit_size,
+            op: BinaryIntOp::Equals,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(2),
         };
 
         let not_equal_opcode = Opcode::BinaryIntOp {
-            bit_size: 1,
-            op: BinaryIntOp::Cmp(Comparison::Eq),
+            bit_size,
+            op: BinaryIntOp::Equals,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(3),
             destination: RegisterIndex::from(2),
         };
 
         let less_than_opcode = Opcode::BinaryIntOp {
-            bit_size: 1,
-            op: BinaryIntOp::Cmp(Comparison::Lt),
+            bit_size,
+            op: BinaryIntOp::LessThan,
             lhs: RegisterIndex::from(3),
             rhs: RegisterIndex::from(4),
             destination: RegisterIndex::from(2),
         };
 
         let less_than_equal_opcode = Opcode::BinaryIntOp {
-            bit_size: 1,
-            op: BinaryIntOp::Cmp(Comparison::Lte),
+            bit_size,
+            op: BinaryIntOp::LessThanEquals,
             lhs: RegisterIndex::from(3),
             rhs: RegisterIndex::from(4),
             destination: RegisterIndex::from(2),
@@ -552,6 +551,7 @@ mod tests {
         ///         i += 1;
         ///     }
         fn brillig_write_memory(memory: Vec<Value>) -> Vec<Value> {
+            let bit_size = 32;
             let r_i = RegisterIndex::from(0);
             let r_len = RegisterIndex::from(1);
             let r_tmp = RegisterIndex::from(2);
@@ -572,15 +572,15 @@ mod tests {
                     lhs: r_i,
                     op: BinaryIntOp::Add,
                     rhs: r_tmp,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // tmp = i < len
                 Opcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_i,
-                    op: BinaryIntOp::Cmp(Comparison::Lt),
+                    op: BinaryIntOp::LessThan,
                     rhs: r_len,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // if tmp != 0 goto loop_body
                 Opcode::JumpIf { condition: r_tmp, location: start.len() },
@@ -615,6 +615,7 @@ mod tests {
         ///         i += 1;
         ///     }
         fn brillig_sum_memory(memory: Vec<Value>) -> Value {
+            let bit_size = 32;
             let r_i = RegisterIndex::from(0);
             let r_len = RegisterIndex::from(1);
             let r_sum = RegisterIndex::from(2);
@@ -636,7 +637,7 @@ mod tests {
                     lhs: r_sum,
                     op: BinaryIntOp::Add,
                     rhs: r_tmp,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // tmp = 1
                 Opcode::Const { destination: r_tmp, value: 1u128.into() },
@@ -646,15 +647,15 @@ mod tests {
                     lhs: r_i,
                     op: BinaryIntOp::Add,
                     rhs: r_tmp,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // tmp = i < len
                 Opcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_i,
-                    op: BinaryIntOp::Cmp(Comparison::Lt),
+                    op: BinaryIntOp::LessThan,
                     rhs: r_len,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // if tmp != 0 goto loop_body
                 Opcode::JumpIf { condition: r_tmp, location: start.len() },
@@ -688,6 +689,7 @@ mod tests {
         ///     }
         /// Note we represent a 100% in-register optimized form in brillig
         fn brillig_recursive_write_memory(memory: Vec<Value>) -> Vec<Value> {
+            let bit_size = 32;
             let r_i = RegisterIndex::from(0);
             let r_len = RegisterIndex::from(1);
             let r_tmp = RegisterIndex::from(2);
@@ -710,9 +712,9 @@ mod tests {
                 Opcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_len,
-                    op: BinaryIntOp::Cmp(Comparison::Lte),
+                    op: BinaryIntOp::LessThanEquals,
                     rhs: r_i,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // if !tmp, goto end
                 Opcode::JumpIf {
@@ -729,7 +731,7 @@ mod tests {
                     lhs: r_i,
                     op: BinaryIntOp::Add,
                     rhs: r_tmp,
-                    bit_size: 32,
+                    bit_size,
                 },
                 // call recursive_fn
                 Opcode::Call { location: start.len() },

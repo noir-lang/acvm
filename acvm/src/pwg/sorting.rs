@@ -244,7 +244,7 @@ pub fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Vec<bool>
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::pwg::sorting::route;
     use acir::FieldElement;
     use rand::prelude::*;
