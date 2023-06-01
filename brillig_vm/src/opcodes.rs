@@ -200,10 +200,6 @@ fn to_signed(a: u128, n: u32) -> i128 {
 }
 
 fn to_unsigned(a: i128, n: u32) -> u128 {
-    if n >= 126 {
-        // TODO(AD): clean this up a bit - this is only converted to a field later, error there?
-        panic!("ICE: cannot convert signed {n} bit size into field");
-    }
     if a >= 0 {
         a as u128
     } else {
