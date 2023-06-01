@@ -93,14 +93,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm-v0.10.0...acvm-v0.10.1) (2023-04-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm-v0.9.0...acvm-v0.10.0) (2023-04-26)
 
@@ -157,14 +157,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.8.0](https://github.com/noir-lang/acvm/compare/acvm-v0.7.1...acvm-v0.8.0) (2023-03-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.7.1](https://github.com/noir-lang/acvm/compare/acvm-v0.7.0...acvm-v0.7.1) (2023-03-27)
 
