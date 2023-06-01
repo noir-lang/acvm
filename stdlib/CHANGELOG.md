@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.0...acvm_stdlib-v0.13.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **ci:** Correct typo to avoid `undefined` in changelogs ([#333](https://github.com/noir-lang/acvm/issues/333)) ([d3424c0](https://github.com/noir-lang/acvm/commit/d3424c04fd303c9cbe25d03118d8b358cbb84b83))
+
 ## [0.13.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.12.0...acvm_stdlib-v0.13.0) (2023-06-01)
 
 
