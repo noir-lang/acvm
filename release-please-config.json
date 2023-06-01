@@ -48,7 +48,7 @@
     },
     {
       "type": "linked-versions",
-      "group-name": "acvm",
+      "groupName": "acvm",
       "components": [
         "root",
         "acir",
