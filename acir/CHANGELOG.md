@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.2](https://github.com/noir-lang/acvm/compare/acir-v0.13.1...acir-v0.13.2) (2023-06-02)
+
+
+### Bug Fixes
+
+* re-use intermediate vars during width reduction ([#278](https://github.com/noir-lang/acvm/issues/278)) ([5b32920](https://github.com/noir-lang/acvm/commit/5b32920263c4481c60faf0b84f0031aa8149b6b2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.13.1 to 0.13.2
+
 ## [0.13.1](https://github.com/noir-lang/acvm/compare/acir-v0.13.0...acir-v0.13.1) (2023-06-01)
 
 
