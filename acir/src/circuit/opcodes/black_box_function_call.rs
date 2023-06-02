@@ -237,7 +237,6 @@ impl BlackBoxFuncCall {
                 proof,
                 public_inputs,
                 key_hash,
-                input_aggregation_object,
                 ..
             } => {
                 let mut inputs = Vec::new();
@@ -247,9 +246,9 @@ impl BlackBoxFuncCall {
                 inputs.push(*key_hash);
                 // If we do not have an input aggregation object assigned do not return it as part of the input vector
                 // in order to avoid triggering a missing witness assignment error
-                if let Some(input_aggregation_object) = input_aggregation_object {
-                    inputs.extend(input_aggregation_object.iter().copied());
-                }
+                // if let Some(input_aggregation_object) = input_aggregation_object {
+                //     inputs.extend(input_aggregation_object.iter().copied());
+                // }
                 inputs
             }
         }
