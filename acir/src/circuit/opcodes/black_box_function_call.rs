@@ -244,11 +244,9 @@ impl BlackBoxFuncCall {
                 inputs.extend(proof.iter().copied());
                 inputs.extend(public_inputs.iter().copied());
                 inputs.push(*key_hash);
-                // If we do not have an input aggregation object assigned do not return it as part of the input vector
-                // in order to avoid triggering a missing witness assignment error
-                // if let Some(input_aggregation_object) = input_aggregation_object {
-                //     inputs.extend(input_aggregation_object.iter().copied());
-                // }
+                // NOTE: we do not return an input aggregation object as it will either be non-existent for the first recursive aggregation
+                // or the output aggregation object of a previous recursive aggregation. We do not simulate recursive aggregation
+                // thus the input aggregation object will always be unassigned until proving
                 inputs
             }
         }
