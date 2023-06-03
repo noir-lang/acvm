@@ -1,9 +1,7 @@
 use crate::native_types::Witness;
-use crate::serialization::{read_field_element, read_u32, write_bytes, write_u32};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::io::{Read, Write};
 
 mod operators;
 mod ordering;
@@ -15,7 +13,7 @@ mod ordering;
 //
 // In the multiplication polynomial
 // XXX: If we allow the degree of the quotient polynomial to be arbitrary, then we will need a vector of wire values
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Expression {
     // To avoid having to create intermediate variables pre-optimization
     // We collect all of the multiplication terms in the arithmetic gate
@@ -70,59 +68,6 @@ impl Expression {
 
     pub fn zero() -> Expression {
         Self::default()
-    }
-
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        let num_mul_terms = self.mul_terms.len() as u32;
-        write_u32(&mut writer, num_mul_terms)?;
-
-        let num_lin_combinations = self.linear_combinations.len() as u32;
-        write_u32(&mut writer, num_lin_combinations)?;
-
-        for mul_term in &self.mul_terms {
-            write_bytes(&mut writer, &mul_term.0.to_be_bytes())?;
-            write_u32(&mut writer, mul_term.1.witness_index())?;
-            write_u32(&mut writer, mul_term.2.witness_index())?;
-        }
-
-        for lin_comb_term in &self.linear_combinations {
-            write_bytes(&mut writer, &lin_comb_term.0.to_be_bytes())?;
-            write_u32(&mut writer, lin_comb_term.1.witness_index())?;
-        }
-
-        write_bytes(&mut writer, &self.q_c.to_be_bytes())?;
-
-        Ok(())
-    }
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let mut expr = Expression::default();
-
-        const FIELD_ELEMENT_NUM_BYTES: usize = FieldElement::max_num_bytes() as usize;
-
-        let num_mul_terms = read_u32(&mut reader)?;
-        let num_lin_comb_terms = read_u32(&mut reader)?;
-
-        for _ in 0..num_mul_terms {
-            let mul_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
-            let mul_term_lhs = read_u32(&mut reader)?;
-            let mul_term_rhs = read_u32(&mut reader)?;
-            expr.push_multiplication_term(
-                mul_term_coeff,
-                Witness(mul_term_lhs),
-                Witness(mul_term_rhs),
-            )
-        }
-
-        for _ in 0..num_lin_comb_terms {
-            let lin_term_coeff = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
-            let lin_term_variable = read_u32(&mut reader)?;
-            expr.push_addition_term(lin_term_coeff, Witness(lin_term_variable))
-        }
-
-        let q_c = read_field_element::<FIELD_ELEMENT_NUM_BYTES, _>(&mut reader)?;
-        expr.q_c = q_c;
-
-        Ok(expr)
     }
 
     /// Adds a new linear term to the `Expression`.
@@ -416,32 +361,6 @@ impl From<Witness> for Expression {
             mul_terms: Vec::new(),
         }
     }
-}
-
-#[test]
-fn serialization_roundtrip() {
-    // Empty expression
-    //
-    let expr = Expression::default();
-
-    fn read_write(expr: Expression) -> (Expression, Expression) {
-        let mut bytes = Vec::new();
-        expr.write(&mut bytes).unwrap();
-        let got_expr = Expression::read(&*bytes).unwrap();
-        (expr, got_expr)
-    }
-
-    let (expr, got_expr) = read_write(expr);
-    assert_eq!(expr, got_expr);
-
-    //
-    let mut expr = Expression::default();
-    expr.push_addition_term(FieldElement::from(123i128), Witness(20u32));
-    expr.push_multiplication_term(FieldElement::from(123i128), Witness(20u32), Witness(123u32));
-    expr.q_c = FieldElement::from(789456i128);
-
-    let (expr, got_expr) = read_write(expr);
-    assert_eq!(expr, got_expr);
 }
 
 #[test]

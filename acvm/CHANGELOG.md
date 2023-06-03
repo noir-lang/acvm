@@ -1,5 +1,88 @@
 # Changelog
 
+## [0.13.2](https://github.com/noir-lang/acvm/compare/acvm-v0.13.1...acvm-v0.13.2) (2023-06-02)
+
+
+### Bug Fixes
+
+* re-use intermediate vars during width reduction ([#278](https://github.com/noir-lang/acvm/issues/278)) ([5b32920](https://github.com/noir-lang/acvm/commit/5b32920263c4481c60faf0b84f0031aa8149b6b2))
+
+## [0.13.1](https://github.com/noir-lang/acvm/compare/acvm-v0.13.0...acvm-v0.13.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **brillig:** Proper error handling for Brillig failures ([#329](https://github.com/noir-lang/acvm/issues/329)) ([cffa110](https://github.com/noir-lang/acvm/commit/cffa110c8df30ee3dd8b635d38b17b1fcd54b03e))
+* **ci:** Correct typo to avoid `undefined` in changelogs ([#333](https://github.com/noir-lang/acvm/issues/333)) ([d3424c0](https://github.com/noir-lang/acvm/commit/d3424c04fd303c9cbe25d03118d8b358cbb84b83))
+
+## [0.13.0](https://github.com/noir-lang/acvm/compare/acvm-v0.12.0...acvm-v0.13.0) (2023-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314))
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302))
+* **acir, acvm:** Remove ComputeMerkleRoot opcode #296
+* Remove backend solvable methods from the interface and solve them in ACVM ([#264](https://github.com/noir-lang/acvm/issues/264))
+* Reorganize code related to `PartialWitnessGenerator` ([#287](https://github.com/noir-lang/acvm/issues/287))
+
+### Features
+
+* **acir, acvm:** Remove ComputeMerkleRoot opcode [#296](https://github.com/noir-lang/acvm/issues/296) ([8b3923e](https://github.com/noir-lang/acvm/commit/8b3923e191e4ac399400025496e8bb4453734040))
+* Add `Brillig` opcode to introduce custom non-determinism to ACVM ([#152](https://github.com/noir-lang/acvm/issues/152)) ([3c6740a](https://github.com/noir-lang/acvm/commit/3c6740af75125afc8ebb4379f781f8274015e2e2))
+* Add variable length keccak opcode ([#314](https://github.com/noir-lang/acvm/issues/314)) ([7bfd169](https://github.com/noir-lang/acvm/commit/7bfd1695b6f119cd70fce4866314c9bb4991eaab))
+* added hash index to pedersen ([#281](https://github.com/noir-lang/acvm/issues/281)) ([61820b6](https://github.com/noir-lang/acvm/commit/61820b651900aac8d9557b4b9477ed0e1763c124))
+* Remove backend solvable methods from the interface and solve them in ACVM ([#264](https://github.com/noir-lang/acvm/issues/264)) ([69916cb](https://github.com/noir-lang/acvm/commit/69916cbdd928875b2e8fe4775f2251f71c3f3c92))
+
+
+### Bug Fixes
+
+* Allow async functions without send on async trait ([#292](https://github.com/noir-lang/acvm/issues/292)) ([9f9fc21](https://github.com/noir-lang/acvm/commit/9f9fc216a6d09ca97352ffd365bfd347e94ad8eb))
+
+
+### Miscellaneous Chores
+
+* Remove AES opcode ([#302](https://github.com/noir-lang/acvm/issues/302)) ([a429a54](https://github.com/noir-lang/acvm/commit/a429a5422d6f001b6db0d0a0f30c79ec0f96de89))
+* Reorganize code related to `PartialWitnessGenerator` ([#287](https://github.com/noir-lang/acvm/issues/287)) ([b9d61a1](https://github.com/noir-lang/acvm/commit/b9d61a16210d70e350a7e953951362c94f497f89))
+
+## [0.12.0](https://github.com/noir-lang/acvm/compare/acvm-v0.11.0...acvm-v0.12.0) (2023-05-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove deprecated circuit hash functions ([#288](https://github.com/noir-lang/acvm/issues/288))
+* allow backends to specify support for all opcode variants ([#273](https://github.com/noir-lang/acvm/issues/273))
+* **acvm:** Add CommonReferenceString backend trait ([#231](https://github.com/noir-lang/acvm/issues/231))
+* Introduce WitnessMap data structure to avoid leaking internal structure ([#252](https://github.com/noir-lang/acvm/issues/252))
+* use struct variants for blackbox function calls ([#269](https://github.com/noir-lang/acvm/issues/269))
+* **acvm:** Backend trait must implement Debug ([#275](https://github.com/noir-lang/acvm/issues/275))
+* remove `OpcodeResolutionError::UnexpectedOpcode` ([#274](https://github.com/noir-lang/acvm/issues/274))
+* **acvm:** rename `hash_to_field128_security` to `hash_to_field_128_security` ([#271](https://github.com/noir-lang/acvm/issues/271))
+* **acvm:** update black box solver interfaces to match `pwg:black_box::solve` ([#268](https://github.com/noir-lang/acvm/issues/268))
+* **acvm:** expose separate solvers for AND and XOR opcodes ([#266](https://github.com/noir-lang/acvm/issues/266))
+* **acvm:** Simplification pass for ACIR ([#151](https://github.com/noir-lang/acvm/issues/151))
+* Remove `solve` from PWG trait & introduce separate solvers for each blackbox ([#257](https://github.com/noir-lang/acvm/issues/257))
+
+### Features
+
+* **acvm:** Add CommonReferenceString backend trait ([#231](https://github.com/noir-lang/acvm/issues/231)) ([eeddcf1](https://github.com/noir-lang/acvm/commit/eeddcf179880f246383f7f67a11e589269c4e3ff))
+* **acvm:** Simplification pass for ACIR ([#151](https://github.com/noir-lang/acvm/issues/151)) ([7bc42c6](https://github.com/noir-lang/acvm/commit/7bc42c62b6e095f838b781c87cbb1ecd2af5f179))
+* **acvm:** update black box solver interfaces to match `pwg:black_box::solve` ([#268](https://github.com/noir-lang/acvm/issues/268)) ([0098b7d](https://github.com/noir-lang/acvm/commit/0098b7d9640076d970e6c15d5fd6f368eb1513ff))
+* Introduce WitnessMap data structure to avoid leaking internal structure ([#252](https://github.com/noir-lang/acvm/issues/252)) ([b248e60](https://github.com/noir-lang/acvm/commit/b248e606dd69c25d33ae77c5c5c0541adbf80cd6))
+* Remove `solve` from PWG trait & introduce separate solvers for each blackbox ([#257](https://github.com/noir-lang/acvm/issues/257)) ([3f3dd74](https://github.com/noir-lang/acvm/commit/3f3dd7460b27ab06b55dfc3fe5dd733f08e30a9f))
+* use struct variants for blackbox function calls ([#269](https://github.com/noir-lang/acvm/issues/269)) ([a83333b](https://github.com/noir-lang/acvm/commit/a83333b9e270dfcfd40a36271896840ec0201bc4))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Backend trait must implement Debug ([#275](https://github.com/noir-lang/acvm/issues/275)) ([3288b4c](https://github.com/noir-lang/acvm/commit/3288b4c7eb01f5621e577d5ff9e7c92c7757e021))
+* **acvm:** expose separate solvers for AND and XOR opcodes ([#266](https://github.com/noir-lang/acvm/issues/266)) ([84b5d18](https://github.com/noir-lang/acvm/commit/84b5d18d29a111a42bfc1c3d122129c8f062c3db))
+* **acvm:** rename `hash_to_field128_security` to `hash_to_field_128_security` ([#271](https://github.com/noir-lang/acvm/issues/271)) ([fad9af2](https://github.com/noir-lang/acvm/commit/fad9af27fb102fa34bf7511f8ed7b16b3ec2d115))
+* allow backends to specify support for all opcode variants ([#273](https://github.com/noir-lang/acvm/issues/273)) ([efd37fe](https://github.com/noir-lang/acvm/commit/efd37fedcbbabb3fac810e662731439e07fef49a))
+* remove `OpcodeResolutionError::UnexpectedOpcode` ([#274](https://github.com/noir-lang/acvm/issues/274)) ([0e71aac](https://github.com/noir-lang/acvm/commit/0e71aac7aa85b3e9142972a26ba122c2c7c51d9b))
+* remove deprecated circuit hash functions ([#288](https://github.com/noir-lang/acvm/issues/288)) ([1a22c75](https://github.com/noir-lang/acvm/commit/1a22c752de3354a2a6d34892331ab6623b24c0b0))
+
 ## [0.11.0](https://github.com/noir-lang/acvm/compare/acvm-v0.10.3...acvm-v0.11.0) (2023-05-04)
 
 
@@ -25,14 +108,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.1](https://github.com/noir-lang/acvm/compare/acvm-v0.10.0...acvm-v0.10.1) (2023-04-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm-v0.9.0...acvm-v0.10.0) (2023-04-26)
 
@@ -89,14 +172,14 @@
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.8.0](https://github.com/noir-lang/acvm/compare/acvm-v0.7.1...acvm-v0.8.0) (2023-03-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm:** Synchronize undefined versions
+* **acvm:** Synchronize acvm versions
 
 ## [0.7.1](https://github.com/noir-lang/acvm/compare/acvm-v0.7.0...acvm-v0.7.1) (2023-03-27)
 

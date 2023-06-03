@@ -6,12 +6,12 @@ use crate::Language;
 use acir::{
     circuit::{Circuit, Opcode},
     native_types::{Expression, Witness},
-    BlackBoxFunc,
+    BlackBoxFunc, FieldElement,
 };
 use indexmap::IndexMap;
 use optimizers::GeneralOptimizer;
 use thiserror::Error;
-use transformers::{CSatTransformer, FallbackTransformer, IsOpcodeSupported, R1CSTransformer};
+use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
 use self::optimizers::RangeOptimizer;
 use self::optimizers::Simplifier;
@@ -25,7 +25,7 @@ pub enum CompileError {
 pub fn compile(
     acir: Circuit,
     np_language: Language,
-    is_opcode_supported: IsOpcodeSupported,
+    is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &Simplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
@@ -68,23 +68,30 @@ pub fn compile(
     let mut transformed_gates = Vec::new();
 
     let mut next_witness_index = acir.current_witness_index + 1;
+    // maps a normalized expression to the intermediate variable which represents the expression, along with its 'norm'
+    // the 'norm' is simply the value of the first non zero coefficient in the expression, taken from the linear terms, or quadratic terms if there is none.
+    let mut intermediate_variables: IndexMap<Expression, (FieldElement, Witness)> = IndexMap::new();
     for opcode in acir.opcodes {
         match opcode {
             Opcode::Arithmetic(arith_expr) => {
-                let mut intermediate_variables: IndexMap<Witness, Expression> = IndexMap::new();
+                let len = intermediate_variables.len();
 
                 let arith_expr = transformer.transform(
                     arith_expr,
                     &mut intermediate_variables,
-                    next_witness_index,
+                    &mut next_witness_index,
                 );
 
                 // Update next_witness counter
-                next_witness_index += intermediate_variables.len() as u32;
+                next_witness_index += (intermediate_variables.len() - len) as u32;
                 let mut new_gates = Vec::new();
-                for (_, mut g) in intermediate_variables {
-                    g.sort();
-                    new_gates.push(g);
+                for (g, (norm, w)) in intermediate_variables.iter().skip(len) {
+                    // de-normalize
+                    let mut intermediate_gate = g * *norm;
+                    // constrain the intermediate gate to the intermediate variable
+                    intermediate_gate.linear_combinations.push((-FieldElement::one(), *w));
+                    intermediate_gate.sort();
+                    new_gates.push(intermediate_gate);
                 }
                 new_gates.push(arith_expr);
                 new_gates.sort();

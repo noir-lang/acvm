@@ -7,7 +7,7 @@ use acir::{
         Opcode,
     },
     native_types::{Expression, Witness},
-    BlackBoxFunc, FieldElement,
+    FieldElement,
 };
 
 use num_bigint::BigUint;
@@ -177,14 +177,12 @@ impl CircuitSimplifier {
         gate_idx: usize,
         first: bool,
     ) -> SimplifyResult {
-        match gadget.name {
-            BlackBoxFunc::AND | BlackBoxFunc::XOR => {
-                let result = gadget.outputs.first().expect("Logic opcodes have a result");
-                self.use_witness(*result, gate_idx, first);
+        match gadget {
+            BlackBoxFuncCall::AND { output, .. } | BlackBoxFuncCall::XOR { output, .. } => {
+                self.use_witness(*output, gate_idx, first);
                 SimplifyResult::Unresolved
             }
-            BlackBoxFunc::RANGE => {
-                let input = gadget.inputs.first().expect("Range has an input");
+            BlackBoxFuncCall::RANGE { input, .. } => {
                 if self.contains(input.witness) {
                     self.use_witness(input.witness, gate_idx, first);
                     let max = BigUint::from_u32(2).unwrap().pow(input.num_bits);
@@ -197,13 +195,13 @@ impl CircuitSimplifier {
                 }
             }
             _ => {
-                for i in &gadget.inputs {
+                for i in gadget.get_inputs_vec() {
                     if self.is_solved(&i.witness) && !self.is_abi(i.witness) {
                         self.defined.insert(i.witness);
                     }
                 }
-                for i in &gadget.outputs {
-                    self.use_witness(*i, gate_idx, first);
+                for i in gadget.get_outputs_vec() {
+                    self.use_witness(i, gate_idx, first);
                 }
                 SimplifyResult::Unresolved
             }
@@ -432,17 +430,14 @@ impl CircuitSimplifier {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use acir::{
         circuit::{Circuit, Opcode},
         native_types::{Expression, Witness},
         FieldElement,
     };
 
-    use crate::compiler::{
-        optimizers::Simplifier,
-        transformers::{FallbackTransformer, IsOpcodeSupported},
-    };
+    use crate::compiler::{optimizers::Simplifier, transformers::FallbackTransformer};
 
     #[test]
     fn simplify_test() {
@@ -479,7 +474,7 @@ mod test {
         simplifier.simplify(&mut circuit);
         assert_eq!(circuit.len(), 3);
         assert_eq!(simplifier.solved_gates.len(), 1);
-        let support_all: IsOpcodeSupported = |_| true;
+        let support_all = |_opcode: &Opcode| true;
         let mut acir = Circuit::default();
         acir.opcodes = circuit;
         let acir = FallbackTransformer::transform(acir, support_all, &simplifier).unwrap();
