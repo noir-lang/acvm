@@ -114,7 +114,8 @@ pub enum BinaryFieldOp {
     Sub,
     Mul,
     Div,
-    Cmp(Comparison),
+    /// (==) equal
+    Equals,
 }
 
 /// Binary fixed-length integer expressions
@@ -125,7 +126,12 @@ pub enum BinaryIntOp {
     Mul,
     SignedDiv,
     UnsignedDiv,
-    Cmp(Comparison),
+    /// (==) equal
+    Equals,
+    /// (<) Field less than
+    LessThan,
+    /// (<=) field less or equal
+    LessThanEquals,
     /// (&) Bitwise AND
     And,
     /// (|) Bitwise OR
@@ -138,16 +144,6 @@ pub enum BinaryIntOp {
     Shr,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Comparison {
-    /// (==) equal
-    Eq,
-    /// (<) Field less than
-    Lt,
-    /// (<=) field less or equal
-    Lte,
-}
-
 impl BinaryFieldOp {
     /// Evaluate a binary operation on two FieldElements and return the result as a FieldElement.
     pub fn evaluate_field(&self, a: FieldElement, b: FieldElement) -> FieldElement {
@@ -157,12 +153,7 @@ impl BinaryFieldOp {
             BinaryFieldOp::Sub => a - b,
             BinaryFieldOp::Mul => a * b,
             BinaryFieldOp::Div => a / b,
-            // Perform a comparison between a and b based on the Comparison variant.
-            BinaryFieldOp::Cmp(comparison) => match comparison {
-                Comparison::Eq => ((a == b) as u128).into(),
-                Comparison::Lt => ((a < b) as u128).into(),
-                Comparison::Lte => ((a <= b) as u128).into(),
-            },
+            BinaryFieldOp::Equals => (a == b).into(),
         }
     }
 }
@@ -182,12 +173,12 @@ impl BinaryIntOp {
             BinaryIntOp::SignedDiv => {
                 to_unsigned(to_signed(a, bit_size) / to_signed(b, bit_size), bit_size)
             }
-            // Perform a comparison between a and b based on the Comparison variant.
-            BinaryIntOp::Cmp(comparison) => match comparison {
-                Comparison::Eq => (a == b) as u128,
-                Comparison::Lt => (a < b) as u128,
-                Comparison::Lte => (a <= b) as u128,
-            },
+            // Perform a == operation, returning 0 or 1
+            BinaryIntOp::Equals => ((a % bit_modulo) == (b % bit_modulo)).into(),
+            // Perform a < operation, returning 0 or 1
+            BinaryIntOp::LessThan => ((a % bit_modulo) < (b % bit_modulo)).into(),
+            // Perform a <= operation, returning 0 or 1
+            BinaryIntOp::LessThanEquals => ((a % bit_modulo) <= (b % bit_modulo)).into(),
             // Perform bitwise AND, OR, XOR, left shift, and right shift operations, applying a modulo operation to keep the result within the bit size.
             BinaryIntOp::And => (a & b) % bit_modulo,
             BinaryIntOp::Or => (a | b) % bit_modulo,
@@ -209,10 +200,6 @@ fn to_signed(a: u128, n: u32) -> i128 {
 }
 
 fn to_unsigned(a: i128, n: u32) -> u128 {
-    if n >= 126 {
-        // TODO(AD): clean this up a bit - this is only converted to a field later, error there?
-        panic!("ICE: cannot convert signed {n} bit size into field");
-    }
     if a >= 0 {
         a as u128
     } else {
