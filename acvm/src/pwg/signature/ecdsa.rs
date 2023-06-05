@@ -63,9 +63,17 @@ pub fn secp256k1_prehashed(
 mod ecdsa_secp256k1 {
     use std::convert::TryInto;
 
+    use blake2::digest::generic_array::GenericArray;
+
+    use k256::elliptic_curve::sec1::FromEncodedPoint;
+    use k256::elliptic_curve::PrimeField;
+
     use k256::{ecdsa::Signature, Scalar};
     use k256::{
-        elliptic_curve::sec1::{Coordinates, ToEncodedPoint},
+        elliptic_curve::{
+            sec1::{Coordinates, ToEncodedPoint},
+            IsHigh,
+        },
         AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
     };
     // This method is used to generate test vectors
@@ -128,9 +136,9 @@ mod ecdsa_secp256k1 {
             &pub_key_y_arr.into(),
             true,
         );
-        let pubkey = PublicKey::try_from(point).unwrap();
+        let pubkey = PublicKey::from_encoded_point(&point).unwrap();
 
-        let z = Scalar::from_bytes_reduced(hashed_msg.into());
+        let z = Scalar::from_repr(*GenericArray::from_slice(hashed_msg)).unwrap();
 
         // Finished converting bytes into data structures
 
@@ -147,12 +155,12 @@ mod ecdsa_secp256k1 {
         let u2 = *r * s_inv;
 
         #[allow(non_snake_case)]
-        let R: AffinePoint = ((ProjectivePoint::generator() * u1)
+        let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
             + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
             .to_affine();
 
         if let Coordinates::Uncompressed { x, y: _ } = R.to_encoded_point(false).coordinates() {
-            if Scalar::from_bytes_reduced(x).eq(&r) {
+            if Scalar::from_repr(*x).unwrap().eq(&r) {
                 return Ok(());
             }
         }
