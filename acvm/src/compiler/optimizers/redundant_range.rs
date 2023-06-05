@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, HashSet};
 ///
 /// Suppose we had the following pseudo-code:
 ///
-/// ```
+/// ```noir
 /// let z1 = x as u16;
 /// let z2 = x as u32;
 /// ```
