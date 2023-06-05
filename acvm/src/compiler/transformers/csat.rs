@@ -6,7 +6,13 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-// Is this more of a Reducer than an optimizer?
+/// A transformer which processes any [`Expression`]s to break them up such that they
+/// fit within the [`ProofSystemCompiler`][crate::ProofSystemCompiler]'s width.
+///
+/// This transformer is only used when targetting the [`PLONKCSat`][crate::Language::PLONKCSat] language.
+///
+/// This is done by creating intermediate variables to hold partial calculations and then combining them
+/// to calculate the original expression.
 // Should we give it all of the gates?
 // Have a single transformer that you instantiate with a width, then pass many gates through
 pub struct CSatTransformer {

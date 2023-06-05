@@ -91,6 +91,7 @@ pub enum OpcodeResolutionError {
     BrilligFunctionFailed(String),
 }
 
+/// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
 pub fn solve(
     backend: &impl PartialWitnessGenerator,
     initial_witness: &mut WitnessMap,

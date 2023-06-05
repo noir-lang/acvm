@@ -22,6 +22,7 @@ pub enum CompileError {
     UnsupportedBlackBox(BlackBoxFunc),
 }
 
+/// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
     np_language: Language,

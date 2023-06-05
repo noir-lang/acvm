@@ -4,8 +4,12 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-pub(crate) struct GeneralOpt;
-impl GeneralOpt {
+/// The `GeneralOptimizer` processes all [`Expression`]s to:
+/// - remove any zero-coefficient terms.
+/// - merge any quadratic terms containing the same two witnesses.
+pub(crate) struct GeneralOptimizer;
+
+impl GeneralOptimizer {
     pub(crate) fn optimize(gate: Expression) -> Expression {
         // XXX: Perhaps this optimization can be done on the fly
         let gate = remove_zero_coefficients(gate);

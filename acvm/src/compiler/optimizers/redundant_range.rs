@@ -4,13 +4,16 @@ use acir::{
 };
 use std::collections::{BTreeMap, HashSet};
 
-/// RangeOptimizer will remove redundant range constraints.
+/// `RangeOptimizer` will remove redundant range constraints.
+///
+/// # Example
 ///
 /// Suppose we had the following pseudo-code:
 ///
+/// ```
 /// let z1 = x as u16;
-//  let z2 = x as u32;
-///
+/// let z2 = x as u32;
+/// ```
 /// It is clear that if `x` fits inside of a 16-bit integer,
 /// it must also fit inside of a 32-bit integer.
 ///
