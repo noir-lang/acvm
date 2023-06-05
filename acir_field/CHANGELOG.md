@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.3](https://github.com/noir-lang/acvm/compare/acir_field-v0.13.2...acir_field-v0.13.3) (2023-06-05)
+
+
+### Bug Fixes
+
+* Empty commit to trigger release-please ([e8f0748](https://github.com/noir-lang/acvm/commit/e8f0748042ef505d59ab63266d3c36c5358ee30d))
+
 ## [0.13.2](https://github.com/noir-lang/acvm/compare/acir_field-v0.13.1...acir_field-v0.13.2) (2023-06-02)
 
 
