@@ -179,7 +179,7 @@ impl CSatTransformer {
                     );
 
                     // Add intermediate variable to the new gate instead of the full gate
-                    new_gate.linear_combinations.push((FieldElement::one(), inter_var));
+                    new_gate.linear_combinations.push(inter_var);
                 }
             };
             // Remove this term as we are finished processing it
@@ -207,25 +207,26 @@ impl CSatTransformer {
         (a, &expr * a.inverse())
     }
 
-    /// Get or generate a witness which is equal to the provided expression
+    /// Get or generate a scaled intermediate witness which is equal to the provided expression
     /// The sets of previously generated witness and their (normalized) expression is cached in the intermediate_variables map
     /// If there is no cache hit, we generate a new witness (and add the expression to the cache)
-    /// else, we return the cached witness
+    /// else, we return the cached witness along with the scaling factor so it is equal to the provided expression
     fn get_or_create_intermediate_vars(
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
         expr: Expression,
         num_witness: &mut u32,
-    ) -> Witness {
-        let (l, normalized_expr) = Self::normalize(expr);
+    ) -> (FieldElement, Witness) {
+        let (k, normalized_expr) = Self::normalize(expr);
 
         if intermediate_variables.contains_key(&normalized_expr) {
-            intermediate_variables[&normalized_expr].1
+            let (l, iv) = intermediate_variables[&normalized_expr];
+            (k / l, iv)
         } else {
             let inter_var = Witness(*num_witness);
             *num_witness += 1;
             // Add intermediate gate and variable to map
-            intermediate_variables.insert(normalized_expr, (l, inter_var));
-            inter_var
+            intermediate_variables.insert(normalized_expr, (k, inter_var));
+            (FieldElement::one(), inter_var)
         }
     }
 
@@ -295,7 +296,7 @@ impl CSatTransformer {
             );
 
             // Add intermediate variable as a part of the fan-in for the original gate
-            gate.linear_combinations.push((FieldElement::one(), inter_var));
+            gate.linear_combinations.push(inter_var);
         }
 
         // Remove all of the mul terms as we have intermediate variables to represent them now
@@ -333,7 +334,7 @@ impl CSatTransformer {
                 num_witness,
             );
 
-            added.push((FieldElement::one(), inter_var));
+            added.push(inter_var);
         }
 
         // Add back the intermediate variables to
