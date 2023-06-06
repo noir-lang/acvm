@@ -99,5 +99,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, outputs } => {
             keccak256_variable_length(initial_witness, inputs, *var_message_size, outputs)
         }
+        BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
     }
 }
