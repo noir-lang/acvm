@@ -1,5 +1,6 @@
 use acir::circuit::Circuit;
 
+/// Currently a "noop" transformer.
 pub struct R1CSTransformer {
     acir: Circuit,
 }
