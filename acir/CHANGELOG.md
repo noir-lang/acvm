@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.14.0](https://github.com/noir-lang/acvm/compare/acir-v0.13.3...acir-v0.14.0) (2023-06-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Verify Proof ([#291](https://github.com/noir-lang/acvm/issues/291))
+
+### Features
+
+* **acir:** Verify Proof ([#291](https://github.com/noir-lang/acvm/issues/291)) ([9f34428](https://github.com/noir-lang/acvm/commit/9f34428b7084c7c38de401a16ca76e748d8b1d77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.13.3 to 0.14.0
+
 ## [0.13.3](https://github.com/noir-lang/acvm/compare/acir-v0.13.2...acir-v0.13.3) (2023-06-05)
 
 
