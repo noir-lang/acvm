@@ -6,6 +6,7 @@ examples/9
 node_modules
 pkg/
 lib/
+result
 
 # Yarn
 .pnp.*

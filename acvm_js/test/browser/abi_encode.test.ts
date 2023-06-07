@@ -2,7 +2,7 @@ import initACVMSimulator, {
   abiEncode,
   abiDecode,
   WitnessMap,
-} from "../../pkg/";
+} from "../../result/";
 import { DecodedInputs } from "../types";
 
 test("recovers original inputs when abi encoding and decoding", async () => {

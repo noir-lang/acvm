@@ -14,27 +14,33 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@master
+      - uses: cachix/install-nix-action@v20
         with:
-          toolchain: 1.66.0
+          nix_path: nixpkgs=channel:nixos-22.11
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
+      - uses: cachix/cachix-action@v12
+        with:
+          name: barretenberg
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build acvm-simulator
-        run: ./build-wasm
+        run: |
+          nix build .#
+
+      - name: Dereference symlink
+        run: echo "UPLOAD_PATH=$(readlink -f result)" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: acvm-simulator
-          path: ./pkg
+          path: ${{ env.UPLOAD_PATH }}
           retention-days: 3
 
   test-node:
     needs: [build-acvm-simulator]
-    name: Test Wasm in Node.js
+    name: Node.js Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +51,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-simulator
-          path: ./pkg
+          path: ./result
 
       - name: Set up test environment
         uses: ./.github/actions/setup
@@ -55,7 +61,7 @@ jobs:
 
   test-browser:
     needs: [build-acvm-simulator]
-    name: Test Wasm in Browser
+    name: Browser Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -66,7 +72,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-simulator
-          path: ./pkg
+          path: ./result
 
       - name: Set up test environment
         uses: ./.github/actions/setup

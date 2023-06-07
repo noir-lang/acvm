@@ -4,7 +4,7 @@ import initACVMSimulator, {
   executeCircuit,
   WitnessMap,
   OracleCallback,
-} from "../../pkg/";
+} from "../../result/";
 
 test("successfully executes circuit and extracts return value", async () => {
   await initACVMSimulator();

@@ -5,7 +5,7 @@ import {
   executeCircuit,
   WitnessMap,
   OracleCallback,
-} from "../../pkg/";
+} from "../../result/";
 
 test("successfully executes circuit and extracts return value", async () => {
   // Noir program which enforces that x != y and returns x + y.

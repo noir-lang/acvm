@@ -1,13 +1,24 @@
 {
   "name": "acvm-simulator",
   "version": "0.0.0",
-  "main": "index.js",
-  "repository": "git@github.com:noir-lang/acvm-simulator.git",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/noir-lang/acvm-simulator.git"
+  },
   "collaborators": [
     "The Noir Team <team@noir-lang.org>"
   ],
   "license": "MIT",
-  "private": true,
+  "main": "./nodejs/acvm_simulator.js",
+  "types": "./web/acvm_simulator.d.ts",
+  "module": "./web/acvm_simulator.js",
+  "files": [
+    "nodejs",
+    "web",
+    "package.json"
+  ],
+  "sideEffects": false,
   "packageManager": "yarn@3.5.1",
   "scripts": {
     "test": "jest ./test/node",

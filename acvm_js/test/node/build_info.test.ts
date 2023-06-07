@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { buildInfo } from "../../pkg/";
+import { buildInfo } from "../../result/";
 import child_process from "child_process";
 import pkg from "../../package.json";
 

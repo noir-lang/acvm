@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { abiEncode, abiDecode, WitnessMap } from "../../pkg/";
+import { abiEncode, abiDecode, WitnessMap } from "../../result/";
 import { DecodedInputs } from "../types";
 
 test("recovers original inputs when abi encoding and decoding", () => {
