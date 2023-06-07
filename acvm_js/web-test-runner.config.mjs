@@ -1,13 +1,15 @@
 import { esbuildPlugin } from "@web/dev-server-esbuild";
+import { playwrightLauncher } from "@web/test-runner-playwright";
 
 export default {
-  nodeResolve: true,
-  files: ["src/**/*.test.ts", "src/**/*.spec.ts"],
+  browsers: [playwrightLauncher({ product: "chromium" })],
   plugins: [
     esbuildPlugin({
       ts: true,
     }),
   ],
+  files: ["test/browser/**/*.test.ts"],
+  nodeResolve: true,
   testRunnerHtml: (testFramework) => `
   <html>
     <head>

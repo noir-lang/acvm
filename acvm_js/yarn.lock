@@ -1602,6 +1602,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@web/browser-logs@npm:^0.3.1":
+  version: 0.3.1
+  resolution: "@web/browser-logs@npm:0.3.1"
+  dependencies:
+    errorstacks: ^2.2.0
+  checksum: 7eb4ace5d20cc516cb2f3ff62e1b1d8e9cd145d44fa8338ad27d9173a114ce73f736e4c5ae1c3b006fe0e694d21f39807ecaec7479b1284cde9cbf20044c2057
+  languageName: node
+  linkType: hard
+
 "@web/config-loader@npm:^0.1.3":
   version: 0.1.3
   resolution: "@web/config-loader@npm:0.1.3"
@@ -1634,6 +1643,32 @@ __metadata:
     picomatch: ^2.2.2
     ws: ^7.4.2
   checksum: 4cf728ac781c7831c9c59ffaa1bd2dca1f1e8a6553bedd0d80e47d946ea427067eb1d07b028fc8296a36930c1dd5631e0bc1ccf8f0f4b9203da362c958c1833e
+  languageName: node
+  linkType: hard
+
+"@web/dev-server-core@npm:^0.5.1":
+  version: 0.5.1
+  resolution: "@web/dev-server-core@npm:0.5.1"
+  dependencies:
+    "@types/koa": ^2.11.6
+    "@types/ws": ^7.4.0
+    "@web/parse5-utils": ^2.0.0
+    chokidar: ^3.4.3
+    clone: ^2.1.2
+    es-module-lexer: ^1.0.0
+    get-stream: ^6.0.0
+    is-stream: ^2.0.0
+    isbinaryfile: ^5.0.0
+    koa: ^2.13.0
+    koa-etag: ^4.0.0
+    koa-send: ^5.0.1
+    koa-static: ^5.0.0
+    lru-cache: ^8.0.4
+    mime-types: ^2.1.27
+    parse5: ^6.0.1
+    picomatch: ^2.2.2
+    ws: ^7.4.2
+  checksum: 95eab93dcad632733f3e16270a2723967f190b16fc31000cf221d4b68e9277a2f95bd31f12798ccbe3ce1642d5d6295f2518f732219a0bc4af6674a79ea686d5
   languageName: node
   linkType: hard
 
@@ -1699,6 +1734,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@web/parse5-utils@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@web/parse5-utils@npm:2.0.0"
+  dependencies:
+    "@types/parse5": ^6.0.1
+    parse5: ^6.0.1
+  checksum: 3f8d67380aa335e8b4ad9bc447780cc5c068cb749feb2e5adc1dabe51445483c3ead598c75d58e619bed1944fe2c92b55fdbf19212939cc3aebca143d3a7fa70
+  languageName: node
+  linkType: hard
+
 "@web/test-runner-chrome@npm:^0.12.1":
   version: 0.12.1
   resolution: "@web/test-runner-chrome@npm:0.12.1"
@@ -1755,6 +1800,40 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@web/test-runner-core@npm:^0.11.0":
+  version: 0.11.1
+  resolution: "@web/test-runner-core@npm:0.11.1"
+  dependencies:
+    "@babel/code-frame": ^7.12.11
+    "@types/babel__code-frame": ^7.0.2
+    "@types/co-body": ^6.1.0
+    "@types/convert-source-map": ^2.0.0
+    "@types/debounce": ^1.2.0
+    "@types/istanbul-lib-coverage": ^2.0.3
+    "@types/istanbul-reports": ^3.0.0
+    "@web/browser-logs": ^0.3.1
+    "@web/dev-server-core": ^0.5.1
+    chokidar: ^3.4.3
+    cli-cursor: ^3.1.0
+    co-body: ^6.1.0
+    convert-source-map: ^2.0.0
+    debounce: ^1.2.0
+    dependency-graph: ^0.11.0
+    globby: ^11.0.1
+    ip: ^1.1.5
+    istanbul-lib-coverage: ^3.0.0
+    istanbul-lib-report: ^3.0.0
+    istanbul-reports: ^3.0.2
+    log-update: ^4.0.0
+    nanocolors: ^0.2.1
+    nanoid: ^3.1.25
+    open: ^8.0.2
+    picomatch: ^2.2.2
+    source-map: ^0.7.3
+  checksum: f3f46a69625f541d5b90b1743c1d26c241bea1c0182a0393a480dc7f388db1e5d9548f3dd1844fcd6755765ee1906b81e0bfcf6b120d6a125d5528a642212046
+  languageName: node
+  linkType: hard
+
 "@web/test-runner-coverage-v8@npm:^0.5.0":
   version: 0.5.0
   resolution: "@web/test-runner-coverage-v8@npm:0.5.0"
@@ -1767,6 +1846,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@web/test-runner-coverage-v8@npm:^0.6.0":
+  version: 0.6.1
+  resolution: "@web/test-runner-coverage-v8@npm:0.6.1"
+  dependencies:
+    "@web/test-runner-core": ^0.11.0
+    istanbul-lib-coverage: ^3.0.0
+    lru-cache: ^8.0.4
+    picomatch: ^2.2.2
+    v8-to-istanbul: ^9.0.1
+  checksum: 98716b33d51ab3024f22d717424aa07b9423f25c9f37fccf1875019860ca7e2ec5daec23d1a453368c363c4d06f56f69d6c8111722b67375e5165904a044cc56
+  languageName: node
+  linkType: hard
+
 "@web/test-runner-mocha@npm:^0.7.5":
   version: 0.7.5
   resolution: "@web/test-runner-mocha@npm:0.7.5"
@@ -1774,6 +1866,17 @@ __metadata:
     "@types/mocha": ^8.2.0
     "@web/test-runner-core": ^0.10.20
   checksum: 12f87299945d230815bb783de2953ac4239306c1a67145ef5b78cfb0b361ae7f659e5d3e5150af2cedc6f2c55adf10652b761f016430a7ac2d7f77b91ecb9cd1
+  languageName: node
+  linkType: hard
+
+"@web/test-runner-playwright@npm:^0.10.0":
+  version: 0.10.0
+  resolution: "@web/test-runner-playwright@npm:0.10.0"
+  dependencies:
+    "@web/test-runner-core": ^0.11.0
+    "@web/test-runner-coverage-v8": ^0.6.0
+    playwright: ^1.22.2
+  checksum: 06902cb74e3b2d82b1725352384bae2267e3bf42b8e03981ba2fcb229a1a59c55811612ca85a5e312af488e6fa8fdd2408fa71d277a10eb651ef7895856e479b
   languageName: node
   linkType: hard
 
@@ -1848,6 +1951,7 @@ __metadata:
     "@typescript-eslint/parser": ^5.59.5
     "@web/dev-server-esbuild": ^0.3.6
     "@web/test-runner": ^0.15.3
+    "@web/test-runner-playwright": ^0.10.0
     eslint: ^8.40.0
     eslint-plugin-prettier: ^4.2.1
     jest: ^29.5.0
@@ -4733,6 +4837,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lru-cache@npm:^8.0.4":
+  version: 8.0.5
+  resolution: "lru-cache@npm:8.0.5"
+  checksum: 87d72196d8f46e8299c4ab576ed2ec8a07e3cbef517dc9874399c0b2470bd9bf62aacec3b67f84ed6d74aaa1ef31636d048edf996f76248fd17db72bfb631609
+  languageName: node
+  linkType: hard
+
 "make-dir@npm:^3.0.0":
   version: 3.1.0
   resolution: "make-dir@npm:3.1.0"
@@ -5346,6 +5457,26 @@ __metadata:
   dependencies:
     find-up: ^4.0.0
   checksum: 9863e3f35132bf99ae1636d31ff1e1e3501251d480336edb1c211133c8d58906bed80f154a1d723652df1fda91e01c7442c2eeaf9dc83157c7ae89087e43c8d6
+  languageName: node
+  linkType: hard
+
+"playwright-core@npm:1.34.3":
+  version: 1.34.3
+  resolution: "playwright-core@npm:1.34.3"
+  bin:
+    playwright-core: cli.js
+  checksum: eaf9e9b2d77b9726867dcbc641a1c72b0e8f680cdd71ff904366deea1c96141ff7563f6c6fb29f9975309d1b87dead97ea93f6f44953b59946882fb785b34867
+  languageName: node
+  linkType: hard
+
+"playwright@npm:^1.22.2":
+  version: 1.34.3
+  resolution: "playwright@npm:1.34.3"
+  dependencies:
+    playwright-core: 1.34.3
+  bin:
+    playwright: cli.js
+  checksum: 4495b23eacc673c03fd4706ce5914dd4855d46657e63411e54bb928e796d7ca59a6101379000ec73e2731437d04a441242cebbb6d4e069e050255db9eff65f7d
   languageName: node
   linkType: hard
 
