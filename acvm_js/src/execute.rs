@@ -6,11 +6,8 @@ use acvm::{
         },
         native_types::{Witness, WitnessMap},
     },
-    pwg::{
-        block::Blocks, hash, logic, range, signature, OpcodeResolution,
-        PartialWitnessGeneratorStatus,
-    },
-    FieldElement, OpcodeResolutionError, PartialWitnessGenerator,
+    pwg::{block::Blocks, OpcodeResolution, OpcodeResolutionError, PartialWitnessGeneratorStatus},
+    FieldElement, PartialWitnessGenerator,
 };
 
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -24,109 +21,6 @@ use crate::{
 struct SimulatedBackend;
 
 impl PartialWitnessGenerator for SimulatedBackend {
-    fn aes(
-        &self,
-        _initial_witness: &mut WitnessMap,
-        _inputs: &[FunctionInput],
-        _outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        todo!("opcode does not have a rust implementation")
-    }
-
-    fn and(
-        &self,
-        initial_witness: &mut WitnessMap,
-        lhs: &FunctionInput,
-        rhs: &FunctionInput,
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::and(initial_witness, lhs, rhs, output)
-    }
-
-    fn xor(
-        &self,
-        initial_witness: &mut WitnessMap,
-        lhs: &FunctionInput,
-        rhs: &FunctionInput,
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::xor(initial_witness, lhs, rhs, output)
-    }
-
-    fn range(
-        &self,
-        initial_witness: &mut WitnessMap,
-        input: &FunctionInput,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        range::solve_range_opcode(initial_witness, input)
-    }
-
-    fn sha256(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::sha256(initial_witness, inputs, outputs)
-    }
-
-    fn blake2s(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::blake2s256(initial_witness, inputs, outputs)
-    }
-
-    fn hash_to_field_128_security(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::hash_to_field_128_security(initial_witness, inputs, output)
-    }
-
-    fn keccak256(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::keccak256(initial_witness, inputs, outputs)
-    }
-
-    fn ecdsa_secp256k1(
-        &self,
-        initial_witness: &mut WitnessMap,
-        public_key_x: &[FunctionInput],
-        public_key_y: &[FunctionInput],
-        signature: &[FunctionInput],
-        message: &[FunctionInput],
-        outputs: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        signature::ecdsa::secp256k1_prehashed(
-            initial_witness,
-            public_key_x,
-            public_key_y,
-            signature,
-            message,
-            *outputs,
-        )
-    }
-
-    fn compute_merkle_root(
-        &self,
-        _initial_witness: &mut WitnessMap,
-        _leaf: &FunctionInput,
-        _index: &FunctionInput,
-        _hash_path: &[FunctionInput],
-        _output: &Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        todo!("opcode does not have a rust implementation")
-    }
-
     fn schnorr_verify(
         &self,
         _initial_witness: &mut WitnessMap,
@@ -136,16 +30,17 @@ impl PartialWitnessGenerator for SimulatedBackend {
         _message: &[FunctionInput],
         _output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        todo!("opcode does not have a rust implementation")
+        todo!("schnorr_verify does not have a rust implementation")
     }
 
     fn pedersen(
         &self,
         _initial_witness: &mut WitnessMap,
         _inputs: &[FunctionInput],
+        _domain_separator: u32,
         _outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        todo!("opcode does not have a rust implementation")
+        todo!("pedersen does not have a rust implementation")
     }
 
     fn fixed_base_scalar_mul(
@@ -154,7 +49,7 @@ impl PartialWitnessGenerator for SimulatedBackend {
         _input: &FunctionInput,
         _outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        todo!("opcode does not have a rust implementation")
+        todo!("fixed_base_scalar_mul does not have a rust implementation")
     }
 }
 
@@ -205,6 +100,7 @@ pub async fn execute_circuit(
             PartialWitnessGeneratorStatus::RequiresOracleData {
                 required_oracle_data,
                 unsolved_opcodes,
+                unresolved_brillig_calls: _,
             } => {
                 // Perform all oracle queries
                 let oracle_call_futures: Vec<_> = required_oracle_data

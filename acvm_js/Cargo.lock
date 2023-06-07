@@ -4,11 +4,12 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.12.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c831802bad8d6810bfdb57cd00913157dfe710a185dc360c9a94eecd043bbf12"
+checksum = "bf018077d9a9684bffbbef6458de4229011119df4610e3f939e38384a00ecef4"
 dependencies = [
  "acir_field",
+ "brillig_vm",
  "flate2",
  "rmp-serde",
  "serde",
@@ -17,9 +18,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.12.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d455746f51b4421548e42d34e2ce46b6db637cb048095d78766612d26bf526db"
+checksum = "3f9bed4162ada229a2b171eeb206fc91f28769039764ffb2455cecb346544002"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -31,9 +32,9 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.12.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8e75cf737b52195a8c109e0ee776e468e1c2ec42f0f88aa4465cd76a09b4ed"
+checksum = "19b488b1c232263a74149999220c0e4ff46974139c4bbbcf7bae698edc1a5344"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -69,9 +70,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.12.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2e87549b987593eeb1902990006443f2fe5817db927035f081008e4b8a46a49"
+checksum = "d856644aef30402728d352b64c6f44b8b4d82acd1c8da3f6a8432255b601f78e"
 dependencies = [
  "acir",
 ]
@@ -272,6 +273,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "brillig_vm"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2f6a3d413ee91207206ba5021776e97f543154b6f3340e60c4d8763a499fe3d"
+dependencies = [
+ "acir_field",
+ "num-bigint",
+ "serde",
 ]
 
 [[package]]
@@ -642,7 +654,7 @@ dependencies = [
 [[package]]
 name = "iter-extended"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=b938c7eeaa5ee493b28cad5451e7d5b7921ad934#b938c7eeaa5ee493b28cad5451e7d5b7921ad934"
+source = "git+https://github.com/noir-lang/noir?rev=22dee75464d3d02af17109d9065d37342fbbcddb#22dee75464d3d02af17109d9065d37342fbbcddb"
 
 [[package]]
 name = "itertools"
@@ -731,7 +743,7 @@ dependencies = [
 [[package]]
 name = "noirc_abi"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=b938c7eeaa5ee493b28cad5451e7d5b7921ad934#b938c7eeaa5ee493b28cad5451e7d5b7921ad934"
+source = "git+https://github.com/noir-lang/noir?rev=22dee75464d3d02af17109d9065d37342fbbcddb#22dee75464d3d02af17109d9065d37342fbbcddb"
 dependencies = [
  "acvm",
  "iter-extended",
