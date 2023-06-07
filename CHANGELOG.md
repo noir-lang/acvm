@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.1](https://github.com/noir-lang/acvm/compare/root-v0.14.0...root-v0.14.1) (2023-06-07)
+
+
+### Features
+
+* Re-use intermediate variables created during width reduction, with proper scale. ([#343](https://github.com/noir-lang/acvm/issues/343)) ([6bd0baa](https://github.com/noir-lang/acvm/commit/6bd0baa4bc9ac204e7710ec6d17d1752d2e924c0))
+
 ## [0.14.0](https://github.com/noir-lang/acvm/compare/root-v0.13.3...root-v0.14.0) (2023-06-06)
 
 
