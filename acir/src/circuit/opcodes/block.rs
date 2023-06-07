@@ -15,6 +15,43 @@ pub struct MemOp {
     pub value: Expression,
 }
 
+impl std::fmt::Display for MemOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "OP [ ")?;
+        for i in &self.operation.mul_terms {
+            write!(f, "({}, _{}, _{}) ", i.0, i.1.witness_index(), i.2.witness_index())?;
+        }
+        for i in &self.operation.linear_combinations {
+            write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
+        }
+        write!(f, "{}", self.operation.q_c)?;
+
+        write!(f, " ]")?;
+
+        write!(f, "INDEX [ ")?;
+        for i in &self.index.mul_terms {
+            write!(f, "({}, _{}, _{}) ", i.0, i.1.witness_index(), i.2.witness_index())?;
+        }
+        for i in &self.index.linear_combinations {
+            write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
+        }
+        write!(f, "{}", self.index.q_c)?;
+
+        write!(f, " ]")?;
+
+        write!(f, "VALUE [ ")?;
+        for i in &self.value.mul_terms {
+            write!(f, "({}, _{}, _{}) ", i.0, i.1.witness_index(), i.2.witness_index())?;
+        }
+        for i in &self.value.linear_combinations {
+            write!(f, "({}, _{}) ", i.0, i.1.witness_index())?;
+        }
+        write!(f, "{}", self.index.q_c)?;
+
+        write!(f, " ]")
+    }
+}
+
 /// Represents operations on a block of length len of data
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemoryBlock {

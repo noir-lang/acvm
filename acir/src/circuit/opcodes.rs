@@ -148,7 +148,12 @@ impl std::fmt::Display for Opcode {
             }
             Opcode::RAM(block) => {
                 write!(f, "RAM ")?;
-                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
+                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())?;
+                write!(f, "RAM TRACE [ ")?;
+                for i in &block.trace {
+                    write!(f, "{}", i)?;
+                }
+                write!(f, " ]")
             }
             Opcode::Oracle(data) => {
                 write!(f, "ORACLE: ")?;
