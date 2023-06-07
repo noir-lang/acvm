@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.14.0...acvm_stdlib-v0.14.1) (2023-06-07)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
 ## [0.14.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.3...acvm_stdlib-v0.14.0) (2023-06-06)
 
 

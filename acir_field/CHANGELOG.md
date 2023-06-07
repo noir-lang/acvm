@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/noir-lang/acvm/compare/acir_field-v0.14.0...acir_field-v0.14.1) (2023-06-07)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
 ## [0.14.0](https://github.com/noir-lang/acvm/compare/acir_field-v0.13.3...acir_field-v0.14.0) (2023-06-06)
 
 
