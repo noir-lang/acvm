@@ -1,0 +1,78 @@
+name: Test
+
+on: [push, pull_request]
+
+# This will cancel previous runs when a branch or PR is updated
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-acvm-simulator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.66.0
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build acvm-simulator
+        run: ./build-wasm
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: acvm-simulator
+          path: ./pkg
+          retention-days: 3
+
+  test-node:
+    needs: [build-acvm-simulator]
+    name: Test Wasm in Node.js
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: acvm-simulator
+          path: ./pkg
+
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+
+      - name: Run node tests
+        run: yarn test
+
+  test-browser:
+    needs: [build-acvm-simulator]
+    name: Test Wasm in Browser
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: acvm-simulator
+          path: ./pkg
+
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+
+      - name: Install playwright deps
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: yarn test:browser
