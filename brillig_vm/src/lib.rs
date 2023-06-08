@@ -225,7 +225,10 @@ impl VM {
                 // Convert our destination_pointer to a usize
                 let destination = self.registers.get(*destination_pointer).to_usize();
                 if destination >= self.memory.len() {
-                    self.memory.append(&mut vec![Value::from(0_usize); destination - self.memory.len() + 1]);
+                    self.memory.append(&mut vec![
+                        Value::from(0_usize);
+                        destination - self.memory.len() + 1
+                    ]);
                 }
                 // Use our usize destination index to set the value in memory
                 self.memory[destination] = self.registers.get(*source_register);
