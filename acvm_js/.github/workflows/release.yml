@@ -54,3 +54,17 @@ jobs:
           git add Cargo.lock
           git commit -m 'chore: Update lockfile'
           git push
+
+  dispatch-acvm-simulator-wasm:
+    name: Dispatch to acvm-simulator-wasm
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.tag-name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch to acvm-simulator-wasm
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: update.yml
+          repo: noir-lang/acvm-simulator-wasm
+          token: ${{ secrets.ACVM_SIMULATOR_RELEASES_TOKEN }}
+          inputs: '{ "acvm-simulator-ref": "${{ needs.release-please.outputs.tag-name }}" }'

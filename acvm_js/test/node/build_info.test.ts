@@ -1,17 +1,17 @@
-import { expect, test } from "@jest/globals";
+import { expect } from "chai";
 import { buildInfo } from "../../result/";
 import child_process from "child_process";
 import pkg from "../../package.json";
 
-test("returns the correct build into", () => {
+it("returns the correct build into", () => {
   const info = buildInfo();
 
   // TODO: enforce that `package.json` and `Cargo.toml` are consistent.
-  expect(info.version).toBe(pkg.version);
+  expect(info.version).to.be.eq(pkg.version);
 
   const revision = child_process
     .execSync("git rev-parse HEAD")
     .toString()
     .trim();
-  expect(info.git_hash).toBe(revision);
+  expect(info.git_hash).to.be.eq(revision);
 });

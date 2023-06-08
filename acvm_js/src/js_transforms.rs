@@ -49,6 +49,12 @@ pub(crate) fn field_element_to_js_string(field_element: &FieldElement) -> JsStri
 
 #[cfg(test)]
 mod test {
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_worker);
+
     use std::collections::BTreeMap;
 
     use acvm::{
@@ -56,11 +62,10 @@ mod test {
         FieldElement,
     };
     use wasm_bindgen::JsValue;
-    use wasm_bindgen_test::*;
 
     use crate::JsWitnessMap;
 
-    #[wasm_bindgen_test]
+    #[test]
     fn test_witness_map_to_js() {
         let witness_map = BTreeMap::from([
             (Witness(1), FieldElement::one()),

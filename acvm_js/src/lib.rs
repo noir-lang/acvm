@@ -9,6 +9,7 @@ use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
 mod abi;
+mod barretenberg;
 mod execute;
 mod js_transforms;
 mod public_witness;

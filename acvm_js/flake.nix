@@ -36,16 +36,26 @@
         rust-overlay.follows = "rust-overlay";
       };
     };
+    barretenberg = {
+      url = "github:AztecProtocol/barretenberg";
+      # All of these inputs (a.k.a. dependencies) need to align with inputs we
+      # use so they use the `inputs.*.follows` syntax to reference our inputs
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
   };
 
   outputs =
-    { self, nixpkgs, crane, flake-utils, rust-overlay, ... }: #,
+    { self, nixpkgs, crane, flake-utils, rust-overlay, barretenberg, ... }: #, barretenberg
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
           rust-overlay.overlays.default
+          barretenberg.overlays.default
         ];
       };
 
@@ -62,9 +72,20 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-      sharedEnvironment = {};
+      sharedEnvironment = {
+        # Barretenberg fails if tests are run on multiple threads, so we set the test thread
+        # count to 1 throughout the entire project
+        #
+        # Note: Setting this allows for consistent behavior across build and shells, but is mostly
+        # hidden from the developer - i.e. when they see the command being run via `nix flake check`
+        RUST_TEST_THREADS = "1";
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+      };
 
-      wasmEnvironment = sharedEnvironment // {};
+      wasmEnvironment = sharedEnvironment // {
+        # We set the environment variable because barretenberg must be compiled in a special way for wasm
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+      };
 
       sourceFilter = path: type:
         (craneLib.filterCargoSources path type);

@@ -3,6 +3,9 @@
     "words": [
         // In code
         //
+        "blackbox",
+        "bindir",
+        "cout",
         "jsdoc",
         "keccak",
         "merkle",
@@ -10,14 +13,28 @@
         "prehashed",
         "pubkey",
         "schnorr",
+        "rustc",
         "secp",
         "vecmap",
+        // Wasm
+        //
+        "bbmalloc",
+        "bbfree",
+        "ESUCCESS",
+        "fdstat",
+        "getrandom",
+        "logstr",
+        "plookup",
+        "wasi",
+        "wasmer",
         // Dependencies
         //
         "acir",
         "acvm",
+        "barretenberg",
         "bindgen",
         "gloo",
-        "noirc"
+        "noirc",
+        "thiserror"
     ]
 }
