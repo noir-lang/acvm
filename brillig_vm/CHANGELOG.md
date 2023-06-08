@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.2](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.14.1...brillig_vm-v0.14.2) (2023-06-08)
+
+
+### Bug Fixes
+
+* **brillig:** expand memory with zeroes on store ([#350](https://github.com/noir-lang/acvm/issues/350)) ([4d2dadd](https://github.com/noir-lang/acvm/commit/4d2dadd3acd9dc25f0feae865b74cbaea7250f3d))
+
 ## [0.14.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.14.0...brillig_vm-v0.14.1) (2023-06-07)
 
 
