@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2](https://github.com/noir-lang/acvm/compare/root-v0.14.1...root-v0.14.2) (2023-06-08)
+
+
+### Bug Fixes
+
+* **brillig:** expand memory with zeroes on store ([#350](https://github.com/noir-lang/acvm/issues/350)) ([4d2dadd](https://github.com/noir-lang/acvm/commit/4d2dadd3acd9dc25f0feae865b74cbaea7250f3d))
+
 ## [0.14.1](https://github.com/noir-lang/acvm/compare/root-v0.14.0...root-v0.14.1) (2023-06-07)
 
 
