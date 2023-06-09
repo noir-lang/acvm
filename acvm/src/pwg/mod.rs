@@ -9,27 +9,25 @@ use acir::{
 };
 
 use self::{
-    arithmetic::ArithmeticSolver, block::Blocks, brillig::BrilligSolver,
-    directives::solve_directives, oracle::OracleSolver,
+    arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,
+    oracle::OracleSolver,
 };
 
 use thiserror::Error;
 
 // arithmetic
-pub mod arithmetic;
+pub(crate) mod arithmetic;
 // Brillig bytecode
-pub mod brillig;
+mod brillig;
 // Directives
-pub mod directives;
+mod directives;
 // black box functions
 mod blackbox;
-pub mod block;
-pub mod hash;
-pub mod logic;
-pub mod oracle;
-pub mod range;
-pub mod signature;
-pub mod sorting;
+mod block;
+mod oracle;
+
+// Re-export `Blocks` so that it can be passed to `pwg::solve`
+pub use block::Blocks;
 
 #[derive(Debug, PartialEq)]
 pub enum PartialWitnessGeneratorStatus {
@@ -227,11 +225,11 @@ pub fn get_value(
     }
 }
 
-// Inserts `value` into the initial witness map
-// under the key of `witness`.
-// Returns an error, if there was already a value in the map
-// which does not match the value that one is about to insert
-fn insert_value(
+/// Inserts `value` into the initial witness map under the index `witness`.
+///
+/// Returns an error if there was already a value in the map
+/// which does not match the value that one is about to insert
+pub fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
     initial_witness: &mut WitnessMap,

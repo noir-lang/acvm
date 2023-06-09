@@ -1,7 +1,7 @@
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 use acir::{circuit::opcodes::FunctionInput, native_types::WitnessMap};
 
-pub fn solve_range_opcode(
+pub(super) fn solve_range_opcode(
     initial_witness: &mut WitnessMap,
     input: &FunctionInput,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {

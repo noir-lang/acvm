@@ -7,11 +7,10 @@ use blake2::{Blake2s256, Digest};
 use sha2::Sha256;
 use sha3::Keccak256;
 
+use crate::pwg::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
-use super::{insert_value, witness_to_value};
-
-pub fn blake2s256(
+pub(crate) fn blake2s256(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
@@ -29,7 +28,7 @@ pub fn blake2s256(
     Ok(OpcodeResolution::Solved)
 }
 
-pub fn sha256(
+pub(crate) fn sha256(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
@@ -47,7 +46,7 @@ pub fn sha256(
     Ok(OpcodeResolution::Solved)
 }
 
-pub fn keccak256(
+pub(crate) fn keccak256(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     outputs: &[Witness],
@@ -65,7 +64,7 @@ pub fn keccak256(
     Ok(OpcodeResolution::Solved)
 }
 
-pub fn keccak256_variable_length(
+pub(crate) fn keccak256_variable_length(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     var_message_size: FunctionInput,
@@ -84,7 +83,7 @@ pub fn keccak256_variable_length(
     Ok(OpcodeResolution::Solved)
 }
 
-pub fn hash_to_field_128_security(
+pub(crate) fn hash_to_field_128_security(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     output: &Witness,

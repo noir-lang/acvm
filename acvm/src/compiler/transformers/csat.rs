@@ -15,13 +15,13 @@ use indexmap::IndexMap;
 /// to calculate the original expression.
 // Should we give it all of the gates?
 // Have a single transformer that you instantiate with a width, then pass many gates through
-pub struct CSatTransformer {
+pub(crate) struct CSatTransformer {
     width: usize,
 }
 
 impl CSatTransformer {
     // Configure the width for the optimizer
-    pub fn new(width: usize) -> CSatTransformer {
+    pub(crate) fn new(width: usize) -> CSatTransformer {
         assert!(width > 2);
 
         CSatTransformer { width }
@@ -30,7 +30,7 @@ impl CSatTransformer {
     // Still missing dead witness optimization.
     // To do this, we will need the whole set of arithmetic gates
     // I think it can also be done before the local optimization seen here, as dead variables will come from the user
-    pub fn transform(
+    pub(crate) fn transform(
         &self,
         gate: Expression,
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,

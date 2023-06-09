@@ -9,10 +9,10 @@ use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 use super::{get_value, insert_value};
 
-pub struct BrilligSolver;
+pub(super) struct BrilligSolver;
 
 impl BrilligSolver {
-    pub fn solve(
+    pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         brillig: &mut Brillig,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
