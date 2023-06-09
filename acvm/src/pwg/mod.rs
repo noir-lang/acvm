@@ -9,8 +9,8 @@ use acir::{
 };
 
 use self::{
-    arithmetic::ArithmeticSolver, block::Blocks, brillig::BrilligSolver,
-    directives::solve_directives, oracle::OracleSolver,
+    arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,
+    oracle::OracleSolver,
 };
 
 use thiserror::Error;
@@ -25,6 +25,9 @@ mod directives;
 mod blackbox;
 mod block;
 mod oracle;
+
+// Re-export `Blocks` so that it can be passed to `pwg::solve`
+pub use block::Blocks;
 
 #[derive(Debug, PartialEq)]
 pub enum PartialWitnessGeneratorStatus {
