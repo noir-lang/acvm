@@ -1,4 +1,5 @@
 pub mod black_box_functions;
+pub mod brillig;
 pub mod directives;
 pub mod opcodes;
 
@@ -107,7 +108,7 @@ impl PublicInputs {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::collections::BTreeSet;
 
     use super::{

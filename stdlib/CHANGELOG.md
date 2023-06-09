@@ -1,25 +1,74 @@
 # Changelog
 
+## [0.14.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.14.1...acvm_stdlib-v0.14.2) (2023-06-08)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.14.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.14.0...acvm_stdlib-v0.14.1) (2023-06-07)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.14.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.3...acvm_stdlib-v0.14.0) (2023-06-06)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.13.3](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.2...acvm_stdlib-v0.13.3) (2023-06-05)
+
+
+### Bug Fixes
+
+* Empty commit to trigger release-please ([e8f0748](https://github.com/noir-lang/acvm/commit/e8f0748042ef505d59ab63266d3c36c5358ee30d))
+
+## [0.13.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.1...acvm_stdlib-v0.13.2) (2023-06-02)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.13.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.13.0...acvm_stdlib-v0.13.1) (2023-06-01)
+
+
+### Bug Fixes
+
+* **ci:** Correct typo to avoid `undefined` in changelogs ([#333](https://github.com/noir-lang/acvm/issues/333)) ([d3424c0](https://github.com/noir-lang/acvm/commit/d3424c04fd303c9cbe25d03118d8b358cbb84b83))
+
+## [0.13.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.12.0...acvm_stdlib-v0.13.0) (2023-06-01)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
 ## [0.12.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.11.0...acvm_stdlib-v0.12.0) (2023-05-17)
 
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 ## [0.11.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.3...acvm_stdlib-v0.11.0) (2023-05-04)
 
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 ## [0.10.3](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.2...acvm_stdlib-v0.10.3) (2023-04-28)
 
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 ## [0.10.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.10.1...acvm_stdlib-v0.10.2) (2023-04-28)
 
@@ -33,7 +82,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 ## [0.10.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.9.0...acvm_stdlib-v0.10.0) (2023-04-26)
 
@@ -56,7 +105,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 
 ### Dependencies
@@ -70,7 +119,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 
 ### Dependencies
@@ -84,7 +133,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 
 ### Dependencies
@@ -98,7 +147,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 
 ### Dependencies
@@ -112,7 +161,7 @@
 
 ### Miscellaneous Chores
 
-* **acvm_stdlib:** Synchronize undefined versions
+* **acvm_stdlib:** Synchronize acvm versions
 
 
 ### Dependencies

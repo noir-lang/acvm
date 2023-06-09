@@ -1,9 +1,6 @@
 #![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
-// Key is currently {NPComplete_lang}_{OptionalFanIn}_ProofSystem_OrgName
-// Org name is needed because more than one implementation of the same proof system may arise
-
 pub mod compiler;
 pub mod pwg;
 
@@ -74,12 +71,6 @@ pub trait CommonReferenceString {
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
-    fn aes(
-        &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
@@ -93,6 +84,7 @@ pub trait PartialWitnessGenerator {
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
+        domain_separator: u32,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
@@ -144,15 +136,23 @@ pub trait ProofSystemCompiler {
     /// Creates a Proof given the circuit description, the initial witness values, and the proving key
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
+    ///
+    /// The `is_recursive` flag represents whether one wants to create proofs that are to be natively verified.
+    /// A proof system may use a certain hash type for the Fiat-Shamir normally that is not hash friendly (such as keccak to enable Solidity verification),
+    /// but may want to use a snark-friendly hash function when performing native verification.
     fn prove_with_pk(
         &self,
         common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error>;
 
     /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
+    ///
+    /// The `is_recursive` flag represents whether one wants to verify proofs that are to be natively verified.
+    /// The flag must match the `is_recursive` flag used to generate the proof passed into this method, otherwise verification will return false.
     fn verify_with_vk(
         &self,
         common_reference_string: &[u8],
@@ -160,5 +160,22 @@ pub trait ProofSystemCompiler {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> Result<bool, Self::Error>;
+
+    /// When performing recursive aggregation in a circuit it is most efficient to use a proof formatted using a backend's native field.
+    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
+    fn proof_as_fields(
+        &self,
+        proof: &[u8],
+        public_inputs: WitnessMap,
+    ) -> Result<Vec<FieldElement>, Self::Error>;
+
+    /// When performing recursive aggregation in a circuit it is most efficient to use a verification key formatted using a backend's native field.
+    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
+    fn vk_as_fields(
+        &self,
+        common_reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error>;
 }

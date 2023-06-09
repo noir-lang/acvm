@@ -6,6 +6,8 @@ use acir::{
     native_types::Expression,
 };
 
+/// The initial transformer to act on a [`Circuit`]. This replaces any unsupported opcodes with
+/// fallback implementations consisting of well supported opcodes.
 pub struct FallbackTransformer;
 
 impl FallbackTransformer {
@@ -27,6 +29,7 @@ impl FallbackTransformer {
                 match &opcode {
                     Opcode::Arithmetic(_)
                     | Opcode::Directive(_)
+                    | Opcode::Brillig(_)
                     | Opcode::Block(_)
                     | Opcode::ROM(_)
                     | Opcode::RAM(_)

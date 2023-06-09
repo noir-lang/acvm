@@ -6,7 +6,13 @@ use acir::{
 };
 use indexmap::IndexMap;
 
-// Is this more of a Reducer than an optimizer?
+/// A transformer which processes any [`Expression`]s to break them up such that they
+/// fit within the [`ProofSystemCompiler`][crate::ProofSystemCompiler]'s width.
+///
+/// This transformer is only used when targetting the [`PLONKCSat`][crate::Language::PLONKCSat] language.
+///
+/// This is done by creating intermediate variables to hold partial calculations and then combining them
+/// to calculate the original expression.
 // Should we give it all of the gates?
 // Have a single transformer that you instantiate with a width, then pass many gates through
 pub struct CSatTransformer {
@@ -27,8 +33,8 @@ impl CSatTransformer {
     pub fn transform(
         &self,
         gate: Expression,
-        intermediate_variables: &mut IndexMap<Witness, Expression>,
-        num_witness: u32,
+        intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
+        num_witness: &mut u32,
     ) -> Expression {
         // Here we create intermediate variables and constrain them to be equal to any subset of the polynomial that can be represented as a full gate
         let gate = self.full_gate_scan_optimization(gate, intermediate_variables, num_witness);
@@ -68,8 +74,8 @@ impl CSatTransformer {
     fn full_gate_scan_optimization(
         &self,
         mut gate: Expression,
-        intermediate_variables: &mut IndexMap<Witness, Expression>,
-        num_witness: u32,
+        intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
+        num_witness: &mut u32,
     ) -> Expression {
         // We pass around this intermediate variable IndexMap, so that we do not create intermediate variables that we have created before
         // One instance where this might happen is t1 = wL * wR and t2 = wR * wL
@@ -165,15 +171,15 @@ impl CSatTransformer {
                     // XXX: Another optimization, which could be applied in another algorithm
                     // If two gates have a large fan-in/out and they share a few common terms, then we should create intermediate variables for them
                     // Do some sort of subset matching algorithm for this on the terms of the polynomial
-                    let inter_var = Witness(intermediate_variables.len() as u32 + num_witness);
 
-                    // Constrain the gate to the intermediate variable
-                    intermediate_gate.linear_combinations.push((-FieldElement::one(), inter_var));
-                    // Add intermediate gate to the map
-                    intermediate_variables.insert(inter_var, intermediate_gate);
+                    let inter_var = Self::get_or_create_intermediate_vars(
+                        intermediate_variables,
+                        intermediate_gate,
+                        num_witness,
+                    );
 
                     // Add intermediate variable to the new gate instead of the full gate
-                    new_gate.linear_combinations.push((FieldElement::one(), inter_var));
+                    new_gate.linear_combinations.push(inter_var);
                 }
             };
             // Remove this term as we are finished processing it
@@ -186,6 +192,42 @@ impl CSatTransformer {
         new_gate.q_c = gate.q_c;
         new_gate.sort();
         new_gate
+    }
+
+    /// Normalize an expression by dividing it by its first coefficient
+    /// The first coefficient here means coefficient of the first linear term, or of the first quadratic term if no linear terms exist.
+    /// The function panic if the input expression is constant
+    fn normalize(mut expr: Expression) -> (FieldElement, Expression) {
+        expr.sort();
+        let a = if !expr.linear_combinations.is_empty() {
+            expr.linear_combinations[0].0
+        } else {
+            expr.mul_terms[0].0
+        };
+        (a, &expr * a.inverse())
+    }
+
+    /// Get or generate a scaled intermediate witness which is equal to the provided expression
+    /// The sets of previously generated witness and their (normalized) expression is cached in the intermediate_variables map
+    /// If there is no cache hit, we generate a new witness (and add the expression to the cache)
+    /// else, we return the cached witness along with the scaling factor so it is equal to the provided expression
+    fn get_or_create_intermediate_vars(
+        intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
+        expr: Expression,
+        num_witness: &mut u32,
+    ) -> (FieldElement, Witness) {
+        let (k, normalized_expr) = Self::normalize(expr);
+
+        if intermediate_variables.contains_key(&normalized_expr) {
+            let (l, iv) = intermediate_variables[&normalized_expr];
+            (k / l, iv)
+        } else {
+            let inter_var = Witness(*num_witness);
+            *num_witness += 1;
+            // Add intermediate gate and variable to map
+            intermediate_variables.insert(normalized_expr, (k, inter_var));
+            (FieldElement::one(), inter_var)
+        }
     }
 
     // A partial gate scan optimization aim to create intermediate variables in order to compress the polynomial
@@ -228,8 +270,8 @@ impl CSatTransformer {
     fn partial_gate_scan_optimization(
         &self,
         mut gate: Expression,
-        intermediate_variables: &mut IndexMap<Witness, Expression>,
-        num_witness: u32,
+        intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
+        num_witness: &mut u32,
     ) -> Expression {
         // We will go for the easiest route, which is to convert all multiplications into additions using intermediate variables
         // Then use intermediate variables again to squash the fan-in, so that it can fit into the appropriate width
@@ -242,20 +284,19 @@ impl CSatTransformer {
 
         // 2. Create Intermediate variables for the multiplication gates
         for mul_term in gate.mul_terms.clone().into_iter() {
-            // Create intermediate variable to squash the multiplication term
-            let inter_var = Witness((intermediate_variables.len() as u32) + num_witness);
             let mut intermediate_gate = Expression::default();
 
             // Push mul term into the gate
             intermediate_gate.mul_terms.push(mul_term);
-            // Constrain it to be equal to the intermediate variable
-            intermediate_gate.linear_combinations.push((-FieldElement::one(), inter_var));
-
-            // Add intermediate gate and variable to map
-            intermediate_variables.insert(inter_var, intermediate_gate);
+            // Get an intermediate variable which squashes the multiplication term
+            let inter_var = Self::get_or_create_intermediate_vars(
+                intermediate_variables,
+                intermediate_gate,
+                num_witness,
+            );
 
             // Add intermediate variable as a part of the fan-in for the original gate
-            gate.linear_combinations.push((FieldElement::one(), inter_var));
+            gate.linear_combinations.push(inter_var);
         }
 
         // Remove all of the mul terms as we have intermediate variables to represent them now
@@ -287,15 +328,13 @@ impl CSatTransformer {
                     }
                 };
             }
-            // Constrain the intermediate gate to be equal to the intermediate variable
-            let inter_var = Witness((intermediate_variables.len() as u32) + num_witness);
+            let inter_var = Self::get_or_create_intermediate_vars(
+                intermediate_variables,
+                intermediate_gate,
+                num_witness,
+            );
 
-            added.push((FieldElement::one(), inter_var));
-
-            intermediate_gate.linear_combinations.push((-FieldElement::one(), inter_var));
-
-            // Add intermediate gate and variable to map
-            intermediate_variables.insert(inter_var, intermediate_gate);
+            added.push(inter_var);
         }
 
         // Add back the intermediate variables to
@@ -325,13 +364,13 @@ fn simple_reduction_smoke_test() {
         q_c: FieldElement::zero(),
     };
 
-    let mut intermediate_variables: IndexMap<Witness, Expression> = IndexMap::new();
+    let mut intermediate_variables: IndexMap<Expression, (FieldElement, Witness)> = IndexMap::new();
 
-    let num_witness = 4;
+    let mut num_witness = 4;
 
     let optimizer = CSatTransformer::new(3);
     let got_optimized_gate_a =
-        optimizer.transform(gate_a, &mut intermediate_variables, num_witness);
+        optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
     // a = b + c + d => a - b - c - d = 0
     // For width3, the result becomes:
@@ -353,17 +392,13 @@ fn simple_reduction_smoke_test() {
 
     assert_eq!(intermediate_variables.len(), 1);
 
-    let got_intermediate_gate = intermediate_variables.get(&e).unwrap();
-
-    // - c - d  - e = 0
+    // e = - c - d
     let expected_intermediate_gate = Expression {
         mul_terms: vec![],
-        linear_combinations: vec![
-            (-FieldElement::one(), d),
-            (-FieldElement::one(), c),
-            (-FieldElement::one(), e),
-        ],
+        linear_combinations: vec![(-FieldElement::one(), d), (-FieldElement::one(), c)],
         q_c: FieldElement::zero(),
     };
-    assert_eq!(&expected_intermediate_gate, got_intermediate_gate);
+    let (_, normalized_gate) = CSatTransformer::normalize(expected_intermediate_gate);
+    assert!(intermediate_variables.contains_key(&normalized_gate));
+    assert_eq!(intermediate_variables[&normalized_gate].1, e);
 }

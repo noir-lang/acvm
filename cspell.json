@@ -10,7 +10,9 @@
         "Axyz",
         "arithmetization",
         "bivariate",
+        "Brillig",
         "canonicalize",
+        "callstack",
         "coeff",
         "consts",
         "csat",
@@ -41,6 +43,8 @@
         "flate",
         "indexmap",
         "thiserror",
-        "typenum"
+        "typenum",
+        "jmpif",
+        "jmpifnot"
     ]
 }

@@ -406,7 +406,7 @@ impl<F: PrimeField> SubAssign for FieldElement<F> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     #[test]
     fn and() {
         let max = 10_000u32;
