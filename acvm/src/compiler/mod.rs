@@ -15,7 +15,7 @@ mod transformers;
 use optimizers::{GeneralOptimizer, RangeOptimizer};
 use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
-pub use optimizers::{Simplifier, SimplifyResult};
+pub use optimizers::{CircuitSimplifier, SimplifyResult};
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -28,7 +28,7 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-    simplifier: &Simplifier,
+    simplifier: &CircuitSimplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same

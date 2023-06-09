@@ -1,4 +1,4 @@
-use crate::compiler::optimizers::Simplifier;
+use crate::compiler::optimizers::CircuitSimplifier;
 
 use super::super::CompileError;
 use acir::{
@@ -15,7 +15,7 @@ impl FallbackTransformer {
     pub(crate) fn transform(
         acir: Circuit,
         is_supported: impl Fn(&Opcode) -> bool,
-        simplifier: &Simplifier,
+        simplifier: &CircuitSimplifier,
     ) -> Result<Circuit, CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
 
