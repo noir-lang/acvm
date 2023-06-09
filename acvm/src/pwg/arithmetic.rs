@@ -7,16 +7,16 @@ use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
-pub struct ArithmeticSolver;
+pub(super) struct ArithmeticSolver;
 
 #[allow(clippy::enum_variant_names)]
-pub enum GateStatus {
+pub(super) enum GateStatus {
     GateSatisfied(FieldElement),
     GateSolvable(FieldElement, (FieldElement, Witness)),
     GateUnsolvable,
 }
 
-pub enum MulTerm {
+pub(crate) enum MulTerm {
     OneUnknown(FieldElement, Witness), // (qM * known_witness, unknown_witness)
     TooManyUnknowns,
     Solved(FieldElement),
@@ -24,7 +24,7 @@ pub enum MulTerm {
 
 impl ArithmeticSolver {
     /// Derives the rest of the witness based on the initial low level variables
-    pub fn solve(
+    pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         gate: &Expression,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -162,7 +162,7 @@ impl ArithmeticSolver {
     /// Returns the summation of all of the variables, plus the unknown variable
     /// Returns None, if there is more than one unknown variable
     /// We cannot assign
-    pub fn solve_fan_in_term(
+    pub(super) fn solve_fan_in_term(
         arith_gate: &Expression,
         witness_assignments: &WitnessMap,
     ) -> GateStatus {
@@ -198,7 +198,7 @@ impl ArithmeticSolver {
     }
 
     // Partially evaluate the gate using the known witnesses
-    pub fn evaluate(expr: &Expression, initial_witness: &WitnessMap) -> Expression {
+    pub(super) fn evaluate(expr: &Expression, initial_witness: &WitnessMap) -> Expression {
         let mut result = Expression::default();
         for &(c, w1, w2) in &expr.mul_terms {
             let mul_result = ArithmeticSolver::solve_mul_term_helper(&(c, w1, w2), initial_witness);
@@ -230,7 +230,7 @@ impl ArithmeticSolver {
     // Returns one witness belonging to an expression, in no relevant order
     // Returns None if the expression is const
     // The function is used during partial witness generation to report unsolved witness
-    pub fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
+    pub(super) fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
         if expr.linear_combinations.is_empty() {
             if expr.mul_terms.is_empty() {
                 None

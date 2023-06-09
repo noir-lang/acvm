@@ -10,7 +10,9 @@ use num_traits::Zero;
 
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
-use super::{get_value, insert_value, sorting::route, witness_to_value};
+use super::{get_value, insert_value, witness_to_value};
+
+mod sorting;
 
 /// Attempts to solve the [`Directive`] opcode `directive`.
 /// If successful, `initial_witness` will be mutated to contain the new witness assignment.
@@ -18,7 +20,7 @@ use super::{get_value, insert_value, sorting::route, witness_to_value};
 /// Returns `Ok(OpcodeResolution)` to signal whether the directive was successful solved.
 ///
 /// Returns `Err(OpcodeResolutionError)` if a circuit constraint is unsatisfied.
-pub fn solve_directives(
+pub(super) fn solve_directives(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -126,7 +128,7 @@ fn solve_directives_internal(
                 Ordering::Equal
             });
             let b = val_a.iter().map(|a| *a.last().unwrap()).collect();
-            let control = route(base, b);
+            let control = sorting::route(base, b);
             for (w, value) in bits.iter().zip(control) {
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
                 insert_value(w, value, initial_witness)?;
