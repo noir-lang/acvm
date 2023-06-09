@@ -189,20 +189,47 @@ impl BinaryIntOp {
     }
 }
 
-fn to_signed(a: u128, n: u32) -> i128 {
-    assert!(n < 127);
-    let pow_2 = 2_u128.pow(n);
+fn to_signed(a: u128, bit_size: u32) -> i128 {
+    assert!(bit_size < 128);
+    let pow_2 = 2_u128.pow(bit_size - 1);
     if a < pow_2 {
         a as i128
     } else {
-        (a - 2 * pow_2) as i128
+        (a.wrapping_sub(2 * pow_2)) as i128
     }
 }
 
-fn to_unsigned(a: i128, n: u32) -> u128 {
+fn to_unsigned(a: i128, bit_size: u32) -> u128 {
     if a >= 0 {
         a as u128
     } else {
-        (a + 2_i128.pow(n + 1)) as u128
+        (a + 2_i128.pow(bit_size)) as u128
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_signed_roundtrip() {
+        let bit_size = 32;
+        let minus_one = 2_u128.pow(bit_size) - 1;
+        assert_eq!(to_unsigned(to_signed(minus_one, bit_size), bit_size), minus_one);
+    }
+
+    #[test]
+    fn signed_div_test() {
+        let bit_size = 32;
+        let two_pow = 2_u128.pow(bit_size);
+
+        let minus_one = two_pow - 1;
+        let minus_five = two_pow - 5;
+        let minus_ten = two_pow - 10;
+
+        let op = BinaryIntOp::SignedDiv;
+        assert_eq!(op.evaluate_int(5, minus_ten, bit_size), 0);
+        assert_eq!(op.evaluate_int(5, minus_one, bit_size), minus_five);
+        assert_eq!(op.evaluate_int(minus_five, minus_one, bit_size), 5);
     }
 }
