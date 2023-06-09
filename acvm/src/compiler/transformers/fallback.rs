@@ -1,4 +1,4 @@
-use crate::compiler::optimizers::Simplifier;
+use crate::compiler::optimizers::CircuitSimplifier;
 
 use super::super::CompileError;
 use acir::{
@@ -8,14 +8,14 @@ use acir::{
 
 /// The initial transformer to act on a [`Circuit`]. This replaces any unsupported opcodes with
 /// fallback implementations consisting of well supported opcodes.
-pub struct FallbackTransformer;
+pub(crate) struct FallbackTransformer;
 
 impl FallbackTransformer {
     //ACIR pass which replace unsupported opcodes using arithmetic fallback
-    pub fn transform(
+    pub(crate) fn transform(
         acir: Circuit,
         is_supported: impl Fn(&Opcode) -> bool,
-        simplifier: &Simplifier,
+        simplifier: &CircuitSimplifier,
     ) -> Result<Circuit, CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
 

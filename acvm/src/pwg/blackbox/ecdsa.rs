@@ -19,7 +19,7 @@ fn to_u8_vec(
     Ok(result)
 }
 
-pub fn secp256k1_prehashed(
+pub(crate) fn secp256k1_prehashed(
     initial_witness: &mut WitnessMap,
     public_key_x_inputs: &[FunctionInput],
     public_key_y_inputs: &[FunctionInput],

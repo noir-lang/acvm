@@ -1,20 +1,21 @@
-// The various passes that we can use over ACIR
-pub mod optimizers;
-pub mod transformers;
-
-use crate::Language;
 use acir::{
     circuit::{Circuit, Opcode},
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
 use indexmap::IndexMap;
-use optimizers::GeneralOptimizer;
 use thiserror::Error;
+
+use crate::Language;
+
+// The various passes that we can use over ACIR
+mod optimizers;
+mod transformers;
+
+use optimizers::{GeneralOptimizer, RangeOptimizer};
 use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
-use self::optimizers::RangeOptimizer;
-use self::optimizers::Simplifier;
+pub use optimizers::{CircuitSimplifier, SimplifyResult};
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
@@ -27,7 +28,7 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-    simplifier: &Simplifier,
+    simplifier: &CircuitSimplifier,
 ) -> Result<Circuit, CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same

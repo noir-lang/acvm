@@ -1,7 +1,8 @@
 mod general;
 mod redundant_range;
-pub mod simplify;
+mod simplify;
 
 pub(crate) use general::GeneralOptimizer;
 pub(crate) use redundant_range::RangeOptimizer;
-pub(crate) use simplify::CircuitSimplifier as Simplifier;
+// Public as these need to be passed to `acvm::compiler::compile()`
+pub use simplify::{CircuitSimplifier, SimplifyResult};
