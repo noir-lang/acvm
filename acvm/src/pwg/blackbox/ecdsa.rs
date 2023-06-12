@@ -27,6 +27,8 @@ pub(super) fn secp256k1_prehashed(
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
+
     let pub_key_x: [u8; 32] =
         to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
@@ -51,7 +53,6 @@ pub(super) fn secp256k1_prehashed(
             )
         })?;
 
-    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
     let result =
         ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
             .is_ok();
@@ -61,12 +62,9 @@ pub(super) fn secp256k1_prehashed(
 }
 
 mod ecdsa_secp256k1 {
-    use std::convert::TryInto;
-
-    use blake2::digest::generic_array::GenericArray;
-
     use k256::elliptic_curve::sec1::FromEncodedPoint;
     use k256::elliptic_curve::PrimeField;
+    use sha2::digest::generic_array::GenericArray;
 
     use k256::{ecdsa::Signature, Scalar};
     use k256::{
@@ -89,11 +87,12 @@ mod ecdsa_secp256k1 {
         let message =
             b"ECDSA proves knowledge of a secret number in the context of a single message";
 
-        let mut hasher = Sha256::new();
-        hasher.update(message);
-        let digest = hasher.finalize();
+        let digest = Sha256::digest(message);
 
         let signature: Signature = signing_key.sign(message);
+        let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
+        assert!(Signature::try_from(signature_bytes.as_slice()).unwrap() == signature);
+
         // Verification
         use k256::ecdsa::{signature::Verifier, VerifyingKey};
 
@@ -101,9 +100,10 @@ mod ecdsa_secp256k1 {
 
         if let Coordinates::Uncompressed { x, y } = verify_key.to_encoded_point(false).coordinates()
         {
-            let signature_bytes: &[u8] = signature.as_ref();
-            assert!(Signature::try_from(signature_bytes).unwrap() == signature);
-            verify_prehashed(&digest, x, y, signature_bytes).unwrap();
+            let x: [u8; 32] = (*x).into();
+            let y: [u8; 32] = (*y).into();
+
+            verify_prehashed(&digest, &x, &y, &signature_bytes).unwrap();
         } else {
             unreachable!();
         }
@@ -114,26 +114,17 @@ mod ecdsa_secp256k1 {
     /// Verify an ECDSA signature, given the hashed message
     pub(super) fn verify_prehashed(
         hashed_msg: &[u8],
-        public_key_x_bytes: &[u8],
-        public_key_y_bytes: &[u8],
-        signature: &[u8],
+        public_key_x_bytes: &[u8; 32],
+        public_key_y_bytes: &[u8; 32],
+        signature: &[u8; 64],
     ) -> Result<(), ()> {
         // Convert the inputs into k256 data structures
 
-        let signature = Signature::try_from(signature).unwrap();
-
-        let pub_key_x_arr: [u8; 32] = {
-            let pub_key_x_bytes: &[u8] = public_key_x_bytes;
-            pub_key_x_bytes.try_into().unwrap()
-        };
-        let pub_key_y_arr: [u8; 32] = {
-            let pub_key_y_bytes: &[u8] = public_key_y_bytes;
-            pub_key_y_bytes.try_into().unwrap()
-        };
+        let signature = Signature::try_from(signature.as_slice()).unwrap();
 
         let point = EncodedPoint::from_affine_coordinates(
-            &pub_key_x_arr.into(),
-            &pub_key_y_arr.into(),
+            public_key_x_bytes.into(),
+            public_key_y_bytes.into(),
             true,
         );
         let pubkey = PublicKey::from_encoded_point(&point).unwrap();
