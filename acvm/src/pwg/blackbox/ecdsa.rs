@@ -99,6 +99,9 @@ mod ecdsa_secp256k1 {
             Sha256::digest(message).try_into().expect("SHA256 digest should be 256 bits");
 
         let signature: Signature = signing_key.sign(message);
+        let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
+        assert!(Signature::try_from(signature_bytes.as_slice()).unwrap() == signature);
+
         // Verification
         use k256::ecdsa::{signature::Verifier, VerifyingKey};
 
@@ -106,11 +109,8 @@ mod ecdsa_secp256k1 {
 
         if let Coordinates::Uncompressed { x, y } = verify_key.to_encoded_point(false).coordinates()
         {
-            let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
-            assert!(Signature::try_from(signature_bytes.as_slice()).unwrap() == signature);
-
-            let x: [u8; 32] = x.clone().into();
-            let y: [u8; 32] = y.clone().into();
+            let x: [u8; 32] = (*x).into();
+            let y: [u8; 32] = (*y).into();
 
             verify_prehashed(&digest, &x, &y, &signature_bytes).unwrap();
         } else {
