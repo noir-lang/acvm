@@ -310,9 +310,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_vm::{
-            self, BinaryFieldOp, ForeignCallResult, RegisterIndex, RegisterValueOrArray, Value,
-        },
+        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterValueOrArray, Value},
         circuit::{
             brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
@@ -324,10 +322,7 @@ mod tests {
     };
 
     use crate::{
-        pwg::{
-            self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus,
-            UnresolvedBrilligCall,
-        },
+        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus},
         OpcodeResolutionError, PartialWitnessGenerator,
     };
 
@@ -543,7 +538,7 @@ mod tests {
         let foreign_call_result =
             vec![Value::from(foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse())];
         // Alter Brillig oracle opcode with foreign call resolution
-        let brillig = foreign_call.resolve_foreign_call(foreign_call_result.into());
+        let brillig: Brillig = foreign_call.resolve_foreign_call(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
@@ -667,15 +662,17 @@ mod tests {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
 
-        let x_plus_y_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
+        let x_plus_y_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
         // Alter Brillig oracle opcode
-        brillig
-            .foreign_call_results
-            .push(ForeignCallResult { values: vec![Value::from(x_plus_y_inverse)] });
+        let brillig: Brillig =
+            foreign_call.resolve_foreign_call(vec![Value::from(x_plus_y_inverse)].into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -690,16 +687,18 @@ mod tests {
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have no unresolved oracles");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
 
-        let i_plus_j_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
+        let i_plus_j_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
-        brillig
-            .foreign_call_results
-            .push(ForeignCallResult { values: vec![Value::from(i_plus_j_inverse)] });
+        let brillig = foreign_call.resolve_foreign_call(vec![Value::from(i_plus_j_inverse)].into());
+
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
 
