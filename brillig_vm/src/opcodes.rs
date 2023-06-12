@@ -164,9 +164,9 @@ impl BinaryIntOp {
         let bit_modulo = 1_u128 << bit_size;
         match self {
             // Perform addition, subtraction, and multiplication, applying a modulo operation to keep the result within the bit size.
-            BinaryIntOp::Add => (a + b) % bit_modulo,
-            BinaryIntOp::Sub => (a - b) % bit_modulo,
-            BinaryIntOp::Mul => (a * b) % bit_modulo,
+            BinaryIntOp::Add => a.wrapping_add(b) % bit_modulo,
+            BinaryIntOp::Sub => a.wrapping_sub(b) % bit_modulo,
+            BinaryIntOp::Mul => a.wrapping_mul(b) % bit_modulo,
             // Perform unsigned division using the modulo operation on a and b.
             BinaryIntOp::UnsignedDiv => (a % bit_modulo) / (b % bit_modulo),
             // Perform signed division by first converting a and b to signed integers and then back to unsigned after the operation.
