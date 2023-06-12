@@ -327,6 +327,7 @@ mod tests {
             TestParams {
                 a: to_negative(2, bit_size),
                 b: 7,
+                // negative 14 wraps to a 2
                 result: to_negative(14, bit_size),
             },
         ];
