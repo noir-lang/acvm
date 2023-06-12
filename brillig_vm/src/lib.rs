@@ -47,6 +47,12 @@ pub struct ForeignCallResult {
     pub values: Vec<Value>,
 }
 
+impl From<Vec<Value>> for ForeignCallResult {
+    fn from(values: Vec<Value>) -> Self {
+        ForeignCallResult { values }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// VM encapsulates the state of the Brillig VM during execution.
 pub struct VM {

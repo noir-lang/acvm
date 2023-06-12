@@ -533,14 +533,17 @@ mod tests {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
         // As caller of VM, need to resolve foreign calls
+        let foreign_call_result =
+            vec![Value::from(foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse())];
         // Alter Brillig oracle opcode with foreign call resolution
-        brillig.foreign_call_results.push(ForeignCallResult {
-            values: vec![Value::from(foreign_call_wait_info.inputs[0].to_field().inverse())],
-        });
+        let brillig = foreign_call.resolve_foreign_call(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
