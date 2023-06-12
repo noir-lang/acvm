@@ -3,6 +3,17 @@ use acir::{
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
+use k256::elliptic_curve::sec1::FromEncodedPoint;
+use k256::elliptic_curve::PrimeField;
+
+use k256::{ecdsa::Signature, Scalar};
+use k256::{
+    elliptic_curve::{
+        sec1::{Coordinates, ToEncodedPoint},
+        IsHigh,
+    },
+    AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
+};
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
@@ -62,26 +73,67 @@ pub(crate) fn secp256k1_prehashed(
             )
         })?;
 
-    let result =
-        ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
-            .is_ok();
+    let result = verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).is_ok();
 
     initial_witness.insert(output, FieldElement::from(result));
     Ok(OpcodeResolution::Solved)
 }
 
-mod ecdsa_secp256k1 {
-    use k256::elliptic_curve::sec1::FromEncodedPoint;
-    use k256::elliptic_curve::PrimeField;
+/// Verify an ECDSA signature, given the hashed message
+fn verify_prehashed(
+    hashed_msg: &[u8; 32],
+    public_key_x_bytes: &[u8; 32],
+    public_key_y_bytes: &[u8; 32],
+    signature: &[u8; 64],
+) -> Result<(), ()> {
+    // Convert the inputs into k256 data structures
 
-    use k256::{ecdsa::Signature, Scalar};
-    use k256::{
-        elliptic_curve::{
-            sec1::{Coordinates, ToEncodedPoint},
-            IsHigh,
-        },
-        AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
-    };
+    let signature = Signature::try_from(signature.as_slice()).unwrap();
+
+    let point = EncodedPoint::from_affine_coordinates(
+        public_key_x_bytes.into(),
+        public_key_y_bytes.into(),
+        true,
+    );
+    let pubkey = PublicKey::from_encoded_point(&point).unwrap();
+
+    let z = Scalar::from_repr((*hashed_msg).into()).unwrap();
+
+    // Finished converting bytes into data structures
+
+    let r = signature.r();
+    let s = signature.s();
+
+    // Ensure signature is "low S" normalized ala BIP 0062
+    if s.is_high().into() {
+        return Err(());
+    }
+
+    let s_inv = s.invert().unwrap();
+    let u1 = z * s_inv;
+    let u2 = *r * s_inv;
+
+    #[allow(non_snake_case)]
+    let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
+        + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
+        .to_affine();
+
+    if let Coordinates::Uncompressed { x, y: _ } = R.to_encoded_point(false).coordinates() {
+        if Scalar::from_repr(*x).unwrap().eq(&r) {
+            return Ok(());
+        }
+    }
+    Err(())
+}
+
+#[cfg(test)]
+mod test {
+
+    use k256::ecdsa::Signature;
+    use k256::elliptic_curve::sec1::{Coordinates, ToEncodedPoint};
+
+    use super::verify_prehashed;
+
     // This method is used to generate test vectors
     // in noir. TODO: check that it is indeed used
     #[allow(dead_code)]
@@ -118,53 +170,6 @@ mod ecdsa_secp256k1 {
         }
 
         assert!(verify_key.verify(message, &signature).is_ok());
-    }
-
-    /// Verify an ECDSA signature, given the hashed message
-    pub(super) fn verify_prehashed(
-        hashed_msg: &[u8; 32],
-        public_key_x_bytes: &[u8; 32],
-        public_key_y_bytes: &[u8; 32],
-        signature: &[u8; 64],
-    ) -> Result<(), ()> {
-        // Convert the inputs into k256 data structures
-
-        let signature = Signature::try_from(signature.as_slice()).unwrap();
-
-        let point = EncodedPoint::from_affine_coordinates(
-            public_key_x_bytes.into(),
-            public_key_y_bytes.into(),
-            true,
-        );
-        let pubkey = PublicKey::from_encoded_point(&point).unwrap();
-
-        let z = Scalar::from_repr((*hashed_msg).into()).unwrap();
-
-        // Finished converting bytes into data structures
-
-        let r = signature.r();
-        let s = signature.s();
-
-        // Ensure signature is "low S" normalized ala BIP 0062
-        if s.is_high().into() {
-            return Err(());
-        }
-
-        let s_inv = s.invert().unwrap();
-        let u1 = z * s_inv;
-        let u2 = *r * s_inv;
-
-        #[allow(non_snake_case)]
-        let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
-            + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
-            .to_affine();
-
-        if let Coordinates::Uncompressed { x, y: _ } = R.to_encoded_point(false).coordinates() {
-            if Scalar::from_repr(*x).unwrap().eq(&r) {
-                return Ok(());
-            }
-        }
-        Err(())
     }
 
     #[test]
