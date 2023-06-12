@@ -30,16 +30,12 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
+    /// The `PartialWitnessGenerator` has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
+    /// to retrieve information from outside of the ACVM.
+    /// The result of the foreign call is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
     ///
-    /// Both of these opcodes require information from outside of the ACVM to be inserted before restarting execution.
-    /// [`Opcode::Oracle`] and [`Opcode::Brillig`] opcodes require the return values to be inserted slightly differently.
-    /// `Oracle` opcodes expect their return values to be written directly into the witness map whereas a `Brillig` foreign call
-    /// result is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
-    /// (Note: this means that the updated opcode must then be passed back into the ACVM to be processed further.)
-    ///
-    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
-    RequiresOracleData {
+    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the new set of opcodes.
+    RequiresForeignCall {
         unsolved_opcodes: Vec<Opcode>,
         unresolved_brillig_calls: Vec<UnresolvedBrilligCall>,
     },
@@ -162,7 +158,7 @@ pub fn solve(
         }
         // We have oracles that must be externally resolved
         if !unresolved_brillig_calls.is_empty() {
-            return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
+            return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
                 unsolved_opcodes: unresolved_opcodes,
                 unresolved_brillig_calls,
             });
@@ -472,7 +468,7 @@ mod tests {
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
@@ -606,7 +602,7 @@ mod tests {
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
             .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
@@ -630,7 +626,7 @@ mod tests {
         let solver_status =
             pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
                 .expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
