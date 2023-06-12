@@ -38,9 +38,12 @@ pub enum VMStatus {
     },
 }
 
+/// Represents the output of a [foreign call][Opcode::ForeignCall].
+///
+/// See [`VMStatus::ForeignCallWait`] for more information.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
-    /// Resolved foreign call values
+    /// Resolved output values of the foreign call.
     pub values: Vec<Value>,
 }
 
