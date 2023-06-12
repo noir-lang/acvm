@@ -131,7 +131,7 @@ mod test {
     use super::verify_prehashed;
 
     #[test]
-    fn verifies_valid_signature() {
+    fn verifies_valid_signature_with_low_s_value() {
         // 0x3a73f4123a5cd2121f21cd7e8d358835476949d035d9c2da6806b4633ac8c1e2,
         let hashed_message: [u8; 32] = [
             0x3a, 0x73, 0xf4, 0x12, 0x3a, 0x5c, 0xd2, 0x12, 0x1f, 0x21, 0xcd, 0x7e, 0x8d, 0x35,
