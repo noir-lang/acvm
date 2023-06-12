@@ -234,31 +234,11 @@ mod tests {
         let bit_size = 4;
 
         let test_ops = vec![
-            TestParams {
-                a: 5,
-                b: 10,
-                result: 15,
-            },
-            TestParams {
-                a: 10,
-                b: 10,
-                result: 4,
-            },
-            TestParams {
-                a: 5,
-                b: to_negative(3, bit_size),
-                result: 2,
-            },
-            TestParams {
-                a: to_negative(3, bit_size),
-                b: 1,
-                result: to_negative(2, bit_size),
-            },
-            TestParams {
-                a: 5,
-                b: to_negative(6, bit_size),
-                result: to_negative(1, bit_size),
-            }
+            TestParams { a: 5, b: 10, result: 15 },
+            TestParams { a: 10, b: 10, result: 4 },
+            TestParams { a: 5, b: to_negative(3, bit_size), result: 2 },
+            TestParams { a: to_negative(3, bit_size), b: 1, result: to_negative(2, bit_size) },
+            TestParams { a: 5, b: to_negative(6, bit_size), result: to_negative(1, bit_size) },
         ];
 
         evaluate_int_ops(test_ops, BinaryIntOp::Add, bit_size);
@@ -269,61 +249,25 @@ mod tests {
         let bit_size = 4;
 
         let test_ops = vec![
-            TestParams {
-                a: 5,
-                b: 3,
-                result: 2,
-            },
-            TestParams {
-                a: 5,
-                b: 10,
-                result: to_negative(5, bit_size),
-            },
-            TestParams {
-                a: 5,
-                b: to_negative(3, bit_size),
-                result: 8,
-            },
-            TestParams {
-                a: to_negative(3, bit_size),
-                b: 2,
-                result: to_negative(5, bit_size),
-            },
-            TestParams {
-                a: 14,
-                b: to_negative(3, bit_size),
-                result: 1,
-            }
+            TestParams { a: 5, b: 3, result: 2 },
+            TestParams { a: 5, b: 10, result: to_negative(5, bit_size) },
+            TestParams { a: 5, b: to_negative(3, bit_size), result: 8 },
+            TestParams { a: to_negative(3, bit_size), b: 2, result: to_negative(5, bit_size) },
+            TestParams { a: 14, b: to_negative(3, bit_size), result: 1 },
         ];
 
         evaluate_int_ops(test_ops, BinaryIntOp::Sub, bit_size);
     }
 
     #[test]
-    fn mul_test(){
+    fn mul_test() {
         let bit_size = 4;
 
         let test_ops = vec![
-            TestParams {
-                a: 5,
-                b: 3,
-                result: 15,
-            },
-            TestParams {
-                a: 5,
-                b: 10,
-                result: 2,
-            },
-            TestParams {
-                a: to_negative(1, bit_size),
-                b: to_negative(5, bit_size),
-                result: 5,
-            },
-            TestParams {
-                a: to_negative(1, bit_size),
-                b: 5,
-                result: to_negative(5, bit_size),
-            },
+            TestParams { a: 5, b: 3, result: 15 },
+            TestParams { a: 5, b: 10, result: 2 },
+            TestParams { a: to_negative(1, bit_size), b: to_negative(5, bit_size), result: 5 },
+            TestParams { a: to_negative(1, bit_size), b: 5, result: to_negative(5, bit_size) },
             TestParams {
                 a: to_negative(2, bit_size),
                 b: 7,
@@ -333,24 +277,21 @@ mod tests {
         ];
 
         evaluate_int_ops(test_ops, BinaryIntOp::Mul, bit_size);
+
+        let bit_size = 127;
+        let a = 2_u128.pow(bit_size) - 1;
+        let b = 3;
+
+        // ( 2**(n-1) - 1 ) * 3 = 2*2**(n-1) - 2 + (2**(n-1) - 1) => wraps to (2**(n-1) - 1) - 2
+        assert_eq!(BinaryIntOp::Mul.evaluate_int(a, b, bit_size), a - 2);
     }
 
     #[test]
     fn div_test() {
         let bit_size = 4;
 
-        let test_ops = vec![
-            TestParams {
-                a: 5,
-                b: 3,
-                result: 1,
-            },
-            TestParams {
-                a: 5,
-                b: 10,
-                result: 0,
-            },
-        ];
+        let test_ops =
+            vec![TestParams { a: 5, b: 3, result: 1 }, TestParams { a: 5, b: 10, result: 0 }];
 
         evaluate_int_ops(test_ops, BinaryIntOp::UnsignedDiv, bit_size);
     }
@@ -367,21 +308,9 @@ mod tests {
         let bit_size = 32;
 
         let test_ops = vec![
-            TestParams {
-                a: 5,
-                b: to_negative(10, bit_size),
-                result: 0,
-            },
-            TestParams {
-                a: 5,
-                b: to_negative(1, bit_size),
-                result: to_negative(5, bit_size),
-            },
-            TestParams {
-                a: to_negative(5, bit_size),
-                b: to_negative(1, bit_size),
-                result: 5,
-            },
+            TestParams { a: 5, b: to_negative(10, bit_size), result: 0 },
+            TestParams { a: 5, b: to_negative(1, bit_size), result: to_negative(5, bit_size) },
+            TestParams { a: to_negative(5, bit_size), b: to_negative(1, bit_size), result: 5 },
         ];
 
         evaluate_int_ops(test_ops, BinaryIntOp::SignedDiv, bit_size);
