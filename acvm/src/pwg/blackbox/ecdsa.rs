@@ -87,8 +87,7 @@ mod ecdsa_secp256k1 {
         let message =
             b"ECDSA proves knowledge of a secret number in the context of a single message";
 
-        let digest: [u8; 32] =
-            Sha256::digest(message).try_into().expect("SHA256 digest should be 256 bits");
+        let digest = Sha256::digest(message);
 
         let signature: Signature = signing_key.sign(message);
         let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
