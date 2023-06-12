@@ -128,49 +128,7 @@ fn verify_prehashed(
 
 #[cfg(test)]
 mod test {
-
-    use k256::ecdsa::Signature;
-    use k256::elliptic_curve::sec1::{Coordinates, ToEncodedPoint};
-
     use super::verify_prehashed;
-
-    // This method is used to generate test vectors
-    // in noir. TODO: check that it is indeed used
-    #[allow(dead_code)]
-    fn generate_proof_data() {
-        use k256::ecdsa::{signature::Signer, SigningKey};
-
-        use sha2::{Digest, Sha256};
-
-        // Signing
-        let signing_key = SigningKey::from_bytes(&[2u8; 32]).unwrap();
-        let message =
-            b"ECDSA proves knowledge of a secret number in the context of a single message";
-
-        let digest: [u8; 32] =
-            Sha256::digest(message).try_into().expect("SHA256 digest should be 256 bits");
-
-        let signature: Signature = signing_key.sign(message);
-        let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
-        assert!(Signature::try_from(signature_bytes.as_slice()).unwrap() == signature);
-
-        // Verification
-        use k256::ecdsa::{signature::Verifier, VerifyingKey};
-
-        let verify_key = VerifyingKey::from(&signing_key);
-
-        if let Coordinates::Uncompressed { x, y } = verify_key.to_encoded_point(false).coordinates()
-        {
-            let x: [u8; 32] = (*x).into();
-            let y: [u8; 32] = (*y).into();
-
-            verify_prehashed(&digest, &x, &y, &signature_bytes).unwrap();
-        } else {
-            unreachable!();
-        }
-
-        assert!(verify_key.verify(message, &signature).is_ok());
-    }
 
     #[test]
     fn smoke() {
