@@ -34,14 +34,15 @@ pub enum VMStatus {
         /// Interpreted by simulator context
         function: String,
         /// Input values
-        inputs: Vec<Value>,
+        /// Each input is a list of values as an input can be either a single value or a memory pointer
+        inputs: Vec<Vec<Value>>,
     },
 }
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
     /// Resolved foreign call values
-    pub values: Vec<Value>,
+    pub values: Vec<Vec<Value>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -101,7 +102,7 @@ impl VM {
 
     /// Sets the status of the VM to `ForeignCallWait`.
     /// Indicating that the VM is now waiting for a foreign call to be resolved.
-    fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Value>) -> VMStatus {
+    fn wait_for_foreign_call(&mut self, function: String, inputs: Vec<Vec<Value>>) -> VMStatus {
         self.status(VMStatus::ForeignCallWait { function, inputs })
     }
 
@@ -167,7 +168,7 @@ impl VM {
                     self.fail("return opcode hit, but callstack already empty".to_string())
                 }
             }
-            Opcode::ForeignCall { function, destination, input } => {
+            Opcode::ForeignCall { function, destinations, inputs } => {
                 if self.foreign_call_counter >= self.foreign_call_results.len() {
                     // When this opcode is called, it is possible that the results of a foreign call are
                     // not yet known (not enough entries in `foreign_call_results`).
@@ -176,7 +177,11 @@ impl VM {
                     // resolved inputs back to the caller. Once the caller pushes to `foreign_call_results`,
                     // they can then make another call to the VM that starts at this opcode
                     // but has the necessary results to proceed with execution.
-                    let resolved_inputs = self.get_register_value_or_memory_values(*input);
+                    for input in inputs {
+                        let resolved_inputs = self.get_register_value_or_memory_values(*input);
+
+                    }
+                    let resolved_inputs = inputs.iter().map(|input| self.get_register_value_or_memory_values(*input)).collect::<Vec<_>>();
                     return self.wait_for_foreign_call(function.clone(), resolved_inputs);
                 }
 
