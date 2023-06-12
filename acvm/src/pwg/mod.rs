@@ -40,7 +40,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// Both of these opcodes require information from outside of the ACVM to be inserted before restarting execution.
     /// [`Opcode::Oracle`] and [`Opcode::Brillig`] opcodes require the return values to be inserted slightly differently.
     /// `Oracle` opcodes expect their return values to be written directly into the witness map whereas a `Brillig` foreign call
-    /// result is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve_foreign_call`].
+    /// result is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
     /// (Note: this means that the updated opcode must then be passed back into the ACVM to be processed further.)
     ///
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
@@ -261,7 +261,7 @@ pub struct UnresolvedBrilligCall {
     /// The current Brillig VM process that has been paused.
     /// This process will be updated by the caller after resolving a foreign call's result.
     ///
-    /// This can be done using [`UnresolvedBrilligCall::resolve_foreign_call`].
+    /// This can be done using [`UnresolvedBrilligCall::resolve`].
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
@@ -272,7 +272,7 @@ impl UnresolvedBrilligCall {
     ///
     /// The [ACVM][solve] can then be restarted with the updated [Brillig opcode][Opcode::Brillig]
     /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
-    pub fn resolve_foreign_call(mut self, foreign_call_result: ForeignCallResult) -> Brillig {
+    pub fn resolve(mut self, foreign_call_result: ForeignCallResult) -> Brillig {
         self.brillig.foreign_call_results.push(foreign_call_result);
         self.brillig
     }
@@ -538,7 +538,7 @@ mod tests {
         let foreign_call_result =
             vec![Value::from(foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse())];
         // Alter Brillig oracle opcode with foreign call resolution
-        let brillig: Brillig = foreign_call.resolve_foreign_call(foreign_call_result.into());
+        let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
@@ -671,8 +671,7 @@ mod tests {
 
         let x_plus_y_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
         // Alter Brillig oracle opcode
-        let brillig: Brillig =
-            foreign_call.resolve_foreign_call(vec![Value::from(x_plus_y_inverse)].into());
+        let brillig: Brillig = foreign_call.resolve(vec![Value::from(x_plus_y_inverse)].into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -697,7 +696,7 @@ mod tests {
         let i_plus_j_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
-        let brillig = foreign_call.resolve_foreign_call(vec![Value::from(i_plus_j_inverse)].into());
+        let brillig = foreign_call.resolve(vec![Value::from(i_plus_j_inverse)].into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
