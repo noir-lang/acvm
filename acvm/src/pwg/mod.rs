@@ -483,8 +483,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: None,
@@ -535,8 +535,9 @@ mod tests {
             "Should be waiting for a single input"
         );
         // As caller of VM, need to resolve foreign calls
-        let foreign_call_result =
-            vec![Value::from(foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse())];
+        let foreign_call_result = vec![Value::from(
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse(),
+        )];
         // Alter Brillig oracle opcode with foreign call resolution
         let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
@@ -610,13 +611,13 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2))],
                 },
             ],
             predicate: None,
@@ -669,7 +670,8 @@ mod tests {
             "Should be waiting for a single input"
         );
 
-        let x_plus_y_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
+        let x_plus_y_inverse =
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         // Alter Brillig oracle opcode
         let brillig: Brillig = foreign_call.resolve(vec![Value::from(x_plus_y_inverse)].into());
 
@@ -693,7 +695,8 @@ mod tests {
             "Should be waiting for a single input"
         );
 
-        let i_plus_j_inverse = foreign_call.foreign_call_wait_info.inputs[0].to_field().inverse();
+        let i_plus_j_inverse =
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
         let brillig = foreign_call.resolve(vec![Value::from(i_plus_j_inverse)].into());
@@ -756,8 +759,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: Some(Expression::default()),

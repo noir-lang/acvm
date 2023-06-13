@@ -63,10 +63,10 @@ pub enum Opcode {
         /// Interpreted by caller context, ie this will have different meanings depending on
         /// who the caller is.
         function: String,
-        /// Destination register (may be a memory pointer).
-        destination: RegisterValueOrArray,
-        /// Input register (may be a memory pointer).
-        input: RegisterValueOrArray,
+        /// Destination registers (may be single values or memory pointers).
+        destinations: Vec<RegisterValueOrArray>,
+        /// Input registers (may be single values or memory pointers).
+        inputs: Vec<RegisterValueOrArray>,
     },
     Mov {
         destination: RegisterIndex,
