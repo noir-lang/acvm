@@ -959,7 +959,6 @@ mod tests {
         let output_string: Vec<Value> =
             input_string.iter().cloned().chain(input_string.clone()).collect();
 
-        // Expected results are the same as the initial results
         // First call:
         let string_double_program = vec![
             // input_pointer = 0
