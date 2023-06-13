@@ -156,7 +156,7 @@ pub fn solve(
                 Err(err) => return Err(err),
             }
         }
-        // We have oracles that must be externally resolved
+        // We have foreign calls that must be externally resolved
         if !unresolved_brillig_calls.is_empty() {
             return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
                 unsolved_opcodes: unresolved_opcodes,
