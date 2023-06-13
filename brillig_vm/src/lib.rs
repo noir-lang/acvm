@@ -943,7 +943,7 @@ mod tests {
         assert_eq!(vm.foreign_call_counter, 1);
     }
 
-    /// Calling a foreign call identity function that takes any string input and concatenates it with itself
+    /// Calling a simple foreign call function that takes any string input and concatenates it with itself
     #[test]
     fn foreign_call_opcode_vector_input_and_output() {
         let r_input_pointer = RegisterIndex::from(0);
