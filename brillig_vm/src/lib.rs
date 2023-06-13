@@ -214,14 +214,25 @@ impl VM {
                             self.registers.set(*index, values[0])
                         }
                         RegisterValueOrArray::HeapArray(index, size) => {
-                            let destination_value = self.registers.get(*index);
                             assert_eq!(
                                 values.len(),
                                 *size,
                                 "Function result size does not match brillig bytecode"
                             );
+                            // Convert the destination pointer to a usize
+                            let destination = self.registers.get(*index).to_usize();
+                            // Expand memory if the array to be written
+                            // will overtake the maximum memory pointer
+                            if (destination + size) >= self.memory.len() {
+                                self.memory.append(&mut vec![
+                                    Value::from(0_usize);
+                                    (destination + size)
+                                        - self.memory.len()
+                                ]);
+                            }
+
                             for (i, value) in values.iter().enumerate() {
-                                self.memory[destination_value.to_usize() + i] = *value;
+                                self.memory[destination + i] = *value;
                             }
                         }
                     }
@@ -906,6 +917,64 @@ mod tests {
 
         // Check result in memory
         let result_values = vm.memory[0..4].to_vec();
+        assert_eq!(result_values, expected_result);
+
+        // Ensure the foreign call counter has been incremented
+        assert_eq!(vm.foreign_call_counter, 1);
+    }
+
+    #[test]
+    fn foreign_call_opcode_memory_alloc_result() {
+        let r_input = RegisterIndex::from(0);
+        let r_output = RegisterIndex::from(1);
+
+        // Define a simple 2x2 matrix in memory
+        let initial_matrix =
+            vec![Value::from(1u128), Value::from(2u128), Value::from(3u128), Value::from(4u128)];
+
+        // Transpose of the matrix (but arbitrary for this test, the 'correct value')
+        let expected_result =
+            vec![Value::from(1u128), Value::from(3u128), Value::from(2u128), Value::from(4u128)];
+
+        let invert_program = vec![
+            // input = 0
+            Opcode::Const { destination: r_input, value: Value::from(0u128) },
+            // output = 0
+            Opcode::Const { destination: r_output, value: Value::from(4u128) },
+            // *output = matrix_2x2_transpose(*input)
+            Opcode::ForeignCall {
+                function: "matrix_2x2_transpose".into(),
+                destinations: vec![RegisterValueOrArray::HeapArray(r_output, initial_matrix.len())],
+                inputs: vec![RegisterValueOrArray::HeapArray(r_input, initial_matrix.len())],
+            },
+        ];
+
+        let mut vm = brillig_execute_and_get_vm(initial_matrix.clone(), invert_program);
+
+        // Check that VM is waiting
+        assert_eq!(
+            vm.status,
+            VMStatus::ForeignCallWait {
+                function: "matrix_2x2_transpose".into(),
+                inputs: vec![initial_matrix.clone()]
+            }
+        );
+
+        // Push result we're waiting for
+        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+
+        // Resume VM
+        brillig_execute(&mut vm);
+
+        // Check that VM finished once resumed
+        assert_eq!(vm.status, VMStatus::Finished);
+
+        // Check initial memory still in place
+        let initial_values = vm.memory[0..4].to_vec();
+        assert_eq!(initial_values, initial_matrix);
+
+        // Check result in memory
+        let result_values = vm.memory[4..8].to_vec();
         assert_eq!(result_values, expected_result);
 
         // Ensure the foreign call counter has been incremented
