@@ -1002,7 +1002,7 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check result in memory
-        let result_values = vm.memory[0..4].to_vec();
+        let result_values = vm.memory[0..output_string.len()].to_vec();
         assert_eq!(result_values, output_string);
 
         // Ensure the foreign call counter has been incremented
