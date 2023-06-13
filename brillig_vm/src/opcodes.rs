@@ -6,7 +6,7 @@ pub type Label = usize;
 
 /// Lays out various ways we might interpret memory when passing to a foreign call external from Brillig.
 ///
-/// While we are usually are agnostic to how memory is passed within Brillig,
+/// While we are usually agnostic to how memory is passed within Brillig,
 /// this needs to be encoded somehow when dealing with an external system.
 /// For simplicity, the extra type information is given right in the ForeignCall instructions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
