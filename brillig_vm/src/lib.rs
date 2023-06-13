@@ -955,7 +955,7 @@ mod tests {
         // Our first string to use the identity function with
         let input_string =
             vec![Value::from(1u128), Value::from(2u128), Value::from(3u128), Value::from(4u128)];
-        // Double the string (concate it with itself)
+        // Double the string (concatenate it with itself)
         let output_string: Vec<Value> =
             input_string.iter().cloned().chain(input_string.clone()).collect();
 
