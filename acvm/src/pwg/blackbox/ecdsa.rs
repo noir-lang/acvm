@@ -65,11 +65,10 @@ pub(super) fn secp256k1_prehashed(
             )
         })?;
 
-    let result =
-        verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature)
-            .is_ok();
+    let is_valid =
+        verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
-    initial_witness.insert(output, FieldElement::from(result));
+    initial_witness.insert(output, FieldElement::from(is_valid));
     Ok(OpcodeResolution::Solved)
 }
 
@@ -79,7 +78,7 @@ fn verify_secp256k1_ecdsa_signature(
     public_key_x_bytes: &[u8; 32],
     public_key_y_bytes: &[u8; 32],
     signature: &[u8; 64],
-) -> Result<(), ()> {
+) -> bool {
     // Convert the inputs into k256 data structures
 
     let signature = Signature::try_from(signature.as_slice()).unwrap();
@@ -100,7 +99,7 @@ fn verify_secp256k1_ecdsa_signature(
 
     // Ensure signature is "low S" normalized ala BIP 0062
     if s.is_high().into() {
-        return Err(());
+        return false;
     }
 
     let s_inv = s.invert().unwrap();
@@ -112,12 +111,10 @@ fn verify_secp256k1_ecdsa_signature(
         + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
         .to_affine();
 
-    if let Coordinates::Uncompressed { x, y: _ } = R.to_encoded_point(false).coordinates() {
-        if Scalar::from_repr(*x).unwrap().eq(&r) {
-            return Ok(());
-        }
+    match R.to_encoded_point(false).coordinates() {
+        Coordinates::Uncompressed { x, y: _ } => Scalar::from_repr(*x).unwrap().eq(&r),
+        _ => unreachable!("Point is uncompressed"),
     }
-    Err(())
 }
 
 #[cfg(test)]
@@ -157,8 +154,7 @@ mod test {
         ];
 
         let valid =
-            verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature)
-                .is_ok();
+            verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
         assert!(valid)
     }
