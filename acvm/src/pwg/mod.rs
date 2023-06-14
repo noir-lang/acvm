@@ -336,52 +336,6 @@ mod tests {
     }
 
     #[test]
-    fn inversion_oracle_equivalence() {
-        // Opcodes below describe the following:
-        // fn main(x : Field, y : pub Field) {
-        //     let z = x + y;
-        //     constrain 1/z == Oracle("inverse", x + y);
-        // }
-        let fe_0 = FieldElement::zero();
-        let fe_1 = FieldElement::one();
-        let w_x = Witness(1);
-        let w_y = Witness(2);
-        let w_oracle = Witness(3);
-        let w_z = Witness(4);
-        let w_z_inverse = Witness(5);
-        let opcodes = vec![
-            Opcode::Arithmetic(Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-                q_c: fe_0,
-            }),
-            Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-            Opcode::Arithmetic(Expression {
-                mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-                linear_combinations: vec![],
-                q_c: -fe_1,
-            }),
-            Opcode::Arithmetic(Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![(-fe_1, w_oracle), (fe_1, w_z_inverse)],
-                q_c: fe_0,
-            }),
-        ];
-
-        let backend = StubbedPwg;
-
-        let mut witness_assignments = BTreeMap::from([
-            (Witness(1), FieldElement::from(2u128)),
-            (Witness(2), FieldElement::from(3u128)),
-        ])
-        .into();
-        let mut blocks = Blocks::default();
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should be solvable");
-        assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
-    }
-
-    #[test]
     fn inversion_brillig_oracle_equivalence() {
         // Opcodes below describe the following:
         // fn main(x : Field, y : pub Field) {
