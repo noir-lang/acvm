@@ -209,7 +209,7 @@ impl VM {
                             assert_eq!(
                                 values.len(),
                                 1,
-                                "Function result size does not match brillig (expected 1 result)"
+                                "Function result size does not match brillig bytecode (expected 1 result)"
                             );
                             self.registers.set(*value_index, values[0])
                         }
@@ -217,7 +217,7 @@ impl VM {
                             assert_eq!(
                                 values.len(),
                                 *size,
-                                "Function result size does not match brillig size"
+                                "Function result size does not match brillig bytecode size"
                             );
                             // Convert the destination pointer to a usize
                             let destination = self.registers.get(*pointer_index).to_usize();
@@ -236,7 +236,7 @@ impl VM {
                             assert_eq!(
                                 values.len(),
                                 size,
-                                "Function result size does not match brillig size register"
+                                "Function result size does not match brillig bytecode size register"
                             );
                             // Convert the destination pointer to a usize
                             let destination = self.registers.get(*pointer_index).to_usize();
