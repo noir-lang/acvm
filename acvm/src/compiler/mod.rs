@@ -15,7 +15,7 @@ mod transformers;
 use optimizers::{GeneralOptimizer, RangeOptimizer};
 use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
-pub use optimizers::{CircuitSimplifier, SimplifyResult};
+pub(crate) use optimizers::CircuitSimplifier;
 
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
