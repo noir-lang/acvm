@@ -12,7 +12,8 @@ pub type Label = usize;
 /// For simplicity, the extra type information is given right in the ForeignCall instructions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
 pub enum RegisterOrMemory {
-    /// An immediate value passed to or from an external call
+    /// A single register value passed to or from an external call
+    /// It is an 'immediate' value - used without dereferencing memory.
     /// For a foreign call input, the value is read directly from the register.
     /// For a foreign call output, the value is written directly to the register.
     RegisterIndex(RegisterIndex),
