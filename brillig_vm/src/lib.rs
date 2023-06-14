@@ -943,7 +943,7 @@ mod tests {
         assert_eq!(vm.foreign_call_counter, 1);
     }
 
-    /// Calling a simple foreign call function that takes any string input and concatenates it with itself
+    /// Calling a simple foreign call function that takes any string input, concatenates it with itself, and reverses the concatenation
     #[test]
     fn foreign_call_opcode_vector_input_and_output() {
         let r_input_pointer = RegisterIndex::from(0);
@@ -956,8 +956,10 @@ mod tests {
         let input_string =
             vec![Value::from(1u128), Value::from(2u128), Value::from(3u128), Value::from(4u128)];
         // Double the string (concatenate it with itself)
-        let output_string: Vec<Value> =
+        let mut output_string: Vec<Value> =
             input_string.iter().cloned().chain(input_string.clone()).collect();
+        // Reverse the concatenated string
+        output_string.reverse();
 
         // First call:
         let string_double_program = vec![
@@ -987,7 +989,7 @@ mod tests {
             vm.status,
             VMStatus::ForeignCallWait {
                 function: "string_double".into(),
-                inputs: vec![input_string]
+                inputs: vec![input_string.clone()]
             }
         );
 
@@ -1001,7 +1003,8 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check result in memory
-        let result_values = vm.memory[0..output_string.len()].to_vec();
+        let result_values =
+            vm.memory[input_string.len()..(input_string.len() + output_string.len())].to_vec();
         assert_eq!(result_values, output_string);
 
         // Ensure the foreign call counter has been incremented
