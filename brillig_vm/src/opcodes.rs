@@ -14,7 +14,7 @@ pub type Label = usize;
 pub enum RegisterOrMemory {
     /// An immediate value passed to or from an external call
     /// For a foreign call input, this is read directly from the register.
-    /// For a foreign call output, this is written directly to the register.
+    /// For a foreign call output, the value is written directly to the register.
     RegisterIndex(RegisterIndex),
     /// A fix-sized array passed starting from a Brillig register memory location.
     /// In the case of a foreign call input, the array is read from this Brillig memory location + usize more cells.
