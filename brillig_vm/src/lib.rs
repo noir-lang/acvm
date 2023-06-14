@@ -39,25 +39,31 @@ pub enum VMStatus {
     },
 }
 
-/// Represents the output of a [foreign call][Opcode::ForeignCall].
+/// Single output of a [foreign call][Opcode::ForeignCall].
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub enum ForeignCallOutput {
+    Single(Value),
+    Array(Vec<Value>),
+}
+
+/// Represents the full output of a [foreign call][Opcode::ForeignCall].
 ///
 /// See [`VMStatus::ForeignCallWait`] for more information.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
     /// Resolved output values of the foreign call.
-    /// Each output is its own list of values as an output can be either a single value or a memory pointer
-    pub values: Vec<Vec<Value>>,
+    pub values: Vec<ForeignCallOutput>,
+}
+
+impl From<Value> for ForeignCallResult {
+    fn from(value: Value) -> Self {
+        ForeignCallResult { values: vec![ForeignCallOutput::Single(value)] }
+    }
 }
 
 impl From<Vec<Value>> for ForeignCallResult {
     fn from(values: Vec<Value>) -> Self {
-        ForeignCallResult { values: vec![values] }
-    }
-}
-
-impl From<Vec<Vec<Value>>> for ForeignCallResult {
-    fn from(values: Vec<Vec<Value>>) -> Self {
-        ForeignCallResult { values }
+        ForeignCallResult { values: vec![ForeignCallOutput::Array(values)] }
     }
 }
 
@@ -203,50 +209,66 @@ impl VM {
                 let ForeignCallResult { values } =
                     &self.foreign_call_results[self.foreign_call_counter];
 
-                for (destination, values) in destinations.iter().zip(values) {
+                for (destination, output) in destinations.iter().zip(values) {
                     match destination {
-                        RegisterOrMemory::RegisterIndex(value_index) => {
-                            assert_eq!(
-                                values.len(),
-                                1,
+                        RegisterOrMemory::RegisterIndex(value_index) => match output {
+                            ForeignCallOutput::Single(value) => {
+                                self.registers.set(*value_index, *value)
+                            }
+                            _ => unreachable!(
                                 "Function result size does not match brillig bytecode (expected 1 result)"
-                            );
-                            self.registers.set(*value_index, values[0])
-                        }
+                            ),
+                        },
                         RegisterOrMemory::HeapArray(pointer_index, size) => {
-                            assert_eq!(
-                                values.len(),
-                                *size,
-                                "Function result size does not match brillig bytecode size"
-                            );
-                            // Convert the destination pointer to a usize
-                            let destination = self.registers.get(*pointer_index).to_usize();
-                            // Calculate new memory size
-                            let new_size = std::cmp::max(self.memory.len(), destination + size);
-                            // Expand memory to new size with default values if needed
-                            self.memory.resize(new_size, Value::from(0_usize));
-                            // Write to our destination memory
-                            for (i, value) in values.iter().enumerate() {
-                                self.memory[destination + i] = *value;
+                            match output {
+                                ForeignCallOutput::Array(values) => {
+                                    assert_eq!(
+                                        values.len(),
+                                        *size,
+                                        "Function result size does not match brillig bytecode size"
+                                    );
+                                    // Convert the destination pointer to a usize
+                                    let destination = self.registers.get(*pointer_index).to_usize();
+                                    // Calculate new memory size
+                                    let new_size =
+                                        std::cmp::max(self.memory.len(), destination + size);
+                                    // Expand memory to new size with default values if needed
+                                    self.memory.resize(new_size, Value::from(0_usize));
+                                    // Write to our destination memory
+                                    for (i, value) in values.iter().enumerate() {
+                                        self.memory[destination + i] = *value;
+                                    }
+                                }
+                                _ => {
+                                    unreachable!("Function result size does not match brillig bytecode size")
+                                }
                             }
                         }
                         RegisterOrMemory::HeapVector(pointer_index, size_index) => {
-                            // Convert the size pointer to a usize
-                            let size = self.registers.get(*size_index).to_usize();
-                            assert_eq!(
-                                values.len(),
-                                size,
-                                "Function result size does not match brillig bytecode size register"
-                            );
-                            // Convert the destination pointer to a usize
-                            let destination = self.registers.get(*pointer_index).to_usize();
-                            // Calculate new memory size
-                            let new_size = std::cmp::max(self.memory.len(), destination + size);
-                            // Expand memory to new size with default values if needed
-                            self.memory.resize(new_size, Value::from(0_usize));
-                            // Write to our destination memory
-                            for (i, value) in values.iter().enumerate() {
-                                self.memory[destination + i] = *value;
+                            match output {
+                                ForeignCallOutput::Array(values) => {
+                                    // Convert the size pointer to a usize
+                                    let size = self.registers.get(*size_index).to_usize();
+                                    assert_eq!(
+                                        values.len(),
+                                        size,
+                                        "Function result size does not match brillig bytecode size register"
+                                    );
+                                    // Convert the destination pointer to a usize
+                                    let destination = self.registers.get(*pointer_index).to_usize();
+                                    // Calculate new memory size
+                                    let new_size =
+                                        std::cmp::max(self.memory.len(), destination + size);
+                                    // Expand memory to new size with default values if needed
+                                    self.memory.resize(new_size, Value::from(0_usize));
+                                    // Write to our destination memory
+                                    for (i, value) in values.iter().enumerate() {
+                                        self.memory[destination + i] = *value;
+                                    }
+                                }
+                                _ => {
+                                    unreachable!("Function result size does not match brillig bytecode size")
+                                }
                             }
                         }
                     }
@@ -872,9 +894,9 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult {
-            values: vec![vec![Value::from(10u128)]], // Result of doubling 5u128
-        });
+        vm.foreign_call_results.push(
+            Value::from(10u128).into(), // Result of doubling 5u128
+        );
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -927,7 +949,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -994,7 +1016,9 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![output_string.clone()] });
+        vm.foreign_call_results.push(ForeignCallResult {
+            values: vec![ForeignCallOutput::Array(output_string.clone())],
+        });
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -1049,7 +1073,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -1125,7 +1149,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
