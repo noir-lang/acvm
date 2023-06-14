@@ -101,11 +101,6 @@ fn verify_prehashed(
         return Err(());
     }
 
-    // Ensure signature is "low S" normalized ala BIP 0062
-    if s.is_high().into() {
-        return Err(());
-    }
-
     let s_inv = s.invert().unwrap();
     let u1 = z * s_inv;
     let u2 = *r * s_inv;
