@@ -1,17 +1,14 @@
-use std::collections::BTreeMap;
+use acir::{circuit::opcodes::OracleData, native_types::WitnessMap};
 
-use acir::{circuit::opcodes::OracleData, native_types::Witness, FieldElement};
+use super::{arithmetic::ArithmeticSolver, insert_value};
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
-
-use super::{arithmetic::ArithmeticSolver, directives::insert_witness};
-
-pub struct OracleSolver;
+pub(super) struct OracleSolver;
 
 impl OracleSolver {
     /// Derives the rest of the witness based on the initial low level variables
-    pub fn solve(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    pub(super) fn solve(
+        initial_witness: &mut WitnessMap,
         data: &mut OracleData,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // Set input values
@@ -28,7 +25,7 @@ impl OracleSolver {
         if data.input_values.len() == data.inputs.len() {
             if data.output_values.len() == data.outputs.len() {
                 for (out, value) in data.outputs.iter().zip(data.output_values.iter()) {
-                    insert_witness(*out, *value, initial_witness)?;
+                    insert_value(out, *value, initial_witness)?;
                 }
                 Ok(OpcodeResolution::Solved)
             } else {

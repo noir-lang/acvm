@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["acir_field", "acir", "acvm", "stdlib"]
+members = ["acir_field", "acir", "acvm", "stdlib", "brillig_vm"]
 
 [workspace.package]
 authors = ["The Noir Team <team@noir-lang.org>"]
@@ -9,14 +9,13 @@ license = "MIT"
 rust-version = "1.66"
 
 [workspace.dependencies]
-acir = { version = "0.10.1", path = "acir", default-features = false }
-acir_field = { version = "0.10.1", path = "acir_field", default-features = false }
-stdlib = { package = "acvm_stdlib", version = "0.10.1", path = "stdlib" }
+acir = { version = "0.14.2", path = "acir", default-features = false }
+acir_field = { version = "0.14.2", path = "acir_field", default-features = false }
+stdlib = { package = "acvm_stdlib", version = "0.14.2", path = "stdlib", default-features = false }
 
-hex = "0.4.2"
 num-bigint = "0.4"
 num-traits = "0.2"
 
-blake2 = "0.9.1"
+thiserror = "1.0.21"
 
 serde = { version = "1.0.136", features = ["derive"] }

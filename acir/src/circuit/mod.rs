@@ -1,16 +1,15 @@
 pub mod black_box_functions;
+pub mod brillig;
 pub mod directives;
 pub mod opcodes;
-pub use opcodes::Opcode;
 
 use crate::native_types::Witness;
-use crate::serialization::{read_u32, write_u32};
-use serde::{Deserialize, Serialize};
+pub use opcodes::Opcode;
 
+use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::io::prelude::*;
-
-const VERSION_NUMBER: u32 = 0;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
@@ -41,67 +40,19 @@ impl Circuit {
         PublicInputs(public_inputs)
     }
 
-    pub fn write<W: Write>(&self, mut writer: W) -> std::io::Result<()> {
-        write_u32(&mut writer, VERSION_NUMBER)?;
+    pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
+        let buf = rmp_serde::to_vec(&self).unwrap();
+        let mut deflater = DeflateEncoder::new(writer, Compression::best());
+        deflater.write_all(&buf).unwrap();
 
-        write_u32(&mut writer, self.current_witness_index)?;
-
-        let public_input_indices = self.public_parameters.indices();
-        write_u32(&mut writer, public_input_indices.len() as u32)?;
-        for public_input_index in public_input_indices {
-            write_u32(&mut writer, public_input_index)?;
-        }
-
-        let public_output_indices = self.return_values.indices();
-        write_u32(&mut writer, public_output_indices.len() as u32)?;
-        for public_output_index in public_output_indices {
-            write_u32(&mut writer, public_output_index)?;
-        }
-
-        write_u32(&mut writer, self.opcodes.len() as u32)?;
-        for opcode in &self.opcodes {
-            opcode.write(&mut writer)?;
-        }
         Ok(())
     }
-    pub fn read<R: Read>(mut reader: R) -> std::io::Result<Self> {
-        let version_number = read_u32(&mut reader)?;
-        // TODO (Note): we could use semver versioning from the Cargo.toml
-        // here and then reject anything that has a major bump
-        //
-        // We may also not want to do that if we do not want to couple serialization
-        // with other breaking changes
-        if version_number != VERSION_NUMBER {
-            return Err(std::io::ErrorKind::InvalidData.into());
-        }
-
-        let current_witness_index = read_u32(&mut reader)?;
-
-        let num_public_parameters = read_u32(&mut reader)?;
-        let mut public_parameters = PublicInputs(BTreeSet::new());
-        for _ in 0..num_public_parameters {
-            let public_parameter_index = Witness(read_u32(&mut reader)?);
-            public_parameters.0.insert(public_parameter_index);
-        }
-        let num_return_values = read_u32(&mut reader)?;
-        let mut return_values = PublicInputs(BTreeSet::new());
-        for _ in 0..num_return_values {
-            let return_value_index = Witness(read_u32(&mut reader)?);
-            return_values.0.insert(return_value_index);
-        }
-
-        let num_opcodes = read_u32(&mut reader)?;
-
-        let mut opcodes = Vec::new();
-        opcodes
-            .try_reserve_exact(num_opcodes as usize)
-            .map_err(|_| std::io::ErrorKind::InvalidData)?;
-        for _ in 0..num_opcodes {
-            let opcode = Opcode::read(&mut reader)?;
-            opcodes.push(opcode)
-        }
-
-        Ok(Self { current_witness_index, opcodes, public_parameters, return_values })
+    pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
+        let mut deflater = DeflateDecoder::new(reader);
+        let mut buf_d = Vec::new();
+        deflater.read_to_end(&mut buf_d).unwrap();
+        let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
+        Ok(circuit)
     }
 }
 
@@ -157,7 +108,7 @@ impl PublicInputs {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use std::collections::BTreeSet;
 
     use super::{
@@ -167,21 +118,22 @@ mod test {
     use crate::native_types::{Expression, Witness};
     use acir_field::FieldElement;
 
+    fn directive_opcode() -> Opcode {
+        Opcode::Directive(super::directives::Directive::Invert {
+            x: Witness(0),
+            result: Witness(1),
+        })
+    }
     fn and_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::AND,
-            inputs: vec![
-                FunctionInput { witness: Witness(1), num_bits: 4 },
-                FunctionInput { witness: Witness(2), num_bits: 4 },
-            ],
-            outputs: vec![Witness(3)],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
+            lhs: FunctionInput { witness: Witness(1), num_bits: 4 },
+            rhs: FunctionInput { witness: Witness(2), num_bits: 4 },
+            output: Witness(3),
         })
     }
     fn range_opcode() -> Opcode {
-        Opcode::BlackBoxFuncCall(BlackBoxFuncCall {
-            name: crate::BlackBoxFunc::RANGE,
-            inputs: vec![FunctionInput { witness: Witness(1), num_bits: 8 }],
-            outputs: vec![],
+        Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: Witness(1), num_bits: 8 },
         })
     }
     fn oracle_opcode() -> Opcode {
@@ -202,7 +154,7 @@ mod test {
     fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
-            opcodes: vec![and_opcode(), range_opcode(), oracle_opcode()],
+            opcodes: vec![and_opcode(), range_opcode(), oracle_opcode(), directive_opcode()],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
         };

@@ -10,7 +10,9 @@
         "Axyz",
         "arithmetization",
         "bivariate",
+        "Brillig",
         "canonicalize",
+        "callstack",
         "coeff",
         "consts",
         "csat",
@@ -34,12 +36,15 @@
         "stdlib",
         "struct",
         "TORADIX",
+        "Msgpack",
         // Dependencies
         //
         "bufread",
         "flate",
         "indexmap",
         "thiserror",
-        "typenum"
+        "typenum",
+        "jmpif",
+        "jmpifnot"
     ]
 }

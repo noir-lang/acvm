@@ -1,23 +1,22 @@
 use acir::{
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
-use std::collections::BTreeMap;
 
-use crate::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
-pub struct ArithmeticSolver;
+pub(super) struct ArithmeticSolver;
 
 #[allow(clippy::enum_variant_names)]
-pub enum GateStatus {
+pub(super) enum GateStatus {
     GateSatisfied(FieldElement),
     GateSolvable(FieldElement, (FieldElement, Witness)),
     GateUnsolvable,
 }
 
-enum MulTerm {
+pub(crate) enum MulTerm {
     OneUnknown(FieldElement, Witness), // (qM * known_witness, unknown_witness)
     TooManyUnknowns,
     Solved(FieldElement),
@@ -25,8 +24,8 @@ enum MulTerm {
 
 impl ArithmeticSolver {
     /// Derives the rest of the witness based on the initial low level variables
-    pub fn solve(
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    pub(super) fn solve(
+        initial_witness: &mut WitnessMap,
         gate: &Expression,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
@@ -120,10 +119,7 @@ impl ArithmeticSolver {
     /// If the witness values are not known, then the function returns a None
     /// XXX: Do we need to account for the case where 5xy + 6x = 0 ? We do not know y, but it can be solved given x . But I believe x can be solved with another gate
     /// XXX: What about making a mul gate = a constant 5xy + 7 = 0 ? This is the same as the above.
-    fn solve_mul_term(
-        arith_gate: &Expression,
-        witness_assignments: &BTreeMap<Witness, FieldElement>,
-    ) -> MulTerm {
+    fn solve_mul_term(arith_gate: &Expression, witness_assignments: &WitnessMap) -> MulTerm {
         // First note that the mul term can only contain one/zero term
         // We are assuming it has been optimized.
         match arith_gate.mul_terms.len() {
@@ -138,7 +134,7 @@ impl ArithmeticSolver {
 
     fn solve_mul_term_helper(
         term: &(FieldElement, Witness, Witness),
-        witness_assignments: &BTreeMap<Witness, FieldElement>,
+        witness_assignments: &WitnessMap,
     ) -> MulTerm {
         let (q_m, w_l, w_r) = term;
         // Check if these values are in the witness assignments
@@ -155,7 +151,7 @@ impl ArithmeticSolver {
 
     fn solve_fan_in_term_helper(
         term: &(FieldElement, Witness),
-        witness_assignments: &BTreeMap<Witness, FieldElement>,
+        witness_assignments: &WitnessMap,
     ) -> Option<FieldElement> {
         let (q_l, w_l) = term;
         // Check if we have w_l
@@ -166,9 +162,9 @@ impl ArithmeticSolver {
     /// Returns the summation of all of the variables, plus the unknown variable
     /// Returns None, if there is more than one unknown variable
     /// We cannot assign
-    pub fn solve_fan_in_term(
+    pub(super) fn solve_fan_in_term(
         arith_gate: &Expression,
-        witness_assignments: &BTreeMap<Witness, FieldElement>,
+        witness_assignments: &WitnessMap,
     ) -> GateStatus {
         // This is assuming that the fan-in is more than 0
 
@@ -202,10 +198,7 @@ impl ArithmeticSolver {
     }
 
     // Partially evaluate the gate using the known witnesses
-    pub fn evaluate(
-        expr: &Expression,
-        initial_witness: &BTreeMap<Witness, FieldElement>,
-    ) -> Expression {
+    pub(super) fn evaluate(expr: &Expression, initial_witness: &WitnessMap) -> Expression {
         let mut result = Expression::default();
         for &(c, w1, w2) in &expr.mul_terms {
             let mul_result = ArithmeticSolver::solve_mul_term_helper(&(c, w1, w2), initial_witness);
@@ -237,7 +230,7 @@ impl ArithmeticSolver {
     // Returns one witness belonging to an expression, in no relevant order
     // Returns None if the expression is const
     // The function is used during partial witness generation to report unsolved witness
-    pub fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
+    pub(super) fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
         if expr.linear_combinations.is_empty() {
             if expr.mul_terms.is_empty() {
                 None
@@ -280,7 +273,7 @@ fn arithmetic_smoke_test() {
         q_c: FieldElement::zero(),
     };
 
-    let mut values: BTreeMap<Witness, FieldElement> = BTreeMap::new();
+    let mut values = WitnessMap::new();
     values.insert(b, FieldElement::from(2_i128));
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));

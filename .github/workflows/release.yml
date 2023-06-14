@@ -17,6 +17,7 @@ jobs:
         id: release
         uses: google-github-actions/release-please-action@v3
         with:
+          token: ${{ secrets.ACVM_RELEASE_TOKEN }}
           command: manifest
 
   publish:
