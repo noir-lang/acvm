@@ -11,17 +11,17 @@ use crate::pwg::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 /// Returns the sha256 hash of the provided `data`.
-pub(crate) fn sha256(data: &[u8]) -> [u8; 32] {
+pub fn sha256(data: &[u8]) -> [u8; 32] {
     generic_hash_256::<Sha256>(data)
 }
 
 /// Returns the blake2s hash of the provided `data`.
-pub(crate) fn blake2s256(data: &[u8]) -> [u8; 32] {
+pub fn blake2s256(data: &[u8]) -> [u8; 32] {
     generic_hash_256::<Blake2s256>(data)
 }
 
 /// Returns the keccak256 hash of the provided `data`.
-pub(crate) fn keccak256(data: &[u8]) -> [u8; 32] {
+pub fn keccak256(data: &[u8]) -> [u8; 32] {
     generic_hash_256::<Keccak256>(data)
 }
 

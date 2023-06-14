@@ -12,11 +12,13 @@ mod logic;
 mod range;
 
 use ecdsa::secp256k1_prehashed;
-// Hash functions should eventually be exposed for external consumers.
-use hash::{blake2s256, keccak256, sha256};
+
 use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
 use logic::{and, xor};
 use range::solve_range_opcode;
+
+pub use ecdsa::verify_secp256k1_ecdsa_signature;
+pub use hash::{blake2s256, keccak256, sha256};
 
 /// Check if all of the inputs to the function have assignments
 ///

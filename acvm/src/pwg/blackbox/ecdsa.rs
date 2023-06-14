@@ -73,7 +73,7 @@ pub(super) fn secp256k1_prehashed(
 }
 
 /// Verify an ECDSA signature over the secp256k1 elliptic curve, given the hashed message
-fn verify_secp256k1_ecdsa_signature(
+pub fn verify_secp256k1_ecdsa_signature(
     hashed_msg: &[u8],
     public_key_x_bytes: &[u8; 32],
     public_key_y_bytes: &[u8; 32],

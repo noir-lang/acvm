@@ -23,7 +23,7 @@ mod brillig;
 // Directives
 mod directives;
 // black box functions
-mod blackbox;
+pub mod blackbox;
 mod block;
 mod oracle;
 
