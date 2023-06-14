@@ -2,6 +2,7 @@
 
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
+    brillig_vm::ForeignCallResult,
     circuit::brillig::Brillig,
     circuit::opcodes::{Opcode, OracleData},
     native_types::{Expression, Witness, WitnessMap},
@@ -36,7 +37,12 @@ pub enum PartialWitnessGeneratorStatus {
 
     /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
     ///
-    /// The caller must resolve these opcodes externally and insert the results into the intermediate witness.
+    /// Both of these opcodes require information from outside of the ACVM to be inserted before restarting execution.
+    /// [`Opcode::Oracle`] and [`Opcode::Brillig`] opcodes require the return values to be inserted slightly differently.
+    /// `Oracle` opcodes expect their return values to be written directly into the witness map whereas a `Brillig` foreign call
+    /// result is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
+    /// (Note: this means that the updated opcode must then be passed back into the ACVM to be processed further.)
+    ///
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
     RequiresOracleData {
         required_oracle_data: Vec<OracleData>,
@@ -253,14 +259,23 @@ pub fn insert_value(
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnresolvedBrilligCall {
     /// The current Brillig VM process that has been paused.
-    /// This process will be updated by the caller after resolving a foreign call's outputs.
+    /// This process will be updated by the caller after resolving a foreign call's result.
     ///
-    /// The [foreign call's result][acir::brillig_vm::ForeignCallResult] should be appended to this current [Brillig call][Brillig].
-    /// The [PartialWitnessGenerator] can then be restarted with an updated [Brillig opcode][Opcode::Brillig]
-    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
+    /// This can be done using [`UnresolvedBrilligCall::resolve`].
     pub brillig: Brillig,
     /// Inputs for a pending foreign call required to restart bytecode processing.
     pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
+}
+
+impl UnresolvedBrilligCall {
+    /// Inserts the [foreign call's result][acir::brillig_vm::ForeignCallResult] into the calling [`Brillig` opcode][Brillig].
+    ///
+    /// The [ACVM][solve] can then be restarted with the updated [Brillig opcode][Opcode::Brillig]
+    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
+    pub fn resolve(mut self, foreign_call_result: ForeignCallResult) -> Brillig {
+        self.brillig.foreign_call_results.push(foreign_call_result);
+        self.brillig
+    }
 }
 
 #[deprecated(
@@ -295,9 +310,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_vm::{
-            self, BinaryFieldOp, ForeignCallResult, RegisterIndex, RegisterValueOrArray, Value,
-        },
+        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterValueOrArray, Value},
         circuit::{
             brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
@@ -309,10 +322,7 @@ mod tests {
     };
 
     use crate::{
-        pwg::{
-            self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus,
-            UnresolvedBrilligCall,
-        },
+        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus},
         OpcodeResolutionError, PartialWitnessGenerator,
     };
 
@@ -473,8 +483,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: None,
@@ -518,14 +528,18 @@ mod tests {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
         // As caller of VM, need to resolve foreign calls
+        let foreign_call_result = vec![Value::from(
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse(),
+        )];
         // Alter Brillig oracle opcode with foreign call resolution
-        brillig.foreign_call_results.push(ForeignCallResult {
-            values: vec![Value::from(foreign_call_wait_info.inputs[0].to_field().inverse())],
-        });
+        let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
@@ -597,13 +611,13 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2))],
                 },
             ],
             predicate: None,
@@ -649,15 +663,17 @@ mod tests {
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
 
-        let x_plus_y_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
+        let x_plus_y_inverse =
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         // Alter Brillig oracle opcode
-        brillig
-            .foreign_call_results
-            .push(ForeignCallResult { values: vec![Value::from(x_plus_y_inverse)] });
+        let brillig: Brillig = foreign_call.resolve(vec![Value::from(x_plus_y_inverse)].into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -672,16 +688,19 @@ mod tests {
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have no unresolved oracles");
 
-        let UnresolvedBrilligCall { foreign_call_wait_info, mut brillig } =
-            unresolved_brillig_calls.remove(0);
-        assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+        let foreign_call = unresolved_brillig_calls.remove(0);
+        assert_eq!(
+            foreign_call.foreign_call_wait_info.inputs.len(),
+            1,
+            "Should be waiting for a single input"
+        );
 
-        let i_plus_j_inverse = foreign_call_wait_info.inputs[0].to_field().inverse();
+        let i_plus_j_inverse =
+            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
-        brillig
-            .foreign_call_results
-            .push(ForeignCallResult { values: vec![Value::from(i_plus_j_inverse)] });
+        let brillig = foreign_call.resolve(vec![Value::from(i_plus_j_inverse)].into());
+
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
 
@@ -740,8 +759,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destination: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1)),
-                    input: RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0)),
+                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: Some(Expression::default()),

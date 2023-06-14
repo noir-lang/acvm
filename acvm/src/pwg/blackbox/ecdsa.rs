@@ -3,6 +3,7 @@ use acir::{
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
+use blake2::digest::generic_array::GenericArray;
 use k256::elliptic_curve::sec1::FromEncodedPoint;
 use k256::elliptic_curve::PrimeField;
 
@@ -30,7 +31,7 @@ fn to_u8_vec(
     Ok(result)
 }
 
-pub(crate) fn secp256k1_prehashed(
+pub(super) fn secp256k1_prehashed(
     initial_witness: &mut WitnessMap,
     public_key_x_inputs: &[FunctionInput],
     public_key_y_inputs: &[FunctionInput],
@@ -38,16 +39,7 @@ pub(crate) fn secp256k1_prehashed(
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    let hashed_message: [u8; 32] =
-        to_u8_vec(initial_witness, hashed_message_inputs)?.try_into().map_err(|_| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                acir::BlackBoxFunc::EcdsaSecp256k1,
-                format!(
-                    "expected hashed message size 32 but received {}",
-                    hashed_message_inputs.len()
-                ),
-            )
-        })?;
+    let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
     let pub_key_x: [u8; 32] =
         to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
@@ -81,7 +73,7 @@ pub(crate) fn secp256k1_prehashed(
 
 /// Verify an ECDSA signature, given the hashed message
 fn verify_prehashed(
-    hashed_msg: &[u8; 32],
+    hashed_msg: &[u8],
     public_key_x_bytes: &[u8; 32],
     public_key_y_bytes: &[u8; 32],
     signature: &[u8; 64],
@@ -97,12 +89,17 @@ fn verify_prehashed(
     );
     let pubkey = PublicKey::from_encoded_point(&point).unwrap();
 
-    let z = Scalar::from_repr((*hashed_msg).into()).unwrap();
+    let z = Scalar::from_repr(*GenericArray::from_slice(hashed_msg)).unwrap();
 
     // Finished converting bytes into data structures
 
     let r = signature.r();
     let s = signature.s();
+
+    // Ensure signature is "low S" normalized ala BIP 0062
+    if s.is_high().into() {
+        return Err(());
+    }
 
     // Ensure signature is "low S" normalized ala BIP 0062
     if s.is_high().into() {
