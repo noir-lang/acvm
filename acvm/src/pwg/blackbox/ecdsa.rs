@@ -65,14 +65,16 @@ pub(super) fn secp256k1_prehashed(
             )
         })?;
 
-    let result = verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).is_ok();
+    let result =
+        verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature)
+            .is_ok();
 
     initial_witness.insert(output, FieldElement::from(result));
     Ok(OpcodeResolution::Solved)
 }
 
-/// Verify an ECDSA signature, given the hashed message
-fn verify_prehashed(
+/// Verify an ECDSA signature over the secp256k1 elliptic curve, given the hashed message
+fn verify_secp256k1_ecdsa_signature(
     hashed_msg: &[u8],
     public_key_x_bytes: &[u8; 32],
     public_key_y_bytes: &[u8; 32],
@@ -120,7 +122,7 @@ fn verify_prehashed(
 
 #[cfg(test)]
 mod test {
-    use super::verify_prehashed;
+    use super::verify_secp256k1_ecdsa_signature;
 
     #[test]
     fn verifies_valid_signature_with_low_s_value() {
@@ -154,7 +156,9 @@ mod test {
             0x01, 0x61, 0xe4, 0x9a, 0x71, 0x5f, 0xcd, 0x55,
         ];
 
-        let valid = verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).is_ok();
+        let valid =
+            verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature)
+                .is_ok();
 
         assert!(valid)
     }
