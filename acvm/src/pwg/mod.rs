@@ -421,9 +421,9 @@ mod tests {
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on oracle");
+            .expect("should stall on brillig call");
         let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require oracle data")
+            panic!("Should require foreign call resolution")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
@@ -445,7 +445,7 @@ mod tests {
         // After filling data request, continue solving
         let solver_status =
             pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should not stall on oracle");
+                .expect("should not stall on brillig call");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -555,9 +555,9 @@ mod tests {
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on oracle");
+            .expect("should stall on brillig call");
         let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require oracle data")
+            panic!("Should require foreign call resolution")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
@@ -579,9 +579,9 @@ mod tests {
         // After filling data request, continue solving
         let solver_status =
             pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should stall on oracle");
+                .expect("should stall on brillig call");
         let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require oracle data")
+            panic!("Should require foreign call resolution")
         };
 
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
@@ -605,7 +605,7 @@ mod tests {
         // After filling data request, continue solving
         let solver_status =
             pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should not stall on oracle");
+                .expect("should not stall on brillig call");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -690,7 +690,7 @@ mod tests {
         .into();
         let mut blocks = Blocks::default();
         let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should not stall on oracle");
+            .expect("should not stall on brillig call");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }
