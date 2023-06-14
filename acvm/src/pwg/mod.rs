@@ -535,9 +535,8 @@ mod tests {
             "Should be waiting for a single input"
         );
         // As caller of VM, need to resolve foreign calls
-        let foreign_call_result = vec![Value::from(
-            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse(),
-        )];
+        let foreign_call_result =
+            Value::from(foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse());
         // Alter Brillig oracle opcode with foreign call resolution
         let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
@@ -673,7 +672,7 @@ mod tests {
         let x_plus_y_inverse =
             foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         // Alter Brillig oracle opcode
-        let brillig: Brillig = foreign_call.resolve(vec![Value::from(x_plus_y_inverse)].into());
+        let brillig: Brillig = foreign_call.resolve(Value::from(x_plus_y_inverse).into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -699,7 +698,7 @@ mod tests {
             foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
-        let brillig = foreign_call.resolve(vec![Value::from(i_plus_j_inverse)].into());
+        let brillig = foreign_call.resolve(Value::from(i_plus_j_inverse).into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
