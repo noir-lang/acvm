@@ -203,22 +203,23 @@ impl VM {
                 let ForeignCallResult { values } =
                     &self.foreign_call_results[self.foreign_call_counter];
 
+                let mut invalid_foreign_call_result = false;
                 for (destination, values) in destinations.iter().zip(values) {
                     match destination {
                         RegisterValueOrArray::RegisterIndex(index) => {
-                            assert_eq!(
-                                values.len(),
-                                1,
-                                "Function result size does not match brillig bytecode"
-                            );
+                            if values.len() != 1 {
+                                invalid_foreign_call_result = true;
+                                break;
+                            }
+
                             self.registers.set(*index, values[0])
                         }
                         RegisterValueOrArray::HeapArray(index, size) => {
-                            assert_eq!(
-                                values.len(),
-                                *size,
-                                "Function result size does not match brillig bytecode"
-                            );
+                            if values.len() != *size {
+                                invalid_foreign_call_result = true;
+                                break;
+                            }
+
                             // Convert the destination pointer to a usize
                             let destination = self.registers.get(*index).to_usize();
                             // Expand memory if the array to be written
@@ -238,7 +239,12 @@ impl VM {
                     }
                 }
 
-                // This check must come after resolving the foreign call outputs as `fail` uses a mutable reference
+                // These checks must come after resolving the foreign call outputs as `fail` uses a mutable reference
+                if invalid_foreign_call_result {
+                    return VMStatus::Failure {
+                        message: "Function result size does not match brillig bytecode".to_owned(),
+                    };
+                }
                 if destinations.len() != values.len() {
                     self.fail(format!("{} output values were provided as a foreign call result for {} destination slots", values.len(), destinations.len()));
                 }
