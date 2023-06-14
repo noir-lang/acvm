@@ -21,8 +21,8 @@ pub enum RegisterOrMemory {
     /// In the case of a foreign call output, the array is written to this Brillig memory location with the usize being here just as a sanity check for the size write.
     HeapArray(RegisterIndex, usize),
     /// A register-sized vector passed starting from a Brillig register memory location and with a register-held size
-    /// In the case of a foreign call input, this is read from this Brillig memory location + as many cells as the 2nd register indicates.
-    /// In the case of a foreign call output, this is written to this Brillig memory location with the usize being here just as a sanity check for the size write.
+    /// In the case of a foreign call input, the vector is read from this Brillig memory location + as many cells as the 2nd register indicates.
+    /// In the case of a foreign call output, the vector is written to this Brillig memory location with the usize being here just as a sanity check for the size write.
     HeapVector(RegisterIndex, RegisterIndex),
 }
 
