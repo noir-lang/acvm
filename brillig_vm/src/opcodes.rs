@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
 
-/// Lays out various ways we might interpret memory when passing to a foreign call external from Brillig.
+/// Lays out various ways an external foreign call's input and output data may be interpreted inside Brillig.
+/// This data can either be an individual register value or memory.
 ///
 /// While we are usually agnostic to how memory is passed within Brillig,
 /// this needs to be encoded somehow when dealing with an external system.
