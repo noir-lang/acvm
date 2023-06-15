@@ -9,6 +9,21 @@ use crate::{
     BlackBoxFunctionSolver,
 };
 
+fn to_u8_vec(
+    initial_witness: &WitnessMap,
+    inputs: &[FunctionInput],
+) -> Result<Vec<u8>, OpcodeResolutionError> {
+    let mut result = Vec::with_capacity(inputs.len());
+    for input in inputs {
+        let witness_value_bytes = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
+        let byte = witness_value_bytes
+            .last()
+            .expect("Field element must be represented by non-zero amount of bytes");
+        result.push(*byte);
+    }
+    Ok(result)
+}
+
 pub(super) fn schnorr_verify(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
@@ -24,17 +39,7 @@ pub(super) fn schnorr_verify(
     let sig_s: &FieldElement = witness_to_value(initial_witness, signature.0.witness)?;
     let sig_e: &FieldElement = witness_to_value(initial_witness, signature.1.witness)?;
 
-    let mut message_bytes: Vec<u8> = Vec::new();
-    for msg in message.iter() {
-        let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
-        let msg_i = *msg_i_field.to_be_bytes().last().ok_or_else(|| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                BlackBoxFunc::SchnorrVerify,
-                "could not get last bytes".into(),
-            )
-        })?;
-        message_bytes.push(msg_i);
-    }
+    let message = to_u8_vec(initial_witness, message)?;
 
     let valid_signature =
         backend.schnorr_verify(public_key_x, public_key_y, (sig_s, sig_e), &message_bytes)?;
