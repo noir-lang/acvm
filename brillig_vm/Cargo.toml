@@ -1,7 +1,7 @@
 [package]
 name = "brillig_vm"
 description = "The virtual machine that processes Brillig bytecode, used to introduce non-determinism to the ACVM"
-version = "0.14.2"
+version = "0.15.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
