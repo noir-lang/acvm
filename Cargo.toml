@@ -7,6 +7,7 @@ authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 license = "MIT"
 rust-version = "1.66"
+repository = "https://github.com/noir-lang/acvm/"
 
 [workspace.dependencies]
 acir = { version = "0.15.0", path = "acir", default-features = false }
