@@ -1,6 +1,6 @@
 // Re-usable methods that backends can use to implement their PWG
 
-use crate::{Language, PartialWitnessGenerator};
+use crate::{BlackBoxFunctionSolver, Language};
 use acir::{
     brillig_vm::ForeignCallResult,
     circuit::brillig::Brillig,
@@ -98,7 +98,7 @@ pub enum OpcodeResolutionError {
 
 /// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
 pub fn solve(
-    backend: &impl PartialWitnessGenerator,
+    backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
     blocks: &mut Blocks,
     mut opcode_to_solve: Vec<Opcode>,

@@ -4,19 +4,25 @@ use acir::{
 };
 
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
-use crate::PartialWitnessGenerator;
+use crate::BlackBoxFunctionSolver;
 
 mod ecdsa;
+mod fixed_base_scalar_mul;
 mod hash;
 mod logic;
+mod pedersen;
 mod range;
+mod schnorr_verify;
 
 use ecdsa::secp256k1_prehashed;
+use fixed_base_scalar_mul::fixed_base_scalar_mul;
 // Hash functions should eventually be exposed for external consumers.
 use hash::{blake2s256, keccak256, sha256};
 use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
 use logic::{and, xor};
+use pedersen::pedersen;
 use range::solve_range_opcode;
+use schnorr_verify::schnorr_verify;
 
 /// Check if all of the inputs to the function have assignments
 ///
@@ -40,7 +46,7 @@ fn contains_all_inputs(witness_assignments: &WitnessMap, inputs: &[FunctionInput
 }
 
 pub(crate) fn solve(
-    backend: &impl PartialWitnessGenerator,
+    backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
     bb_func: &BlackBoxFuncCall,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -101,7 +107,8 @@ pub(crate) fn solve(
             signature_e,
             message,
             output,
-        } => backend.schnorr_verify(
+        } => schnorr_verify(
+            backend,
             initial_witness,
             *public_key_x,
             *public_key_y,
@@ -111,7 +118,7 @@ pub(crate) fn solve(
             *output,
         ),
         BlackBoxFuncCall::Pedersen { inputs, domain_separator, outputs } => {
-            backend.pedersen(initial_witness, inputs, *domain_separator, *outputs)
+            pedersen(backend, initial_witness, inputs, *domain_separator, *outputs)
         }
         BlackBoxFuncCall::EcdsaSecp256k1 {
             public_key_x,
@@ -128,7 +135,7 @@ pub(crate) fn solve(
             *output,
         ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
-            backend.fixed_base_scalar_mul(initial_witness, *input, *outputs)
+            fixed_base_scalar_mul(backend, initial_witness, *input, *outputs)
         }
         BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
     }
