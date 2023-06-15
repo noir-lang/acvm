@@ -1,7 +1,7 @@
 use acir::{
     circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
-    BlackBoxFunc, FieldElement,
+    FieldElement,
 };
 
 use crate::{
@@ -9,22 +9,9 @@ use crate::{
     BlackBoxFunctionSolver,
 };
 
-fn to_u8_vec(
-    initial_witness: &WitnessMap,
-    inputs: &[FunctionInput],
-) -> Result<Vec<u8>, OpcodeResolutionError> {
-    let mut result = Vec::with_capacity(inputs.len());
-    for input in inputs {
-        let witness_value_bytes = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
-        let byte = witness_value_bytes
-            .last()
-            .expect("Field element must be represented by non-zero amount of bytes");
-        result.push(*byte);
-    }
-    Ok(result)
-}
+use super::to_u8_vec;
 
-pub(super) fn schnorr_verify(
+pub(crate) fn schnorr_verify(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
     public_key_x: FunctionInput,
@@ -42,7 +29,7 @@ pub(super) fn schnorr_verify(
     let message = to_u8_vec(initial_witness, message)?;
 
     let valid_signature =
-        backend.schnorr_verify(public_key_x, public_key_y, (sig_s, sig_e), &message_bytes)?;
+        backend.schnorr_verify(public_key_x, public_key_y, (sig_s, sig_e), &message)?;
 
     insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
 

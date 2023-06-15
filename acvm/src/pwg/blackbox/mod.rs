@@ -6,15 +6,13 @@ use acir::{
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;
 
-mod ecdsa;
 mod fixed_base_scalar_mul;
 mod hash;
 mod logic;
 mod pedersen;
 mod range;
-mod schnorr_verify;
+mod signature;
 
-use ecdsa::secp256k1_prehashed;
 use fixed_base_scalar_mul::fixed_base_scalar_mul;
 // Hash functions should eventually be exposed for external consumers.
 use hash::{blake2s256, keccak256, sha256};
@@ -22,7 +20,7 @@ use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
 use logic::{and, xor};
 use pedersen::pedersen;
 use range::solve_range_opcode;
-use schnorr_verify::schnorr_verify;
+use signature::{ecdsa::secp256k1_prehashed, schnorr::schnorr_verify};
 
 /// Check if all of the inputs to the function have assignments
 ///
