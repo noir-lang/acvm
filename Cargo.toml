@@ -9,9 +9,9 @@ license = "MIT"
 rust-version = "1.66"
 
 [workspace.dependencies]
-acir = { version = "0.14.2", path = "acir", default-features = false }
-acir_field = { version = "0.14.2", path = "acir_field", default-features = false }
-stdlib = { package = "acvm_stdlib", version = "0.14.2", path = "stdlib", default-features = false }
+acir = { version = "0.15.0", path = "acir", default-features = false }
+acir_field = { version = "0.15.0", path = "acir_field", default-features = false }
+stdlib = { package = "acvm_stdlib", version = "0.15.0", path = "stdlib", default-features = false }
 
 num-bigint = "0.4"
 num-traits = "0.2"

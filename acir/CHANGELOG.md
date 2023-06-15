@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/noir-lang/acvm/compare/acir-v0.14.2...acir-v0.15.0) (2023-06-15)
+
+
+### Features
+
+* Add method to generate updated `Brillig` opcode from `UnresolvedBrilligCall` ([#363](https://github.com/noir-lang/acvm/issues/363)) ([fda5dbe](https://github.com/noir-lang/acvm/commit/fda5dbe57c28dc4bc28dfd8fe0a4a8ba29635393))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.14.2 to 0.15.0
+
 ## [0.14.2](https://github.com/noir-lang/acvm/compare/acir-v0.14.1...acir-v0.14.2) (2023-06-08)
 
 

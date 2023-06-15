@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.15.0](https://github.com/noir-lang/acvm/compare/acvm-v0.14.2...acvm-v0.15.0) (2023-06-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **brillig:** Accept multiple inputs/outputs for foreign calls ([#367](https://github.com/noir-lang/acvm/issues/367))
+* **acvm:** Make internals of ACVM private ([#353](https://github.com/noir-lang/acvm/issues/353))
+
+### Features
+
+* Add method to generate updated `Brillig` opcode from `UnresolvedBrilligCall` ([#363](https://github.com/noir-lang/acvm/issues/363)) ([fda5dbe](https://github.com/noir-lang/acvm/commit/fda5dbe57c28dc4bc28dfd8fe0a4a8ba29635393))
+* **brillig:** Accept multiple inputs/outputs for foreign calls ([#367](https://github.com/noir-lang/acvm/issues/367)) ([78d62b2](https://github.com/noir-lang/acvm/commit/78d62b2d7c1c8b884e1f3fe7983e6e5029700e70))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Make internals of ACVM private ([#353](https://github.com/noir-lang/acvm/issues/353)) ([c902a01](https://github.com/noir-lang/acvm/commit/c902a01639033665d106e2d9f4e5c7070af8c0bb))
+
 ## [0.14.2](https://github.com/noir-lang/acvm/compare/acvm-v0.14.1...acvm-v0.14.2) (2023-06-08)
 
 
