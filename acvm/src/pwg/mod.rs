@@ -310,7 +310,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterOrMemory, Value},
+        brillig_vm::{self, BinaryFieldOp, ForeignCallInput, RegisterIndex, Value},
         circuit::{
             brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
@@ -483,8 +483,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: None,
@@ -610,13 +610,13 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(0))],
                 },
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(3))],
-                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(2))],
+                    destinations: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(3))],
+                    inputs: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(2))],
                 },
             ],
             predicate: None,
@@ -758,8 +758,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![ForeignCallInput::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: Some(Expression::default()),

@@ -247,18 +247,13 @@ impl VM {
                         RegisterOrMemory::HeapVector(pointer_index, size_index) => {
                             match output {
                                 ForeignCallOutput::Array(values) => {
-                                    // Convert the size pointer to a usize
-                                    let size = self.registers.get(*size_index).to_usize();
-                                    assert_eq!(
-                                        values.len(),
-                                        size,
-                                        "Function result size does not match brillig bytecode size register"
-                                    );
+                                    // Set our size in the size register
+                                    self.registers.set(*size_index, Value::from(values.len()));
                                     // Convert the destination pointer to a usize
                                     let destination = self.registers.get(*pointer_index).to_usize();
                                     // Calculate new memory size
                                     let new_size =
-                                        std::cmp::max(self.memory.len(), destination + size);
+                                        std::cmp::max(self.memory.len(), destination + values.len());
                                     // Expand memory to new size with default values if needed
                                     self.memory.resize(new_size, Value::from(0_usize));
                                     // Write to our destination memory
