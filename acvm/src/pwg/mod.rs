@@ -310,7 +310,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_vm::{self, BinaryFieldOp, RegisterOrMemory, RegisterIndex, Value},
+        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterOrMemory, Value},
         circuit::{
             brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
