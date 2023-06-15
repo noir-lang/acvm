@@ -209,6 +209,7 @@ impl VM {
                 let ForeignCallResult { values } =
                     &self.foreign_call_results[self.foreign_call_counter];
 
+                let mut invalid_foreign_call_result = false;
                 for (destination, output) in destinations.iter().zip(values) {
                     match destination {
                         RegisterOrMemory::RegisterIndex(value_index) => match output {
@@ -222,11 +223,10 @@ impl VM {
                         RegisterOrMemory::HeapArray(pointer_index, size) => {
                             match output {
                                 ForeignCallOutput::Array(values) => {
-                                    assert_eq!(
-                                        values.len(),
-                                        *size,
-                                        "Function result size does not match brillig bytecode size"
-                                    );
+                                    if values.len() != *size {
+                                        invalid_foreign_call_result = true;
+                                        break;
+                                    }
                                     // Convert the destination pointer to a usize
                                     let destination = self.registers.get(*pointer_index).to_usize();
                                     // Calculate new memory size
@@ -269,9 +269,12 @@ impl VM {
                     }
                 }
 
-                // This check must come after resolving the foreign call outputs as `fail` uses a mutable reference
+                // These checks must come after resolving the foreign call outputs as `fail` uses a mutable reference
                 if destinations.len() != values.len() {
                     self.fail(format!("{} output values were provided as a foreign call result for {} destination slots", values.len(), destinations.len()));
+                }
+                if invalid_foreign_call_result {
+                    self.fail("Function result size does not match brillig bytecode".to_owned());
                 }
 
                 self.foreign_call_counter += 1;
