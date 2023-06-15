@@ -19,7 +19,7 @@ jobs:
     name: Publish in order
     runs-on: ubuntu-latest
     env:
-      DRY_RUN_FLAG: ${{ !inputs.publish && "--dry-run" }}
+      DRY_RUN_FLAG:  ${{ (inputs.publish && '') || '--dry-run' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
