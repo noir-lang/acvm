@@ -142,5 +142,5 @@ pub struct ForeignCallWaitInfo {
     /// An identifier interpreted by the caller process
     pub function: String,
     /// Resolved inputs to a foreign call computed in the previous steps of a Brillig VM process
-    pub inputs: Vec<Value>,
+    pub inputs: Vec<Vec<Value>>,
 }

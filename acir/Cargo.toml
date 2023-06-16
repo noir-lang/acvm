@@ -1,18 +1,19 @@
 [package]
 name = "acir"
 description = "ACIR is the IR that the VM processes, it is analogous to LLVM IR"
-version = "0.14.2"
+version = "0.15.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
-brillig_vm = { version = "0.14.2", path = "../brillig_vm", default-features = false }
+brillig_vm = { version = "0.15.0", path = "../brillig_vm", default-features = false }
 thiserror.workspace = true
 
 rmp-serde = "1.1.0"

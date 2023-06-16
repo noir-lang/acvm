@@ -3,6 +3,18 @@ use acir::{
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
+use blake2::digest::generic_array::GenericArray;
+use k256::elliptic_curve::sec1::FromEncodedPoint;
+use k256::elliptic_curve::PrimeField;
+
+use k256::{ecdsa::Signature, Scalar};
+use k256::{
+    elliptic_curve::{
+        sec1::{Coordinates, ToEncodedPoint},
+        IsHigh,
+    },
+    AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
+};
 
 use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
 
@@ -53,113 +65,64 @@ pub(super) fn secp256k1_prehashed(
             )
         })?;
 
-    let result =
-        ecdsa_secp256k1::verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature)
-            .is_ok();
+    let is_valid =
+        verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
-    initial_witness.insert(output, FieldElement::from(result));
+    initial_witness.insert(output, FieldElement::from(is_valid));
     Ok(OpcodeResolution::Solved)
 }
 
-mod ecdsa_secp256k1 {
-    use k256::elliptic_curve::sec1::FromEncodedPoint;
-    use k256::elliptic_curve::PrimeField;
-    use sha2::digest::generic_array::GenericArray;
+/// Verify an ECDSA signature over the secp256k1 elliptic curve, given the hashed message
+fn verify_secp256k1_ecdsa_signature(
+    hashed_msg: &[u8],
+    public_key_x_bytes: &[u8; 32],
+    public_key_y_bytes: &[u8; 32],
+    signature: &[u8; 64],
+) -> bool {
+    // Convert the inputs into k256 data structures
 
-    use k256::{ecdsa::Signature, Scalar};
-    use k256::{
-        elliptic_curve::{
-            sec1::{Coordinates, ToEncodedPoint},
-            IsHigh,
-        },
-        AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
-    };
-    // This method is used to generate test vectors
-    // in noir. TODO: check that it is indeed used
-    #[allow(dead_code)]
-    fn generate_proof_data() {
-        use k256::ecdsa::{signature::Signer, SigningKey};
+    let signature = Signature::try_from(signature.as_slice()).unwrap();
 
-        use sha2::{Digest, Sha256};
+    let point = EncodedPoint::from_affine_coordinates(
+        public_key_x_bytes.into(),
+        public_key_y_bytes.into(),
+        true,
+    );
+    let pubkey = PublicKey::from_encoded_point(&point).unwrap();
 
-        // Signing
-        let signing_key = SigningKey::from_bytes(&[2u8; 32]).unwrap();
-        let message =
-            b"ECDSA proves knowledge of a secret number in the context of a single message";
+    let z = Scalar::from_repr(*GenericArray::from_slice(hashed_msg)).unwrap();
 
-        let digest = Sha256::digest(message);
+    // Finished converting bytes into data structures
 
-        let signature: Signature = signing_key.sign(message);
-        let signature_bytes: [u8; 64] = signature.as_ref().try_into().unwrap();
-        assert!(Signature::try_from(signature_bytes.as_slice()).unwrap() == signature);
+    let r = signature.r();
+    let s = signature.s();
 
-        // Verification
-        use k256::ecdsa::{signature::Verifier, VerifyingKey};
-
-        let verify_key = VerifyingKey::from(&signing_key);
-
-        if let Coordinates::Uncompressed { x, y } = verify_key.to_encoded_point(false).coordinates()
-        {
-            let x: [u8; 32] = (*x).into();
-            let y: [u8; 32] = (*y).into();
-
-            verify_prehashed(&digest, &x, &y, &signature_bytes).unwrap();
-        } else {
-            unreachable!();
-        }
-
-        assert!(verify_key.verify(message, &signature).is_ok());
+    // Ensure signature is "low S" normalized ala BIP 0062
+    if s.is_high().into() {
+        return false;
     }
 
-    /// Verify an ECDSA signature, given the hashed message
-    pub(super) fn verify_prehashed(
-        hashed_msg: &[u8],
-        public_key_x_bytes: &[u8; 32],
-        public_key_y_bytes: &[u8; 32],
-        signature: &[u8; 64],
-    ) -> Result<(), ()> {
-        // Convert the inputs into k256 data structures
+    let s_inv = s.invert().unwrap();
+    let u1 = z * s_inv;
+    let u2 = *r * s_inv;
 
-        let signature = Signature::try_from(signature.as_slice()).unwrap();
+    #[allow(non_snake_case)]
+    let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
+        + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
+        .to_affine();
 
-        let point = EncodedPoint::from_affine_coordinates(
-            public_key_x_bytes.into(),
-            public_key_y_bytes.into(),
-            true,
-        );
-        let pubkey = PublicKey::from_encoded_point(&point).unwrap();
-
-        let z = Scalar::from_repr(*GenericArray::from_slice(hashed_msg)).unwrap();
-
-        // Finished converting bytes into data structures
-
-        let r = signature.r();
-        let s = signature.s();
-
-        // Ensure signature is "low S" normalized ala BIP 0062
-        if s.is_high().into() {
-            return Err(());
-        }
-
-        let s_inv = s.invert().unwrap();
-        let u1 = z * s_inv;
-        let u2 = *r * s_inv;
-
-        #[allow(non_snake_case)]
-        let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
-            + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
-            .to_affine();
-
-        if let Coordinates::Uncompressed { x, y: _ } = R.to_encoded_point(false).coordinates() {
-            if Scalar::from_repr(*x).unwrap().eq(&r) {
-                return Ok(());
-            }
-        }
-        Err(())
+    match R.to_encoded_point(false).coordinates() {
+        Coordinates::Uncompressed { x, y: _ } => Scalar::from_repr(*x).unwrap().eq(&r),
+        _ => unreachable!("Point is uncompressed"),
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::verify_secp256k1_ecdsa_signature;
 
     #[test]
-    fn smoke() {
+    fn verifies_valid_signature_with_low_s_value() {
         // 0x3a73f4123a5cd2121f21cd7e8d358835476949d035d9c2da6806b4633ac8c1e2,
         let hashed_message: [u8; 32] = [
             0x3a, 0x73, 0xf4, 0x12, 0x3a, 0x5c, 0xd2, 0x12, 0x1f, 0x21, 0xcd, 0x7e, 0x8d, 0x35,
@@ -190,7 +153,8 @@ mod ecdsa_secp256k1 {
             0x01, 0x61, 0xe4, 0x9a, 0x71, 0x5f, 0xcd, 0x55,
         ];
 
-        let valid = verify_prehashed(&hashed_message, &pub_key_x, &pub_key_y, &signature).is_ok();
+        let valid =
+            verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
         assert!(valid)
     }

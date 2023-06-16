@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0](https://github.com/noir-lang/acvm/compare/root-v0.14.2...root-v0.15.0) (2023-06-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **brillig:** Accept multiple inputs/outputs for foreign calls ([#367](https://github.com/noir-lang/acvm/issues/367))
+* **acvm:** Make internals of ACVM private ([#353](https://github.com/noir-lang/acvm/issues/353))
+
+### Features
+
+* Add method to generate updated `Brillig` opcode from `UnresolvedBrilligCall` ([#363](https://github.com/noir-lang/acvm/issues/363)) ([fda5dbe](https://github.com/noir-lang/acvm/commit/fda5dbe57c28dc4bc28dfd8fe0a4a8ba29635393))
+* **brillig:** Accept multiple inputs/outputs for foreign calls ([#367](https://github.com/noir-lang/acvm/issues/367)) ([78d62b2](https://github.com/noir-lang/acvm/commit/78d62b2d7c1c8b884e1f3fe7983e6e5029700e70))
+* **brillig:** Set `VMStatus` to `Failure` rather than panicking on invalid foreign call response ([#375](https://github.com/noir-lang/acvm/issues/375)) ([c49d82c](https://github.com/noir-lang/acvm/commit/c49d82c99c73c60e264585ed201af2b6a2b7ee0f))
+
+
+### Bug Fixes
+
+* **brillig:** Correct signed division implementation ([#356](https://github.com/noir-lang/acvm/issues/356)) ([4eefda0](https://github.com/noir-lang/acvm/commit/4eefda01e7b371035314f77631df4687608b4782))
+* **brillig:** Explicitly wrap on arithmetic operations ([#365](https://github.com/noir-lang/acvm/issues/365)) ([c0544a9](https://github.com/noir-lang/acvm/commit/c0544a99930d3c8d534376c8f8a91645a39aecf8))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Make internals of ACVM private ([#353](https://github.com/noir-lang/acvm/issues/353)) ([c902a01](https://github.com/noir-lang/acvm/commit/c902a01639033665d106e2d9f4e5c7070af8c0bb))
+
 ## [0.14.2](https://github.com/noir-lang/acvm/compare/root-v0.14.1...root-v0.14.2) (2023-06-08)
 
 
