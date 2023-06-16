@@ -87,18 +87,18 @@ pub enum OpcodeResolutionError {
 
 pub struct ACVM<B: PartialWitnessGenerator> {
     backend: B,
+    blocks: Blocks,
 }
 
 impl<B: PartialWitnessGenerator> ACVM<B> {
     pub fn new(backend: B) -> Self {
-        ACVM { backend }
+        ACVM { backend, blocks: Blocks::default() }
     }
 
     /// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
     pub fn solve(
-        &self,
+        &mut self,
         initial_witness: &mut WitnessMap,
-        blocks: &mut Blocks,
         mut opcode_to_solve: Vec<Opcode>,
     ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
@@ -115,7 +115,7 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                     }
                     Opcode::Directive(directive) => solve_directives(initial_witness, directive),
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                        blocks.solve(block.id, &block.trace, initial_witness)
+                        self.blocks.solve(block.id, &block.trace, initial_witness)
                     }
                     Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
                 };
@@ -296,7 +296,7 @@ mod tests {
     };
 
     use crate::{
-        pwg::{block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus, ACVM},
+        pwg::{OpcodeResolution, PartialWitnessGeneratorStatus, ACVM},
         OpcodeResolutionError, PartialWitnessGenerator,
     };
 
@@ -417,12 +417,11 @@ mod tests {
         ])
         .into();
 
-        let acvm = ACVM::new(StubbedPwg);
-        let mut blocks = Blocks::default();
+        let mut acvm = ACVM::new(StubbedPwg);
+
         // use the partial witness generation solver with our acir program
-        let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on oracle");
+        let solver_status =
+            acvm.solve(&mut witness_assignments, opcodes).expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
@@ -445,7 +444,7 @@ mod tests {
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
         let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .solve(&mut witness_assignments, next_opcodes_for_solving)
             .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
@@ -552,12 +551,10 @@ mod tests {
         ])
         .into();
 
-        let acvm = ACVM::new(StubbedPwg);
-        let mut blocks = Blocks::default();
+        let mut acvm = ACVM::new(StubbedPwg);
         // use the partial witness generation solver with our acir program
-        let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on oracle");
+        let solver_status =
+            acvm.solve(&mut witness_assignments, opcodes).expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
@@ -581,7 +578,7 @@ mod tests {
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
         let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .solve(&mut witness_assignments, next_opcodes_for_solving)
             .expect("should stall on oracle");
         let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
@@ -608,7 +605,7 @@ mod tests {
 
         // After filling data request, continue solving
         let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .solve(&mut witness_assignments, next_opcodes_for_solving)
             .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
@@ -691,11 +688,9 @@ mod tests {
         ])
         .into();
 
-        let acvm = ACVM::new(StubbedPwg);
-        let mut blocks = Blocks::default();
-        let solver_status = acvm
-            .solve(&mut witness_assignments, &mut blocks, opcodes)
-            .expect("should not stall on oracle");
+        let mut acvm = ACVM::new(StubbedPwg);
+        let solver_status =
+            acvm.solve(&mut witness_assignments, opcodes).expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }
