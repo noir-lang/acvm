@@ -111,7 +111,6 @@ pub fn solve(
         let mut opcode_not_solvable = None;
         for opcode in &opcode_to_solve {
             let mut solved_oracle_data = None;
-            let mut solved_brillig_data = None;
             let resolution = match opcode {
                 Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
@@ -127,12 +126,7 @@ pub fn solve(
                     solved_oracle_data = Some(data_clone);
                     Ok(result)
                 }
-                Opcode::Brillig(brillig) => {
-                    let mut brillig_clone = brillig.clone();
-                    let result = BrilligSolver::solve(initial_witness, &mut brillig_clone);
-                    solved_brillig_data = Some(brillig_clone);
-                    result
-                }
+                Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
             };
             match resolution {
                 Ok(OpcodeResolution::Solved) => {
@@ -169,8 +163,6 @@ pub fn solve(
                     // relies on a later opcodes' results
                     if let Some(oracle_data) = solved_oracle_data {
                         unresolved_opcodes.push(Opcode::Oracle(oracle_data));
-                    } else if let Some(brillig) = solved_brillig_data {
-                        unresolved_opcodes.push(Opcode::Brillig(brillig));
                     } else {
                         unresolved_opcodes.push(opcode.clone());
                     }
