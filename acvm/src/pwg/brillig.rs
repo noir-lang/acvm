@@ -14,7 +14,7 @@ pub(super) struct BrilligSolver;
 impl BrilligSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
-        brillig: &mut Brillig,
+        brillig: &Brillig,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled

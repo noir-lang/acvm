@@ -128,9 +128,8 @@ pub fn solve(
                     Ok(result)
                 }
                 Opcode::Brillig(brillig) => {
-                    let mut brillig_clone = brillig.clone();
-                    let result = BrilligSolver::solve(initial_witness, &mut brillig_clone);
-                    solved_brillig_data = Some(brillig_clone);
+                    let result = BrilligSolver::solve(initial_witness, &brillig);
+                    solved_brillig_data = Some(brillig.clone());
                     result
                 }
             };
