@@ -181,7 +181,7 @@ impl VM {
                 if let Some(register) = self.call_stack.pop() {
                     self.set_program_counter(register.to_usize())
                 } else {
-                    self.fail("return opcode hit, but callstack already empty".to_string())
+                    self.finish()
                 }
             }
             Opcode::ForeignCall { function, destinations, inputs } => {
