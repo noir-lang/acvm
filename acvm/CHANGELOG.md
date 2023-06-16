@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/noir-lang/acvm/compare/acvm-v0.15.0...acvm-v0.15.1) (2023-06-16)
+
+
+### Features
+
+* **brillig:** Allow dynamic-size foreign calls ([#370](https://github.com/noir-lang/acvm/issues/370)) ([5ba0349](https://github.com/noir-lang/acvm/commit/5ba0349420cc1b20113cb5e96490a0808a769757))
+
 ## [0.15.0](https://github.com/noir-lang/acvm/compare/acvm-v0.14.2...acvm-v0.15.0) (2023-06-15)
 
 
