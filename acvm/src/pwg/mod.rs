@@ -34,11 +34,8 @@ pub enum PartialWitnessGeneratorStatus {
     /// to retrieve information from outside of the ACVM.
     /// The result of the foreign call is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
     ///
-    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the new set of opcodes.
-    RequiresForeignCall {
-        unsolved_opcodes: Vec<Opcode>,
-        unresolved_brillig_calls: Vec<UnresolvedBrilligCall>,
-    },
+    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
+    RequiresForeignCall { unresolved_brillig_calls: Vec<UnresolvedBrilligCall> },
 }
 
 #[derive(Debug, PartialEq)]
@@ -88,13 +85,14 @@ pub enum OpcodeResolutionError {
 pub struct ACVM<B: PartialWitnessGenerator> {
     backend: B,
     blocks: Blocks,
+    opcodes: Vec<Opcode>,
 
     witness_map: WitnessMap,
 }
 
 impl<B: PartialWitnessGenerator> ACVM<B> {
-    pub fn new(backend: B, initial_witness: WitnessMap) -> Self {
-        ACVM { backend, blocks: Blocks::default(), witness_map: initial_witness }
+    pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+        ACVM { backend, blocks: Blocks::default(), opcodes, witness_map: initial_witness }
     }
 
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
@@ -102,18 +100,19 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
         self.witness_map
     }
 
+    pub fn resolve_brillig_foreign_call(&mut self, foreign_call: Brillig) {
+        self.opcodes.insert(0, Opcode::Brillig(foreign_call));
+    }
+
     /// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
-    pub fn solve(
-        &mut self,
-        mut opcode_to_solve: Vec<Opcode>,
-    ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+    pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
-        while !opcode_to_solve.is_empty() {
+        while !self.opcodes.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
-            for opcode in &opcode_to_solve {
+            for opcode in &self.opcodes {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => {
                         ArithmeticSolver::solve(&mut self.witness_map, expr)
@@ -127,7 +126,9 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                         self.blocks.solve(block.id, &block.trace, &mut self.witness_map)
                     }
-                    Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
+                    Opcode::Brillig(brillig) => {
+                        BrilligSolver::solve(&mut self.witness_map, brillig)
+                    }
                 };
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {
@@ -165,21 +166,22 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                     Err(err) => return Err(err),
                 }
             }
+
+            std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
+
             // We have oracles that must be externally resolved
             if !unresolved_brillig_calls.is_empty() {
                 return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
-                    unsolved_opcodes: unresolved_opcodes,
                     unresolved_brillig_calls,
                 });
             }
             // We are stalled because of an opcode being bad
-            if stalled && !unresolved_opcodes.is_empty() {
+            if stalled && !self.opcodes.is_empty() {
                 return Err(OpcodeResolutionError::OpcodeNotSolvable(
                     opcode_not_solvable
                         .expect("infallible: cannot be stalled and None at the same time"),
                 ));
             }
-            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
         }
         Ok(PartialWitnessGeneratorStatus::Solved)
     }
@@ -427,15 +429,15 @@ mod tests {
         ])
         .into();
 
-        let mut acvm = ACVM::new(StubbedPwg, witness_assignments);
+        let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
 
         // use the partial witness generation solver with our acir program
-        let solver_status = acvm.solve(opcodes).expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let solver_status = acvm.solve().expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall {  mut unresolved_brillig_calls } = solver_status else {
             panic!("Should require oracle data")
         };
 
-        assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
+        assert_eq!(acvm.opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
         let foreign_call = unresolved_brillig_calls.remove(0);
@@ -449,11 +451,9 @@ mod tests {
             Value::from(foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse());
         // Alter Brillig oracle opcode with foreign call resolution
         let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
-        let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
-        next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
+        acvm.resolve_brillig_foreign_call(brillig);
         // After filling data request, continue solving
-        let solver_status =
-            acvm.solve(next_opcodes_for_solving).expect("should not stall on oracle");
+        let solver_status = acvm.solve().expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -559,14 +559,14 @@ mod tests {
         ])
         .into();
 
-        let mut acvm = ACVM::new(StubbedPwg, witness_assignments);
+        let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
         // use the partial witness generation solver with our acir program
-        let solver_status = acvm.solve(opcodes).expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let solver_status = acvm.solve().expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall {  mut unresolved_brillig_calls } = solver_status else {
             panic!("Should require oracle data")
         };
 
-        assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
+        assert_eq!(acvm.opcodes.len(), 0, "brillig should have been removed");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig oracle request");
 
         let foreign_call = unresolved_brillig_calls.remove(0);
@@ -580,16 +580,15 @@ mod tests {
             foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         // Alter Brillig oracle opcode
         let brillig: Brillig = foreign_call.resolve(Value::from(x_plus_y_inverse).into());
+        acvm.resolve_brillig_foreign_call(brillig);
 
-        let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
-        next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
-        let solver_status = acvm.solve(next_opcodes_for_solving).expect("should stall on oracle");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+        let solver_status = acvm.solve().expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall { mut unresolved_brillig_calls } = solver_status else {
             panic!("Should require oracle data")
         };
 
-        assert!(unsolved_opcodes.is_empty(), "should be fully solved");
+        assert!(acvm.opcodes.is_empty(), "should be fully solved");
         assert_eq!(unresolved_brillig_calls.len(), 1, "should have no unresolved oracles");
 
         let foreign_call = unresolved_brillig_calls.remove(0);
@@ -604,13 +603,10 @@ mod tests {
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
         let brillig = foreign_call.resolve(Value::from(i_plus_j_inverse).into());
-
-        let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
-        next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
+        acvm.resolve_brillig_foreign_call(brillig);
 
         // After filling data request, continue solving
-        let solver_status =
-            acvm.solve(next_opcodes_for_solving).expect("should not stall on oracle");
+        let solver_status = acvm.solve().expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -692,8 +688,8 @@ mod tests {
         ])
         .into();
 
-        let mut acvm = ACVM::new(StubbedPwg, witness_assignments);
-        let solver_status = acvm.solve(opcodes).expect("should not stall on oracle");
+        let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+        let solver_status = acvm.solve().expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }
