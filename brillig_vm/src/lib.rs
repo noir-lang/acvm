@@ -11,7 +11,7 @@ mod registers;
 mod value;
 
 pub use opcodes::Opcode;
-pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterValueOrArray};
+pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory};
 pub use registers::{RegisterIndex, Registers};
 use serde::{Deserialize, Serialize};
 pub use value::Typ;
@@ -39,25 +39,31 @@ pub enum VMStatus {
     },
 }
 
-/// Represents the output of a [foreign call][Opcode::ForeignCall].
+/// Single output of a [foreign call][Opcode::ForeignCall].
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub enum ForeignCallOutput {
+    Single(Value),
+    Array(Vec<Value>),
+}
+
+/// Represents the full output of a [foreign call][Opcode::ForeignCall].
 ///
 /// See [`VMStatus::ForeignCallWait`] for more information.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
     /// Resolved output values of the foreign call.
-    /// Each output is its own list of values as an output can be either a single value or a memory pointer
-    pub values: Vec<Vec<Value>>,
+    pub values: Vec<ForeignCallOutput>,
+}
+
+impl From<Value> for ForeignCallResult {
+    fn from(value: Value) -> Self {
+        ForeignCallResult { values: vec![ForeignCallOutput::Single(value)] }
+    }
 }
 
 impl From<Vec<Value>> for ForeignCallResult {
     fn from(values: Vec<Value>) -> Self {
-        ForeignCallResult { values: vec![values] }
-    }
-}
-
-impl From<Vec<Vec<Value>>> for ForeignCallResult {
-    fn from(values: Vec<Vec<Value>>) -> Self {
-        ForeignCallResult { values }
+        ForeignCallResult { values: vec![ForeignCallOutput::Array(values)] }
     }
 }
 
@@ -204,49 +210,71 @@ impl VM {
                     &self.foreign_call_results[self.foreign_call_counter];
 
                 let mut invalid_foreign_call_result = false;
-                for (destination, values) in destinations.iter().zip(values) {
+                for (destination, output) in destinations.iter().zip(values) {
                     match destination {
-                        RegisterValueOrArray::RegisterIndex(index) => {
-                            if values.len() != 1 {
-                                invalid_foreign_call_result = true;
-                                break;
+                        RegisterOrMemory::RegisterIndex(value_index) => match output {
+                            ForeignCallOutput::Single(value) => {
+                                self.registers.set(*value_index, *value)
                             }
-
-                            self.registers.set(*index, values[0])
+                            _ => unreachable!(
+                                "Function result size does not match brillig bytecode (expected 1 result)"
+                            ),
+                        },
+                        RegisterOrMemory::HeapArray(pointer_index, size) => {
+                            match output {
+                                ForeignCallOutput::Array(values) => {
+                                    if values.len() != *size {
+                                        invalid_foreign_call_result = true;
+                                        break;
+                                    }
+                                    // Convert the destination pointer to a usize
+                                    let destination = self.registers.get(*pointer_index).to_usize();
+                                    // Calculate new memory size
+                                    let new_size =
+                                        std::cmp::max(self.memory.len(), destination + size);
+                                    // Expand memory to new size with default values if needed
+                                    self.memory.resize(new_size, Value::from(0_usize));
+                                    // Write to our destination memory
+                                    for (i, value) in values.iter().enumerate() {
+                                        self.memory[destination + i] = *value;
+                                    }
+                                }
+                                _ => {
+                                    unreachable!("Function result size does not match brillig bytecode size")
+                                }
+                            }
                         }
-                        RegisterValueOrArray::HeapArray(index, size) => {
-                            if values.len() != *size {
-                                invalid_foreign_call_result = true;
-                                break;
-                            }
-
-                            // Convert the destination pointer to a usize
-                            let destination = self.registers.get(*index).to_usize();
-                            // Expand memory if the array to be written
-                            // will overtake the maximum memory pointer
-                            if (destination + size) >= self.memory.len() {
-                                self.memory.append(&mut vec![
-                                    Value::from(0_usize);
-                                    (destination + size)
-                                        - self.memory.len()
-                                ]);
-                            }
-
-                            for (i, value) in values.iter().enumerate() {
-                                self.memory[destination + i] = *value;
+                        RegisterOrMemory::HeapVector(pointer_index, size_index) => {
+                            match output {
+                                ForeignCallOutput::Array(values) => {
+                                    // Set our size in the size register
+                                    self.registers.set(*size_index, Value::from(values.len()));
+                                    // Convert the destination pointer to a usize
+                                    let destination = self.registers.get(*pointer_index).to_usize();
+                                    // Calculate new memory size
+                                    let new_size =
+                                        std::cmp::max(self.memory.len(), destination + values.len());
+                                    // Expand memory to new size with default values if needed
+                                    self.memory.resize(new_size, Value::from(0_usize));
+                                    // Write to our destination memory
+                                    for (i, value) in values.iter().enumerate() {
+                                        self.memory[destination + i] = *value;
+                                    }
+                                }
+                                _ => {
+                                    unreachable!("Function result size does not match brillig bytecode size")
+                                }
                             }
                         }
                     }
                 }
 
                 // These checks must come after resolving the foreign call outputs as `fail` uses a mutable reference
-                if invalid_foreign_call_result {
-                    return VMStatus::Failure {
-                        message: "Function result size does not match brillig bytecode".to_owned(),
-                    };
-                }
                 if destinations.len() != values.len() {
                     self.fail(format!("{} output values were provided as a foreign call result for {} destination slots", values.len(), destinations.len()));
+                }
+                if invalid_foreign_call_result {
+                    self.fail("Function result size does not match brillig bytecode".to_owned());
                 }
 
                 self.foreign_call_counter += 1;
@@ -314,12 +342,19 @@ impl VM {
         self.status.clone()
     }
 
-    fn get_register_value_or_memory_values(&self, input: RegisterValueOrArray) -> Vec<Value> {
+    fn get_register_value_or_memory_values(&self, input: RegisterOrMemory) -> Vec<Value> {
         match input {
-            RegisterValueOrArray::RegisterIndex(index) => vec![self.registers.get(index)],
-            RegisterValueOrArray::HeapArray(index, size) => {
-                let start = self.registers.get(index);
+            RegisterOrMemory::RegisterIndex(value_index) => {
+                vec![self.registers.get(value_index)]
+            }
+            RegisterOrMemory::HeapArray(pointer_index, size) => {
+                let start = self.registers.get(pointer_index);
                 self.memory[start.to_usize()..(start.to_usize() + size)].to_vec()
+            }
+            RegisterOrMemory::HeapVector(pointer_index, size_index) => {
+                let start = self.registers.get(pointer_index);
+                let size = self.registers.get(size_index);
+                self.memory[start.to_usize()..(start.to_usize() + size.to_usize())].to_vec()
             }
         }
     }
@@ -355,7 +390,6 @@ impl VM {
         let rhs_value = self.registers.get(rhs);
 
         let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
-
         self.registers.set(result, result_value.into());
     }
 }
@@ -841,8 +875,8 @@ mod tests {
             // Call foreign function "double" with the input register
             Opcode::ForeignCall {
                 function: "double".into(),
-                destinations: vec![RegisterValueOrArray::RegisterIndex(r_result)],
-                inputs: vec![RegisterValueOrArray::RegisterIndex(r_input)],
+                destinations: vec![RegisterOrMemory::RegisterIndex(r_result)],
+                inputs: vec![RegisterOrMemory::RegisterIndex(r_input)],
             },
         ];
 
@@ -858,9 +892,9 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult {
-            values: vec![vec![Value::from(10u128)]], // Result of doubling 5u128
-        });
+        vm.foreign_call_results.push(
+            Value::from(10u128).into(), // Result of doubling 5u128
+        );
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -896,8 +930,8 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterValueOrArray::HeapArray(r_output, initial_matrix.len())],
-                inputs: vec![RegisterValueOrArray::HeapArray(r_input, initial_matrix.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(r_output, initial_matrix.len())],
+                inputs: vec![RegisterOrMemory::HeapArray(r_input, initial_matrix.len())],
             },
         ];
 
@@ -913,7 +947,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -924,6 +958,76 @@ mod tests {
         // Check result in memory
         let result_values = vm.memory[0..4].to_vec();
         assert_eq!(result_values, expected_result);
+
+        // Ensure the foreign call counter has been incremented
+        assert_eq!(vm.foreign_call_counter, 1);
+    }
+
+    /// Calling a simple foreign call function that takes any string input, concatenates it with itself, and reverses the concatenation
+    #[test]
+    fn foreign_call_opcode_vector_input_and_output() {
+        let r_input_pointer = RegisterIndex::from(0);
+        let r_input_size = RegisterIndex::from(1);
+        // We need to pass a location of appropriate size
+        let r_output_pointer = RegisterIndex::from(2);
+        let r_output_size = RegisterIndex::from(3);
+
+        // Our first string to use the identity function with
+        let input_string =
+            vec![Value::from(1u128), Value::from(2u128), Value::from(3u128), Value::from(4u128)];
+        // Double the string (concatenate it with itself)
+        let mut output_string: Vec<Value> =
+            input_string.iter().cloned().chain(input_string.clone()).collect();
+        // Reverse the concatenated string
+        output_string.reverse();
+
+        // First call:
+        let string_double_program = vec![
+            // input_pointer = 0
+            Opcode::Const { destination: r_input_pointer, value: Value::from(0u128) },
+            // input_size = input_string.len() (constant here)
+            Opcode::Const { destination: r_input_size, value: Value::from(input_string.len()) },
+            // output_pointer = 0 + input_size = input_size
+            Opcode::Const { destination: r_output_pointer, value: Value::from(input_string.len()) },
+            // output_size = input_size * 2
+            Opcode::Const {
+                destination: r_output_size,
+                value: Value::from(input_string.len() * 2),
+            },
+            // output_pointer[0..output_size] = string_double(input_pointer[0...input_size])
+            Opcode::ForeignCall {
+                function: "string_double".into(),
+                destinations: vec![RegisterOrMemory::HeapVector(r_output_pointer, r_output_size)],
+                inputs: vec![RegisterOrMemory::HeapVector(r_input_pointer, r_input_size)],
+            },
+        ];
+
+        let mut vm = brillig_execute_and_get_vm(input_string.clone(), string_double_program);
+
+        // Check that VM is waiting
+        assert_eq!(
+            vm.status,
+            VMStatus::ForeignCallWait {
+                function: "string_double".into(),
+                inputs: vec![input_string.clone()]
+            }
+        );
+
+        // Push result we're waiting for
+        vm.foreign_call_results.push(ForeignCallResult {
+            values: vec![ForeignCallOutput::Array(output_string.clone())],
+        });
+
+        // Resume VM
+        brillig_execute(&mut vm);
+
+        // Check that VM finished once resumed
+        assert_eq!(vm.status, VMStatus::Finished);
+
+        // Check result in memory
+        let result_values =
+            vm.memory[input_string.len()..(input_string.len() + output_string.len())].to_vec();
+        assert_eq!(result_values, output_string);
 
         // Ensure the foreign call counter has been incremented
         assert_eq!(vm.foreign_call_counter, 1);
@@ -950,8 +1054,8 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterValueOrArray::HeapArray(r_output, initial_matrix.len())],
-                inputs: vec![RegisterValueOrArray::HeapArray(r_input, initial_matrix.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(r_output, initial_matrix.len())],
+                inputs: vec![RegisterOrMemory::HeapArray(r_input, initial_matrix.len())],
             },
         ];
 
@@ -967,7 +1071,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
@@ -1022,10 +1126,10 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterValueOrArray::HeapArray(r_output, matrix_a.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(r_output, matrix_a.len())],
                 inputs: vec![
-                    RegisterValueOrArray::HeapArray(r_input_a, matrix_a.len()),
-                    RegisterValueOrArray::HeapArray(r_input_b, matrix_b.len()),
+                    RegisterOrMemory::HeapArray(r_input_a, matrix_a.len()),
+                    RegisterOrMemory::HeapArray(r_input_b, matrix_b.len()),
                 ],
             },
         ];
@@ -1043,7 +1147,7 @@ mod tests {
         );
 
         // Push result we're waiting for
-        vm.foreign_call_results.push(ForeignCallResult { values: vec![expected_result.clone()] });
+        vm.foreign_call_results.push(expected_result.clone().into());
 
         // Resume VM
         brillig_execute(&mut vm);
