@@ -76,7 +76,7 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut WitnessMap,
         public_key_x: &FunctionInput,
         public_key_y: &FunctionInput,
-        signature: &[FunctionInput],
+        signature: &(FunctionInput, FunctionInput),
         message: &[FunctionInput],
         output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
@@ -85,13 +85,13 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         domain_separator: u32,
-        outputs: &[Witness],
+        outputs: &(Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut WitnessMap,
         input: &FunctionInput,
-        outputs: &[Witness],
+        outputs: &(Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 

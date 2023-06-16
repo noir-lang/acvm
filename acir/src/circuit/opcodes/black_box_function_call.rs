@@ -42,14 +42,14 @@ pub enum BlackBoxFuncCall {
     SchnorrVerify {
         public_key_x: FunctionInput,
         public_key_y: FunctionInput,
-        signature: Vec<FunctionInput>,
+        signature: (FunctionInput, FunctionInput),
         message: Vec<FunctionInput>,
         output: Witness,
     },
     Pedersen {
         inputs: Vec<FunctionInput>,
         domain_separator: u32,
-        outputs: Vec<Witness>,
+        outputs: (Witness, Witness),
     },
     // 128 here specifies that this function
     // should have 128 bits of security
@@ -66,7 +66,7 @@ pub enum BlackBoxFuncCall {
     },
     FixedBaseScalarMul {
         input: FunctionInput,
-        outputs: Vec<Witness>,
+        outputs: (Witness, Witness),
     },
     Keccak256 {
         inputs: Vec<FunctionInput>,
@@ -125,13 +125,15 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
                 public_key_x: FunctionInput::dummy(),
                 public_key_y: FunctionInput::dummy(),
-                signature: vec![],
+                signature: (FunctionInput::dummy(), FunctionInput::dummy()),
                 message: vec![],
                 output: Witness(0),
             },
-            BlackBoxFunc::Pedersen => {
-                BlackBoxFuncCall::Pedersen { inputs: vec![], domain_separator: 0, outputs: vec![] }
-            }
+            BlackBoxFunc::Pedersen => BlackBoxFuncCall::Pedersen {
+                inputs: vec![],
+                domain_separator: 0,
+                outputs: (Witness(0), Witness(0)),
+            },
             BlackBoxFunc::HashToField128Security => {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
             }
@@ -144,7 +146,7 @@ impl BlackBoxFuncCall {
             },
             BlackBoxFunc::FixedBaseScalarMul => BlackBoxFuncCall::FixedBaseScalarMul {
                 input: FunctionInput::dummy(),
-                outputs: vec![],
+                outputs: (Witness(0), Witness(0)),
             },
             BlackBoxFunc::Keccak256 => {
                 BlackBoxFuncCall::Keccak256 { inputs: vec![], outputs: vec![] }
@@ -201,10 +203,11 @@ impl BlackBoxFuncCall {
                 message,
                 ..
             } => {
-                let mut inputs = Vec::with_capacity(2 + signature.len() + message.len());
+                let mut inputs = Vec::with_capacity(4 + message.len());
                 inputs.push(*public_key_x);
                 inputs.push(*public_key_y);
-                inputs.extend(signature.iter().copied());
+                inputs.push(signature.0);
+                inputs.push(signature.1);
                 inputs.extend(message.iter().copied());
                 inputs
             }
@@ -256,8 +259,6 @@ impl BlackBoxFuncCall {
         match self {
             BlackBoxFuncCall::SHA256 { outputs, .. }
             | BlackBoxFuncCall::Blake2s { outputs, .. }
-            | BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
-            | BlackBoxFuncCall::Pedersen { outputs, .. }
             | BlackBoxFuncCall::Keccak256 { outputs, .. }
             | BlackBoxFuncCall::RecursiveAggregation {
                 output_aggregation_object: outputs, ..
@@ -267,6 +268,8 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::HashToField128Security { output, .. }
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
             | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. } => vec![*output],
+            BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
+            | BlackBoxFuncCall::Pedersen { outputs, .. } => vec![outputs.0, outputs.1],
             BlackBoxFuncCall::RANGE { .. } => vec![],
             BlackBoxFuncCall::Keccak256VariableLength { outputs, .. } => outputs.to_vec(),
         }

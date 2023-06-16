@@ -334,7 +334,7 @@ mod tests {
             _initial_witness: &mut WitnessMap,
             _public_key_x: &FunctionInput,
             _public_key_y: &FunctionInput,
-            _signature: &[FunctionInput],
+            _signature: &(FunctionInput, FunctionInput),
             _message: &[FunctionInput],
             _output: &Witness,
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -346,7 +346,7 @@ mod tests {
             _initial_witness: &mut WitnessMap,
             _inputs: &[FunctionInput],
             _domain_separator: u32,
-            _outputs: &[Witness],
+            _outputs: &(Witness, Witness),
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
@@ -355,7 +355,7 @@ mod tests {
             &self,
             _initial_witness: &mut WitnessMap,
             _input: &FunctionInput,
-            _outputs: &[Witness],
+            _outputs: &(Witness, Witness),
         ) -> Result<OpcodeResolution, OpcodeResolutionError> {
             panic!("Path not trodden by this test")
         }
