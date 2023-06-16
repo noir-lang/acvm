@@ -85,84 +85,94 @@ pub enum OpcodeResolutionError {
     BrilligFunctionFailed(String),
 }
 
-/// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
-pub fn solve(
-    backend: &impl PartialWitnessGenerator,
-    initial_witness: &mut WitnessMap,
-    blocks: &mut Blocks,
-    mut opcode_to_solve: Vec<Opcode>,
-) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
-    let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-    let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
-    while !opcode_to_solve.is_empty() {
-        unresolved_opcodes.clear();
-        let mut stalled = true;
-        let mut opcode_not_solvable = None;
-        for opcode in &opcode_to_solve {
-            let resolution = match opcode {
-                Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                Opcode::BlackBoxFuncCall(bb_func) => {
-                    blackbox::solve(backend, initial_witness, bb_func)
-                }
-                Opcode::Directive(directive) => solve_directives(initial_witness, directive),
-                Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                    blocks.solve(block.id, &block.trace, initial_witness)
-                }
-                Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
-            };
-            match resolution {
-                Ok(OpcodeResolution::Solved) => {
-                    stalled = false;
-                }
-                Ok(OpcodeResolution::InProgress) => {
-                    stalled = false;
-                    unresolved_opcodes.push(opcode.clone());
-                }
-                Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
-                    stalled = false;
-                    // InProgressBrillig Oracles must be externally re-solved
-                    let brillig = match opcode {
-                        Opcode::Brillig(brillig) => brillig.clone(),
-                        _ => unreachable!("Brillig resolution for non brillig opcode"),
-                    };
-                    unresolved_brillig_calls.push(UnresolvedBrilligCall {
-                        brillig,
-                        foreign_call_wait_info: oracle_wait_info,
-                    })
-                }
-                Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                    if opcode_not_solvable.is_none() {
-                        // we keep track of the first unsolvable opcode
-                        opcode_not_solvable = Some(not_solvable);
-                    }
-                    // We push those opcodes not solvable to the back as
-                    // it could be because the opcodes are out of order, i.e. this assignment
-                    // relies on a later opcodes' results
-                    unresolved_opcodes.push(opcode.clone());
-                }
-                Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                    unreachable!("ICE - Result should have been converted to GateResolution")
-                }
-                Err(err) => return Err(err),
-            }
-        }
-        // We have foreign calls that must be externally resolved
-        if !unresolved_brillig_calls.is_empty() {
-            return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
-                unsolved_opcodes: unresolved_opcodes,
-                unresolved_brillig_calls,
-            });
-        }
-        // We are stalled because of an opcode being bad
-        if stalled && !unresolved_opcodes.is_empty() {
-            return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                opcode_not_solvable
-                    .expect("infallible: cannot be stalled and None at the same time"),
-            ));
-        }
-        std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
+pub struct ACVM<B: PartialWitnessGenerator> {
+    backend: B,
+}
+
+impl<B: PartialWitnessGenerator> ACVM<B> {
+    pub fn new(backend: B) -> Self {
+        ACVM { backend }
     }
-    Ok(PartialWitnessGeneratorStatus::Solved)
+
+    /// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
+    pub fn solve(
+        &self,
+        initial_witness: &mut WitnessMap,
+        blocks: &mut Blocks,
+        mut opcode_to_solve: Vec<Opcode>,
+    ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
+        while !opcode_to_solve.is_empty() {
+            unresolved_opcodes.clear();
+            let mut stalled = true;
+            let mut opcode_not_solvable = None;
+            for opcode in &opcode_to_solve {
+                let resolution = match opcode {
+                    Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
+                    Opcode::BlackBoxFuncCall(bb_func) => {
+                        blackbox::solve(&self.backend, initial_witness, bb_func)
+                    }
+                    Opcode::Directive(directive) => solve_directives(initial_witness, directive),
+                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
+                        blocks.solve(block.id, &block.trace, initial_witness)
+                    }
+                    Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
+                };
+                match resolution {
+                    Ok(OpcodeResolution::Solved) => {
+                        stalled = false;
+                    }
+                    Ok(OpcodeResolution::InProgress) => {
+                        stalled = false;
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
+                        stalled = false;
+                        // InProgressBrillig Oracles must be externally re-solved
+                        let brillig = match opcode {
+                            Opcode::Brillig(brillig) => brillig.clone(),
+                            _ => unreachable!("Brillig resolution for non brillig opcode"),
+                        };
+                        unresolved_brillig_calls.push(UnresolvedBrilligCall {
+                            brillig,
+                            foreign_call_wait_info: oracle_wait_info,
+                        })
+                    }
+                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
+                        if opcode_not_solvable.is_none() {
+                            // we keep track of the first unsolvable opcode
+                            opcode_not_solvable = Some(not_solvable);
+                        }
+                        // We push those opcodes not solvable to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        unreachable!("ICE - Result should have been converted to GateResolution")
+                    }
+                    Err(err) => return Err(err),
+                }
+            }
+            // We have oracles that must be externally resolved
+            if !unresolved_brillig_calls.is_empty() {
+                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
+                    unsolved_opcodes: unresolved_opcodes,
+                    unresolved_brillig_calls,
+                });
+            }
+            // We are stalled because of an opcode being bad
+            if stalled && !unresolved_opcodes.is_empty() {
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    opcode_not_solvable
+                        .expect("infallible: cannot be stalled and None at the same time"),
+                ));
+            }
+            std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
+        }
+        Ok(PartialWitnessGeneratorStatus::Solved)
+    }
 }
 
 // Returns the concrete value for a particular witness
@@ -286,7 +296,7 @@ mod tests {
     };
 
     use crate::{
-        pwg::{self, block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus},
+        pwg::{block::Blocks, OpcodeResolution, PartialWitnessGeneratorStatus, ACVM},
         OpcodeResolutionError, PartialWitnessGenerator,
     };
 
@@ -401,19 +411,20 @@ mod tests {
             }),
         ];
 
-        let backend = StubbedPwg;
-
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
         ])
         .into();
+
+        let acvm = ACVM::new(StubbedPwg);
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on brillig call");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require foreign call resolution")
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+            panic!("Should require oracle data")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
@@ -433,9 +444,9 @@ mod tests {
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
-        let solver_status =
-            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should not stall on brillig call");
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -533,8 +544,6 @@ mod tests {
             }),
         ];
 
-        let backend = StubbedPwg;
-
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
@@ -542,12 +551,15 @@ mod tests {
             (Witness(9), FieldElement::from(10u128)),
         ])
         .into();
+
+        let acvm = ACVM::new(StubbedPwg);
         let mut blocks = Blocks::default();
         // use the partial witness generation solver with our acir program
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should stall on brillig call");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require foreign call resolution")
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+            panic!("Should require oracle data")
         };
 
         assert_eq!(unsolved_opcodes.len(), 0, "brillig should have been removed");
@@ -568,11 +580,11 @@ mod tests {
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
         // After filling data request, continue solving
-        let solver_status =
-            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should stall on brillig call");
-        let PartialWitnessGeneratorStatus::RequiresForeignCall  { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require foreign call resolution")
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .expect("should stall on oracle");
+        let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+            panic!("Should require oracle data")
         };
 
         assert!(unsolved_opcodes.is_empty(), "should be fully solved");
@@ -595,9 +607,9 @@ mod tests {
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
 
         // After filling data request, continue solving
-        let solver_status =
-            pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-                .expect("should not stall on brillig call");
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, next_opcodes_for_solving)
+            .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 
@@ -673,16 +685,17 @@ mod tests {
             }),
         ];
 
-        let backend = StubbedPwg;
-
         let mut witness_assignments = BTreeMap::from([
             (Witness(1), FieldElement::from(2u128)),
             (Witness(2), FieldElement::from(3u128)),
         ])
         .into();
+
+        let acvm = ACVM::new(StubbedPwg);
         let mut blocks = Blocks::default();
-        let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-            .expect("should not stall on brillig call");
+        let solver_status = acvm
+            .solve(&mut witness_assignments, &mut blocks, opcodes)
+            .expect("should not stall on oracle");
         assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
     }
 }
