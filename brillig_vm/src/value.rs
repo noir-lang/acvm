@@ -1,4 +1,5 @@
 use acir_field::FieldElement;
+use core::fmt;
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -99,5 +100,11 @@ impl Neg for Value {
 
     fn neg(self) -> Self::Output {
         Value { inner: -self.inner }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }

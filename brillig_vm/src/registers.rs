@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::Value;
 use serde::{Deserialize, Serialize};
 
@@ -61,5 +63,19 @@ impl Registers {
         let new_register_size = std::cmp::max(index + 1, self.inner.len());
         self.inner.resize(new_register_size, None);
         self.inner[index] = Some(value)
+    }
+}
+
+impl fmt::Display for Registers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Registers {{")?;
+        for (index, value) in self.inner.iter().enumerate() {
+            match value {
+                Some(v) => write!(f, "[{}] = {}, ", index, v.to_usize())?,
+                None => write!(f, "[{}] = null, ", index)?,
+            }
+        }
+        write!(f, "}}")?;
+        Ok(())
     }
 }

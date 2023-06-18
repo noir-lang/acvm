@@ -154,6 +154,25 @@ impl VM {
         &self.memory
     }
 
+    /// Handle unstable brillig extensions (accessed via foreign_call)
+    fn process_unstable_debug_extension(&mut self, function: String) -> VMStatus {
+        if function.starts_with("__unstable_debug_print_registers:") {
+            let message = function.replace("__unstable_debug_print_registers:", "");
+            println!("registers:{} {}", message, self.registers);
+            self.increment_program_counter()
+        } else if function.starts_with("__unstable_debug_print_memory:") {
+            let message = function.replace("__unstable_debug_print_memory:", "");
+            println!(
+                "memory:{} [{}]",
+                message,
+                self.memory.iter().map(|m| m.to_string()).collect::<Vec<_>>().join(", ")
+            );
+            self.increment_program_counter()
+        } else {
+            self.fail("Unsupported __unstable function)".into())
+        }
+    }
+
     /// Process a single opcode and modify the program counter.
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
@@ -191,6 +210,14 @@ impl VM {
                 }
             }
             Opcode::ForeignCall { function, destinations, inputs } => {
+                // If the function starts with "__unstable_debug_", it currently is
+                // a debug function to print internal state. To the end, we make it a
+                // no-op as much as possible other than printing.
+                // This is not considered part of the Brillig spec, but mainly to be used by Brillig devs.
+                if function.starts_with("__unstable_debug_") {
+                    self.process_unstable_debug_extension(function.clone());
+                    return self.increment_program_counter();
+                }
                 if self.foreign_call_counter >= self.foreign_call_results.len() {
                     // When this opcode is called, it is possible that the results of a foreign call are
                     // not yet known (not enough entries in `foreign_call_results`).
