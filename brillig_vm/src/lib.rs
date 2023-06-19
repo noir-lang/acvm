@@ -1,3 +1,6 @@
+#![warn(unused_crate_dependencies)]
+#![warn(unreachable_pub)]
+
 //! The Brillig VM is a specialized VM which allows the [ACVM][acvm] to perform custom non-determinism.
 //!
 //! Brillig bytecode is distinct from regular [ACIR][acir] in that it does not generate constraints.
@@ -10,8 +13,8 @@ mod opcodes;
 mod registers;
 mod value;
 
-pub use opcodes::Opcode;
 pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory};
+pub use opcodes::{Label, Opcode};
 pub use registers::{RegisterIndex, Registers};
 use serde::{Deserialize, Serialize};
 pub use value::Typ;
