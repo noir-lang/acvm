@@ -99,7 +99,6 @@ pub fn solve(
         let mut stalled = true;
         let mut opcode_not_solvable = None;
         for opcode in &opcode_to_solve {
-            let mut solved_brillig_data = None;
             let resolution = match opcode {
                 Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
@@ -109,12 +108,7 @@ pub fn solve(
                 Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                     blocks.solve(block.id, &block.trace, initial_witness)
                 }
-                Opcode::Brillig(brillig) => {
-                    let mut brillig_clone = brillig.clone();
-                    let result = BrilligSolver::solve(initial_witness, &mut brillig_clone);
-                    solved_brillig_data = Some(brillig_clone);
-                    result
-                }
+                Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
             };
             match resolution {
                 Ok(OpcodeResolution::Solved) => {
@@ -144,11 +138,7 @@ pub fn solve(
                     // We push those opcodes not solvable to the back as
                     // it could be because the opcodes are out of order, i.e. this assignment
                     // relies on a later opcodes' results
-                    if let Some(brillig) = solved_brillig_data {
-                        unresolved_opcodes.push(Opcode::Brillig(brillig));
-                    } else {
-                        unresolved_opcodes.push(opcode.clone());
-                    }
+                    unresolved_opcodes.push(opcode.clone());
                 }
                 Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                     unreachable!("ICE - Result should have been converted to GateResolution")
@@ -284,7 +274,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use acir::{
-        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterValueOrArray, Value},
+        brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterOrMemory, Value},
         circuit::{
             brillig::{Brillig, BrilligInputs, BrilligOutputs},
             directives::Directive,
@@ -384,8 +374,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: None,
@@ -436,9 +426,8 @@ mod tests {
             "Should be waiting for a single input"
         );
         // As caller of VM, need to resolve foreign calls
-        let foreign_call_result = vec![Value::from(
-            foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse(),
-        )];
+        let foreign_call_result =
+            Value::from(foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse());
         // Alter Brillig oracle opcode with foreign call resolution
         let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
@@ -512,13 +501,13 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
                 },
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(3))],
-                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(2))],
+                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(3))],
+                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(2))],
                 },
             ],
             predicate: None,
@@ -574,7 +563,7 @@ mod tests {
         let x_plus_y_inverse =
             foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         // Alter Brillig oracle opcode
-        let brillig: Brillig = foreign_call.resolve(vec![Value::from(x_plus_y_inverse)].into());
+        let brillig: Brillig = foreign_call.resolve(Value::from(x_plus_y_inverse).into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -600,7 +589,7 @@ mod tests {
             foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
         assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
         // Alter Brillig oracle opcode
-        let brillig = foreign_call.resolve(vec![Value::from(i_plus_j_inverse)].into());
+        let brillig = foreign_call.resolve(Value::from(i_plus_j_inverse).into());
 
         let mut next_opcodes_for_solving = vec![Opcode::Brillig(brillig)];
         next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
@@ -660,8 +649,8 @@ mod tests {
                 // Oracles are named 'foreign calls' in brillig
                 brillig_vm::Opcode::ForeignCall {
                     function: "invert".into(),
-                    destinations: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(1))],
-                    inputs: vec![RegisterValueOrArray::RegisterIndex(RegisterIndex::from(0))],
+                    destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
+                    inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
                 },
             ],
             predicate: Some(Expression::default()),

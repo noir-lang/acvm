@@ -4,10 +4,27 @@ use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
 
+/// Lays out various ways an external foreign call's input and output data may be interpreted inside Brillig.
+/// This data can either be an individual register value or memory.
+///
+/// While we are usually agnostic to how memory is passed within Brillig,
+/// this needs to be encoded somehow when dealing with an external system.
+/// For simplicity, the extra type information is given right in the ForeignCall instructions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
-pub enum RegisterValueOrArray {
+pub enum RegisterOrMemory {
+    /// A single register value passed to or from an external call
+    /// It is an 'immediate' value - used without dereferencing memory.
+    /// For a foreign call input, the value is read directly from the register.
+    /// For a foreign call output, the value is written directly to the register.
     RegisterIndex(RegisterIndex),
+    /// A fix-sized array passed starting from a Brillig register memory location.
+    /// In the case of a foreign call input, the array is read from this Brillig memory location + usize more cells.
+    /// In the case of a foreign call output, the array is written to this Brillig memory location with the usize being here just as a sanity check for the size write.
     HeapArray(RegisterIndex, usize),
+    /// A register-sized vector passed starting from a Brillig register memory location and with a register-held size
+    /// In the case of a foreign call input, the vector is read from this Brillig memory location + as many cells as the 2nd register indicates.
+    /// In the case of a foreign call output, the vector is written to this Brillig memory location and as 'size' cells, with size being stored in the second register.
+    HeapVector(RegisterIndex, RegisterIndex),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,9 +81,9 @@ pub enum Opcode {
         /// who the caller is.
         function: String,
         /// Destination registers (may be single values or memory pointers).
-        destinations: Vec<RegisterValueOrArray>,
+        destinations: Vec<RegisterOrMemory>,
         /// Input registers (may be single values or memory pointers).
-        inputs: Vec<RegisterValueOrArray>,
+        inputs: Vec<RegisterOrMemory>,
     },
     Mov {
         destination: RegisterIndex,
