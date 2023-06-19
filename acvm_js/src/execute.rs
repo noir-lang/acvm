@@ -8,7 +8,7 @@ use acvm::{
         BlackBoxFunc,
     },
     pwg::{
-        block::Blocks, witness_to_value, OpcodeResolution, OpcodeResolutionError,
+        insert_value, witness_to_value, Blocks, OpcodeResolution, OpcodeResolutionError,
         PartialWitnessGeneratorStatus,
     },
     FieldElement, PartialWitnessGenerator,
@@ -94,7 +94,7 @@ impl PartialWitnessGenerator for SimulatedBackend {
             dbg!("signature has failed to verify");
         }
 
-        initial_witness.insert(*output, FieldElement::from(valid_signature));
+        insert_value(output, FieldElement::from(valid_signature), initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 
@@ -113,8 +113,8 @@ impl PartialWitnessGenerator for SimulatedBackend {
         let (res_x, res_y) = self.blackbox_vendor.encrypt(scalars).map_err(|err| {
             OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
         })?;
-        initial_witness.insert(outputs[0], res_x);
-        initial_witness.insert(outputs[1], res_y);
+        insert_value(&outputs[0], res_x, initial_witness)?;
+        insert_value(&outputs[1], res_y, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 
@@ -133,8 +133,8 @@ impl PartialWitnessGenerator for SimulatedBackend {
             )
         })?;
 
-        initial_witness.insert(outputs[0], pub_x);
-        initial_witness.insert(outputs[1], pub_y);
+        insert_value(&outputs[0], pub_x, initial_witness)?;
+        insert_value(&outputs[1], pub_y, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 }
@@ -203,25 +203,6 @@ async fn process_oracle_calls(
             insert_value(witness_index, resolved_oracle_call.output_values[i], witness_map)
                 .map_err(|err| err.to_string())?;
         }
-    }
-
-    Ok(())
-}
-
-fn insert_value(
-    witness: &Witness,
-    value_to_insert: FieldElement,
-    initial_witness: &mut WitnessMap,
-) -> Result<(), OpcodeResolutionError> {
-    let optional_old_value = initial_witness.insert(*witness, value_to_insert);
-
-    let old_value = match optional_old_value {
-        Some(old_value) => old_value,
-        None => return Ok(()),
-    };
-
-    if old_value != value_to_insert {
-        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
     }
 
     Ok(())
