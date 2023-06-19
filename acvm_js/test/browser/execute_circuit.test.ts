@@ -6,11 +6,14 @@ import initACVMSimulator, {
   WitnessMap,
 } from "../../result/";
 
+beforeEach(async () => {
+  await initACVMSimulator();
+});
+
 it("successfully executes circuit and extracts return value", async () => {
   const { abi, bytecode, inputs, expectedResult } = await import(
     "../shared/noir_program"
   );
-  await initACVMSimulator();
 
   const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
   const solved_witness: WitnessMap = await executeCircuit(
@@ -38,7 +41,6 @@ it("successfully executes a Pedersen opcode", async () => {
   const { abi, bytecode, inputs, expectedResult } = await import(
     "../shared/pedersen"
   );
-  await initACVMSimulator();
 
   const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
   const solved_witness: WitnessMap = await executeCircuit(
@@ -59,8 +61,6 @@ it("successfully executes a FixedBaseScalarMul opcode", async () => {
     "../shared/fixed_base_scalar_mul"
   );
 
-  await initACVMSimulator();
-
   const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
   const solved_witness: WitnessMap = await executeCircuit(
     bytecode,
@@ -79,8 +79,6 @@ it("successfully executes a SchnorrVerify opcode", async () => {
   const { abi, bytecode, inputs, expectedResult } = await import(
     "../shared/schnorr_verify"
   );
-
-  await initACVMSimulator();
 
   const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
   const solved_witness: WitnessMap = await executeCircuit(

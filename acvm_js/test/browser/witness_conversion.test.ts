@@ -8,17 +8,17 @@ import {
   expectedWitnessMap,
 } from "../shared/witness_compression";
 
-it("successfully compresses the witness", async () => {
+beforeEach(async () => {
   await initACVMSimulator();
+});
 
+it("successfully compresses the witness", async () => {
   const compressedWitnessMap = compressWitness(expectedWitnessMap);
 
   expect(compressedWitnessMap).to.be.deep.eq(expectedCompressedWitnessMap);
 });
 
 it("successfully decompresses the witness", async () => {
-  await initACVMSimulator();
-
   const witnessMap = decompressWitness(expectedCompressedWitnessMap);
 
   expect(witnessMap).to.be.deep.eq(expectedWitnessMap);

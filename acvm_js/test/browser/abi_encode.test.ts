@@ -6,9 +6,11 @@ import initACVMSimulator, {
 } from "../../result/";
 import { DecodedInputs } from "../types";
 
-it("recovers original inputs when abi encoding and decoding", async () => {
+beforeEach(async () => {
   await initACVMSimulator();
+});
 
+it("recovers original inputs when abi encoding and decoding", async () => {
   // TODO use ts-rs to get ABI type bindings.
   const abi = {
     parameters: [
