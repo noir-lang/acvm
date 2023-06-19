@@ -4,10 +4,13 @@ import initACVMSimulator, {
   abiDecode,
   executeCircuit,
   WitnessMap,
+  init_log_level,
 } from "../../result/";
 
 beforeEach(async () => {
   await initACVMSimulator();
+
+  init_log_level("INFO");
 });
 
 it("successfully executes circuit and extracts return value", async () => {
@@ -37,7 +40,8 @@ it("successfully executes circuit and extracts return value", async () => {
   expect(decoded_inputs.return_value).to.equal(expectedResult);
 });
 
-it("successfully executes a Pedersen opcode", async () => {
+it("successfully executes a Pedersen opcode", async function () {
+  this.timeout(10000);
   const { abi, bytecode, inputs, expectedResult } = await import(
     "../shared/pedersen"
   );

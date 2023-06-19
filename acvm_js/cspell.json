@@ -5,6 +5,7 @@
         //
         "blackbox",
         "bindir",
+        "brillig",
         "cout",
         "jsdoc",
         "keccak",
@@ -23,6 +24,7 @@
         "ESUCCESS",
         "fdstat",
         "getrandom",
+        "jsvalue",
         "logstr",
         "plookup",
         "wasi",

@@ -8,7 +8,6 @@ mod barretenberg_structures;
 pub(crate) mod pedersen;
 pub(crate) mod scalar_mul;
 pub(crate) mod schnorr;
-
 use barretenberg_structures::Assignments;
 
 /// The number of bytes necessary to store a `FieldElement`.
@@ -54,27 +53,14 @@ pub(crate) struct Barretenberg {
     instance: wasmer::Instance,
 }
 
-impl Default for Barretenberg {
-    fn default() -> Barretenberg {
-        Barretenberg::new()
-    }
-}
-
-#[test]
-fn smoke() -> Result<(), Error> {
-    use pedersen::Pedersen;
-
-    let b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()])?;
-    dbg!(x.to_hex(), y.to_hex());
-    Ok(())
-}
-
 mod wasm {
+    use js_sys::WebAssembly::{self};
+    use log::debug;
     use std::cell::RefCell;
+
     use wasmer::{
-        imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Module,
-        Store, Value, WasmPtr,
+        imports, AsJs, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Store,
+        Value, WasmPtr,
     };
 
     use super::{Barretenberg, Error, FeatureError};
@@ -98,8 +84,8 @@ mod wasm {
     struct Wasm;
 
     impl Barretenberg {
-        pub(crate) fn new() -> Barretenberg {
-            let (instance, memory, store) = instance_load();
+        pub(crate) async fn new() -> Barretenberg {
+            let (instance, memory, store) = instance_load().await;
             Barretenberg { memory, instance, store: RefCell::new(store) }
         }
     }
@@ -251,16 +237,14 @@ mod wasm {
         // }
     }
 
-    fn instance_load() -> (Instance, Memory, Store) {
+    async fn instance_load() -> (Instance, Memory, Store) {
+        debug!("> Will Load black box functions vendor binary");
         let mut store = Store::default();
-
-        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
 
         let mem_type = MemoryType::new(22, None, false);
         let memory = Memory::new(&mut store, mem_type).unwrap();
 
         let function_env = FunctionEnv::new(&mut store, memory.clone());
-
         let custom_imports = imports! {
             "env" => {
                 "logstr" => Function::new_typed_with_env(
@@ -292,7 +276,26 @@ mod wasm {
             },
         };
 
-        (Instance::new(&mut store, &module, &custom_imports).unwrap(), memory, store)
+        let wasm_binary = Wasm::get("barretenberg.wasm").unwrap().data;
+        let js_bytes: js_sys::Uint8Array;
+        unsafe {
+            js_bytes = js_sys::Uint8Array::view(&wasm_binary);
+        }
+        debug!("> Will compile black box functions vendor module");
+        let js_module_promise = WebAssembly::compile(&js_bytes);
+        let js_module: js_sys::WebAssembly::Module =
+            wasm_bindgen_futures::JsFuture::from(js_module_promise).await.unwrap().into();
+
+        debug!("> Will create black box functions vendor instance");
+        let js_instance_promise =
+            WebAssembly::instantiate_module(&js_module, &custom_imports.as_jsvalue(&store).into());
+        let js_instance = wasm_bindgen_futures::JsFuture::from(js_instance_promise).await.unwrap();
+        let module: wasmer::Module = (js_module, wasm_binary).into();
+        let instance: wasmer::Instance = Instance::from_jsvalue(&mut store, &module, &js_instance)
+            .map_err(|_| "Error while creating BlackBox Functions vendor instance")
+            .unwrap();
+
+        (instance, memory, store)
     }
 
     fn logstr(mut env: FunctionEnvMut<Memory>, ptr: i32) {

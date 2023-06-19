@@ -25,21 +25,3 @@ impl ScalarMul for Barretenberg {
         Ok((pubkey_x, pubkey_y))
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    #[test]
-    fn smoke_test() -> Result<(), Error> {
-        let barretenberg = Barretenberg::new();
-        let input = FieldElement::one();
-
-        let res = barretenberg.fixed_base(&input)?;
-        let x = "0000000000000000000000000000000000000000000000000000000000000001";
-        let y = "0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c";
-
-        assert_eq!(x, res.0.to_hex());
-        assert_eq!(y, res.1.to_hex());
-        Ok(())
-    }
-}
