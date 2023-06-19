@@ -8,6 +8,7 @@ pkg/
 lib/
 result
 .direnv
+**/outputs
 
 # Yarn
 .pnp.*
