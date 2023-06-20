@@ -131,9 +131,7 @@ fn inversion_brillig_oracle_equivalence() {
         }),
     ];
 
-    let backend = StubbedPwg;
-
-    let mut witness_assignments = BTreeMap::from([
+    let witness_assignments = BTreeMap::from([
         (Witness(1), FieldElement::from(2u128)),
         (Witness(2), FieldElement::from(3u128)),
     ])
@@ -258,9 +256,7 @@ fn double_inversion_brillig_oracle() {
         }),
     ];
 
-    let backend = StubbedPwg;
-
-    let mut witness_assignments = BTreeMap::from([
+    let witness_assignments = BTreeMap::from([
         (Witness(1), FieldElement::from(2u128)),
         (Witness(2), FieldElement::from(3u128)),
         (Witness(8), FieldElement::from(5u128)),
@@ -384,7 +380,6 @@ fn brillig_oracle_predicate() {
         }),
     ];
 
-    let backend = StubbedPwg;
     let witness_assignments = BTreeMap::from([
         (Witness(1), FieldElement::from(2u128)),
         (Witness(2), FieldElement::from(3u128)),
