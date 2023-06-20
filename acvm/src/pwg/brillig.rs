@@ -14,7 +14,7 @@ pub(super) struct BrilligSolver;
 impl BrilligSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
-        brillig: &mut Brillig,
+        brillig: &Brillig,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
@@ -32,19 +32,7 @@ impl BrilligSolver {
 
         // A zero predicate indicates the oracle should be skipped, and its outputs zeroed.
         if pred_value.is_zero() {
-            for output in &brillig.outputs {
-                match output {
-                    BrilligOutputs::Simple(witness) => {
-                        insert_value(witness, FieldElement::zero(), initial_witness)?
-                    }
-                    BrilligOutputs::Array(witness_arr) => {
-                        for w in witness_arr {
-                            insert_value(w, FieldElement::zero(), initial_witness)?
-                        }
-                    }
-                }
-            }
-            return Ok(OpcodeResolution::Solved);
+            return Self::zero_out_brillig_outputs(initial_witness, brillig);
         }
 
         // Set input values
@@ -130,6 +118,26 @@ impl BrilligSolver {
         };
 
         Ok(result)
+    }
+
+    /// Assigns the zero value to all outputs of the given [`Brillig`] bytecode.
+    fn zero_out_brillig_outputs(
+        initial_witness: &mut WitnessMap,
+        brillig: &Brillig,
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        for output in &brillig.outputs {
+            match output {
+                BrilligOutputs::Simple(witness) => {
+                    insert_value(witness, FieldElement::zero(), initial_witness)?
+                }
+                BrilligOutputs::Array(witness_arr) => {
+                    for w in witness_arr {
+                        insert_value(w, FieldElement::zero(), initial_witness)?
+                    }
+                }
+            }
+        }
+        Ok(OpcodeResolution::Solved)
     }
 }
 

@@ -3,7 +3,7 @@ use acir::{
     FieldElement,
 };
 
-use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use super::{insert_value, OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
@@ -53,7 +53,7 @@ impl ArithmeticSolver {
                     } else {
                         let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
-                        initial_witness.insert(w1, assignment);
+                        insert_value(&w1, assignment, initial_witness)?;
                         Ok(OpcodeResolution::Solved)
                     }
                 } else {
@@ -78,7 +78,7 @@ impl ArithmeticSolver {
                 } else {
                     let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
-                    initial_witness.insert(unknown_var, assignment);
+                    insert_value(&unknown_var, assignment, initial_witness)?;
                     Ok(OpcodeResolution::Solved)
                 }
             }
@@ -108,7 +108,7 @@ impl ArithmeticSolver {
                 } else {
                     let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
-                    initial_witness.insert(unknown_var, assignment);
+                    insert_value(&unknown_var, assignment, initial_witness)?;
                     Ok(OpcodeResolution::Solved)
                 }
             }
