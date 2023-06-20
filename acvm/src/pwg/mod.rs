@@ -201,12 +201,14 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                 }
             }
 
+            // Before potentially ending execution, we must save the list of opcodes which remain to be solved.
             std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
 
             // We have oracles that must be externally resolved
             if self.get_pending_foreign_call().is_some() {
                 return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
             }
+
             // We are stalled because of an opcode being bad
             if stalled && !self.opcodes.is_empty() {
                 return Err(OpcodeResolutionError::OpcodeNotSolvable(
