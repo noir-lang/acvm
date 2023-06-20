@@ -3,12 +3,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Registers {
-    // Registers are a vector of values that might be None.
-    // None is used to mark uninitialized registers so we can catch potential mistakes.
-    // The reasoning is that instead of returning 0, it is much more likely that such an access is a mistake
-    // (e.g. didn't emit the set operation).
-    // We grow the register as registers past the end are set, extending with None's.
-    pub inner: Vec<Option<Value>>,
+    // Registers are a vector of values.
+    // We grow the register as registers past the end are set, extending with 0s.
+    pub inner: Vec<Value>,
 }
 
 /// Aims to match a reasonable max register count for a SNARK prover.
@@ -37,7 +34,7 @@ impl From<usize> for RegisterIndex {
 impl Registers {
     /// Create a Registers object initialized with definite values
     pub fn load(values: Vec<Value>) -> Registers {
-        let inner = values.into_iter().map(Some).collect();
+        let inner = values.into_iter().collect();
         Self { inner }
     }
 
@@ -45,13 +42,11 @@ impl Registers {
     pub fn get(&self, register_index: RegisterIndex) -> Value {
         let index = register_index.to_usize();
         assert!(index < MAX_REGISTERS, "Reading register past maximum!");
-        assert!(
-            index < self.inner.len(),
-            "Reading uninitialized register {} (current max index {})!",
-            index,
-            self.inner.len() - 1
-        );
-        self.inner[index].expect("Reading uninitialized register!")
+        let value = self.inner.get(index);
+        match value {
+            Some(value) => *value,
+            None => 0u128.into(),
+        }
     }
 
     /// Sets the value at register with address `index` to `value`
@@ -59,7 +54,7 @@ impl Registers {
         assert!(index < MAX_REGISTERS, "Writing register past maximum!");
         // if size isn't at least index + 1, resize
         let new_register_size = std::cmp::max(index + 1, self.inner.len());
-        self.inner.resize(new_register_size, None);
-        self.inner[index] = Some(value)
+        self.inner.resize(new_register_size, 0u128.into());
+        self.inner[index] = value;
     }
 }
