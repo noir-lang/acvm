@@ -56,6 +56,7 @@ dependencies = [
  "acvm",
  "build-data",
  "console_error_panic_hook",
+ "const-str",
  "getrandom",
  "gloo-utils",
  "iter-extended",
@@ -467,6 +468,12 @@ name = "const-oid"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "520fbf3c07483f94e3e3ca9d0cfd913d7718ef2483d2cfd91c0d9e91474ab913"
+
+[[package]]
+name = "const-str"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce5cd0d05ad8032f6252503d4a61401b640ce9365082accf046c68c7a419339d"
 
 [[package]]
 name = "core-foundation-sys"

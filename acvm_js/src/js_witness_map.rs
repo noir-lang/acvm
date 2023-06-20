@@ -2,10 +2,32 @@ use acvm::{
     acir::native_types::{Witness, WitnessMap},
     FieldElement,
 };
-use js_sys::JsString;
-use wasm_bindgen::JsValue;
+use js_sys::{JsString, Map};
+use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
 
-use crate::JsWitnessMap;
+#[wasm_bindgen(typescript_custom_section)]
+const WITNESS_MAP: &'static str = r#"
+// Map from witness index to hex string value of witness.
+export type WitnessMap = Map<number, string>;
+"#;
+
+// WitnessMap
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends = Map, js_name = "WitnessMap", typescript_type = "WitnessMap")]
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub type JsWitnessMap;
+
+    #[wasm_bindgen(constructor, js_class = "Map")]
+    pub fn new() -> JsWitnessMap;
+
+}
+
+impl Default for JsWitnessMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl From<WitnessMap> for JsWitnessMap {
     fn from(witness_map: WitnessMap) -> Self {

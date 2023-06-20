@@ -4,13 +4,13 @@ import initACVMSimulator, {
   abiDecode,
   executeCircuit,
   WitnessMap,
-  init_log_level,
+  initLogLevel,
 } from "../../result/";
 
 beforeEach(async () => {
   await initACVMSimulator();
 
-  init_log_level("INFO");
+  initLogLevel("INFO");
 });
 
 it("successfully executes circuit and extracts return value", async () => {
