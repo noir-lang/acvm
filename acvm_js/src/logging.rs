@@ -14,7 +14,10 @@ extern "C" {
     pub type LogLevel;
 }
 
-#[wasm_bindgen(js_name = initLogLevel)]
+/// Sets the package's logging level.
+///
+/// @param {LogLevel} level - The maximum level of logging to be emitted.
+#[wasm_bindgen(js_name = initLogLevel, skip_jsdoc)]
 pub fn init_log_level(level: LogLevel) {
     // Set the static variable from Rust
     use std::sync::Once;

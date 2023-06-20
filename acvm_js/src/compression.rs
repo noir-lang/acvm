@@ -4,7 +4,11 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::JsWitnessMap;
 
-#[wasm_bindgen(js_name = compressWitness)]
+/// Compresses a `WitnessMap` into the binary format outputted by Nargo.
+///
+/// @param {Uint8Array} compressed_witness - A witness map.
+/// @returns {WitnessMap} A compressed witness map
+#[wasm_bindgen(js_name = compressWitness, skip_jsdoc)]
 pub fn compress_witness(witness_map: JsWitnessMap) -> Result<Vec<u8>, JsString> {
     console_error_panic_hook::set_once();
 
@@ -15,7 +19,11 @@ pub fn compress_witness(witness_map: JsWitnessMap) -> Result<Vec<u8>, JsString> 
     Ok(compressed_witness_map)
 }
 
-#[wasm_bindgen(js_name = decompressWitness)]
+/// Decompresses a compressed witness as outputted by Nargo into a `WitnessMap`.
+///
+/// @param {Uint8Array} compressed_witness - A compressed witness.
+/// @returns {WitnessMap} The decompressed witness map.
+#[wasm_bindgen(js_name = decompressWitness, skip_jsdoc)]
 pub fn decompress_witness(compressed_witness: Vec<u8>) -> Result<JsWitnessMap, JsString> {
     console_error_panic_hook::set_once();
 
