@@ -142,7 +142,6 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
     pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
         // TODO: Prevent execution with outstanding foreign calls?
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
         while !self.opcodes.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
@@ -180,7 +179,7 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
-                        unresolved_brillig_calls.push(UnresolvedBrilligCall {
+                        self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,
                         })
@@ -205,7 +204,7 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
             std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
 
             // We have oracles that must be externally resolved
-            if !unresolved_brillig_calls.is_empty() {
+            if self.get_pending_foreign_call().is_some() {
                 return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
             }
             // We are stalled because of an opcode being bad
