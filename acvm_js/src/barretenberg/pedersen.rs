@@ -3,16 +3,27 @@ use acvm::FieldElement;
 use super::{Assignments, Barretenberg, Error, FIELD_BYTES};
 
 pub(crate) trait Pedersen {
-    fn encrypt(&self, inputs: Vec<FieldElement>) -> Result<(FieldElement, FieldElement), Error>;
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error>;
 }
 
 impl Pedersen for Barretenberg {
-    fn encrypt(&self, inputs: Vec<FieldElement>) -> Result<(FieldElement, FieldElement), Error> {
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error> {
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf)?;
         let result_ptr: usize = 0;
 
-        self.call_multiple("pedersen_plookup_commit", vec![&input_ptr, &result_ptr.into()])?;
+        self.call_multiple(
+            "pedersen_plookup_commit_with_hash_index",
+            vec![&input_ptr, &result_ptr.into(), &hash_index.into()],
+        )?;
 
         let result_bytes: [u8; 2 * FIELD_BYTES] = self.read_memory(result_ptr);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(FIELD_BYTES);

@@ -105,17 +105,20 @@ impl PartialWitnessGenerator for SimulatedBackend {
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
-        // Assumed to be `0`
-        _domain_separator: u32,
+        domain_separator: u32,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let scalars: Result<Vec<_>, _> =
             inputs.iter().map(|input| witness_to_value(initial_witness, input.witness)).collect();
         let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
 
-        let (res_x, res_y) = self.blackbox_vendor.encrypt(scalars).map_err(|err| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
-        })?;
+        let (res_x, res_y) =
+            self.blackbox_vendor.encrypt(scalars, domain_separator).map_err(|err| {
+                OpcodeResolutionError::BlackBoxFunctionFailed(
+                    BlackBoxFunc::Pedersen,
+                    err.to_string(),
+                )
+            })?;
         insert_value(&outputs[0], res_x, initial_witness)?;
         insert_value(&outputs[1], res_y, initial_witness)?;
         Ok(OpcodeResolution::Solved)
