@@ -16,7 +16,11 @@ use k256::{
     AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
 };
 
-use crate::{pwg::witness_to_value, pwg::OpcodeResolution, OpcodeResolutionError};
+use crate::{
+    pwg::witness_to_value,
+    pwg::{insert_value, OpcodeResolution},
+    OpcodeResolutionError,
+};
 
 fn to_u8_vec(
     initial_witness: &WitnessMap,
@@ -68,7 +72,7 @@ pub(super) fn secp256k1_prehashed(
     let is_valid =
         verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
-    initial_witness.insert(output, FieldElement::from(is_valid));
+    insert_value(&output, FieldElement::from(is_valid), initial_witness)?;
     Ok(OpcodeResolution::Solved)
 }
 
