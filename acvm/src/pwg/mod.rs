@@ -1,14 +1,19 @@
 // Re-usable methods that backends can use to implement their PWG
 
+use std::collections::HashMap;
+
 use crate::{Language, PartialWitnessGenerator};
 use acir::{
     brillig_vm::ForeignCallResult,
-    circuit::{brillig::Brillig, Opcode},
+    circuit::{brillig::Brillig, opcodes::BlockId, Opcode},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
 
-use self::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives};
+use self::{
+    arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
+    directives::solve_directives,
+};
 
 use thiserror::Error;
 
@@ -22,8 +27,6 @@ mod directives;
 mod blackbox;
 mod block;
 
-// Re-export `Blocks` so that it can be passed to `pwg::solve`
-pub use block::Blocks;
 pub use brillig::ForeignCallWaitInfo;
 
 #[derive(Debug, PartialEq)]
@@ -85,7 +88,8 @@ pub enum OpcodeResolutionError {
 
 pub struct ACVM<B: PartialWitnessGenerator> {
     backend: B,
-    blocks: Blocks,
+    /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
+    block_solvers: HashMap<BlockId, BlockSolver>,
     /// A list of opcodes which are to be executed by the ACVM.
     ///
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
@@ -101,7 +105,7 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         ACVM {
             backend,
-            blocks: Blocks::default(),
+            block_solvers: HashMap::default(),
             opcodes,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
@@ -158,7 +162,8 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
                         solve_directives(&mut self.witness_map, directive)
                     }
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                        self.blocks.solve(block.id, &block.trace, &mut self.witness_map)
+                        let solver = self.block_solvers.entry(block.id).or_default();
+                        solver.solve(&mut self.witness_map, &block.trace)
                     }
                     Opcode::Brillig(brillig) => {
                         BrilligSolver::solve(&mut self.witness_map, brillig)
