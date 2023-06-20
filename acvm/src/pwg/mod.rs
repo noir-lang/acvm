@@ -108,6 +108,11 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
         }
     }
 
+    // necessary to fix integration tests. Should replace with a better VM status model.
+    pub fn remaining_opcodes_len(&self) -> usize {
+        self.opcodes.len()
+    }
+
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
         self.witness_map
