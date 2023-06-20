@@ -15,7 +15,7 @@ use acir::{
 use acvm::{
     pwg::{
         ForeignCallWaitInfo, OpcodeResolution, OpcodeResolutionError,
-        PartialWitnessGeneratorStatus, UnresolvedBrilligCall, ACVM,
+        PartialWitnessGeneratorStatus, ACVM,
     },
     PartialWitnessGenerator,
 };
@@ -142,23 +142,22 @@ fn inversion_brillig_oracle_equivalence() {
     let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should stall on brillig call");
-    let PartialWitnessGeneratorStatus::RequiresForeignCall { mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require oracle data")
-        };
 
+    assert_eq!(
+        solver_status,
+        PartialWitnessGeneratorStatus::RequiresForeignCall,
+        "Should require oracle data"
+    );
     assert_eq!(acvm.opcodes.len(), 0, "brillig should have been removed");
-    assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig foreign call request");
 
-    let foreign_call = unresolved_brillig_calls.remove(0);
-    let foreign_call_wait_info: &ForeignCallWaitInfo = &foreign_call.foreign_call_wait_info;
+    let foreign_call_wait_info: &ForeignCallWaitInfo =
+        acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
     assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
     // As caller of VM, need to resolve foreign calls
-    let foreign_call_result =
-        Value::from(foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse());
+    let foreign_call_result = Value::from(foreign_call_wait_info.inputs[0][0].to_field().inverse());
     // Alter Brillig oracle opcode with foreign call resolution
-    let brillig: Brillig = foreign_call.resolve(foreign_call_result.into());
-    acvm.resolve_brillig_foreign_call(brillig);
+    acvm.resolve_pending_foreign_call(foreign_call_result.into());
 
     // After filling data request, continue solving
     let solver_status = acvm.solve().expect("should not stall on brillig call");
@@ -273,41 +272,40 @@ fn double_inversion_brillig_oracle() {
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should stall on oracle");
-    let PartialWitnessGeneratorStatus::RequiresForeignCall { mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require foreign call response")
-        };
-
+    assert_eq!(
+        solver_status,
+        PartialWitnessGeneratorStatus::RequiresForeignCall,
+        "Should require oracle data"
+    );
     assert_eq!(acvm.opcodes.len(), 0, "brillig should have been removed");
-    assert_eq!(unresolved_brillig_calls.len(), 1, "should have a brillig foreign call request");
 
-    let foreign_call = unresolved_brillig_calls.remove(0);
-    let foreign_call_wait_info: &ForeignCallWaitInfo = &foreign_call.foreign_call_wait_info;
+    let foreign_call_wait_info: &ForeignCallWaitInfo =
+        acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
     assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
-    let x_plus_y_inverse = foreign_call.foreign_call_wait_info.inputs[0][0].to_field().inverse();
+    let x_plus_y_inverse = Value::from(foreign_call_wait_info.inputs[0][0].to_field().inverse());
 
     // Resolve Brillig foreign call
-    let brillig: Brillig = foreign_call.resolve(Value::from(x_plus_y_inverse).into());
-    acvm.resolve_brillig_foreign_call(brillig);
+    acvm.resolve_pending_foreign_call(x_plus_y_inverse.into());
 
     // After filling data request, continue solving
     let solver_status = acvm.solve().expect("should stall on brillig call");
-    let PartialWitnessGeneratorStatus::RequiresForeignCall { mut unresolved_brillig_calls, .. } = solver_status else {
-            panic!("Should require foreign call data")
-        };
-
+    assert_eq!(
+        solver_status,
+        PartialWitnessGeneratorStatus::RequiresForeignCall,
+        "Should require oracle data"
+    );
     assert!(acvm.opcodes.is_empty(), "should be fully solved");
-    assert_eq!(unresolved_brillig_calls.len(), 1, "should have an unresolved foreign call");
-    let foreign_call: UnresolvedBrilligCall = unresolved_brillig_calls.remove(0);
 
-    let foreign_call_wait_info: &ForeignCallWaitInfo = &foreign_call.foreign_call_wait_info;
+    let foreign_call_wait_info =
+        acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
     assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
 
-    let i_plus_j_inverse = foreign_call_wait_info.inputs[0][0].to_field().inverse();
+    let i_plus_j_inverse = Value::from(foreign_call_wait_info.inputs[0][0].to_field().inverse());
     assert_ne!(x_plus_y_inverse, i_plus_j_inverse);
+
     // Alter Brillig oracle opcode
-    let brillig = foreign_call.resolve(Value::from(i_plus_j_inverse).into());
-    acvm.resolve_brillig_foreign_call(brillig);
+    acvm.resolve_pending_foreign_call(i_plus_j_inverse.into());
 
     // After filling data request, continue solving
     let solver_status = acvm.solve().expect("should not stall on brillig call");

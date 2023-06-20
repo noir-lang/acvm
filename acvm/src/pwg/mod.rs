@@ -36,7 +36,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// The result of the foreign call is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
     ///
     /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
-    RequiresForeignCall { unresolved_brillig_calls: Vec<UnresolvedBrilligCall> },
+    RequiresForeignCall,
 }
 
 #[derive(Debug, PartialEq)]
@@ -86,14 +86,26 @@ pub enum OpcodeResolutionError {
 pub struct ACVM<B: PartialWitnessGenerator> {
     backend: B,
     blocks: Blocks,
+    /// A list of opcodes which are to be executed by the ACVM.
+    ///
+    /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
     opcodes: Vec<Opcode>,
 
     witness_map: WitnessMap,
+
+    /// A list of foreign calls which must be resolved before the ACVM can resume execution.
+    pending_foreign_calls: Vec<UnresolvedBrilligCall>,
 }
 
 impl<B: PartialWitnessGenerator> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        ACVM { backend, blocks: Blocks::default(), opcodes, witness_map: initial_witness }
+        ACVM {
+            backend,
+            blocks: Blocks::default(),
+            opcodes,
+            witness_map: initial_witness,
+            pending_foreign_calls: Vec::new(),
+        }
     }
 
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
@@ -101,12 +113,24 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
         self.witness_map
     }
 
-    pub fn resolve_brillig_foreign_call(&mut self, foreign_call: Brillig) {
-        self.opcodes.insert(0, Opcode::Brillig(foreign_call));
+    /// Return a reference to the arguments for the next pending foreign call, if one exists.
+    pub fn get_pending_foreign_call(&self) -> Option<&ForeignCallWaitInfo> {
+        self.pending_foreign_calls.first().map(|foreign_call| &foreign_call.foreign_call_wait_info)
+    }
+
+    /// Resolves a pending foreign call using a result calculated outside of the ACVM.
+    pub fn resolve_pending_foreign_call(&mut self, foreign_call_result: ForeignCallResult) {
+        // Remove the first foreign call and inject the result to create a new opcode.
+        let foreign_call = self.pending_foreign_calls.remove(0);
+        let resolved_brillig = foreign_call.resolve(foreign_call_result);
+
+        // Mark this opcode to be executed next.
+        self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
     }
 
     /// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
     pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+        // TODO: Prevent execution with outstanding foreign calls?
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
         while !self.opcodes.is_empty() {
@@ -172,9 +196,7 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
 
             // We have oracles that must be externally resolved
             if !unresolved_brillig_calls.is_empty() {
-                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
-                    unresolved_brillig_calls,
-                });
+                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
             }
             // We are stalled because of an opcode being bad
             if stalled && !self.opcodes.is_empty() {
