@@ -10,6 +10,7 @@
         "jsdoc",
         "keccak",
         "merkle",
+        "nargo",
         "pedersen",
         "prehashed",
         "pubkey",
