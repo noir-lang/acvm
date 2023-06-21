@@ -11,6 +11,7 @@ use crate::{
 
 use super::to_u8_vec;
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn schnorr_verify(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
