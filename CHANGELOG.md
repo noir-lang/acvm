@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1](https://github.com/noir-lang/acvm/compare/root-v0.15.0...root-v0.15.1) (2023-06-20)
+
+
+### Features
+
+* **brillig:** Allow dynamic-size foreign calls ([#370](https://github.com/noir-lang/acvm/issues/370)) ([5ba0349](https://github.com/noir-lang/acvm/commit/5ba0349420cc1b20113cb5e96490a0808a769757))
+
+
+### Bug Fixes
+
+* **brillig:** remove register initialization check ([#392](https://github.com/noir-lang/acvm/issues/392)) ([1a53143](https://github.com/noir-lang/acvm/commit/1a531438b5c1ab7ce8c4bd599dda3515bdd5cfcd))
+
 ## [0.15.0](https://github.com/noir-lang/acvm/compare/root-v0.14.2...root-v0.15.0) (2023-06-15)
 
 

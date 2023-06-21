@@ -40,9 +40,7 @@ fn solve_directives_internal(
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
-            let inverse = val.inverse();
-            initial_witness.insert(*result, inverse);
-            Ok(())
+            insert_value(result, val.inverse(), initial_witness)
         }
         Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
