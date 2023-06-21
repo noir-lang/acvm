@@ -78,8 +78,6 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
-    #[error("expected {0} inputs for function {1}, but got {2}")]
-    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
