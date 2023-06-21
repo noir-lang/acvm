@@ -1,16 +1,16 @@
 use crate::value::Value;
 use serde::{Deserialize, Serialize};
 
-/// Single output of a [foreign call][Opcode::ForeignCall].
+/// Single output of a [foreign call][crate::Opcode::ForeignCall].
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum ForeignCallOutput {
     Single(Value),
     Array(Vec<Value>),
 }
 
-/// Represents the full output of a [foreign call][Opcode::ForeignCall].
+/// Represents the full output of a [foreign call][crate::Opcode::ForeignCall].
 ///
-/// See [`VMStatus::ForeignCallWait`] for more information.
+/// See [`VMStatus::ForeignCallWait`][crate::VMStatus::ForeignCallWait] for more information.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
     /// Resolved output values of the foreign call.
