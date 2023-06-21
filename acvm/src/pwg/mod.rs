@@ -34,7 +34,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `ACVM` has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
+    /// The ACVM has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
     /// to retrieve information from outside of the ACVM. The result of the foreign call must be passed back
     /// to the ACVM using [`ACVM::resolve_pending_foreign_call`].
     ///
