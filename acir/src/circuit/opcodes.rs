@@ -7,11 +7,9 @@ use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
 mod block;
-mod oracle_data;
 
 pub use black_box_function_call::{BlackBoxFuncCall, FunctionInput};
 pub use block::{BlockId, MemOp, MemoryBlock};
-pub use oracle_data::OracleData;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
@@ -37,7 +35,6 @@ pub enum Opcode {
     // TODO(#319): Review this comment and generalize it to be useful for other backends.
     // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
     RAM(MemoryBlock),
-    Oracle(OracleData),
     Brillig(Brillig),
 }
 
@@ -52,7 +49,6 @@ impl Opcode {
             Opcode::Block(_) => "block",
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
-            Opcode::Oracle(data) => &data.name,
             Opcode::Brillig(_) => "brillig",
         }
     }
@@ -149,10 +145,6 @@ impl std::fmt::Display for Opcode {
             Opcode::RAM(block) => {
                 write!(f, "RAM ")?;
                 write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
-            }
-            Opcode::Oracle(data) => {
-                write!(f, "ORACLE: ")?;
-                write!(f, "{data}")
             }
             Opcode::Brillig(brillig) => {
                 write!(f, "BRILLIG: ")?;
