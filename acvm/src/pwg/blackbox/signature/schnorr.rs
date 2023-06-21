@@ -25,13 +25,13 @@ pub(crate) fn schnorr_verify(
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
 
-    let sig_s: &FieldElement = witness_to_value(initial_witness, signature_s.witness)?;
-    let sig_e: &FieldElement = witness_to_value(initial_witness, signature_e.witness)?;
+    let signature_s: &FieldElement = witness_to_value(initial_witness, signature_s.witness)?;
+    let signature_e: &FieldElement = witness_to_value(initial_witness, signature_e.witness)?;
 
     let message = to_u8_vec(initial_witness, message)?;
 
     let valid_signature =
-        backend.schnorr_verify(public_key_x, public_key_y, sig_s, sig_e, &message)?;
+        backend.schnorr_verify(public_key_x, public_key_y, signature_s, signature_e, &message)?;
 
     insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
 
