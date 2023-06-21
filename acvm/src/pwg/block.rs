@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use acir::{
-    circuit::opcodes::{BlockId, MemOp},
+    circuit::opcodes::MemOp,
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -12,29 +12,11 @@ use super::{
 };
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
-/// Maps a block to its emulated state
-#[derive(Default)]
-pub struct Blocks {
-    blocks: HashMap<BlockId, BlockSolver>,
-}
-
-impl Blocks {
-    pub fn solve(
-        &mut self,
-        id: BlockId,
-        trace: &[MemOp],
-        solved_witness: &mut WitnessMap,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let solver = self.blocks.entry(id).or_default();
-        solver.solve(solved_witness, trace)
-    }
-}
-
 /// Maintains the state for solving Block opcode
 /// block_value is the value of the Block at the solved_operations step
 /// solved_operations is the number of solved elements in the block
 #[derive(Default)]
-struct BlockSolver {
+pub(super) struct BlockSolver {
     block_value: HashMap<u32, FieldElement>,
     solved_operations: usize,
 }
@@ -123,14 +105,13 @@ impl BlockSolver {
 #[cfg(test)]
 mod tests {
     use acir::{
-        circuit::opcodes::{BlockId, MemOp},
+        circuit::opcodes::MemOp,
         native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
+    use super::BlockSolver;
     use crate::pwg::insert_value;
-
-    use super::Blocks;
 
     #[test]
     fn test_solver() {
@@ -157,7 +138,6 @@ mod tests {
             index: Expression::one(),
             value: Expression::from(Witness(4)),
         });
-        let id = BlockId::default();
         let mut initial_witness = WitnessMap::new();
         let mut value = FieldElement::zero();
         insert_value(&Witness(1), value, &mut initial_witness).unwrap();
@@ -165,8 +145,8 @@ mod tests {
         insert_value(&Witness(2), value, &mut initial_witness).unwrap();
         value = value + value;
         insert_value(&Witness(3), value, &mut initial_witness).unwrap();
-        let mut blocks = Blocks::default();
-        blocks.solve(id, &trace, &mut initial_witness).unwrap();
+        let mut block_solver = BlockSolver::default();
+        block_solver.solve(&mut initial_witness, &trace).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
     }
 }
