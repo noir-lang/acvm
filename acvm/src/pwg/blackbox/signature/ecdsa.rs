@@ -5,10 +5,7 @@ use acir::{
 };
 use blackbox_solver::{ecdsa_secp256k1_verify, ecdsa_secp256r1_verify};
 
-use crate::{
-    pwg::{insert_value, OpcodeResolution},
-    OpcodeResolutionError,
-};
+use crate::{pwg::insert_value, OpcodeResolutionError};
 
 use super::to_u8_vec;
 
@@ -19,7 +16,7 @@ pub(crate) fn secp256k1_prehashed(
     signature_inputs: &[FunctionInput],
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
     // These errors should never be emitted in practice as they would imply malformed ACIR generation.
@@ -50,7 +47,7 @@ pub(crate) fn secp256k1_prehashed(
     let is_valid = ecdsa_secp256k1_verify(&hashed_message, &pub_key_x, &pub_key_y, &signature)?;
 
     insert_value(&output, FieldElement::from(is_valid), initial_witness)?;
-    Ok(OpcodeResolution::Solved)
+    Ok(())
 }
 
 pub(crate) fn secp256r1_prehashed(
@@ -60,7 +57,7 @@ pub(crate) fn secp256r1_prehashed(
     signature_inputs: &[FunctionInput],
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
     let pub_key_x: [u8; 32] =
@@ -90,5 +87,5 @@ pub(crate) fn secp256r1_prehashed(
     let is_valid = ecdsa_secp256r1_verify(&hashed_message, &pub_key_x, &pub_key_y, &signature)?;
 
     insert_value(&output, FieldElement::from(is_valid), initial_witness)?;
-    Ok(OpcodeResolution::Solved)
+    Ok(())
 }

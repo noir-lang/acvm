@@ -1,6 +1,6 @@
 use super::to_u8_vec;
 use crate::{
-    pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError},
+    pwg::{insert_value, witness_to_value, OpcodeResolutionError},
     BlackBoxFunctionSolver,
 };
 use acir::{
@@ -18,7 +18,7 @@ pub(crate) fn schnorr_verify(
     signature: &[FunctionInput],
     message: &[FunctionInput],
     output: Witness,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
 
@@ -31,5 +31,5 @@ pub(crate) fn schnorr_verify(
 
     insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
 
-    Ok(OpcodeResolution::Solved)
+    Ok(())
 }

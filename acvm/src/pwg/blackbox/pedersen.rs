@@ -4,7 +4,7 @@ use acir::{
 };
 
 use crate::{
-    pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError},
+    pwg::{insert_value, witness_to_value, OpcodeResolutionError},
     BlackBoxFunctionSolver,
 };
 
@@ -14,7 +14,7 @@ pub(super) fn pedersen(
     inputs: &[FunctionInput],
     domain_separator: u32,
     outputs: (Witness, Witness),
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let scalars: Result<Vec<_>, _> =
         inputs.iter().map(|input| witness_to_value(initial_witness, input.witness)).collect();
     let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
@@ -24,5 +24,5 @@ pub(super) fn pedersen(
     insert_value(&outputs.0, res_x, initial_witness)?;
     insert_value(&outputs.1, res_y, initial_witness)?;
 
-    Ok(OpcodeResolution::Solved)
+    Ok(())
 }

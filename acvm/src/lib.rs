@@ -10,7 +10,7 @@ use acir::{
 };
 pub use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use core::fmt::Debug;
-use pwg::{OpcodeResolution, OpcodeResolutionError};
+use pwg::OpcodeResolutionError;
 
 // We re-export async-trait so consumers can attach it to their impl
 pub use async_trait::async_trait;

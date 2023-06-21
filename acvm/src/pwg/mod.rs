@@ -50,18 +50,6 @@ pub enum ACVMStatus {
     RequiresForeignCall(ForeignCallWaitInfo),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum OpcodeResolution {
-    /// The opcode is resolved
-    Solved,
-    /// The opcode is not solvable
-    Stalled(OpcodeNotSolvable),
-    /// The opcode is not solvable but could resolved some witness
-    InProgress,
-    /// The brillig oracle opcode is not solved but could be resolved given some values
-    InProgressBrillig(brillig::ForeignCallWaitInfo),
-}
-
 // This enum represents the different cases in which an
 // opcode can be unsolvable.
 // The most common being that one of its input has not been
@@ -228,25 +216,19 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             Opcode::MemoryInit { block_id, init } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
                 solver.init(init, &self.witness_map);
-                Ok(OpcodeResolution::Solved)
+                Ok(())
             }
             Opcode::MemoryOp { block_id, op } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                let result = solver.solve_memory_op(op, &mut self.witness_map);
-                match result {
-                    Ok(_) => Ok(OpcodeResolution::Solved),
-                    Err(err) => Err(err),
-                }
+                solver.solve_memory_op(op, &mut self.witness_map)
             }
             Opcode::Brillig(brillig) => {
-                let resolution =
-                    BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend);
+                let result = BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend);
 
-                match resolution {
-                    Ok(OpcodeResolution::InProgressBrillig(foreign_call)) => {
-                        return self.wait_for_foreign_call(foreign_call)
-                    }
-                    res => res,
+                if let Ok(Some(foreign_call)) = result {
+                    return self.wait_for_foreign_call(foreign_call);
+                } else {
+                    result.map(|_| ())
                 }
             }
             Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
@@ -254,22 +236,13 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             }
         };
         match resolution {
-            Ok(OpcodeResolution::Solved) => {
+            Ok(()) => {
                 self.instruction_pointer += 1;
                 if self.instruction_pointer == self.opcodes.len() {
                     self.status(ACVMStatus::Solved)
                 } else {
                     self.status(ACVMStatus::InProgress)
                 }
-            }
-            Ok(OpcodeResolution::InProgress) => {
-                unreachable!("Opcodes_and_labels should be immediately solvable");
-            }
-            Ok(OpcodeResolution::InProgressBrillig(_)) => {
-                unreachable!("Handled above")
-            }
-            Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                self.fail(OpcodeResolutionError::OpcodeNotSolvable(not_solvable))
             }
             Err(mut error) => {
                 let opcode_label =
