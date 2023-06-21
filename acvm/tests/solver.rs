@@ -28,7 +28,8 @@ impl PartialWitnessGenerator for StubbedPwg {
         _initial_witness: &mut WitnessMap,
         _public_key_x: FunctionInput,
         _public_key_y: FunctionInput,
-        _signature: (FunctionInput, FunctionInput),
+        _signature_s: FunctionInput,
+        _signature_e: FunctionInput,
         _message: &[FunctionInput],
         _output: Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {

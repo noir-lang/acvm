@@ -76,7 +76,8 @@ pub trait PartialWitnessGenerator {
         initial_witness: &mut WitnessMap,
         public_key_x: FunctionInput,
         public_key_y: FunctionInput,
-        signature: (FunctionInput, FunctionInput),
+        signature_s: FunctionInput,
+        signature_e: FunctionInput,
         message: &[FunctionInput],
         output: Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
