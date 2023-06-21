@@ -38,7 +38,7 @@ pub enum PartialWitnessGeneratorStatus {
     /// to retrieve information from outside of the ACVM. The result of the foreign call must be passed back
     /// to the ACVM using [`ACVM::resolve_pending_foreign_call`].
     ///
-    /// Once this is done, the `ACVM` can be restarted to solve the remaining opcodes.
+    /// Once this is done, the ACVM can be restarted to solve the remaining opcodes.
     RequiresForeignCall,
 }
 
@@ -112,13 +112,25 @@ impl<B: PartialWitnessGenerator> ACVM<B> {
         }
     }
 
-    // necessary to fix integration tests. Should replace with a better VM status model.
-    pub fn remaining_opcodes_len(&self) -> usize {
-        self.opcodes.len()
+    /// Returns a reference to the current state of the ACVM's [`WitnessMap`].
+    ///
+    /// Once execution has completed, the witness map can be extracted using [`ACVM::finalize`]
+    pub fn witness_map(&self) -> &WitnessMap {
+        &self.witness_map
+    }
+
+    /// Returns a slice containing the opcodes which remain to be solved.
+    ///
+    /// Note: this doesn't include any opcodes which are waiting on a pending foreign call.
+    pub fn unresolved_opcodes(&self) -> &[Opcode] {
+        &self.opcodes
     }
 
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
+        if self.opcodes.is_empty() || self.get_pending_foreign_call().is_some() {
+            panic!("ACVM is not ready to be finalized");
+        }
         self.witness_map
     }
 

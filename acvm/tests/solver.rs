@@ -147,7 +147,7 @@ fn inversion_brillig_oracle_equivalence() {
         PartialWitnessGeneratorStatus::RequiresForeignCall,
         "Should require oracle data"
     );
-    assert_eq!(acvm.remaining_opcodes_len(), 0, "brillig should have been removed");
+    assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -274,7 +274,7 @@ fn double_inversion_brillig_oracle() {
         PartialWitnessGeneratorStatus::RequiresForeignCall,
         "Should require oracle data"
     );
-    assert_eq!(acvm.remaining_opcodes_len(), 0, "brillig should have been removed");
+    assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -292,7 +292,7 @@ fn double_inversion_brillig_oracle() {
         PartialWitnessGeneratorStatus::RequiresForeignCall,
         "Should require oracle data"
     );
-    assert_eq!(acvm.remaining_opcodes_len(), 0, "should be fully solved");
+    assert!(acvm.unresolved_opcodes().is_empty(), "should be fully solved");
 
     let foreign_call_wait_info =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
