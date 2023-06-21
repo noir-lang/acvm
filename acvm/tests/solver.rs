@@ -310,6 +310,135 @@ fn double_inversion_brillig_oracle() {
 }
 
 #[test]
+fn oracle_dependent_execution() {
+    // This test ensures that we properly track the list of opcodes which still need to be resolved
+    // across any brillig foreign calls we may have to perform.
+    //
+    // Opcodes below describe the following:
+    // fn main(x : Field, y : pub Field) {
+    //     assert(x == y);
+    //     let x_inv = Oracle("inverse", x);
+    //     let y_inv = Oracle("inverse", y);
+    //
+    //     assert(x_inv == y_inv);
+    // }
+    // Also performs an unrelated equality check
+    // just for the sake of testing multiple brillig opcodes.
+    let fe_0 = FieldElement::zero();
+    let fe_1 = FieldElement::one();
+    let w_x = Witness(1);
+    let w_y = Witness(2);
+    let w_x_inv = Witness(3);
+    let w_y_inv = Witness(4);
+
+    let brillig_data = Brillig {
+        inputs: vec![
+            BrilligInputs::Single(w_x.into()),            // Input Register 0
+            BrilligInputs::Single(Expression::default()), // Input Register 1
+            BrilligInputs::Single(w_y.into()),            // Input Register 2,
+        ],
+        outputs: vec![
+            BrilligOutputs::Simple(w_x),     // Output Register 0 - from input
+            BrilligOutputs::Simple(w_y_inv), // Output Register 1
+            BrilligOutputs::Simple(w_y),     // Output Register 2 - from input
+            BrilligOutputs::Simple(w_y_inv), // Output Register 3
+        ],
+        // stack of foreign call/oracle resolutions, starts empty
+        foreign_call_results: vec![],
+        bytecode: vec![
+            // Oracles are named 'foreign calls' in brillig
+            brillig_vm::Opcode::ForeignCall {
+                function: "invert".into(),
+                destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
+                inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+            },
+            brillig_vm::Opcode::ForeignCall {
+                function: "invert".into(),
+                destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(3))],
+                inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(2))],
+            },
+        ],
+        predicate: None,
+    };
+
+    // This equality check can be executed immediately before resolving any foreign calls.
+    let equality_check = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(-fe_1, w_x), (fe_1, w_y)],
+        q_c: fe_0,
+    };
+
+    // This equality check relies on the outputs of the Brillig call.
+    // It then cannot be solved until the foreign calls are resolved.
+    let inverse_equality_check = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![(-fe_1, w_x_inv), (fe_1, w_y_inv)],
+        q_c: fe_0,
+    };
+
+    let opcodes = vec![
+        Opcode::Arithmetic(equality_check),
+        Opcode::Brillig(brillig_data),
+        Opcode::Arithmetic(inverse_equality_check.clone()),
+    ];
+
+    let witness_assignments =
+        BTreeMap::from([(w_x, FieldElement::from(2u128)), (w_y, FieldElement::from(2u128))]).into();
+
+    let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+
+    // use the partial witness generation solver with our acir program
+    let solver_status = acvm.solve().expect("should stall on oracle");
+    assert_eq!(
+        solver_status,
+        PartialWitnessGeneratorStatus::RequiresForeignCall,
+        "Should require oracle data"
+    );
+    assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
+    assert_eq!(
+        acvm.unresolved_opcodes()[0],
+        Opcode::Arithmetic(inverse_equality_check.clone()),
+        "Equality check of inverses should still be waiting to be resolved"
+    );
+
+    let foreign_call_wait_info: &ForeignCallWaitInfo =
+        acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
+    assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+
+    // Resolve Brillig foreign call
+    let x_inverse = Value::from(foreign_call_wait_info.inputs[0][0].to_field().inverse());
+    acvm.resolve_pending_foreign_call(x_inverse.into());
+
+    // After filling data request, continue solving
+    let solver_status = acvm.solve().expect("should stall on oracle");
+    assert_eq!(
+        solver_status,
+        PartialWitnessGeneratorStatus::RequiresForeignCall,
+        "Should require oracle data"
+    );
+    assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
+    assert_eq!(
+        acvm.unresolved_opcodes()[0],
+        Opcode::Arithmetic(inverse_equality_check),
+        "Equality check of inverses should still be waiting to be resolved"
+    );
+
+    let foreign_call_wait_info: &ForeignCallWaitInfo =
+        acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
+    assert_eq!(foreign_call_wait_info.inputs.len(), 1, "Should be waiting for a single input");
+
+    // Resolve Brillig foreign call
+    let y_inverse = Value::from(foreign_call_wait_info.inputs[0][0].to_field().inverse());
+    acvm.resolve_pending_foreign_call(y_inverse.into());
+
+    // We've resolved all the brillig foreign calls so we should be able to complete execution now.
+
+    // After filling data request, continue solving
+    let solver_status = acvm.solve().expect("should not stall on brillig call");
+    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+}
+
+#[test]
 fn brillig_oracle_predicate() {
     // Opcodes below describe the following:
     // fn main(x : Field, y : pub Field, cond: bool) {
