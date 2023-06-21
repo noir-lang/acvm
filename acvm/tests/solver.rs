@@ -5,7 +5,7 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
-        opcodes::{FunctionInput, OracleData},
+        opcodes::FunctionInput,
         Opcode,
     },
     native_types::{Expression, Witness, WitnessMap},
@@ -26,11 +26,12 @@ impl PartialWitnessGenerator for StubbedPwg {
     fn schnorr_verify(
         &self,
         _initial_witness: &mut WitnessMap,
-        _public_key_x: &FunctionInput,
-        _public_key_y: &FunctionInput,
-        _signature: &[FunctionInput],
+        _public_key_x: FunctionInput,
+        _public_key_y: FunctionInput,
+        _signature_s: FunctionInput,
+        _signature_e: FunctionInput,
         _message: &[FunctionInput],
-        _output: &Witness,
+        _output: Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
@@ -40,7 +41,7 @@ impl PartialWitnessGenerator for StubbedPwg {
         _initial_witness: &mut WitnessMap,
         _inputs: &[FunctionInput],
         _domain_separator: u32,
-        _outputs: &[Witness],
+        _outputs: (Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
@@ -48,84 +49,11 @@ impl PartialWitnessGenerator for StubbedPwg {
     fn fixed_base_scalar_mul(
         &self,
         _initial_witness: &mut WitnessMap,
-        _input: &FunctionInput,
-        _outputs: &[Witness],
+        _input: FunctionInput,
+        _outputs: (Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
-}
-
-#[test]
-fn inversion_oracle_equivalence() {
-    // Opcodes below describe the following:
-    // fn main(x : Field, y : pub Field) {
-    //     let z = x + y;
-    //     constrain 1/z == Oracle("inverse", x + y);
-    // }
-    let fe_0 = FieldElement::zero();
-    let fe_1 = FieldElement::one();
-    let w_x = Witness(1);
-    let w_y = Witness(2);
-    let w_oracle = Witness(3);
-    let w_z = Witness(4);
-    let w_z_inverse = Witness(5);
-    let opcodes = vec![
-        Opcode::Oracle(OracleData {
-            name: "invert".into(),
-            inputs: vec![Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
-                q_c: fe_0,
-            }],
-            input_values: vec![],
-            outputs: vec![w_oracle],
-            output_values: vec![],
-        }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-            q_c: fe_0,
-        }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-            linear_combinations: vec![],
-            q_c: -fe_1,
-        }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(-fe_1, w_oracle), (fe_1, w_z_inverse)],
-            q_c: fe_0,
-        }),
-    ];
-
-    let backend = StubbedPwg;
-
-    let mut witness_assignments = BTreeMap::from([
-        (Witness(1), FieldElement::from(2u128)),
-        (Witness(2), FieldElement::from(3u128)),
-    ])
-    .into();
-    let mut blocks = Blocks::default();
-    let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
-        .expect("should stall on oracle");
-    let PartialWitnessGeneratorStatus::RequiresOracleData { mut required_oracle_data, unsolved_opcodes, .. } = solver_status else {
-            panic!("Should require oracle data")
-        };
-    assert!(unsolved_opcodes.is_empty(), "oracle should be removed");
-    assert_eq!(required_oracle_data.len(), 1, "should have an oracle request");
-    let mut oracle_data = required_oracle_data.remove(0);
-
-    assert_eq!(oracle_data.input_values.len(), 1, "Should have solved a single input");
-
-    // Filling data request and continue solving
-    oracle_data.output_values = vec![oracle_data.input_values.last().unwrap().inverse()];
-    let mut next_opcodes_for_solving = vec![Opcode::Oracle(oracle_data)];
-    next_opcodes_for_solving.extend_from_slice(&unsolved_opcodes[..]);
-    let solver_status =
-        pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
-            .expect("should be solvable");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
 }
 
 #[test]
@@ -215,7 +143,7 @@ fn inversion_brillig_oracle_equivalence() {
     // use the partial witness generation solver with our acir program
     let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
         .expect("should stall on oracle");
-    let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+    let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
@@ -347,7 +275,7 @@ fn double_inversion_brillig_oracle() {
     // use the partial witness generation solver with our acir program
     let solver_status = pwg::solve(&backend, &mut witness_assignments, &mut blocks, opcodes)
         .expect("should stall on oracle");
-    let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+    let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 
@@ -368,7 +296,7 @@ fn double_inversion_brillig_oracle() {
     let solver_status =
         pwg::solve(&backend, &mut witness_assignments, &mut blocks, next_opcodes_for_solving)
             .expect("should stall on oracle");
-    let PartialWitnessGeneratorStatus::RequiresOracleData { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
+    let PartialWitnessGeneratorStatus::RequiresForeignCall { unsolved_opcodes, mut unresolved_brillig_calls, .. } = solver_status else {
             panic!("Should require oracle data")
         };
 

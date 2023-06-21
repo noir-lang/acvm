@@ -71,27 +71,29 @@ pub trait CommonReferenceString {
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
+    #[allow(clippy::too_many_arguments)]
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
-        public_key_x: &FunctionInput,
-        public_key_y: &FunctionInput,
-        signature: &[FunctionInput],
+        public_key_x: FunctionInput,
+        public_key_y: FunctionInput,
+        signature_s: FunctionInput,
+        signature_e: FunctionInput,
         message: &[FunctionInput],
-        output: &Witness,
+        output: Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn pedersen(
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         domain_separator: u32,
-        outputs: &[Witness],
+        outputs: (Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut WitnessMap,
-        input: &FunctionInput,
-        outputs: &[Witness],
+        input: FunctionInput,
+        outputs: (Witness, Witness),
     ) -> Result<OpcodeResolution, OpcodeResolutionError>;
 }
 

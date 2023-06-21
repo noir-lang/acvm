@@ -32,10 +32,8 @@ impl FallbackTransformer {
                     | Opcode::Brillig(_)
                     | Opcode::Block(_)
                     | Opcode::ROM(_)
-                    | Opcode::RAM(_)
-                    | Opcode::Oracle { .. } => {
+                    | Opcode::RAM(_) => {
                         // directive, arithmetic expression or blocks are handled by acvm
-                        // The oracle opcode is assumed to be supported.
                         acir_supported_opcodes.push(opcode);
                         continue;
                     }

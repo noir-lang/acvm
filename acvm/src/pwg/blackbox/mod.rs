@@ -97,19 +97,21 @@ pub(crate) fn solve(
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
             public_key_y,
-            signature,
+            signature_s,
+            signature_e,
             message,
             output,
         } => backend.schnorr_verify(
             initial_witness,
-            public_key_x,
-            public_key_y,
-            signature,
+            *public_key_x,
+            *public_key_y,
+            *signature_s,
+            *signature_e,
             message,
-            output,
+            *output,
         ),
         BlackBoxFuncCall::Pedersen { inputs, domain_separator, outputs } => {
-            backend.pedersen(initial_witness, inputs, *domain_separator, outputs)
+            backend.pedersen(initial_witness, inputs, *domain_separator, *outputs)
         }
         BlackBoxFuncCall::EcdsaSecp256k1 {
             public_key_x,
@@ -126,7 +128,7 @@ pub(crate) fn solve(
             *output,
         ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
-            backend.fixed_base_scalar_mul(initial_witness, input, outputs)
+            backend.fixed_base_scalar_mul(initial_witness, *input, *outputs)
         }
         BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
     }
