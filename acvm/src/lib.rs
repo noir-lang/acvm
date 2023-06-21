@@ -71,6 +71,7 @@ pub trait CommonReferenceString {
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
 pub trait PartialWitnessGenerator {
+    #[allow(clippy::too_many_arguments)]
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
