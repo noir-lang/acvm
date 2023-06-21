@@ -3,16 +3,12 @@
 use crate::{BlackBoxFunctionSolver, Language};
 use acir::{
     brillig_vm::ForeignCallResult,
-    circuit::brillig::Brillig,
-    circuit::opcodes::{Opcode, OracleData},
+    circuit::{brillig::Brillig, Opcode},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
 
-use self::{
-    arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,
-    oracle::OracleSolver,
-};
+use self::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives};
 
 use thiserror::Error;
 
@@ -25,7 +21,6 @@ mod directives;
 // black box functions
 mod blackbox;
 mod block;
-mod oracle;
 
 // Re-export `Blocks` so that it can be passed to `pwg::solve`
 pub use block::Blocks;
@@ -36,17 +31,12 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for [oracle data][Opcode::Oracle] or a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall].
+    /// The `PartialWitnessGenerator` has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
+    /// to retrieve information from outside of the ACVM.
+    /// The result of the foreign call is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
     ///
-    /// Both of these opcodes require information from outside of the ACVM to be inserted before restarting execution.
-    /// [`Opcode::Oracle`] and [`Opcode::Brillig`] opcodes require the return values to be inserted slightly differently.
-    /// `Oracle` opcodes expect their return values to be written directly into the witness map whereas a `Brillig` foreign call
-    /// result is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
-    /// (Note: this means that the updated opcode must then be passed back into the ACVM to be processed further.)
-    ///
-    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the remaining opcodes.
-    RequiresOracleData {
-        required_oracle_data: Vec<OracleData>,
+    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the new set of opcodes.
+    RequiresForeignCall {
         unsolved_opcodes: Vec<Opcode>,
         unresolved_brillig_calls: Vec<UnresolvedBrilligCall>,
     },
@@ -104,14 +94,12 @@ pub fn solve(
     mut opcode_to_solve: Vec<Opcode>,
 ) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
     let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-    let mut unresolved_oracles: Vec<OracleData> = Vec::new();
     let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
-    while !opcode_to_solve.is_empty() || !unresolved_oracles.is_empty() {
+    while !opcode_to_solve.is_empty() {
         unresolved_opcodes.clear();
         let mut stalled = true;
         let mut opcode_not_solvable = None;
         for opcode in &opcode_to_solve {
-            let mut solved_oracle_data = None;
             let resolution = match opcode {
                 Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
                 Opcode::BlackBoxFuncCall(bb_func) => {
@@ -121,12 +109,6 @@ pub fn solve(
                 Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                     blocks.solve(block.id, &block.trace, initial_witness)
                 }
-                Opcode::Oracle(data) => {
-                    let mut data_clone = data.clone();
-                    let result = OracleSolver::solve(initial_witness, &mut data_clone)?;
-                    solved_oracle_data = Some(data_clone);
-                    Ok(result)
-                }
                 Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
             };
             match resolution {
@@ -135,12 +117,7 @@ pub fn solve(
                 }
                 Ok(OpcodeResolution::InProgress) => {
                     stalled = false;
-                    // InProgress Oracles must be externally re-solved
-                    if let Some(oracle) = solved_oracle_data {
-                        unresolved_oracles.push(oracle);
-                    } else {
-                        unresolved_opcodes.push(opcode.clone());
-                    }
+                    unresolved_opcodes.push(opcode.clone());
                 }
                 Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
                     stalled = false;
@@ -162,11 +139,7 @@ pub fn solve(
                     // We push those opcodes not solvable to the back as
                     // it could be because the opcodes are out of order, i.e. this assignment
                     // relies on a later opcodes' results
-                    if let Some(oracle_data) = solved_oracle_data {
-                        unresolved_opcodes.push(Opcode::Oracle(oracle_data));
-                    } else {
-                        unresolved_opcodes.push(opcode.clone());
-                    }
+                    unresolved_opcodes.push(opcode.clone());
                 }
                 Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                     unreachable!("ICE - Result should have been converted to GateResolution")
@@ -174,10 +147,9 @@ pub fn solve(
                 Err(err) => return Err(err),
             }
         }
-        // We have oracles that must be externally resolved
-        if !unresolved_oracles.is_empty() || !unresolved_brillig_calls.is_empty() {
-            return Ok(PartialWitnessGeneratorStatus::RequiresOracleData {
-                required_oracle_data: unresolved_oracles,
+        // We have foreign calls that must be externally resolved
+        if !unresolved_brillig_calls.is_empty() {
+            return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
                 unsolved_opcodes: unresolved_opcodes,
                 unresolved_brillig_calls,
             });
