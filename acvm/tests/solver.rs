@@ -129,12 +129,11 @@ fn inversion_brillig_oracle_equivalence() {
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
 
-    assert_eq!(
-        solver_status,
-        ACVMStatus::RequiresForeignCall,
+    assert!(
+        matches!(solver_status, ACVMStatus::RequiresForeignCall(_)),
         "should require foreign call response"
     );
-    assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
+    assert_eq!(acvm.instruction_pointer(), 0, "brillig should have been removed");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -259,12 +258,11 @@ fn double_inversion_brillig_oracle() {
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
-    assert_eq!(
-        solver_status,
-        ACVMStatus::RequiresForeignCall,
+    assert!(
+        matches!(solver_status, ACVMStatus::RequiresForeignCall(_)),
         "should require foreign call response"
     );
-    assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
+    assert_eq!(acvm.instruction_pointer(), 0, "should stall on brillig");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -277,12 +275,11 @@ fn double_inversion_brillig_oracle() {
 
     // After filling data request, continue solving
     let solver_status = acvm.solve();
-    assert_eq!(
-        solver_status,
-        ACVMStatus::RequiresForeignCall,
+    assert!(
+        matches!(solver_status, ACVMStatus::RequiresForeignCall(_)),
         "should require foreign call response"
     );
-    assert!(acvm.unresolved_opcodes().is_empty(), "should be fully solved");
+    assert_eq!(acvm.instruction_pointer(), 0, "should stall on brillig");
 
     let foreign_call_wait_info =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -382,17 +379,11 @@ fn oracle_dependent_execution() {
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
-    assert_eq!(
-        solver_status,
-        ACVMStatus::RequiresForeignCall,
+    assert!(
+        matches!(solver_status, ACVMStatus::RequiresForeignCall(_)),
         "should require foreign call response"
     );
-    assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
-    assert_eq!(
-        acvm.unresolved_opcodes()[0],
-        Opcode::Arithmetic(inverse_equality_check.clone()),
-        "Equality check of inverses should still be waiting to be resolved"
-    );
+    assert_eq!(acvm.instruction_pointer(), 1, "should stall on brillig");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
@@ -404,17 +395,11 @@ fn oracle_dependent_execution() {
 
     // After filling data request, continue solving
     let solver_status = acvm.solve();
-    assert_eq!(
-        solver_status,
-        ACVMStatus::RequiresForeignCall,
+    assert!(
+        matches!(solver_status, ACVMStatus::RequiresForeignCall(_)),
         "should require foreign call response"
     );
-    assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
-    assert_eq!(
-        acvm.unresolved_opcodes()[0],
-        Opcode::Arithmetic(inverse_equality_check),
-        "Equality check of inverses should still be waiting to be resolved"
-    );
+    assert_eq!(acvm.instruction_pointer(), 1, "should stall on brillig");
 
     let foreign_call_wait_info: &ForeignCallWaitInfo =
         acvm.get_pending_foreign_call().expect("should have a brillig foreign call request");
