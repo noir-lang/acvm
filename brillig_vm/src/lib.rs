@@ -15,14 +15,14 @@ mod opcodes;
 mod registers;
 mod value;
 
+pub use black_box::BlackBoxOp;
 pub use memory::Memory;
-pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory, HeapArray, HeapVector};
+pub use opcodes::{BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, RegisterOrMemory};
 pub use opcodes::{Label, Opcode};
 pub use registers::{RegisterIndex, Registers};
 use serde::{Deserialize, Serialize};
 pub use value::Typ;
 pub use value::Value;
-pub use black_box::BlackBoxOp;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum VMStatus {
