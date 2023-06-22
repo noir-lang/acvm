@@ -9,18 +9,20 @@
 //! [acir]: https://crates.io/crates/acir
 //! [acvm]: https://crates.io/crates/acvm
 
+mod black_box;
 mod memory;
 mod opcodes;
 mod registers;
 mod value;
 
 pub use memory::Memory;
-pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory};
+pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory, HeapArray, HeapVector};
 pub use opcodes::{Label, Opcode};
 pub use registers::{RegisterIndex, Registers};
 use serde::{Deserialize, Serialize};
 pub use value::Typ;
 pub use value::Value;
+pub use black_box::BlackBoxOp;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum VMStatus {
@@ -225,7 +227,7 @@ impl VM {
                                 "Function result size does not match brillig bytecode (expected 1 result)"
                             ),
                         },
-                        RegisterOrMemory::HeapArray(pointer_index, size) => {
+                        RegisterOrMemory::HeapArray(HeapArray { pointer: pointer_index, size }) => {
                             match output {
                                 ForeignCallOutput::Array(values) => {
                                     if values.len() != *size {
@@ -242,7 +244,7 @@ impl VM {
                                 }
                             }
                         }
-                        RegisterOrMemory::HeapVector(pointer_index, size_index) => {
+                        RegisterOrMemory::HeapVector(HeapVector { pointer: pointer_index, size: size_index }) => {
                             match output {
                                 ForeignCallOutput::Array(values) => {
                                     // Set our size in the size register
@@ -302,6 +304,10 @@ impl VM {
                 self.registers.set(*destination, *value);
                 self.increment_program_counter()
             }
+            Opcode::BlackBox(black_box_op) => {
+                black_box_op.evaluate(&mut self.registers, &mut self.memory);
+                self.increment_program_counter()
+            }
         }
     }
 
@@ -332,11 +338,14 @@ impl VM {
             RegisterOrMemory::RegisterIndex(value_index) => {
                 vec![self.registers.get(value_index)]
             }
-            RegisterOrMemory::HeapArray(pointer_index, size) => {
+            RegisterOrMemory::HeapArray(HeapArray { pointer: pointer_index, size }) => {
                 let start = self.registers.get(pointer_index);
                 self.memory.read_slice(start.to_usize(), size).to_vec()
             }
-            RegisterOrMemory::HeapVector(pointer_index, size_index) => {
+            RegisterOrMemory::HeapVector(HeapVector {
+                pointer: pointer_index,
+                size: size_index,
+            }) => {
                 let start = self.registers.get(pointer_index);
                 let size = self.registers.get(size_index);
                 self.memory.read_slice(start.to_usize(), size.to_usize()).to_vec()
@@ -915,8 +924,14 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterOrMemory::HeapArray(r_output, initial_matrix.len())],
-                inputs: vec![RegisterOrMemory::HeapArray(r_input, initial_matrix.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
+                    pointer: r_output,
+                    size: initial_matrix.len(),
+                })],
+                inputs: vec![RegisterOrMemory::HeapArray(HeapArray {
+                    pointer: r_input,
+                    size: initial_matrix.len(),
+                })],
             },
         ];
 
@@ -982,8 +997,14 @@ mod tests {
             // output_pointer[0..output_size] = string_double(input_pointer[0...input_size])
             Opcode::ForeignCall {
                 function: "string_double".into(),
-                destinations: vec![RegisterOrMemory::HeapVector(r_output_pointer, r_output_size)],
-                inputs: vec![RegisterOrMemory::HeapVector(r_input_pointer, r_input_size)],
+                destinations: vec![RegisterOrMemory::HeapVector(HeapVector {
+                    pointer: r_output_pointer,
+                    size: r_output_size,
+                })],
+                inputs: vec![RegisterOrMemory::HeapVector(HeapVector {
+                    pointer: r_input_pointer,
+                    size: r_input_size,
+                })],
             },
         ];
 
@@ -1038,8 +1059,14 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterOrMemory::HeapArray(r_output, initial_matrix.len())],
-                inputs: vec![RegisterOrMemory::HeapArray(r_input, initial_matrix.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
+                    pointer: r_output,
+                    size: initial_matrix.len(),
+                })],
+                inputs: vec![RegisterOrMemory::HeapArray(HeapArray {
+                    pointer: r_input,
+                    size: initial_matrix.len(),
+                })],
             },
         ];
 
@@ -1110,10 +1137,19 @@ mod tests {
             // *output = matrix_2x2_transpose(*input)
             Opcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
-                destinations: vec![RegisterOrMemory::HeapArray(r_output, matrix_a.len())],
+                destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
+                    pointer: r_output,
+                    size: matrix_a.len(),
+                })],
                 inputs: vec![
-                    RegisterOrMemory::HeapArray(r_input_a, matrix_a.len()),
-                    RegisterOrMemory::HeapArray(r_input_b, matrix_b.len()),
+                    RegisterOrMemory::HeapArray(HeapArray {
+                        pointer: r_input_a,
+                        size: matrix_a.len(),
+                    }),
+                    RegisterOrMemory::HeapArray(HeapArray {
+                        pointer: r_input_b,
+                        size: matrix_b.len(),
+                    }),
                 ],
             },
         ];
