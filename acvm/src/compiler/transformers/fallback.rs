@@ -106,6 +106,19 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
+            BlackBoxFuncCall::SHA256 { inputs, outputs } => {
+                let mut sha256_inputs = Vec::new();
+                for input in inputs.iter() {
+                    let witness_index = Expression::from(input.witness);
+                    let num_bits = input.num_bits;
+                    sha256_inputs.push((witness_index, num_bits));
+                }
+                stdlib::custom_gate_fallbacks::sha256::sha256(
+                    sha256_inputs,
+                    outputs.to_vec(),
+                    current_witness_idx,
+                )
+            }
             _ => {
                 return Err(CompileError::UnsupportedBlackBox(gc.get_black_box_func()));
             }
