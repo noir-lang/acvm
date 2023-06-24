@@ -9,10 +9,12 @@
 //! [acir]: https://crates.io/crates/acir
 //! [acvm]: https://crates.io/crates/acvm
 
+mod memory;
 mod opcodes;
 mod registers;
 mod value;
 
+pub use memory::Memory;
 pub use opcodes::{BinaryFieldOp, BinaryIntOp, RegisterOrMemory};
 pub use opcodes::{Label, Opcode};
 pub use registers::{RegisterIndex, Registers};
@@ -88,7 +90,7 @@ pub struct VM {
     /// Status of the VM
     status: VMStatus,
     /// Memory of the VM
-    memory: Vec<Value>,
+    memory: Memory,
     /// Call stack
     call_stack: Vec<Value>,
 }
@@ -108,7 +110,7 @@ impl VM {
             foreign_call_results,
             bytecode,
             status: VMStatus::InProgress,
-            memory,
+            memory: memory.into(),
             call_stack: Vec::new(),
         }
     }
@@ -154,7 +156,7 @@ impl VM {
     }
 
     pub fn get_memory(&self) -> &Vec<Value> {
-        &self.memory
+        self.memory.values()
     }
 
     /// Process a single opcode and modify the program counter.
@@ -232,15 +234,8 @@ impl VM {
                                     }
                                     // Convert the destination pointer to a usize
                                     let destination = self.registers.get(*pointer_index).to_usize();
-                                    // Calculate new memory size
-                                    let new_size =
-                                        std::cmp::max(self.memory.len(), destination + size);
-                                    // Expand memory to new size with default values if needed
-                                    self.memory.resize(new_size, Value::from(0_usize));
                                     // Write to our destination memory
-                                    for (i, value) in values.iter().enumerate() {
-                                        self.memory[destination + i] = *value;
-                                    }
+                                    self.memory.write_slice(destination, values);
                                 }
                                 _ => {
                                     unreachable!("Function result size does not match brillig bytecode size")
@@ -254,15 +249,8 @@ impl VM {
                                     self.registers.set(*size_index, Value::from(values.len()));
                                     // Convert the destination pointer to a usize
                                     let destination = self.registers.get(*pointer_index).to_usize();
-                                    // Calculate new memory size
-                                    let new_size =
-                                        std::cmp::max(self.memory.len(), destination + values.len());
-                                    // Expand memory to new size with default values if needed
-                                    self.memory.resize(new_size, Value::from(0_usize));
                                     // Write to our destination memory
-                                    for (i, value) in values.iter().enumerate() {
-                                        self.memory[destination + i] = *value;
-                                    }
+                                    self.memory.write_slice(destination, values);
                                 }
                                 _ => {
                                     unreachable!("Function result size does not match brillig bytecode size")
@@ -294,21 +282,15 @@ impl VM {
                 // Convert our source_pointer to a usize
                 let source = self.registers.get(*source_pointer);
                 // Use our usize source index to lookup the value in memory
-                let value = &self.memory[source.to_usize()];
+                let value = &self.memory.read(source.to_usize());
                 self.registers.set(*destination_register, *value);
                 self.increment_program_counter()
             }
             Opcode::Store { destination_pointer, source: source_register } => {
                 // Convert our destination_pointer to a usize
                 let destination = self.registers.get(*destination_pointer).to_usize();
-                if destination >= self.memory.len() {
-                    self.memory.append(&mut vec![
-                        Value::from(0_usize);
-                        destination - self.memory.len() + 1
-                    ]);
-                }
                 // Use our usize destination index to set the value in memory
-                self.memory[destination] = self.registers.get(*source_register);
+                self.memory.write(destination, self.registers.get(*source_register));
                 self.increment_program_counter()
             }
             Opcode::Call { location } => {
@@ -352,12 +334,12 @@ impl VM {
             }
             RegisterOrMemory::HeapArray(pointer_index, size) => {
                 let start = self.registers.get(pointer_index);
-                self.memory[start.to_usize()..(start.to_usize() + size)].to_vec()
+                self.memory.read_slice(start.to_usize(), size).to_vec()
             }
             RegisterOrMemory::HeapVector(pointer_index, size_index) => {
                 let start = self.registers.get(pointer_index);
                 let size = self.registers.get(size_index);
-                self.memory[start.to_usize()..(start.to_usize() + size.to_usize())].to_vec()
+                self.memory.read_slice(start.to_usize(), size.to_usize()).to_vec()
             }
         }
     }
@@ -675,7 +657,7 @@ mod tests {
                 Opcode::JumpIf { condition: r_tmp, location: start.len() },
             ];
             let vm = brillig_execute_and_get_vm(memory, [&start[..], &loop_body[..]].concat());
-            vm.memory
+            vm.get_memory().clone()
         }
 
         let memory = brillig_write_memory(vec![Value::from(0u128); 5]);
@@ -828,7 +810,7 @@ mod tests {
             ];
 
             let vm = brillig_execute_and_get_vm(memory, [&start[..], &recursive_fn[..]].concat());
-            vm.memory
+            vm.get_memory().clone()
         }
 
         let memory = brillig_recursive_write_memory(vec![Value::from(0u128); 5]);
@@ -959,7 +941,7 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check result in memory
-        let result_values = vm.memory[0..4].to_vec();
+        let result_values = vm.memory.read_slice(0, 4).to_vec();
         assert_eq!(result_values, expected_result);
 
         // Ensure the foreign call counter has been incremented
@@ -1028,8 +1010,7 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check result in memory
-        let result_values =
-            vm.memory[input_string.len()..(input_string.len() + output_string.len())].to_vec();
+        let result_values = vm.memory.read_slice(input_string.len(), output_string.len()).to_vec();
         assert_eq!(result_values, output_string);
 
         // Ensure the foreign call counter has been incremented
@@ -1083,11 +1064,11 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check initial memory still in place
-        let initial_values = vm.memory[0..4].to_vec();
+        let initial_values = vm.memory.read_slice(0, 4).to_vec();
         assert_eq!(initial_values, initial_matrix);
 
         // Check result in memory
-        let result_values = vm.memory[4..8].to_vec();
+        let result_values = vm.memory.read_slice(4, 4).to_vec();
         assert_eq!(result_values, expected_result);
 
         // Ensure the foreign call counter has been incremented
@@ -1159,7 +1140,7 @@ mod tests {
         assert_eq!(vm.status, VMStatus::Finished);
 
         // Check result in memory
-        let result_values = vm.memory[0..4].to_vec();
+        let result_values = vm.memory.read_slice(0, 4).to_vec();
         assert_eq!(result_values, expected_result);
 
         // Ensure the foreign call counter has been incremented

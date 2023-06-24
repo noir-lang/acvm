@@ -33,6 +33,7 @@ pub(crate) fn secp256k1_prehashed(
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
+    // These errors should never be emitted in practice as they would imply malformed ACIR generation.
     let pub_key_x: [u8; 32] =
         to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
