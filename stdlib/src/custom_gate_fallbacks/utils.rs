@@ -1,12 +1,17 @@
 use core::num;
+use std::vec;
 
 use acir::{
-    circuit::{directives::Directive, Opcode},
+    circuit::{
+        directives::Directive,
+        opcodes::{BlackBoxFuncCall, FunctionInput},
+        Opcode,
+    },
     native_types::{Expression, Witness},
     FieldElement,
 };
 
-use crate::helpers::VariableStore;
+use crate::{fallback::range, helpers::VariableStore};
 
 fn round_to_nearest_mul_8(num_bits: u32) -> u32 {
     let remainder = num_bits % 8;
@@ -22,18 +27,17 @@ pub(crate) fn round_to_nearest_byte(num_bits: u32) -> u32 {
     round_to_nearest_mul_8(num_bits) / 8
 }
 
-pub(crate) fn radix_decomposition(
+pub(crate) fn byte_decomposition(
     gate: Expression,
-    size: u32,
-    radix: u32,
+    num_bytes: u32,
     mut num_witness: u32,
 ) -> (Vec<Opcode>, Vec<Witness>, u32) {
     let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
 
     // First create a witness for each bit
-    let mut vector = Vec::with_capacity(size as usize);
-    for _ in 0..size {
+    let mut vector = Vec::with_capacity(num_bytes as usize);
+    for _ in 0..num_bytes {
         vector.push(variables.new_variable())
     }
 
@@ -41,30 +45,27 @@ pub(crate) fn radix_decomposition(
     new_gates.push(Opcode::Directive(Directive::ToLeRadix {
         a: gate.clone(),
         b: vector.clone(),
-        radix: radix,
+        radix: 256,
     }));
 
-    // Now apply constraints to the bits such that they are the bit decomposition
-    // of the input and each bit is actually a bit
-    let mut binary_exprs = Vec::new();
+    // Now apply constraints to the bytes such that they are the byte decomposition
+    // of the input and each byte is actually a byte
+    let mut byte_exprs = Vec::new();
     let mut decomp_constraint = gate;
-    let mut two_pow: FieldElement = FieldElement::one();
-    let two = FieldElement::from(2_i128);
-    for &bit in &vector {
-        // Bit constraint to ensure each bit is a zero or one; bit^2 - bit = 0
-        let mut expr = Expression::default();
-        expr.push_multiplication_term(FieldElement::one(), bit, bit);
-        expr.push_addition_term(-FieldElement::one(), bit);
-        binary_exprs.push(Opcode::Arithmetic(expr));
+    let byte_shift: u32 = 256;
+    for i in 0..vector.len() {
+        let range = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: vector[i], num_bits: 8 },
+        });
+        let scaling_factor_value = byte_shift.pow(num_bytes - 1 - i as u32);
+        let scaling_factor = FieldElement::from(scaling_factor_value as u128);
 
-        // Constraint to ensure that the bits are constrained to be a bit decomposition
-        // of the input
-        // ie \sum 2^i * x_i = input
-        decomp_constraint.push_addition_term(-two_pow, bit);
-        two_pow = two * two_pow;
+        decomp_constraint.push_addition_term(scaling_factor, vector[i]);
+
+        byte_exprs.push(range);
     }
 
-    new_gates.extend(binary_exprs);
+    new_gates.extend(byte_exprs);
     decomp_constraint.sort(); // TODO: we have an issue open to check if this is needed. Ideally, we remove it.
     new_gates.push(Opcode::Arithmetic(decomp_constraint));
 
