@@ -9,11 +9,11 @@ use acir::{
     BlackBoxFunc, FieldElement,
 };
 
-use crate::{Language, BlackBoxFunctionSolver};
 use self::{
     arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
     directives::solve_directives,
 };
+use crate::{BlackBoxFunctionSolver, Language};
 
 use thiserror::Error;
 
