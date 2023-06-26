@@ -108,7 +108,9 @@ impl BlackBoxOp {
 
 #[cfg(test)]
 mod test {
-    use crate::{BlackBoxOp, HeapArray, HeapVector, Memory, Registers, Value, black_box::to_u8_vec};
+    use crate::{
+        black_box::to_u8_vec, BlackBoxOp, HeapArray, HeapVector, Memory, Registers, Value,
+    };
 
     fn to_value_vec(input: &[u8]) -> Vec<Value> {
         input.iter().map(|x| Value::from(*x as usize)).collect()
@@ -122,10 +124,7 @@ mod test {
         let mut memory = Memory::from(vec![]);
         let message_pointer = 0;
         let result_pointer = message_pointer + message_length;
-        memory.write_slice(
-            message_pointer,
-            to_value_vec(&message).as_slice(),
-        );
+        memory.write_slice(message_pointer, to_value_vec(&message).as_slice());
 
         let mut registers = Registers {
             inner: vec![
@@ -192,7 +191,7 @@ fn generic_hash_to_field<D: Digest>(
     message: &HeapVector,
     output: &RegisterIndex,
     registers: &mut Registers,
-    memory: &mut Memory,
+    memory: &Memory,
 ) {
     let message_values = memory.read_slice(
         registers.get(message.pointer).to_usize(),
