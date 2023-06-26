@@ -1258,9 +1258,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"acvm-simulator@workspace:.":
+"acvm_js@workspace:.":
   version: 0.0.0-use.local
-  resolution: "acvm-simulator@workspace:."
+  resolution: "acvm_js@workspace:."
   dependencies:
     "@esm-bundle/chai": ^4.3.4-fix.0
     "@typescript-eslint/eslint-plugin": ^5.59.5

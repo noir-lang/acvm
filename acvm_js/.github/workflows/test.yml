@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-acvm-simulator:
+  build-acvm-js:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -24,7 +24,7 @@ jobs:
           name: barretenberg
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - name: Build acvm-simulator
+      - name: Build acvm-js
         run: |
           nix build .#
 
@@ -34,12 +34,12 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: acvm-simulator
+          name: acvm-js
           path: ${{ env.UPLOAD_PATH }}
           retention-days: 3
 
   test-node:
-    needs: [build-acvm-simulator]
+    needs: [build-acvm-js]
     name: Node.js Tests
     runs-on: ubuntu-latest
 
@@ -50,7 +50,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: acvm-simulator
+          name: acvm-js
           path: ./result
 
       - name: Set up test environment
@@ -60,7 +60,7 @@ jobs:
         run: yarn test
 
   test-browser:
-    needs: [build-acvm-simulator]
+    needs: [build-acvm-js]
     name: Browser Tests
     runs-on: ubuntu-latest
 
@@ -71,7 +71,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: acvm-simulator
+          name: acvm-js
           path: ./result
 
       - name: Set up test environment

@@ -1,5 +1,5 @@
 import { expect } from "@esm-bundle/chai";
-import initACVMSimulator, {
+import initACVM, {
   abiEncode,
   abiDecode,
   executeCircuit,
@@ -8,7 +8,7 @@ import initACVMSimulator, {
 } from "../../result/";
 
 beforeEach(async () => {
-  await initACVMSimulator();
+  await initACVM();
 
   initLogLevel("INFO");
 });

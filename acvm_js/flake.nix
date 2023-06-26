@@ -1,5 +1,5 @@
 {
-  description = "ACVM Simulator";
+  description = "Javascript bindings for the ACVM";
 
   inputs = {
     nixpkgs = {
@@ -95,7 +95,7 @@
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
       commonArgs = {
-        pname = "acvm_simulator";
+        pname = "acvm_js";
         version = "0.0.0"; # x-release-please-version
 
         src = pkgs.lib.cleanSourceWith {

@@ -1,15 +1,12 @@
 import { expect } from "@esm-bundle/chai";
-import initACVMSimulator, {
-  compressWitness,
-  decompressWitness,
-} from "../../result/";
+import initACVM, { compressWitness, decompressWitness } from "../../result/";
 import {
   expectedCompressedWitnessMap,
   expectedWitnessMap,
 } from "../shared/witness_compression";
 
 beforeEach(async () => {
-  await initACVMSimulator();
+  await initACVM();
 });
 
 it("successfully compresses the witness", async () => {

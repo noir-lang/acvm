@@ -1,4 +1,4 @@
-//! ACVM simulator is independent of the proving backend against which the ACIR code is being proven.
+//! ACVM execution is independent of the proving backend against which the ACIR code is being proven.
 //! However there are currently a few opcodes for which there is currently no rust implementation so we must
 //! use the C++ implementations included in Aztec Lab's Barretenberg library.
 //!
