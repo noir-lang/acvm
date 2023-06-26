@@ -13,16 +13,10 @@ repository.workspace = true
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
-blake2 = "0.10.6"
-sha2 = "0.10.6"
-sha3 = "0.10.6"
-k256 = { version = "0.11.0", features = [
-    "ecdsa",
-    "ecdsa-core",
-    "sha256",
-    "digest",
-    "arithmetic",
-] }
+blake2.workspace = true
+sha2.workspace = true
+sha3.workspace = true
+k256.workspace = true
 
 [features]
 default = ["bn254"]

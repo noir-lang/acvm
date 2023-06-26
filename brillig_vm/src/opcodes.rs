@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
 
-/// A fix-sized array passed starting from a Brillig register memory location.
+/// A fixed-sized array starting from a Brillig register memory location.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
 pub struct HeapArray {
     pub pointer: RegisterIndex,

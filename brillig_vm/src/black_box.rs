@@ -106,6 +106,54 @@ impl BlackBoxOp {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use crate::{BlackBoxOp, HeapArray, HeapVector, Memory, Registers, Value, black_box::to_u8_vec};
+
+    fn to_value_vec(input: &[u8]) -> Vec<Value> {
+        input.iter().map(|x| Value::from(*x as usize)).collect()
+    }
+
+    #[test]
+    fn sha256() {
+        let message: Vec<u8> = b"hello world".to_vec();
+        let message_length = message.len();
+
+        let mut memory = Memory::from(vec![]);
+        let message_pointer = 0;
+        let result_pointer = message_pointer + message_length;
+        memory.write_slice(
+            message_pointer,
+            to_value_vec(&message).as_slice(),
+        );
+
+        let mut registers = Registers {
+            inner: vec![
+                Value::from(message_pointer),
+                Value::from(message_length),
+                Value::from(result_pointer),
+            ],
+        };
+
+        let op = BlackBoxOp::Sha256 {
+            message: HeapVector { pointer: 0.into(), size: 1.into() },
+            output: HeapArray { pointer: 2.into(), size: 32 },
+        };
+
+        op.evaluate(&mut registers, &mut memory);
+
+        let result = memory.read_slice(result_pointer, 32);
+
+        assert_eq!(
+            to_u8_vec(result),
+            vec![
+                185, 77, 39, 185, 147, 77, 62, 8, 165, 46, 82, 215, 218, 125, 171, 250, 196, 132,
+                239, 227, 122, 83, 128, 238, 144, 136, 247, 172, 226, 239, 205, 233
+            ]
+        );
+    }
+}
+
 /// Extracts the last byte of every value
 fn to_u8_vec(inputs: &[Value]) -> Vec<u8> {
     let mut result = Vec::with_capacity(inputs.len());
@@ -121,7 +169,7 @@ fn to_u8_vec(inputs: &[Value]) -> Vec<u8> {
 fn generic_hash_256<D: Digest>(
     message: &HeapVector,
     output: &HeapArray,
-    registers: &mut Registers,
+    registers: &Registers,
     memory: &mut Memory,
 ) {
     let message_values = memory.read_slice(
