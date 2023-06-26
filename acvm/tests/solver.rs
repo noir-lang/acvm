@@ -5,53 +5,41 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
-        opcodes::FunctionInput,
         Opcode,
     },
-    native_types::{Expression, Witness, WitnessMap},
+    native_types::{Expression, Witness},
     FieldElement,
 };
 
 use acvm::{
-    pwg::{
-        ForeignCallWaitInfo, OpcodeResolution, OpcodeResolutionError,
-        PartialWitnessGeneratorStatus, ACVM,
-    },
-    PartialWitnessGenerator,
+    pwg::{ForeignCallWaitInfo, OpcodeResolutionError, PartialWitnessGeneratorStatus, ACVM},
+    BlackBoxFunctionSolver,
 };
 
-struct StubbedPwg;
+struct StubbedBackend;
 
-impl PartialWitnessGenerator for StubbedPwg {
+impl BlackBoxFunctionSolver for StubbedBackend {
     fn schnorr_verify(
         &self,
-        _initial_witness: &mut WitnessMap,
-        _public_key_x: FunctionInput,
-        _public_key_y: FunctionInput,
-        _signature_s: FunctionInput,
-        _signature_e: FunctionInput,
-        _message: &[FunctionInput],
-        _output: Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        _public_key_x: &FieldElement,
+        _public_key_y: &FieldElement,
+        _signature_s: &FieldElement,
+        _signature_e: &FieldElement,
+        _message: &[u8],
+    ) -> Result<bool, OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
-
     fn pedersen(
         &self,
-        _initial_witness: &mut WitnessMap,
-        _inputs: &[FunctionInput],
+        _inputs: &[FieldElement],
         _domain_separator: u32,
-        _outputs: (Witness, Witness),
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
-
     fn fixed_base_scalar_mul(
         &self,
-        _initial_witness: &mut WitnessMap,
-        _input: FunctionInput,
-        _outputs: (Witness, Witness),
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        _input: &FieldElement,
+    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
         panic!("Path not trodden by this test")
     }
 }
@@ -138,7 +126,7 @@ fn inversion_brillig_oracle_equivalence() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should stall on brillig call");
 
@@ -265,7 +253,7 @@ fn double_inversion_brillig_oracle() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should stall on oracle");
@@ -385,7 +373,7 @@ fn oracle_dependent_execution() {
     let witness_assignments =
         BTreeMap::from([(w_x, FieldElement::from(2u128)), (w_y, FieldElement::from(2u128))]).into();
 
-    let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should stall on oracle");
@@ -516,7 +504,7 @@ fn brillig_oracle_predicate() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedPwg, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
     let solver_status = acvm.solve().expect("should not stall on brillig call");
     assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
 }

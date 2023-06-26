@@ -5,8 +5,8 @@ pub mod compiler;
 pub mod pwg;
 
 use acir::{
-    circuit::{opcodes::FunctionInput, Circuit, Opcode},
-    native_types::{Witness, WitnessMap},
+    circuit::{Circuit, Opcode},
+    native_types::WitnessMap,
 };
 use core::fmt::Debug;
 use pwg::{OpcodeResolution, OpcodeResolutionError};
@@ -29,7 +29,7 @@ pub enum Language {
 pub trait Backend:
     SmartContract
     + ProofSystemCompiler
-    + PartialWitnessGenerator
+    + BlackBoxFunctionSolver
     + CommonReferenceString
     + Default
     + Debug
@@ -67,34 +67,28 @@ pub trait CommonReferenceString {
     ) -> Result<Vec<u8>, Self::Error>;
 }
 
-/// This component will generate the backend specific output for each [`Opcode::BlackBoxFuncCall`].
+/// This component will generate outputs for [`Opcode::BlackBoxFuncCall`] where the underlying [`acir::BlackBoxFunc`]
+/// doesn't have a canonical Rust implementation.
 ///
 /// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
-pub trait PartialWitnessGenerator {
-    #[allow(clippy::too_many_arguments)]
+pub trait BlackBoxFunctionSolver {
     fn schnorr_verify(
         &self,
-        initial_witness: &mut WitnessMap,
-        public_key_x: FunctionInput,
-        public_key_y: FunctionInput,
-        signature_s: FunctionInput,
-        signature_e: FunctionInput,
-        message: &[FunctionInput],
-        output: Witness,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+        public_key_x: &FieldElement,
+        public_key_y: &FieldElement,
+        signature_s: &FieldElement,
+        signature_e: &FieldElement,
+        message: &[u8],
+    ) -> Result<bool, OpcodeResolutionError>;
     fn pedersen(
         &self,
-        initial_witness: &mut WitnessMap,
-        inputs: &[FunctionInput],
+        inputs: &[FieldElement],
         domain_separator: u32,
-        outputs: (Witness, Witness),
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
-        initial_witness: &mut WitnessMap,
-        input: FunctionInput,
-        outputs: (Witness, Witness),
-    ) -> Result<OpcodeResolution, OpcodeResolutionError>;
+        input: &FieldElement,
+    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError>;
 }
 
 pub trait SmartContract {
