@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 
-use crate::{Language, PartialWitnessGenerator};
 use acir::{
     brillig_vm::ForeignCallResult,
     circuit::{brillig::Brillig, opcodes::BlockId, Opcode},
@@ -14,6 +13,7 @@ use self::{
     arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
     directives::solve_directives,
 };
+use crate::{BlackBoxFunctionSolver, Language};
 
 use thiserror::Error;
 
@@ -84,7 +84,7 @@ pub enum OpcodeResolutionError {
     BrilligFunctionFailed(String),
 }
 
-pub struct ACVM<B: PartialWitnessGenerator> {
+pub struct ACVM<B: BlackBoxFunctionSolver> {
     backend: B,
     /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
     block_solvers: HashMap<BlockId, BlockSolver>,
@@ -99,7 +99,7 @@ pub struct ACVM<B: PartialWitnessGenerator> {
     pending_foreign_calls: Vec<UnresolvedBrilligCall>,
 }
 
-impl<B: PartialWitnessGenerator> ACVM<B> {
+impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         ACVM {
             backend,
