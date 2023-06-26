@@ -1,91 +1,72 @@
 import { expect } from "chai";
-import {
-  abiEncode,
-  abiDecode,
-  executeCircuit,
-  WitnessMap,
-} from "../../result/";
+import { executeCircuit, WitnessMap } from "../../result/";
 
 it("successfully executes circuit and extracts return value", async () => {
-  const { abi, bytecode, inputs, expectedResult } = await import(
-    "../shared/noir_program"
-  );
+  const { bytecode, initialWitnessMap, resultWitness, expectedResult } =
+    await import("../shared/noir_program");
 
-  const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
-  const solved_witness: WitnessMap = await executeCircuit(
+  const solvedWitness: WitnessMap = await executeCircuit(
     bytecode,
-    initial_witness,
+    initialWitnessMap,
     () => {
       throw Error("unexpected oracle");
     }
   );
 
   // Solved witness should be consistent with initial witness
-  initial_witness.forEach((value, key) => {
-    expect(solved_witness.get(key) as string).to.be.eq(value);
+  initialWitnessMap.forEach((value, key) => {
+    expect(solvedWitness.get(key) as string).to.be.eq(value);
   });
 
   // Solved witness should contain expected return value
-  const return_witness: number = abi.return_witnesses[0];
-  expect(solved_witness.get(return_witness)).to.be.eq(expectedResult);
-
-  const decoded_inputs = abiDecode(abi, solved_witness);
-  expect(decoded_inputs.return_value).to.be.eq(expectedResult);
+  expect(solvedWitness.get(resultWitness)).to.be.eq(expectedResult);
 });
 
 it("successfully executes a Pedersen opcode", async function () {
   this.timeout(10000);
-  const { abi, bytecode, inputs, expectedResult } = await import(
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/pedersen"
   );
 
-  const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
-  const solved_witness: WitnessMap = await executeCircuit(
+  const solvedWitness: WitnessMap = await executeCircuit(
     bytecode,
-    initial_witness,
+    initialWitnessMap,
     () => {
       throw Error("unexpected oracle");
     }
   );
 
-  const decoded_inputs = abiDecode(abi, solved_witness);
-
-  expect(decoded_inputs.return_value).to.be.deep.eq(expectedResult);
+  expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
 });
 
 it("successfully executes a FixedBaseScalarMul opcode", async () => {
-  const { abi, bytecode, inputs, expectedResult } = await import(
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/fixed_base_scalar_mul"
   );
 
-  const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
-  const solved_witness: WitnessMap = await executeCircuit(
+  const solvedWitness: WitnessMap = await executeCircuit(
     bytecode,
-    initial_witness,
+    initialWitnessMap,
     () => {
       throw Error("unexpected oracle");
     }
   );
 
-  const decoded_inputs = abiDecode(abi, solved_witness);
-
-  expect(decoded_inputs.return_value).to.be.deep.eq(expectedResult);
+  expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
 });
 
 it("successfully executes a SchnorrVerify opcode", async () => {
-  const { abi, bytecode, inputs, expectedResult } = await import(
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/schnorr_verify"
   );
 
-  const initial_witness: WitnessMap = abiEncode(abi, inputs, null);
-  const solved_witness: WitnessMap = await executeCircuit(
+  const solvedWitness: WitnessMap = await executeCircuit(
     bytecode,
-    initial_witness,
+    initialWitnessMap,
     () => {
       throw Error("unexpected oracle");
     }
   );
 
-  const decoded_inputs = abiDecode(abi, solved_witness);
-  expect(decoded_inputs.return_value).to.be.eq(expectedResult);
+  expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
 });

@@ -1,15 +1,4 @@
-export const abi = {
-  parameters: [
-    { name: "x", type: { kind: "field" }, visibility: "private" },
-    { name: "y", type: { kind: "field" }, visibility: "public" },
-  ],
-  param_witnesses: {
-    x: [1],
-    y: [2],
-  },
-  return_type: { kind: "field" },
-  return_witnesses: [6],
-};
+import { WitnessMap } from "../../result/web/acvm_js";
 
 // fn main(x : Field, y : pub Field) -> pub Field {
 //   assert(x != y);
@@ -28,10 +17,11 @@ export const bytecode = Uint8Array.from([
   248, 207, 246, 98, 25, 41, 182, 87, 197, 55, 230, 51, 95, 125, 0,
 ]);
 
-export const inputs = {
-  x: "1",
-  y: "2",
-};
+export const initialWitnessMap: WitnessMap = new Map([
+  [1, "0x0000000000000000000000000000000000000000000000000000000000000001"],
+  [2, "0x0000000000000000000000000000000000000000000000000000000000000002"],
+]);
 
+export const resultWitness = 6;
 export const expectedResult =
   "0x0000000000000000000000000000000000000000000000000000000000000003";

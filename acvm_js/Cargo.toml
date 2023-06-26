@@ -15,8 +15,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 acvm = "0.15.0"
-iter-extended = { git = "https://github.com/noir-lang/noir", rev = "3109239f2c0a7ad4767a3cd1bcc4436a367a8860"}
-noirc_abi = { git = "https://github.com/noir-lang/noir", rev = "3109239f2c0a7ad4767a3cd1bcc4436a367a8860"}
 wasm-bindgen = { version = "0.2.86", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.36"
 serde = { version = "1.0.136", features = ["derive"] }

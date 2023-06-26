@@ -59,10 +59,8 @@ dependencies = [
  "const-str",
  "getrandom",
  "gloo-utils",
- "iter-extended",
  "js-sys",
  "log",
- "noirc_abi",
  "pkg-config",
  "rust-embed",
  "serde",
@@ -947,11 +945,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "iter-extended"
-version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=3109239f2c0a7ad4767a3cd1bcc4436a367a8860#3109239f2c0a7ad4767a3cd1bcc4436a367a8860"
-
-[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1098,19 +1091,6 @@ name = "more-asserts"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7843ec2de400bcbc6a6328c958dc38e5359da6e93e72e37bc5246bf1ae776389"
-
-[[package]]
-name = "noirc_abi"
-version = "0.6.0"
-source = "git+https://github.com/noir-lang/noir?rev=3109239f2c0a7ad4767a3cd1bcc4436a367a8860#3109239f2c0a7ad4767a3cd1bcc4436a367a8860"
-dependencies = [
- "acvm",
- "iter-extended",
- "serde",
- "serde_json",
- "thiserror",
- "toml",
-]
 
 [[package]]
 name = "num-bigint"
@@ -1627,15 +1607,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_spanned"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0efd8caf556a6cebd3b285caf480045fcc1ac04f6bd786b09a6f11af30c4fcf4"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "sha2"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1791,40 +1762,6 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
-
-[[package]]
-name = "toml"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b403acf6f2bb0859c93c7f0d967cb4a75a7ac552100f9322faf64dc047669b21"
-dependencies = [
- "serde",
- "serde_spanned",
- "toml_datetime",
- "toml_edit",
-]
-
-[[package]]
-name = "toml_datetime"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ab8ed2edee10b50132aed5f331333428b011c99402b5a534154ed15746f9622"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "toml_edit"
-version = "0.19.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "239410c8609e8125456927e6707163a3b1fdb40561e4b803bc041f466ccfdc13"
-dependencies = [
- "indexmap",
- "serde",
- "serde_spanned",
- "toml_datetime",
- "winnow",
-]
 
 [[package]]
 name = "typenum"
@@ -2306,15 +2243,6 @@ name = "windows_x86_64_msvc"
 version = "0.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0"
-
-[[package]]
-name = "winnow"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61de7bac303dc551fe038e2b3cef0f571087a47571ea6e79a87692ac99b99699"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "wyz"

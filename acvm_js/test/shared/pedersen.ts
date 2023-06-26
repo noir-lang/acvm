@@ -1,12 +1,3 @@
-export const abi = {
-  parameters: [{ name: "x", type: { kind: "field" }, visibility: "private" }],
-  param_witnesses: {
-    x: [1],
-  },
-  return_type: { kind: "array", type: { kind: "field" }, length: 2 },
-  return_witnesses: [2, 3],
-};
-
 // let pedersen = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::Pedersen {
 //     inputs: vec![FunctionInput {
 //         witness: Witness(1),
@@ -28,11 +19,12 @@ export const bytecode = Uint8Array.from([
   101, 110, 147, 145, 146, 1, 204, 254, 0, 146, 2, 3, 144, 146, 2, 3,
 ]);
 
-export const inputs = {
-  x: "1",
-};
+export const initialWitnessMap = new Map([
+  [1, "0x0000000000000000000000000000000000000000000000000000000000000001"],
+]);
 
-export const expectedResult = [
-  "0x09489945604c9686e698cb69d7bd6fc0cdb02e9faae3e1a433f1c342c1a5ecc4",
-  "0x24f50d25508b4dfb1e8a834e39565f646e217b24cb3a475c2e4991d1bb07a9d8",
-];
+export const expectedWitnessMap = new Map([
+  [1, "0x0000000000000000000000000000000000000000000000000000000000000001"],
+  [2, "0x09489945604c9686e698cb69d7bd6fc0cdb02e9faae3e1a433f1c342c1a5ecc4"],
+  [3, "0x24f50d25508b4dfb1e8a834e39565f646e217b24cb3a475c2e4991d1bb07a9d8"],
+]);
