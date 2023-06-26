@@ -1,5 +1,5 @@
 [package]
-name = "acvm-simulator"
+name = "acvm_simulator"
 description = "Typescript wrapper around the ACVM allowing execution of ACIR code"
 version = "0.0.0" # x-release-please-version
 authors = ["The Noir Team <team@noir-lang.org>"]

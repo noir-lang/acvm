@@ -95,7 +95,7 @@
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
       commonArgs = {
-        pname = "acvm-simulator";
+        pname = "acvm_simulator";
         version = "0.0.0"; # x-release-please-version
 
         src = pkgs.lib.cleanSourceWith {
@@ -181,6 +181,7 @@
           which
           git
           jq
+          toml2json
           rustToolchain
           wasm-bindgen-cli
           nodejs

@@ -50,7 +50,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "acvm-simulator"
+name = "acvm_simulator"
 version = "0.0.0"
 dependencies = [
  "acvm",
