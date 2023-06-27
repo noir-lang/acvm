@@ -20,3 +20,13 @@ num-traits = "0.2"
 thiserror = "1.0.21"
 
 serde = { version = "1.0.136", features = ["derive"] }
+blake2 = "0.10.6"
+sha2 = "0.10.6"
+sha3 = "0.10.6"
+k256 = { version = "0.11.0", features = [
+    "ecdsa",
+    "ecdsa-core",
+    "sha256",
+    "digest",
+    "arithmetic",
+] }
