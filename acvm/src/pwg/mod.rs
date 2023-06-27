@@ -1,14 +1,19 @@
 // Re-usable methods that backends can use to implement their PWG
 
-use crate::{Language, PartialWitnessGenerator};
+use std::collections::HashMap;
+
 use acir::{
     brillig_vm::ForeignCallResult,
-    circuit::{brillig::Brillig, Opcode},
+    circuit::{brillig::Brillig, opcodes::BlockId, Opcode},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
 
-use self::{arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives};
+use self::{
+    arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
+    directives::solve_directives,
+};
+use crate::{BlackBoxFunctionSolver, Language};
 
 use thiserror::Error;
 
@@ -22,8 +27,6 @@ mod directives;
 mod blackbox;
 mod block;
 
-// Re-export `Blocks` so that it can be passed to `pwg::solve`
-pub use block::Blocks;
 pub use brillig::ForeignCallWaitInfo;
 
 #[derive(Debug, PartialEq)]
@@ -31,15 +34,12 @@ pub enum PartialWitnessGeneratorStatus {
     /// All opcodes have been solved.
     Solved,
 
-    /// The `PartialWitnessGenerator` has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
-    /// to retrieve information from outside of the ACVM.
-    /// The result of the foreign call is inserted into the `Brillig` opcode which made the call using [`UnresolvedBrilligCall::resolve`].
+    /// The ACVM has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
+    /// to retrieve information from outside of the ACVM. The result of the foreign call must be passed back
+    /// to the ACVM using [`ACVM::resolve_pending_foreign_call`].
     ///
-    /// Once this is done, the `PartialWitnessGenerator` can be restarted to solve the new set of opcodes.
-    RequiresForeignCall {
-        unsolved_opcodes: Vec<Opcode>,
-        unresolved_brillig_calls: Vec<UnresolvedBrilligCall>,
-    },
+    /// Once this is done, the ACVM can be restarted to solve the remaining opcodes.
+    RequiresForeignCall,
 }
 
 #[derive(Debug, PartialEq)]
@@ -78,92 +78,162 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain,
-    #[error("expected {0} inputs for function {1}, but got {2}")]
-    IncorrectNumFunctionArguments(usize, BlackBoxFunc, usize),
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
     BrilligFunctionFailed(String),
 }
 
-/// Executes a [`Circuit`] against an [initial witness][`WitnessMap`] to calculate the solved partial witness.
-pub fn solve(
-    backend: &impl PartialWitnessGenerator,
-    initial_witness: &mut WitnessMap,
-    blocks: &mut Blocks,
-    mut opcode_to_solve: Vec<Opcode>,
-) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
-    let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-    let mut unresolved_brillig_calls: Vec<UnresolvedBrilligCall> = Vec::new();
-    while !opcode_to_solve.is_empty() {
-        unresolved_opcodes.clear();
-        let mut stalled = true;
-        let mut opcode_not_solvable = None;
-        for opcode in &opcode_to_solve {
-            let resolution = match opcode {
-                Opcode::Arithmetic(expr) => ArithmeticSolver::solve(initial_witness, expr),
-                Opcode::BlackBoxFuncCall(bb_func) => {
-                    blackbox::solve(backend, initial_witness, bb_func)
-                }
-                Opcode::Directive(directive) => solve_directives(initial_witness, directive),
-                Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                    blocks.solve(block.id, &block.trace, initial_witness)
-                }
-                Opcode::Brillig(brillig) => BrilligSolver::solve(initial_witness, brillig),
-            };
-            match resolution {
-                Ok(OpcodeResolution::Solved) => {
-                    stalled = false;
-                }
-                Ok(OpcodeResolution::InProgress) => {
-                    stalled = false;
-                    unresolved_opcodes.push(opcode.clone());
-                }
-                Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
-                    stalled = false;
-                    // InProgressBrillig Oracles must be externally re-solved
-                    let brillig = match opcode {
-                        Opcode::Brillig(brillig) => brillig.clone(),
-                        _ => unreachable!("Brillig resolution for non brillig opcode"),
-                    };
-                    unresolved_brillig_calls.push(UnresolvedBrilligCall {
-                        brillig,
-                        foreign_call_wait_info: oracle_wait_info,
-                    })
-                }
-                Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                    if opcode_not_solvable.is_none() {
-                        // we keep track of the first unsolvable opcode
-                        opcode_not_solvable = Some(not_solvable);
+pub struct ACVM<B: BlackBoxFunctionSolver> {
+    backend: B,
+    /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
+    block_solvers: HashMap<BlockId, BlockSolver>,
+    /// A list of opcodes which are to be executed by the ACVM.
+    ///
+    /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
+    opcodes: Vec<Opcode>,
+
+    witness_map: WitnessMap,
+
+    /// A list of foreign calls which must be resolved before the ACVM can resume execution.
+    pending_foreign_calls: Vec<UnresolvedBrilligCall>,
+}
+
+impl<B: BlackBoxFunctionSolver> ACVM<B> {
+    pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+        ACVM {
+            backend,
+            block_solvers: HashMap::default(),
+            opcodes,
+            witness_map: initial_witness,
+            pending_foreign_calls: Vec::new(),
+        }
+    }
+
+    /// Returns a reference to the current state of the ACVM's [`WitnessMap`].
+    ///
+    /// Once execution has completed, the witness map can be extracted using [`ACVM::finalize`]
+    pub fn witness_map(&self) -> &WitnessMap {
+        &self.witness_map
+    }
+
+    /// Returns a slice containing the opcodes which remain to be solved.
+    ///
+    /// Note: this doesn't include any opcodes which are waiting on a pending foreign call.
+    pub fn unresolved_opcodes(&self) -> &[Opcode] {
+        &self.opcodes
+    }
+
+    /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
+    pub fn finalize(self) -> WitnessMap {
+        if self.opcodes.is_empty() || self.get_pending_foreign_call().is_some() {
+            panic!("ACVM is not ready to be finalized");
+        }
+        self.witness_map
+    }
+
+    /// Return a reference to the arguments for the next pending foreign call, if one exists.
+    pub fn get_pending_foreign_call(&self) -> Option<&ForeignCallWaitInfo> {
+        self.pending_foreign_calls.first().map(|foreign_call| &foreign_call.foreign_call_wait_info)
+    }
+
+    /// Resolves a pending foreign call using a result calculated outside of the ACVM.
+    pub fn resolve_pending_foreign_call(&mut self, foreign_call_result: ForeignCallResult) {
+        // Remove the first foreign call and inject the result to create a new opcode.
+        let foreign_call = self.pending_foreign_calls.remove(0);
+        let resolved_brillig = foreign_call.resolve(foreign_call_result);
+
+        // Mark this opcode to be executed next.
+        self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
+    }
+
+    /// Executes the ACVM's circuit until execution halts.
+    ///
+    /// Execution can halt due to three reasons:
+    /// 1. All opcodes have been executed successfully.
+    /// 2. The circuit has been found to be unsatisfiable.
+    /// 2. A Brillig [foreign call][`UnresolvedBrilligCall`] has been encountered and must be resolved.
+    pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+        // TODO: Prevent execution with outstanding foreign calls?
+        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
+        while !self.opcodes.is_empty() {
+            unresolved_opcodes.clear();
+            let mut stalled = true;
+            let mut opcode_not_solvable = None;
+            for opcode in &self.opcodes {
+                let resolution = match opcode {
+                    Opcode::Arithmetic(expr) => {
+                        ArithmeticSolver::solve(&mut self.witness_map, expr)
                     }
-                    // We push those opcodes not solvable to the back as
-                    // it could be because the opcodes are out of order, i.e. this assignment
-                    // relies on a later opcodes' results
-                    unresolved_opcodes.push(opcode.clone());
+                    Opcode::BlackBoxFuncCall(bb_func) => {
+                        blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
+                    }
+                    Opcode::Directive(directive) => {
+                        solve_directives(&mut self.witness_map, directive)
+                    }
+                    Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
+                        let solver = self.block_solvers.entry(block.id).or_default();
+                        solver.solve(&mut self.witness_map, &block.trace)
+                    }
+                    Opcode::Brillig(brillig) => {
+                        BrilligSolver::solve(&mut self.witness_map, brillig)
+                    }
+                };
+                match resolution {
+                    Ok(OpcodeResolution::Solved) => {
+                        stalled = false;
+                    }
+                    Ok(OpcodeResolution::InProgress) => {
+                        stalled = false;
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
+                        stalled = false;
+                        // InProgressBrillig Oracles must be externally re-solved
+                        let brillig = match opcode {
+                            Opcode::Brillig(brillig) => brillig.clone(),
+                            _ => unreachable!("Brillig resolution for non brillig opcode"),
+                        };
+                        self.pending_foreign_calls.push(UnresolvedBrilligCall {
+                            brillig,
+                            foreign_call_wait_info: oracle_wait_info,
+                        })
+                    }
+                    Ok(OpcodeResolution::Stalled(not_solvable)) => {
+                        if opcode_not_solvable.is_none() {
+                            // we keep track of the first unsolvable opcode
+                            opcode_not_solvable = Some(not_solvable);
+                        }
+                        // We push those opcodes not solvable to the back as
+                        // it could be because the opcodes are out of order, i.e. this assignment
+                        // relies on a later opcodes' results
+                        unresolved_opcodes.push(opcode.clone());
+                    }
+                    Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
+                        unreachable!("ICE - Result should have been converted to GateResolution")
+                    }
+                    Err(err) => return Err(err),
                 }
-                Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
-                    unreachable!("ICE - Result should have been converted to GateResolution")
-                }
-                Err(err) => return Err(err),
+            }
+
+            // Before potentially ending execution, we must save the list of opcodes which remain to be solved.
+            std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
+
+            // We have oracles that must be externally resolved
+            if self.get_pending_foreign_call().is_some() {
+                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
+            }
+
+            // We are stalled because of an opcode being bad
+            if stalled && !self.opcodes.is_empty() {
+                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                    opcode_not_solvable
+                        .expect("infallible: cannot be stalled and None at the same time"),
+                ));
             }
         }
-        // We have foreign calls that must be externally resolved
-        if !unresolved_brillig_calls.is_empty() {
-            return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall {
-                unsolved_opcodes: unresolved_opcodes,
-                unresolved_brillig_calls,
-            });
-        }
-        // We are stalled because of an opcode being bad
-        if stalled && !unresolved_opcodes.is_empty() {
-            return Err(OpcodeResolutionError::OpcodeNotSolvable(
-                opcode_not_solvable
-                    .expect("infallible: cannot be stalled and None at the same time"),
-            ));
-        }
-        std::mem::swap(&mut opcode_to_solve, &mut unresolved_opcodes);
+        Ok(PartialWitnessGeneratorStatus::Solved)
     }
-    Ok(PartialWitnessGeneratorStatus::Solved)
 }
 
 // Returns the concrete value for a particular witness

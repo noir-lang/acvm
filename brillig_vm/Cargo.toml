@@ -13,6 +13,10 @@ repository.workspace = true
 [dependencies]
 acir_field.workspace = true
 serde.workspace = true
+blake2.workspace = true
+sha2.workspace = true
+sha3.workspace = true
+k256.workspace = true
 
 [features]
 default = ["bn254"]
