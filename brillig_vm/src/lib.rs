@@ -10,17 +10,18 @@
 //! [acvm]: https://crates.io/crates/acvm
 
 mod black_box;
+mod foreign_call;
 mod memory;
 mod opcodes;
 mod registers;
 mod value;
 
 pub use black_box::BlackBoxOp;
+pub use foreign_call::{ForeignCallOutput, ForeignCallResult};
 pub use memory::Memory;
 pub use opcodes::{BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, RegisterOrMemory};
 pub use opcodes::{Label, Opcode};
 pub use registers::{RegisterIndex, Registers};
-use serde::{Deserialize, Serialize};
 pub use value::Typ;
 pub use value::Value;
 
@@ -44,34 +45,6 @@ pub enum VMStatus {
         /// Each input is a list of values as an input can be either a single value or a memory pointer
         inputs: Vec<Vec<Value>>,
     },
-}
-
-/// Single output of a [foreign call][Opcode::ForeignCall].
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-pub enum ForeignCallOutput {
-    Single(Value),
-    Array(Vec<Value>),
-}
-
-/// Represents the full output of a [foreign call][Opcode::ForeignCall].
-///
-/// See [`VMStatus::ForeignCallWait`] for more information.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
-pub struct ForeignCallResult {
-    /// Resolved output values of the foreign call.
-    pub values: Vec<ForeignCallOutput>,
-}
-
-impl From<Value> for ForeignCallResult {
-    fn from(value: Value) -> Self {
-        ForeignCallResult { values: vec![ForeignCallOutput::Single(value)] }
-    }
-}
-
-impl From<Vec<Value>> for ForeignCallResult {
-    fn from(values: Vec<Value>) -> Self {
-        ForeignCallResult { values: vec![ForeignCallOutput::Array(values)] }
-    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -213,8 +186,7 @@ impl VM {
                     return self.wait_for_foreign_call(function.clone(), resolved_inputs);
                 }
 
-                let ForeignCallResult { values } =
-                    &self.foreign_call_results[self.foreign_call_counter];
+                let values = &self.foreign_call_results[self.foreign_call_counter].values;
 
                 let mut invalid_foreign_call_result = false;
                 for (destination, output) in destinations.iter().zip(values) {
