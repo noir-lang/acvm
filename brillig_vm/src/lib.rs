@@ -16,11 +16,14 @@ mod opcodes;
 mod registers;
 mod value;
 
+use acir_field::FieldElement;
 pub use black_box::BlackBoxOp;
 pub use foreign_call::{ForeignCallOutput, ForeignCallResult};
 pub use memory::Memory;
-pub use opcodes::{BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, RegisterOrMemory};
-pub use opcodes::{Label, Opcode};
+use num_bigint::BigUint;
+pub use opcodes::{
+    BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, Label, Opcode, RegisterOrMemory,
+};
 pub use registers::{RegisterIndex, Registers};
 pub use value::Typ;
 pub use value::Value;
@@ -355,8 +358,13 @@ impl VM {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
-        self.registers.set(result, result_value.into());
+        // Convert to big integers
+        let lhs_big = BigUint::from_bytes_be(&lhs_value.to_field().to_be_bytes());
+        let rhs_big = BigUint::from_bytes_be(&rhs_value.to_field().to_be_bytes());
+        let result_value = op.evaluate_bigint(lhs_big, rhs_big, bit_size);
+        // Convert back to field element
+        self.registers
+            .set(result, FieldElement::from_be_bytes_reduce(&result_value.to_bytes_be()).into());
     }
 }
 
