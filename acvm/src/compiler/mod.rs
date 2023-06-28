@@ -115,3 +115,30 @@ pub fn compile(
         return_values: acir.return_values,
     })
 }
+
+#[deprecated(
+    note = "For backwards compatibility, this method allows you to derive _sensible_ defaults for opcode support based on the np language. \n Backends should simply specify what they support."
+)]
+// This is set to match the previous functionality that we had
+// Where we could deduce what opcodes were supported
+// by knowing the np complete language
+pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
+    // R1CS does not support any of the opcode except Arithmetic by default.
+    // The compiler will replace those that it can -- ie range, xor, and
+    fn r1cs_is_supported(opcode: &Opcode) -> bool {
+        matches!(opcode, Opcode::Arithmetic(_))
+    }
+
+    // PLONK supports most of the opcodes by default
+    // The ones which are not supported, the acvm compiler will
+    // attempt to transform into supported gates. If these are also not available
+    // then a compiler error will be emitted.
+    fn plonk_is_supported(opcode: &Opcode) -> bool {
+        !matches!(opcode, Opcode::Block(_))
+    }
+
+    match language {
+        Language::R1CS => r1cs_is_supported,
+        Language::PLONKCSat { .. } => plonk_is_supported,
+    }
+}
