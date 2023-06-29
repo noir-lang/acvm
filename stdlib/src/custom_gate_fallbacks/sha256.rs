@@ -11,7 +11,10 @@ use acir::{
 
 use crate::helpers::VariableStore;
 
-use super::utils::{byte_decomposition, round_to_nearest_byte};
+use super::{
+    sha256_u32::{prepare_constants, Sha256U32},
+    utils::{byte_decomposition, round_to_nearest_byte},
+};
 
 pub fn sha256(
     inputs: Vec<(Expression, u32)>,
@@ -54,7 +57,7 @@ fn create_sha256_constraint(
     input.push(pad_witness);
 
     let bytes_per_block = 64;
-    let num_bytes = total_num_bytes + 8;
+    let num_bytes = (input.len() + 8) as u32;
     let num_blocks = num_bytes / bytes_per_block + ((num_bytes % bytes_per_block != 0) as u32);
 
     let num_total_bytes = num_blocks * bytes_per_block;
@@ -72,6 +75,19 @@ fn create_sha256_constraint(
         byte_decomposition(pad_witness.into(), 8, num_witness);
     new_gates.extend(extra_gates);
     input.extend(pad_witness);
+
+    // turn witness into u32 and load sha256 state
+    let (input, extra_gates, num_witness) = Sha256U32::from_witnesses(input, num_witness);
+    new_gates.extend(extra_gates);
+
+    let rolling_hash = prepare_constants();
+
+    let input: Vec<Vec<Sha256U32>> = input.chunks(16).map(|block| block.to_vec()).collect();
+
+    // process sha256 blocks
+    for i in 0..input.len() {
+        let rolling_hash = sha256_block(&input[i], rolling_hash.clone());
+    }
 
     (num_witness, new_gates)
 }
@@ -111,4 +127,9 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
     new_gates.push(range);
 
     (num_witness, pad, new_gates)
+}
+
+fn sha256_block(input: &Vec<Sha256U32>, rolling_hash: Vec<FieldElement>) {
+    let mut w = Vec::new();
+    w.extend(rolling_hash);
 }
