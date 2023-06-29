@@ -3,6 +3,8 @@ use acir::{
     native_types::{Witness, WitnessMap},
 };
 
+use self::ecdsa::secp256r1_prehashed;
+
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 use crate::PartialWitnessGenerator;
 
@@ -118,6 +120,20 @@ pub(crate) fn solve(
             hashed_message: message,
             output,
         } => secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *output,
+        ),
+        BlackBoxFuncCall::EcdsaSecp256r1 {
+            public_key_x,
+            public_key_y,
+            signature,
+            hashed_message: message,
+            output,
+        } => secp256r1_prehashed(
             initial_witness,
             public_key_x,
             public_key_y,

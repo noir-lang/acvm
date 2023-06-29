@@ -28,6 +28,13 @@ k256 = { version = "0.11.0", features = [
     "digest",
     "arithmetic",
 ] }
+p256 = { version = "0.11.0", features = [
+    "ecdsa",
+    "ecdsa-core",
+    "sha256",
+    "digest",
+    "arithmetic",
+] }
 indexmap = "1.7.0"
 async-trait = "0.1"
 
