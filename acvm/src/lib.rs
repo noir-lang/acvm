@@ -20,7 +20,7 @@ pub use acir::FieldElement;
 
 /// Supported NP complete languages
 /// This might need to be in ACIR instead
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Language {
     R1CS,
     PLONKCSat { width: usize },
