@@ -1,14 +1,13 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_vm::Value,
-    circuit::{brillig::Brillig, opcodes::FunctionInput, Opcode},
+    circuit::{opcodes::FunctionInput},
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
 use acvm::{
     pwg::{
-        self, ForeignCallWaitInfo, OpcodeResolution, OpcodeResolutionError,
+        OpcodeResolution, OpcodeResolutionError,
         PartialWitnessGeneratorStatus, ACVM,
     },
     PartialWitnessGenerator,
@@ -53,7 +52,7 @@ impl PartialWitnessGenerator for StubbedPwg {
 
 #[test]
 fn test_sha256_u32_ror() {
-    let fe = FieldElement::from(0b10010 as u128);
+    let fe = FieldElement::from(0b10010_u128);
     let w = Witness(1);
 
     let sha256_u32 = Sha256U32::new(w);
@@ -62,7 +61,7 @@ fn test_sha256_u32_ror() {
 
     let witness_assignments: WitnessMap = BTreeMap::from([(Witness(1), fe)]).into();
 
-    let mut acvm = ACVM::new(StubbedPwg, extra_gates, witness_assignments.clone());
+    let mut acvm = ACVM::new(StubbedPwg, extra_gates, witness_assignments);
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve().expect("should succeed");
 

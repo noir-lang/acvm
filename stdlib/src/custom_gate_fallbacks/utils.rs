@@ -52,14 +52,14 @@ pub(crate) fn byte_decomposition(
     let mut byte_exprs = Vec::new();
     let mut decomp_constraint = gate;
     let byte_shift: u32 = 256;
-    for i in 0..vector.len() {
+    for (i, v) in vector.iter().enumerate() {
         let range = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
-            input: FunctionInput { witness: vector[i], num_bits: 8 },
+            input: FunctionInput { witness: *v, num_bits: 8 },
         });
         let scaling_factor_value = byte_shift.pow(num_bytes - 1 - i as u32);
         let scaling_factor = FieldElement::from(scaling_factor_value as u128);
 
-        decomp_constraint.push_addition_term(-scaling_factor, vector[i]);
+        decomp_constraint.push_addition_term(-scaling_factor, *v);
 
         byte_exprs.push(range);
     }

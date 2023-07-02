@@ -94,9 +94,9 @@ fn create_sha256_constraint(
     let input: Vec<Vec<Sha256U32>> = input.chunks(16).map(|block| block.to_vec()).collect();
 
     // process sha256 blocks
-    for i in 0..input.len() {
+    for i in &input {
         let (new_rolling_hash, extra_gates, updated_witness_counter) =
-            sha256_block(&input[i], rolling_hash.clone(), round_constants.clone(), num_witness);
+            sha256_block(&i, rolling_hash.clone(), round_constants.clone(), num_witness);
         new_gates.extend(extra_gates);
         num_witness = updated_witness_counter;
         rolling_hash = new_rolling_hash;
@@ -175,14 +175,14 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
 }
 
 fn sha256_block(
-    input: &Vec<Sha256U32>,
+    input: &[Sha256U32],
     rolling_hash: Vec<Sha256U32>,
     round_constants: Vec<Sha256U32>,
     mut num_witness: u32,
 ) -> (Vec<Sha256U32>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
     let mut w = Vec::new();
-    w.extend(input.clone());
+    w.extend(input.to_owned());
     w.resize(64, Sha256U32::default());
 
     for i in 16..64 {
