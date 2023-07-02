@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use acir::{
     brillig_vm::{self, RegisterIndex},
     circuit::{
@@ -11,7 +9,7 @@ use acir::{
     FieldElement,
 };
 
-use crate::{custom_gate_fallbacks::sha256_u32, helpers::VariableStore};
+use crate::helpers::VariableStore;
 
 macro_rules! load_value {
     (
@@ -27,10 +25,16 @@ macro_rules! load_value {
     };
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Sha256U32 {
     pub(crate) inner: Witness,
     width: u32,
+}
+
+impl Default for Sha256U32 {
+    fn default() -> Self {
+        Sha256U32 { inner: Witness(1), width: 32 }
+    }
 }
 
 impl Sha256U32 {
@@ -322,6 +326,7 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
+        // TODO: see why this doesn't work
         // let mut add_constraint = Expression::from(new_witness);
 
         // add_constraint.push_addition_term(-FieldElement::one(), self.inner);
@@ -370,11 +375,12 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        let mut sub_constraint = Expression::from(new_witness);
+        // TODO: see why this doesn't work
+        // let mut sub_constraint = Expression::from(new_witness);
 
-        sub_constraint.push_addition_term(-FieldElement::one(), self.inner);
-        sub_constraint.push_addition_term(FieldElement::one(), rhs.inner);
-        new_gates.push(Opcode::Arithmetic(sub_constraint));
+        // sub_constraint.push_addition_term(-FieldElement::one(), self.inner);
+        // sub_constraint.push_addition_term(FieldElement::one(), rhs.inner);
+        // new_gates.push(Opcode::Arithmetic(sub_constraint));
 
         let num_witness = variables.finalize();
 
@@ -467,12 +473,12 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // let xor_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::XOR {
-        //     lhs: FunctionInput { witness: self.inner, num_bits: self.width },
-        //     rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
-        //     output: new_witness,
-        // });
-        // new_gates.push(xor_opcode);
+        let xor_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::XOR {
+            lhs: FunctionInput { witness: self.inner, num_bits: self.width },
+            rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
+            output: new_witness,
+        });
+        new_gates.push(xor_opcode);
 
         let num_witness = variables.finalize();
 
@@ -496,7 +502,7 @@ impl Sha256U32 {
                     // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![],
-                    q_c: FieldElement::one(),
+                    q_c: FieldElement::from((1_u128 << self.width) - 1),
                 }),
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
@@ -512,11 +518,12 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        let mut not_constraint = Expression::from(new_witness);
+        // TODO: add constraint
+        // let mut not_constraint = Expression::from(new_witness);
 
-        not_constraint.push_addition_term(FieldElement::one(), self.inner);
-        not_constraint.q_c = -FieldElement::one();
-        new_gates.push(Opcode::Arithmetic(not_constraint));
+        // not_constraint.push_addition_term(FieldElement::one(), self.inner);
+        // not_constraint.q_c = -FieldElement::one();
+        // new_gates.push(Opcode::Arithmetic(not_constraint));
 
         let num_witness = variables.finalize();
 
@@ -826,51 +833,3 @@ impl Sha256U32 {
         )
     }
 }
-
-// pub(crate) fn prepare_constants() -> Vec<FieldElement> {
-//     vec![
-//         FieldElement::from(1779033703_u128),
-//         FieldElement::from(3144134277_u128),
-//         FieldElement::from(1013904242_u128),
-//         FieldElement::from(2773480762_u128),
-//         FieldElement::from(1359893119_u128),
-//         FieldElement::from(2600822924_u128),
-//         FieldElement::from(528734635_u128),
-//         FieldElement::from(1541459225_u128),
-//     ]
-// }
-
-// struct StubbedPwg;
-
-// impl PartialWitnessGenerator for StubbedPwg {
-//     fn schnorr_verify(
-//         &self,
-//         _initial_witness: &mut WitnessMap,
-//         _public_key_x: &FunctionInput,
-//         _public_key_y: &FunctionInput,
-//         _signature: &[FunctionInput],
-//         _message: &[FunctionInput],
-//         _output: &Witness,
-//     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-//         panic!("Path not trodden by this test")
-//     }
-
-//     fn pedersen(
-//         &self,
-//         _initial_witness: &mut WitnessMap,
-//         _inputs: &[FunctionInput],
-//         _domain_separator: u32,
-//         _outputs: &[Witness],
-//     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-//         panic!("Path not trodden by this test")
-//     }
-
-//     fn fixed_base_scalar_mul(
-//         &self,
-//         _initial_witness: &mut WitnessMap,
-//         _input: &FunctionInput,
-//         _outputs: &[Witness],
-//     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-//         panic!("Path not trodden by this test")
-//     }
-// }
