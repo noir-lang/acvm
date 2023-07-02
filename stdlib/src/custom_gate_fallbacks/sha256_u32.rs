@@ -11,20 +11,6 @@ use acir::{
 
 use crate::helpers::VariableStore;
 
-macro_rules! load_value {
-    (
-        $name:ident,
-        $index:expr
-    ) => {
-        BrilligInputs::Single(Expression {
-            // Input Register 0
-            mul_terms: vec![],
-            linear_combinations: vec![],
-            q_c: FieldElement::from($name[$index]),
-        })
-    };
-}
-
 #[derive(Clone, Debug)]
 pub struct Sha256U32 {
     pub(crate) inner: Witness,
@@ -40,6 +26,31 @@ impl Default for Sha256U32 {
 impl Sha256U32 {
     pub fn new(witness: Witness) -> Self {
         Sha256U32 { inner: witness, width: 32 }
+    }
+
+    fn load_constant(constant: u128, mut num_witness: u32) -> (Sha256U32, Vec<Opcode>, u32) {
+        let mut new_gates = Vec::new();
+        let mut variables = VariableStore::new(&mut num_witness);
+        let new_witness = variables.new_variable();
+
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![BrilligInputs::Single(Expression {
+                // Input Register 0
+                mul_terms: vec![],
+                linear_combinations: vec![],
+                q_c: FieldElement::from(constant),
+            })],
+            outputs: vec![BrilligOutputs::Simple(new_witness)],
+            foreign_call_results: vec![],
+            bytecode: vec![brillig_vm::Opcode::Stop],
+            predicate: None,
+        });
+
+        new_gates.push(brillig_opcode);
+
+        let num_witness = variables.finalize();
+
+        (Sha256U32::new(new_witness), new_gates, num_witness)
     }
 
     pub(crate) fn from_witnesses(
@@ -532,132 +543,29 @@ impl Sha256U32 {
 
     pub(crate) fn prepare_constants(mut num_witness: u32) -> (Vec<Sha256U32>, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
-        let mut variables = VariableStore::new(&mut num_witness);
-
-        let state_1 = variables.new_variable();
-        let state_2 = variables.new_variable();
-        let state_3 = variables.new_variable();
-        let state_4 = variables.new_variable();
-        let state_5 = variables.new_variable();
-        let state_6 = variables.new_variable();
-        let state_7 = variables.new_variable();
-        let state_8 = variables.new_variable();
+        let mut new_witnesses = Vec::new();
 
         let init_constants: Vec<u128> = vec![
             0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
             0x5be0cd19,
         ];
 
-        let brillig_opcode = Opcode::Brillig(Brillig {
-            inputs: vec![
-                load_value!(init_constants, 0),
-                load_value!(init_constants, 1),
-                load_value!(init_constants, 2),
-                load_value!(init_constants, 3),
-                load_value!(init_constants, 4),
-                load_value!(init_constants, 5),
-                load_value!(init_constants, 6),
-                load_value!(init_constants, 7),
-            ],
-            outputs: vec![
-                BrilligOutputs::Simple(state_1),
-                BrilligOutputs::Simple(state_2),
-                BrilligOutputs::Simple(state_3),
-                BrilligOutputs::Simple(state_4),
-                BrilligOutputs::Simple(state_5),
-                BrilligOutputs::Simple(state_6),
-                BrilligOutputs::Simple(state_7),
-                BrilligOutputs::Simple(state_8),
-            ],
-            foreign_call_results: vec![],
-            bytecode: vec![brillig_vm::Opcode::Stop],
-            predicate: None,
-        });
+        for i in init_constants {
+            let (new_witness, extra_gates, updated_witness_counter) =
+                Sha256U32::load_constant(i, num_witness);
+            new_gates.extend(extra_gates);
+            new_witnesses.push(new_witness);
+            num_witness = updated_witness_counter;
+        }
 
-        new_gates.push(brillig_opcode);
-
-        let num_witness = variables.finalize();
-
-        (
-            vec![state_1, state_2, state_3, state_4, state_5, state_6, state_7, state_8]
-                .into_iter()
-                .map(Sha256U32::new)
-                .collect(),
-            new_gates,
-            num_witness,
-        )
+        (new_witnesses, new_gates, num_witness)
     }
 
     pub(crate) fn prepare_round_constants(
         mut num_witness: u32,
     ) -> (Vec<Sha256U32>, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
-        let mut variables = VariableStore::new(&mut num_witness);
-
-        let state_1 = variables.new_variable();
-        let state_2 = variables.new_variable();
-        let state_3 = variables.new_variable();
-        let state_4 = variables.new_variable();
-        let state_5 = variables.new_variable();
-        let state_6 = variables.new_variable();
-        let state_7 = variables.new_variable();
-        let state_8 = variables.new_variable();
-        let state_9 = variables.new_variable();
-        let state_10 = variables.new_variable();
-        let state_11 = variables.new_variable();
-        let state_12 = variables.new_variable();
-        let state_13 = variables.new_variable();
-        let state_14 = variables.new_variable();
-        let state_15 = variables.new_variable();
-        let state_16 = variables.new_variable();
-        let state_17 = variables.new_variable();
-        let state_18 = variables.new_variable();
-        let state_19 = variables.new_variable();
-        let state_20 = variables.new_variable();
-        let state_21 = variables.new_variable();
-        let state_22 = variables.new_variable();
-        let state_23 = variables.new_variable();
-        let state_24 = variables.new_variable();
-        let state_25 = variables.new_variable();
-        let state_26 = variables.new_variable();
-        let state_27 = variables.new_variable();
-        let state_28 = variables.new_variable();
-        let state_29 = variables.new_variable();
-        let state_30 = variables.new_variable();
-        let state_31 = variables.new_variable();
-        let state_32 = variables.new_variable();
-        let state_33 = variables.new_variable();
-        let state_34 = variables.new_variable();
-        let state_35 = variables.new_variable();
-        let state_36 = variables.new_variable();
-        let state_37 = variables.new_variable();
-        let state_38 = variables.new_variable();
-        let state_39 = variables.new_variable();
-        let state_40 = variables.new_variable();
-        let state_41 = variables.new_variable();
-        let state_42 = variables.new_variable();
-        let state_43 = variables.new_variable();
-        let state_44 = variables.new_variable();
-        let state_45 = variables.new_variable();
-        let state_46 = variables.new_variable();
-        let state_47 = variables.new_variable();
-        let state_48 = variables.new_variable();
-        let state_49 = variables.new_variable();
-        let state_50 = variables.new_variable();
-        let state_51 = variables.new_variable();
-        let state_52 = variables.new_variable();
-        let state_53 = variables.new_variable();
-        let state_54 = variables.new_variable();
-        let state_55 = variables.new_variable();
-        let state_56 = variables.new_variable();
-        let state_57 = variables.new_variable();
-        let state_58 = variables.new_variable();
-        let state_59 = variables.new_variable();
-        let state_60 = variables.new_variable();
-        let state_61 = variables.new_variable();
-        let state_62 = variables.new_variable();
-        let state_63 = variables.new_variable();
-        let state_64 = variables.new_variable();
+        let mut new_witnesses = Vec::new();
 
         let round_constants: Vec<u128> = vec![
             0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
@@ -672,164 +580,14 @@ impl Sha256U32 {
             0xc67178f2,
         ];
 
-        let brillig_opcode = Opcode::Brillig(Brillig {
-            inputs: vec![
-                load_value!(round_constants, 0),
-                load_value!(round_constants, 1),
-                load_value!(round_constants, 2),
-                load_value!(round_constants, 3),
-                load_value!(round_constants, 4),
-                load_value!(round_constants, 5),
-                load_value!(round_constants, 6),
-                load_value!(round_constants, 7),
-                load_value!(round_constants, 8),
-                load_value!(round_constants, 9),
-                load_value!(round_constants, 10),
-                load_value!(round_constants, 11),
-                load_value!(round_constants, 12),
-                load_value!(round_constants, 13),
-                load_value!(round_constants, 14),
-                load_value!(round_constants, 15),
-                load_value!(round_constants, 16),
-                load_value!(round_constants, 17),
-                load_value!(round_constants, 18),
-                load_value!(round_constants, 19),
-                load_value!(round_constants, 20),
-                load_value!(round_constants, 21),
-                load_value!(round_constants, 22),
-                load_value!(round_constants, 23),
-                load_value!(round_constants, 24),
-                load_value!(round_constants, 25),
-                load_value!(round_constants, 26),
-                load_value!(round_constants, 27),
-                load_value!(round_constants, 28),
-                load_value!(round_constants, 29),
-                load_value!(round_constants, 30),
-                load_value!(round_constants, 31),
-                load_value!(round_constants, 32),
-                load_value!(round_constants, 33),
-                load_value!(round_constants, 34),
-                load_value!(round_constants, 35),
-                load_value!(round_constants, 36),
-                load_value!(round_constants, 37),
-                load_value!(round_constants, 38),
-                load_value!(round_constants, 39),
-                load_value!(round_constants, 40),
-                load_value!(round_constants, 41),
-                load_value!(round_constants, 42),
-                load_value!(round_constants, 43),
-                load_value!(round_constants, 44),
-                load_value!(round_constants, 45),
-                load_value!(round_constants, 46),
-                load_value!(round_constants, 47),
-                load_value!(round_constants, 48),
-                load_value!(round_constants, 49),
-                load_value!(round_constants, 50),
-                load_value!(round_constants, 51),
-                load_value!(round_constants, 52),
-                load_value!(round_constants, 53),
-                load_value!(round_constants, 54),
-                load_value!(round_constants, 55),
-                load_value!(round_constants, 56),
-                load_value!(round_constants, 57),
-                load_value!(round_constants, 58),
-                load_value!(round_constants, 59),
-                load_value!(round_constants, 60),
-                load_value!(round_constants, 61),
-                load_value!(round_constants, 62),
-                load_value!(round_constants, 63),
-            ],
-            outputs: vec![
-                BrilligOutputs::Simple(state_1),
-                BrilligOutputs::Simple(state_2),
-                BrilligOutputs::Simple(state_3),
-                BrilligOutputs::Simple(state_4),
-                BrilligOutputs::Simple(state_5),
-                BrilligOutputs::Simple(state_6),
-                BrilligOutputs::Simple(state_7),
-                BrilligOutputs::Simple(state_8),
-                BrilligOutputs::Simple(state_9),
-                BrilligOutputs::Simple(state_10),
-                BrilligOutputs::Simple(state_11),
-                BrilligOutputs::Simple(state_12),
-                BrilligOutputs::Simple(state_13),
-                BrilligOutputs::Simple(state_14),
-                BrilligOutputs::Simple(state_15),
-                BrilligOutputs::Simple(state_16),
-                BrilligOutputs::Simple(state_17),
-                BrilligOutputs::Simple(state_18),
-                BrilligOutputs::Simple(state_19),
-                BrilligOutputs::Simple(state_20),
-                BrilligOutputs::Simple(state_21),
-                BrilligOutputs::Simple(state_22),
-                BrilligOutputs::Simple(state_23),
-                BrilligOutputs::Simple(state_24),
-                BrilligOutputs::Simple(state_25),
-                BrilligOutputs::Simple(state_26),
-                BrilligOutputs::Simple(state_27),
-                BrilligOutputs::Simple(state_28),
-                BrilligOutputs::Simple(state_29),
-                BrilligOutputs::Simple(state_30),
-                BrilligOutputs::Simple(state_31),
-                BrilligOutputs::Simple(state_32),
-                BrilligOutputs::Simple(state_33),
-                BrilligOutputs::Simple(state_34),
-                BrilligOutputs::Simple(state_35),
-                BrilligOutputs::Simple(state_36),
-                BrilligOutputs::Simple(state_37),
-                BrilligOutputs::Simple(state_38),
-                BrilligOutputs::Simple(state_39),
-                BrilligOutputs::Simple(state_40),
-                BrilligOutputs::Simple(state_41),
-                BrilligOutputs::Simple(state_42),
-                BrilligOutputs::Simple(state_43),
-                BrilligOutputs::Simple(state_44),
-                BrilligOutputs::Simple(state_45),
-                BrilligOutputs::Simple(state_46),
-                BrilligOutputs::Simple(state_47),
-                BrilligOutputs::Simple(state_48),
-                BrilligOutputs::Simple(state_49),
-                BrilligOutputs::Simple(state_50),
-                BrilligOutputs::Simple(state_51),
-                BrilligOutputs::Simple(state_52),
-                BrilligOutputs::Simple(state_53),
-                BrilligOutputs::Simple(state_54),
-                BrilligOutputs::Simple(state_55),
-                BrilligOutputs::Simple(state_56),
-                BrilligOutputs::Simple(state_57),
-                BrilligOutputs::Simple(state_58),
-                BrilligOutputs::Simple(state_59),
-                BrilligOutputs::Simple(state_60),
-                BrilligOutputs::Simple(state_61),
-                BrilligOutputs::Simple(state_62),
-                BrilligOutputs::Simple(state_63),
-                BrilligOutputs::Simple(state_64),
-            ],
-            foreign_call_results: vec![],
-            bytecode: vec![brillig_vm::Opcode::Stop],
-            predicate: None,
-        });
+        for i in round_constants {
+            let (new_witness, extra_gates, updated_witness_counter) =
+                Sha256U32::load_constant(i, num_witness);
+            new_gates.extend(extra_gates);
+            new_witnesses.push(new_witness);
+            num_witness = updated_witness_counter;
+        }
 
-        new_gates.push(brillig_opcode);
-
-        let num_witness = variables.finalize();
-
-        (
-            vec![
-                state_1, state_2, state_3, state_4, state_5, state_6, state_7, state_8, state_9,
-                state_10, state_11, state_12, state_13, state_14, state_15, state_16, state_17,
-                state_18, state_19, state_20, state_21, state_22, state_23, state_24, state_25,
-                state_26, state_27, state_28, state_29, state_30, state_31, state_32, state_33,
-                state_34, state_35, state_36, state_37, state_38, state_39, state_40, state_41,
-                state_42, state_43, state_44, state_45, state_46, state_47, state_48, state_49,
-                state_50, state_51, state_52, state_53, state_54, state_55, state_56, state_57,
-                state_58, state_59, state_60, state_61, state_62, state_63, state_64,
-            ]
-            .into_iter()
-            .map(Sha256U32::new)
-            .collect(),
-            new_gates,
-            num_witness,
-        )
+        (new_witnesses, new_gates, num_witness)
     }
 }

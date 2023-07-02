@@ -96,7 +96,7 @@ fn create_sha256_constraint(
     // process sha256 blocks
     for i in &input {
         let (new_rolling_hash, extra_gates, updated_witness_counter) =
-            sha256_block(&i, rolling_hash.clone(), round_constants.clone(), num_witness);
+            sha256_block(i, rolling_hash.clone(), round_constants.clone(), num_witness);
         new_gates.extend(extra_gates);
         num_witness = updated_witness_counter;
         rolling_hash = new_rolling_hash;
