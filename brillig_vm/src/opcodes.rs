@@ -1,8 +1,22 @@
-use crate::{RegisterIndex, Value};
+use crate::{black_box::BlackBoxOp, RegisterIndex, Value};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
+
+/// A fixed-sized array starting from a Brillig register memory location.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
+pub struct HeapArray {
+    pub pointer: RegisterIndex,
+    pub size: usize,
+}
+
+/// A register-sized vector passed starting from a Brillig register memory location and with a register-held size
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Copy)]
+pub struct HeapVector {
+    pub pointer: RegisterIndex,
+    pub size: RegisterIndex,
+}
 
 /// Lays out various ways an external foreign call's input and output data may be interpreted inside Brillig.
 /// This data can either be an individual register value or memory.
@@ -17,14 +31,14 @@ pub enum RegisterOrMemory {
     /// For a foreign call input, the value is read directly from the register.
     /// For a foreign call output, the value is written directly to the register.
     RegisterIndex(RegisterIndex),
-    /// A fix-sized array passed starting from a Brillig register memory location.
+    /// An array passed to or from an external call
     /// In the case of a foreign call input, the array is read from this Brillig memory location + usize more cells.
     /// In the case of a foreign call output, the array is written to this Brillig memory location with the usize being here just as a sanity check for the size write.
-    HeapArray(RegisterIndex, usize),
-    /// A register-sized vector passed starting from a Brillig register memory location and with a register-held size
+    HeapArray(HeapArray),
+    /// A vector passed to or from an external call
     /// In the case of a foreign call input, the vector is read from this Brillig memory location + as many cells as the 2nd register indicates.
     /// In the case of a foreign call output, the vector is written to this Brillig memory location and as 'size' cells, with size being stored in the second register.
-    HeapVector(RegisterIndex, RegisterIndex),
+    HeapVector(HeapVector),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,6 +111,7 @@ pub enum Opcode {
         destination_pointer: RegisterIndex,
         source: RegisterIndex,
     },
+    BlackBox(BlackBoxOp),
     /// Used to denote execution failure
     Trap,
     /// Stop execution
@@ -118,6 +133,7 @@ impl Opcode {
             Opcode::Mov { .. } => "mov",
             Opcode::Load { .. } => "load",
             Opcode::Store { .. } => "store",
+            Opcode::BlackBox(_) => "black_box",
             Opcode::Trap => "trap",
             Opcode::Stop => "stop",
         }
