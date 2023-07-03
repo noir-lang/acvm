@@ -238,16 +238,16 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // TODO: Deal with this contraint
+        // TODO: how to deal with overflow
         // let mut expr = Expression::from(new_witness);
-
         // expr.push_addition_term(
-        //     -FieldElement::from(1_u128 << (self.width - target_rotation)),
+        //     -FieldElement::from(1_u128 / (2_u128.pow(target_rotation))),
         //     self.inner,
         // );
-
-        // expr.push_addition_term(-FieldElement::from(1_u128 << (1 - self.width)), self.inner);
-
+        // expr.push_addition_term(
+        //     -FieldElement::from(2_u128.pow(self.width - target_rotation)),
+        //     self.inner,
+        // );
         // new_gates.push(Opcode::Arithmetic(expr));
 
         let num_witness = variables.finalize();
@@ -292,8 +292,10 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // TODO: Deal with this contraint
+        // TODO: how to deal with overflow
         // let mut expr = Expression::from(new_witness);
+        // expr.push_addition_term(FieldElement::from(1_u128 / (2_u128.pow(bits))), self.inner);
+        // new_gates.push(Opcode::Arithmetic(expr));
 
         let num_witness = variables.finalize();
 
@@ -337,11 +339,10 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // TODO: see why this doesn't work
-        // let mut add_constraint = Expression::from(new_witness);
-
-        // add_constraint.push_addition_term(-FieldElement::one(), self.inner);
-        // add_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
+        // TODO: how to deal with overflow
+        // let mut add_constraint = Expression::from(self.inner);
+        // add_constraint.push_addition_term(-FieldElement::one(), new_witness);
+        // add_constraint.push_addition_term(FieldElement::one(), rhs.inner);
         // new_gates.push(Opcode::Arithmetic(add_constraint));
 
         let num_witness = variables.finalize();
@@ -386,9 +387,8 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // TODO: see why this doesn't work
+        // TODO: how to deal with overflow
         // let mut sub_constraint = Expression::from(new_witness);
-
         // sub_constraint.push_addition_term(-FieldElement::one(), self.inner);
         // sub_constraint.push_addition_term(FieldElement::one(), rhs.inner);
         // new_gates.push(Opcode::Arithmetic(sub_constraint));
@@ -529,12 +529,10 @@ impl Sha256U32 {
         });
         new_gates.push(brillig_opcode);
 
-        // TODO: add constraint
-        // let mut not_constraint = Expression::from(new_witness);
-
-        // not_constraint.push_addition_term(FieldElement::one(), self.inner);
-        // not_constraint.q_c = -FieldElement::one();
-        // new_gates.push(Opcode::Arithmetic(not_constraint));
+        let mut not_constraint = Expression::from(new_witness);
+        not_constraint.push_addition_term(FieldElement::one(), self.inner);
+        not_constraint.q_c = -FieldElement::from((1_u128 << self.width) - 1);
+        new_gates.push(Opcode::Arithmetic(not_constraint));
 
         let num_witness = variables.finalize();
 
