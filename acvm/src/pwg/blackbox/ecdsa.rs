@@ -224,6 +224,7 @@ mod test {
 
     #[test]
     fn verifies_valid_k1_signature_with_low_s_value() {
+        // let message = "ECDSA proves knowledge of a secret number in the context of a single message";
         // 0x3a73f4123a5cd2121f21cd7e8d358835476949d035d9c2da6806b4633ac8c1e2,
         let hashed_message: [u8; 32] = [
             0x3a, 0x73, 0xf4, 0x12, 0x3a, 0x5c, 0xd2, 0x12, 0x1f, 0x21, 0xcd, 0x7e, 0x8d, 0x35,
@@ -262,6 +263,7 @@ mod test {
 
     #[test]
     fn verifies_valid_r1_signature_with_low_s_value() {
+        // let message = "ECDSA proves knowledge of a secret number in the context of a single message";
         // 0x54705ba3baafdbdfba8c5f9a70f7a89bee98d906b53e31074da7baecdc0da9ad
         let hashed_message = [
             84, 112, 91, 163, 186, 175, 219, 223, 186, 140, 95, 154, 112, 247, 168, 155, 238, 152,
