@@ -113,7 +113,7 @@ impl FallbackTransformer {
                     let num_bits = input.num_bits;
                     sha256_inputs.push((witness_index, num_bits));
                 }
-                stdlib::custom_gate_fallbacks::sha256::sha256(
+                stdlib::blackbox_fallbacks::sha256::sha256(
                     sha256_inputs,
                     outputs.to_vec(),
                     current_witness_idx,

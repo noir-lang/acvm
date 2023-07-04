@@ -1,39 +1,11 @@
+mod solver;
 use acir::{native_types::Witness, FieldElement};
-use acvm::{
-    pwg::{OpcodeResolutionError, PartialWitnessGeneratorStatus, ACVM},
-    BlackBoxFunctionSolver,
-};
+use acvm::pwg::{PartialWitnessGeneratorStatus, ACVM};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
-use stdlib::custom_gate_fallbacks::sha256::Sha256U32;
+use stdlib::blackbox_fallbacks::sha256::Sha256U32;
 
-struct StubbedBackend;
-
-impl BlackBoxFunctionSolver for StubbedBackend {
-    fn schnorr_verify(
-        &self,
-        _public_key_x: &FieldElement,
-        _public_key_y: &FieldElement,
-        _signature_s: &FieldElement,
-        _signature_e: &FieldElement,
-        _message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError> {
-        panic!("Path not trodden by this test")
-    }
-    fn pedersen(
-        &self,
-        _inputs: &[FieldElement],
-        _domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
-        panic!("Path not trodden by this test")
-    }
-    fn fixed_base_scalar_mul(
-        &self,
-        _input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
-        panic!("Path not trodden by this test")
-    }
-}
+use crate::solver::StubbedBackend;
 
 proptest! {
     #![proptest_config(ProptestConfig {

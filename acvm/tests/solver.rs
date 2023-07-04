@@ -16,7 +16,7 @@ use acvm::{
     BlackBoxFunctionSolver,
 };
 
-struct StubbedBackend;
+pub(crate) struct StubbedBackend;
 
 impl BlackBoxFunctionSolver for StubbedBackend {
     fn schnorr_verify(
