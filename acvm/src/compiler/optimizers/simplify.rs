@@ -432,7 +432,7 @@ impl CircuitSimplifier {
 #[cfg(test)]
 mod tests {
     use acir::{
-        circuit::{Circuit, Opcode},
+        circuit::Opcode,
         native_types::{Expression, Witness},
         FieldElement,
     };
@@ -475,8 +475,7 @@ mod tests {
         assert_eq!(circuit.len(), 3);
         assert_eq!(simplifier.solved_gates.len(), 1);
         let support_all = |_opcode: &Opcode| true;
-        let mut acir = Circuit::default();
-        acir.opcodes = circuit;
+        let acir = acir::circuit::Circuit { opcodes: circuit, ..Default::default() };
         let acir = FallbackTransformer::transform(acir, support_all, &simplifier).unwrap();
         assert_eq!(acir.opcodes.len(), 2);
     }
