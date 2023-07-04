@@ -17,6 +17,7 @@ blake2.workspace = true
 sha2.workspace = true
 sha3.workspace = true
 k256.workspace = true
+p256.workspace = true
 
 [features]
 default = ["bn254"]
