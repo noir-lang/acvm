@@ -3,8 +3,6 @@ use acir::{
     native_types::{Witness, WitnessMap},
 };
 
-use self::ecdsa::secp256r1_prehashed;
-
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;
 
@@ -22,7 +20,10 @@ use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
 use logic::{and, xor};
 use pedersen::pedersen;
 use range::solve_range_opcode;
-use signature::{ecdsa::secp256k1_prehashed, schnorr::schnorr_verify};
+use signature::{
+    ecdsa::{secp256k1_prehashed, secp256r1_prehashed},
+    schnorr::schnorr_verify,
+};
 
 /// Check if all of the inputs to the function have assignments
 ///
