@@ -140,16 +140,16 @@ impl Sub<&Expression> for &Expression {
 }
 
 impl Mul<&Expression> for &Expression {
-    type Output = Expression;
-    fn mul(self, rhs: &Expression) -> Expression {
+    type Output = Option<Expression>;
+    fn mul(self, rhs: &Expression) -> Option<Expression> {
         if self.is_const() {
-            return self.q_c * rhs;
+            return Some(self.q_c * rhs);
         } else if rhs.is_const() {
-            return self * rhs.q_c;
+            return Some(self * rhs.q_c);
         } else if !(self.is_linear() && rhs.is_linear()) {
             // `Expression`s can only represent terms which are up to degree 2.
             // We then disallow multiplication of `Expression`s which have degree 2 terms.
-            unreachable!("Can only multiply linear terms");
+            return None;
         }
 
         let mut output = Expression::from_field(self.q_c * rhs.q_c);
@@ -210,7 +210,7 @@ impl Mul<&Expression> for &Expression {
             i2 += 1;
         }
 
-        output
+        Some(output)
     }
 }
 
@@ -274,7 +274,7 @@ fn mul_smoketest() {
     };
 
     assert_eq!(
-        &a * &b,
+        (&a * &b).unwrap(),
         Expression {
             mul_terms: vec![(FieldElement::from(8u128), Witness(2), Witness(4)),],
             linear_combinations: vec![

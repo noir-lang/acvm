@@ -6,25 +6,13 @@ use acir::{
 use blake2::digest::generic_array::GenericArray;
 
 use crate::{
-    pwg::witness_to_value,
     pwg::{insert_value, OpcodeResolution},
     OpcodeResolutionError,
 };
 
-fn to_u8_vec(
-    initial_witness: &WitnessMap,
-    inputs: &[FunctionInput],
-) -> Result<Vec<u8>, OpcodeResolutionError> {
-    let mut result = Vec::with_capacity(inputs.len());
-    for input in inputs {
-        let witness_value_bytes = witness_to_value(initial_witness, input.witness)?.to_be_bytes();
-        let byte = witness_value_bytes.last().unwrap();
-        result.push(*byte);
-    }
-    Ok(result)
-}
+use super::to_u8_vec;
 
-pub(super) fn secp256k1_prehashed(
+pub(crate) fn secp256k1_prehashed(
     initial_witness: &mut WitnessMap,
     public_key_x_inputs: &[FunctionInput],
     public_key_y_inputs: &[FunctionInput],
@@ -34,6 +22,7 @@ pub(super) fn secp256k1_prehashed(
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
+    // These errors should never be emitted in practice as they would imply malformed ACIR generation.
     let pub_key_x: [u8; 32] =
         to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(

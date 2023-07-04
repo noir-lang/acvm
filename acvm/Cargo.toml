@@ -18,23 +18,12 @@ thiserror.workspace = true
 acir.workspace = true
 stdlib.workspace = true
 
-blake2 = "0.10.6"
-sha2 = "0.10.6"
-sha3 = "0.10.6"
-k256 = { version = "0.11.0", features = [
-    "ecdsa",
-    "ecdsa-core",
-    "sha256",
-    "digest",
-    "arithmetic",
-] }
-p256 = { version = "0.11.0", features = [
-    "ecdsa",
-    "ecdsa-core",
-    "sha256",
-    "digest",
-    "arithmetic",
-] }
+blake2.workspace = true
+sha2.workspace = true
+sha3.workspace = true
+k256.workspace = true
+p256.workspace = true
+
 indexmap = "1.7.0"
 async-trait = "0.1"
 
