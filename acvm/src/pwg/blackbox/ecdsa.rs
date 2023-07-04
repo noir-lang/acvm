@@ -78,7 +78,7 @@ pub(super) fn secp256r1_prehashed(
     let pub_key_x: [u8; 32] =
         to_u8_vec(initial_witness, public_key_x_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
-                acir::BlackBoxFunc::EcdsaSecp256k1,
+                acir::BlackBoxFunc::EcdsaSecp256r1,
                 format!("expected pubkey_x size 32 but received {}", public_key_x_inputs.len()),
             )
         })?;
@@ -86,7 +86,7 @@ pub(super) fn secp256r1_prehashed(
     let pub_key_y: [u8; 32] =
         to_u8_vec(initial_witness, public_key_y_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
-                acir::BlackBoxFunc::EcdsaSecp256k1,
+                acir::BlackBoxFunc::EcdsaSecp256r1,
                 format!("expected pubkey_y size 32 but received {}", public_key_y_inputs.len()),
             )
         })?;
@@ -94,7 +94,7 @@ pub(super) fn secp256r1_prehashed(
     let signature: [u8; 64] =
         to_u8_vec(initial_witness, signature_inputs)?.try_into().map_err(|_| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
-                acir::BlackBoxFunc::EcdsaSecp256k1,
+                acir::BlackBoxFunc::EcdsaSecp256r1,
                 format!("expected signature size 64 but received {}", signature_inputs.len()),
             )
         })?;
