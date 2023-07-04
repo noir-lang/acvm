@@ -23,8 +23,7 @@ impl BlackBoxFunctionSolver for StubbedBackend {
         &self,
         _public_key_x: &FieldElement,
         _public_key_y: &FieldElement,
-        _signature_s: &FieldElement,
-        _signature_e: &FieldElement,
+        _signature: &[u8],
         _message: &[u8],
     ) -> Result<bool, OpcodeResolutionError> {
         panic!("Path not trodden by this test")

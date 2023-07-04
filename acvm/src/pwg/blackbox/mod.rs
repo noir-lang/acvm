@@ -101,8 +101,7 @@ pub(crate) fn solve(
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
             public_key_y,
-            signature_s,
-            signature_e,
+            signature,
             message,
             output,
         } => schnorr_verify(
@@ -110,8 +109,7 @@ pub(crate) fn solve(
             initial_witness,
             *public_key_x,
             *public_key_y,
-            *signature_s,
-            *signature_e,
+            signature,
             message,
             *output,
         ),
