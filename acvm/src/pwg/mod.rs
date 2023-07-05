@@ -149,7 +149,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
 
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
-        if !matches!(self.status, ACVMStatus::Solved) {
+        if self.status != ACVMStatus::Solved {
             panic!("ACVM is not ready to be finalized");
         }
         self.witness_map
