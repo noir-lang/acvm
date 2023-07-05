@@ -1,3 +1,7 @@
+//! Sha256 fallback function.
+use super::utils::{byte_decomposition, round_to_nearest_byte};
+pub use super::wu32::WU32;
+use crate::helpers::VariableStore;
 use acir::{
     brillig_vm::{self, BinaryFieldOp, RegisterIndex},
     circuit::{
@@ -8,11 +12,6 @@ use acir::{
     native_types::{Expression, Witness},
     FieldElement,
 };
-
-use crate::helpers::VariableStore;
-
-pub use super::sha256_u32::Sha256U32;
-use super::utils::{byte_decomposition, round_to_nearest_byte};
 
 pub fn sha256(
     inputs: Vec<(Expression, u32)>,
@@ -39,6 +38,7 @@ pub fn sha256(
         create_sha256_constraint(new_inputs, total_num_bytes, num_witness);
     new_gates.extend(extra_gates);
 
+    // constrain the outputs to be the same as the result of the circuit
     for i in 0..outputs.len() {
         let mut expr = Expression::from(outputs[i]);
         expr.push_addition_term(-FieldElement::one(), result[i]);
@@ -54,16 +54,14 @@ fn create_sha256_constraint(
 ) -> (Vec<Witness>, u32, Vec<Opcode>) {
     let mut new_gates = Vec::new();
 
-    // pad the bytes according to sha256 padding rules.
+    // pad the bytes according to sha256 padding rules
     let message_bits = total_num_bytes * 8;
     let (mut num_witness, pad_witness, extra_gates) = pad(128, 8, num_witness);
     new_gates.extend(extra_gates);
     input.push(pad_witness);
-
     let bytes_per_block = 64;
     let num_bytes = (input.len() + 8) as u32;
     let num_blocks = num_bytes / bytes_per_block + ((num_bytes % bytes_per_block != 0) as u32);
-
     let num_total_bytes = num_blocks * bytes_per_block;
     for _ in num_bytes..num_total_bytes {
         let (updated_witness_counter, pad_witness, extra_gates) = pad(0, 8, num_witness);
@@ -71,27 +69,22 @@ fn create_sha256_constraint(
         new_gates.extend(extra_gates);
         input.push(pad_witness);
     }
-
     let (num_witness, pad_witness, extra_gates) = pad(message_bits, 64, num_witness);
     new_gates.extend(extra_gates);
-
     let (extra_gates, pad_witness, num_witness) =
         byte_decomposition(pad_witness.into(), 8, num_witness);
     new_gates.extend(extra_gates);
     input.extend(pad_witness);
 
     // turn witness into u32 and load sha256 state
-    let (input, extra_gates, num_witness) = Sha256U32::from_witnesses(input, num_witness);
+    let (input, extra_gates, num_witness) = WU32::from_witnesses(&input, num_witness);
     new_gates.extend(extra_gates);
-
-    let (mut rolling_hash, extra_gates, num_witness) = Sha256U32::prepare_constants(num_witness);
+    let (mut rolling_hash, extra_gates, num_witness) = prepare_state_constants(num_witness);
     new_gates.extend(extra_gates);
-
-    let (round_constants, extra_gates, mut num_witness) =
-        Sha256U32::prepare_round_constants(num_witness);
+    let (round_constants, extra_gates, mut num_witness) = prepare_round_constants(num_witness);
     new_gates.extend(extra_gates);
-
-    let input: Vec<Vec<Sha256U32>> = input.chunks(16).map(|block| block.to_vec()).collect();
+    // split the input into blocks of size 16
+    let input: Vec<Vec<WU32>> = input.chunks(16).map(|block| block.to_vec()).collect();
 
     // process sha256 blocks
     for i in &input {
@@ -102,6 +95,7 @@ fn create_sha256_constraint(
         rolling_hash = new_rolling_hash;
     }
 
+    // decompose the result bytes in u32 to u8
     let (extra_gates, byte1, num_witness) =
         byte_decomposition(Expression::from(rolling_hash[0].inner), 4, num_witness);
     new_gates.extend(extra_gates);
@@ -132,18 +126,14 @@ fn create_sha256_constraint(
         .flatten()
         .collect();
 
-    println!("{:?}", result);
-
     (result, num_witness, new_gates)
 }
 
 fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<Opcode>) {
     let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
-
     let pad = variables.new_variable();
 
-    // TODO: Should this padding generated from brillig be constrained
     let brillig_opcode = Opcode::Brillig(Brillig {
         inputs: vec![
             BrilligInputs::Single(Expression {
@@ -175,18 +165,18 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
 }
 
 fn sha256_block(
-    input: &[Sha256U32],
-    rolling_hash: Vec<Sha256U32>,
-    round_constants: Vec<Sha256U32>,
+    input: &[WU32],
+    rolling_hash: Vec<WU32>,
+    round_constants: Vec<WU32>,
     mut num_witness: u32,
-) -> (Vec<Sha256U32>, Vec<Opcode>, u32) {
+) -> (Vec<WU32>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
     let mut w = Vec::new();
     w.extend(input.to_owned());
-    w.resize(64, Sha256U32::default());
+    w.resize(64, WU32::default());
 
     for i in 16..64 {
-        // calculate s0
+        // calculate s0 `w[i - 15].ror(7) ^ w[i - 15].ror(18) ^ (w[i - 15] >> 3)`
         let (a1, extra_gates, updated_witness_counter) = w[i - 15].ror(7, num_witness);
         new_gates.extend(extra_gates);
         let (a2, extra_gates, updated_witness_counter) = w[i - 15].ror(18, updated_witness_counter);
@@ -194,13 +184,12 @@ fn sha256_block(
         let (a3, extra_gates, updated_witness_counter) =
             w[i - 15].rightshift(3, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         let (a4, extra_gates, updated_witness_counter) = a1.xor(a2, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (s0, extra_gates, updated_witness_counter) = a4.xor(a3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate s1
+        // calculate s1 `w[i - 2].ror(17) ^ w[i - 2].ror(19) ^ (w[i - 2] >> 10)`
         let (b1, extra_gates, updated_witness_counter) = w[i - 2].ror(17, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (b2, extra_gates, updated_witness_counter) = w[i - 2].ror(19, updated_witness_counter);
@@ -208,22 +197,19 @@ fn sha256_block(
         let (b3, extra_gates, updated_witness_counter) =
             w[i - 2].rightshift(10, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         let (b4, extra_gates, updated_witness_counter) = b1.xor(b2, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (s1, extra_gates, updated_witness_counter) = b4.xor(b3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate w[i]
-
+        // calculate w[i] `w[i - 16] + w[i - 7] + s0 + s1`
         let (c1, extra_gates, updated_witness_counter) =
-            w[i - 16].add(w[i - 7].clone(), updated_witness_counter);
+            w[i - 16].add(&w[i - 7], updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (c2, extra_gates, updated_witness_counter) = c1.add(s0, updated_witness_counter);
+        let (c2, extra_gates, updated_witness_counter) = c1.add(&s0, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (c3, extra_gates, updated_witness_counter) = c2.add(s1, updated_witness_counter);
+        let (c3, extra_gates, updated_witness_counter) = c2.add(&s1, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         w[i] = c3;
         num_witness = updated_witness_counter;
     }
@@ -239,114 +225,103 @@ fn sha256_block(
 
     #[allow(non_snake_case)]
     for i in 0..64 {
-        // calculate S1
+        // calculate S1 `e.ror(6) ^ e.ror(11) ^ e.ror(25)`
         let (a1, extra_gates, updated_witness_counter) = e.ror(6, num_witness);
         new_gates.extend(extra_gates);
         let (a2, extra_gates, updated_witness_counter) = e.ror(11, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (a3, extra_gates, updated_witness_counter) = e.ror(25, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         let (a4, extra_gates, updated_witness_counter) = a1.xor(a2, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (S1, extra_gates, updated_witness_counter) = a4.xor(a3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate ch
-        let (b1, extra_gates, updated_witness_counter) = e.and(f.clone(), updated_witness_counter);
+        // calculate ch `(e & f) + (~e & g)`
+        let (b1, extra_gates, updated_witness_counter) = e.and(&f, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (b2, extra_gates, updated_witness_counter) = e.not(updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (b3, extra_gates, updated_witness_counter) = b2.and(g.clone(), updated_witness_counter);
+        let (b3, extra_gates, updated_witness_counter) = b2.and(&g, updated_witness_counter);
+        new_gates.extend(extra_gates);
+        let (ch, extra_gates, updated_witness_counter) = b1.add(&b3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        let (ch, extra_gates, updated_witness_counter) = b1.add(b3, updated_witness_counter);
+        // caculate temp1 `h + S1 + ch + round_constants[i] + w[i]`
+        let (c1, extra_gates, updated_witness_counter) = h.add(&S1, updated_witness_counter);
         new_gates.extend(extra_gates);
-
-        // caculate temp1
-        let (c1, extra_gates, updated_witness_counter) = h.add(S1.clone(), updated_witness_counter);
-        new_gates.extend(extra_gates);
-        let (c2, extra_gates, updated_witness_counter) =
-            c1.add(ch.clone(), updated_witness_counter);
+        let (c2, extra_gates, updated_witness_counter) = c1.add(&ch, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (c3, extra_gates, updated_witness_counter) =
-            c2.add(round_constants[i].clone(), updated_witness_counter);
+            c2.add(&round_constants[i], updated_witness_counter);
+        new_gates.extend(extra_gates);
+        let (temp1, extra_gates, updated_witness_counter) = c3.add(&w[i], updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        let (temp1, extra_gates, updated_witness_counter) =
-            c3.add(w[i].clone(), updated_witness_counter);
-        new_gates.extend(extra_gates);
-
-        // calculate S0
+        // calculate S0 `a.ror(2) ^ a.ror(13) ^ a.ror(22)`
         let (d1, extra_gates, updated_witness_counter) = a.ror(2, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (d2, extra_gates, updated_witness_counter) = a.ror(13, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (d3, extra_gates, updated_witness_counter) = a.ror(22, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         let (d4, extra_gates, updated_witness_counter) = d1.xor(d2, updated_witness_counter);
         new_gates.extend(extra_gates);
         let (S0, extra_gates, updated_witness_counter) = d4.xor(d3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate T0
-        let (T0, extra_gates, updated_witness_counter) = b.and(c.clone(), updated_witness_counter);
+        // calculate T0 `b & c`
+        let (T0, extra_gates, updated_witness_counter) = b.and(&c, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate maj
-        let (e1, extra_gates, updated_witness_counter) =
-            T0.add(T0.clone(), updated_witness_counter);
+        // calculate maj `(a & (b + c - (T0 + T0))) + T0` which is the same as `(a & b) ^ (a & c) ^ (b & c)`
+        let (e1, extra_gates, updated_witness_counter) = T0.add(&T0, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (e2, extra_gates, updated_witness_counter) = c.sub(e1, updated_witness_counter);
+        let (e2, extra_gates, updated_witness_counter) = c.sub(&e1, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (e3, extra_gates, updated_witness_counter) = b.add(e2, updated_witness_counter);
+        let (e3, extra_gates, updated_witness_counter) = b.add(&e2, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (e4, extra_gates, updated_witness_counter) = a.and(e3, updated_witness_counter);
+        let (e4, extra_gates, updated_witness_counter) = a.and(&e3, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (maj, extra_gates, updated_witness_counter) =
-            e4.add(T0.clone(), updated_witness_counter);
+        let (maj, extra_gates, updated_witness_counter) = e4.add(&T0, updated_witness_counter);
         new_gates.extend(extra_gates);
 
-        // calculate temp2
-        let (temp2, extra_gates, updated_witness_counter) =
-            S0.add(maj.clone(), updated_witness_counter);
+        // calculate temp2 `S0 + maj`
+        let (temp2, extra_gates, updated_witness_counter) = S0.add(&maj, updated_witness_counter);
         new_gates.extend(extra_gates);
 
         h = g;
         g = f;
         f = e.clone();
-        let (new_e, extra_gates, updated_witness_counter) =
-            d.add(temp1.clone(), updated_witness_counter);
+        let (new_e, extra_gates, updated_witness_counter) = d.add(&temp1, updated_witness_counter);
         new_gates.extend(extra_gates);
         d = c;
         c = b;
         b = a.clone();
         let (new_a, extra_gates, updated_witness_counter) =
-            temp1.add(temp2.clone(), updated_witness_counter);
+            temp1.add(&temp2, updated_witness_counter);
         new_gates.extend(extra_gates);
-
         num_witness = updated_witness_counter;
         a = new_a;
         e = new_e;
     }
 
     let mut output = Vec::new();
-    let (output0, extra_gates, num_witness) = a.add(rolling_hash[0].clone(), num_witness);
+    let (output0, extra_gates, num_witness) = a.add(&rolling_hash[0], num_witness);
     new_gates.extend(extra_gates);
-    let (output1, extra_gates, num_witness) = b.add(rolling_hash[1].clone(), num_witness);
+    let (output1, extra_gates, num_witness) = b.add(&rolling_hash[1], num_witness);
     new_gates.extend(extra_gates);
-    let (output2, extra_gates, num_witness) = c.add(rolling_hash[2].clone(), num_witness);
+    let (output2, extra_gates, num_witness) = c.add(&rolling_hash[2], num_witness);
     new_gates.extend(extra_gates);
-    let (output3, extra_gates, num_witness) = d.add(rolling_hash[3].clone(), num_witness);
+    let (output3, extra_gates, num_witness) = d.add(&rolling_hash[3], num_witness);
     new_gates.extend(extra_gates);
-    let (output4, extra_gates, num_witness) = e.add(rolling_hash[4].clone(), num_witness);
+    let (output4, extra_gates, num_witness) = e.add(&rolling_hash[4], num_witness);
     new_gates.extend(extra_gates);
-    let (output5, extra_gates, num_witness) = f.add(rolling_hash[5].clone(), num_witness);
+    let (output5, extra_gates, num_witness) = f.add(&rolling_hash[5], num_witness);
     new_gates.extend(extra_gates);
-    let (output6, extra_gates, num_witness) = g.add(rolling_hash[6].clone(), num_witness);
+    let (output6, extra_gates, num_witness) = g.add(&rolling_hash[6], num_witness);
     new_gates.extend(extra_gates);
-    let (output7, extra_gates, num_witness) = h.add(rolling_hash[7].clone(), num_witness);
+    let (output7, extra_gates, num_witness) = h.add(&rolling_hash[7], num_witness);
     new_gates.extend(extra_gates);
 
     output.push(output0);
@@ -359,4 +334,54 @@ fn sha256_block(
     output.push(output7);
 
     (output, new_gates, num_witness)
+}
+
+/// Load initial state constants of Sha256
+pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<Opcode>, u32) {
+    let mut new_gates = Vec::new();
+    let mut new_witnesses = Vec::new();
+
+    let init_constants: Vec<u128> = vec![
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
+    ];
+
+    for i in init_constants {
+        let (new_witness, extra_gates, updated_witness_counter) =
+            WU32::load_constant(i, num_witness);
+        new_gates.extend(extra_gates);
+        new_witnesses.push(new_witness);
+        num_witness = updated_witness_counter;
+    }
+
+    (new_witnesses, new_gates, num_witness)
+}
+
+/// Load round constants of Sha256
+pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<Opcode>, u32) {
+    let mut new_gates = Vec::new();
+    let mut new_witnesses = Vec::new();
+
+    let round_constants: Vec<u128> = vec![
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
+    ];
+
+    for i in round_constants {
+        let (new_witness, extra_gates, updated_witness_counter) =
+            WU32::load_constant(i, num_witness);
+        new_gates.extend(extra_gates);
+        new_witnesses.push(new_witness);
+        num_witness = updated_witness_counter;
+    }
+
+    (new_witnesses, new_gates, num_witness)
 }

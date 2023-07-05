@@ -24,6 +24,7 @@ pub(crate) fn round_to_nearest_byte(num_bits: u32) -> u32 {
     round_to_nearest_mul_8(num_bits) / 8
 }
 
+// TODO: Maybe this can be merged with `bit_decomposition`
 pub(crate) fn byte_decomposition(
     gate: Expression,
     num_bytes: u32,
@@ -32,19 +33,18 @@ pub(crate) fn byte_decomposition(
     let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
 
-    // First create a witness for each bit
+    // First create a witness for each byte
     let mut vector = Vec::with_capacity(num_bytes as usize);
     for _ in 0..num_bytes {
         vector.push(variables.new_variable())
     }
 
-    // Next create a directive which computes those bits.
+    // Next create a directive which computes those byte.
     new_gates.push(Opcode::Directive(Directive::ToLeRadix {
         a: gate.clone(),
         b: vector.clone(),
         radix: 256,
     }));
-
     vector.reverse();
 
     // Now apply constraints to the bytes such that they are the byte decomposition
