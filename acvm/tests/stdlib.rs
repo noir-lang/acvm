@@ -9,7 +9,7 @@ use crate::solver::StubbedBackend;
 
 proptest! {
     #[test]
-    fn test_sha256_u32_ror(x in 0..u32::MAX, y in 0..32_u32) {
+    fn test_wu32_ror(x in 0..u32::MAX, y in 0..32_u32) {
         let fe = FieldElement::from(x as u128);
         let w = Witness(1);
         let result = x.rotate_right(y);
@@ -28,7 +28,7 @@ proptest! {
     }
 
     #[test]
-    fn test_sha256_u32_euclidean_division(x in 0..u32::MAX, y in 0..u32::MAX) {
+    fn test_wu32_euclidean_division(x in 0..u32::MAX, y in 0..u32::MAX) {
         let lhs = FieldElement::from(x as u128);
         let rhs = FieldElement::from(y as u128);
         let w1 = Witness(1);
@@ -51,7 +51,7 @@ proptest! {
     }
 
     #[test]
-    fn test_sha256_u32_add(x in 0..u32::MAX, y in 0..u32::MAX, z in 0..u32::MAX) {
+    fn test_wu32_add(x in 0..u32::MAX, y in 0..u32::MAX, z in 0..u32::MAX) {
         let lhs = FieldElement::from(x as u128);
         let rhs = FieldElement::from(y as u128);
         let rhs_z = FieldElement::from(z as u128);
@@ -81,7 +81,7 @@ proptest! {
     }
 
     #[test]
-    fn test_sha256_u32_sub(x in 0..u32::MAX, y in 0..u32::MAX, z in 0..u32::MAX) {
+    fn test_wu32_sub(x in 0..u32::MAX, y in 0..u32::MAX, z in 0..u32::MAX) {
         let lhs = FieldElement::from(x as u128);
         let rhs = FieldElement::from(y as u128);
         let rhs_z = FieldElement::from(z as u128);
@@ -111,7 +111,7 @@ proptest! {
     }
 
     #[test]
-    fn test_sha256_u32_left_shift(x in 0..u32::MAX, y in 0..32_u32) {
+    fn test_wu32_left_shift(x in 0..u32::MAX, y in 0..32_u32) {
         let lhs = FieldElement::from(x as u128);
         let w1 = Witness(1);
         let result = x.overflowing_shl(y).0;
@@ -130,7 +130,7 @@ proptest! {
     }
 
     #[test]
-    fn test_sha256_u32_right_shift(x in 0..u32::MAX, y in 0..32_u32) {
+    fn test_wu32_right_shift(x in 0..u32::MAX, y in 0..32_u32) {
         let lhs = FieldElement::from(x as u128);
         let w1 = Witness(1);
         let result = x.overflowing_shr(y).0;
