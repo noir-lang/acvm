@@ -163,7 +163,7 @@ impl WU32 {
 
     /// Returns the quotient and remainder such that lhs = rhs * quotient + remainder
     // This should be the same as its equivalent in the Noir repo
-    // TODO: In Noir there's a constrain about "Constrain r < rhs"
+    // TODO: In Noir there's a constrain that "Constrain r < rhs"
     // Is it necessary here
     pub fn euclidean_division(
         lhs: &WU32,
