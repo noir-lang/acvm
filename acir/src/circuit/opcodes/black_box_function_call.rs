@@ -42,8 +42,7 @@ pub enum BlackBoxFuncCall {
     SchnorrVerify {
         public_key_x: FunctionInput,
         public_key_y: FunctionInput,
-        signature_s: FunctionInput,
-        signature_e: FunctionInput,
+        signature: Vec<FunctionInput>,
         message: Vec<FunctionInput>,
         output: Witness,
     },
@@ -133,8 +132,7 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
                 public_key_x: FunctionInput::dummy(),
                 public_key_y: FunctionInput::dummy(),
-                signature_s: FunctionInput::dummy(),
-                signature_e: FunctionInput::dummy(),
+                signature: vec![],
                 message: vec![],
                 output: Witness(0),
             },
@@ -216,16 +214,14 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::SchnorrVerify {
                 public_key_x,
                 public_key_y,
-                signature_s,
-                signature_e,
+                signature,
                 message,
                 ..
             } => {
-                let mut inputs = Vec::with_capacity(4 + message.len());
+                let mut inputs = Vec::with_capacity(2 + signature.len() + message.len());
                 inputs.push(*public_key_x);
                 inputs.push(*public_key_y);
-                inputs.push(*signature_s);
-                inputs.push(*signature_e);
+                inputs.extend(signature.iter().copied());
                 inputs.extend(message.iter().copied());
                 inputs
             }
