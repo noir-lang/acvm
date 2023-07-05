@@ -58,7 +58,7 @@ impl WU32 {
         (WU32::new(new_witness), new_gates, num_witness)
     }
 
-    /// load a [WU32] from four [Witness] each representing a [u8]
+    /// load a [WU32] from four [Witness]es each representing a [u8]
     pub(crate) fn from_witnesses(
         witnesses: &[Witness],
         mut num_witness: u32,
