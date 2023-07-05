@@ -8,10 +8,6 @@ use stdlib::blackbox_fallbacks::sha256::WU32;
 use crate::solver::StubbedBackend;
 
 proptest! {
-    #![proptest_config(ProptestConfig {
-        cases: 99, .. ProptestConfig::default()
-      })]
-
     #[test]
     fn test_sha256_u32_ror(x in 0..u32::MAX, y in 0..32_u32) {
         let fe = FieldElement::from(x as u128);
