@@ -13,12 +13,8 @@ proptest! {
         let fe = FieldElement::from(x as u128);
         let w = Witness(1);
         let result = x.rotate_right(y);
-
         let sha256_u32 = WU32::new(w);
-
         let (w, extra_gates, _) = sha256_u32.ror(y, 2);
-
-
         let witness_assignments = BTreeMap::from([(Witness(1), fe)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
@@ -35,12 +31,9 @@ proptest! {
         let w2 = Witness(2);
         let q = x.div_euclid(y);
         let r = x.rem_euclid(y);
-
         let u32_1 = WU32::new(w1);
         let u32_2 = WU32::new(w2);
-
         let (q_w, r_w, extra_gates, _) = WU32::euclidean_division(&u32_1, &u32_2, 3);
-
         let witness_assignments = BTreeMap::from([(Witness(1), lhs),(Witness(2), rhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
@@ -59,19 +52,14 @@ proptest! {
         let w1 = Witness(1);
         let w2 = Witness(2);
         let w3 = Witness(3);
-
         let u32_1 = WU32::new(w1);
         let u32_2 = WU32::new(w2);
         let u32_3 = WU32::new(w3);
-
         let mut gates = Vec::new();
-
         let (w, extra_gates, num_witness) = u32_1.add(&u32_2, 4);
         gates.extend(extra_gates);
         let (w2, extra_gates, _) = w.add(&u32_3, num_witness);
         gates.extend(extra_gates);
-
-
         let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
         let solver_status = acvm.solve();
@@ -89,19 +77,14 @@ proptest! {
         let w1 = Witness(1);
         let w2 = Witness(2);
         let w3 = Witness(3);
-
         let u32_1 = WU32::new(w1);
         let u32_2 = WU32::new(w2);
         let u32_3 = WU32::new(w3);
-
         let mut gates = Vec::new();
-
         let (w, extra_gates, num_witness) = u32_1.sub(&u32_2, 4);
         gates.extend(extra_gates);
         let (w2, extra_gates, _) = w.sub(&u32_3, num_witness);
         gates.extend(extra_gates);
-
-
         let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
                 let solver_status = acvm.solve();
@@ -115,12 +98,8 @@ proptest! {
         let lhs = FieldElement::from(x as u128);
         let w1 = Witness(1);
         let result = x.overflowing_shl(y).0;
-
         let u32_1 = WU32::new(w1);
-
         let (w, extra_gates, _) = u32_1.leftshift(y, 2);
-
-
         let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
@@ -134,12 +113,8 @@ proptest! {
         let lhs = FieldElement::from(x as u128);
         let w1 = Witness(1);
         let result = x.overflowing_shr(y).0;
-
         let u32_1 = WU32::new(w1);
-
         let (w, extra_gates, _) = u32_1.rightshift(y, 2);
-
-
         let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
