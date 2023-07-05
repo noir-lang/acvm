@@ -1,6 +1,6 @@
 mod solver;
 use acir::{native_types::Witness, FieldElement};
-use acvm::pwg::{PartialWitnessGeneratorStatus, ACVM};
+use acvm::pwg::{ACVMStatus, ACVM};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use stdlib::blackbox_fallbacks::sha256::WU32;
@@ -25,10 +25,10 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), fe)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
-        let solver_status = acvm.solve().expect("should succeed");
+        let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
     #[test]
@@ -47,11 +47,11 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), lhs),(Witness(2), rhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
-        let solver_status = acvm.solve().expect("should succeed");
+        let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&q_w.inner).unwrap(), &FieldElement::from(q as u128));
         prop_assert_eq!(acvm.witness_map().get(&r_w.inner).unwrap(), &FieldElement::from(r as u128));
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
     #[test]
@@ -78,10 +78,10 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
-        let solver_status = acvm.solve().expect("should succeed");
+        let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&w2.inner).unwrap(), &result);
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
     #[test]
@@ -108,10 +108,10 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
-                let solver_status = acvm.solve().expect("should succeed");
+                let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&w2.inner).unwrap(), &result);
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
     #[test]
@@ -127,10 +127,10 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
-        let solver_status = acvm.solve().expect("should succeed");
+        let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
     #[test]
@@ -146,9 +146,9 @@ proptest! {
 
         let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
-        let solver_status = acvm.solve().expect("should succeed");
+        let solver_status = acvm.solve();
 
         prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
-        prop_assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 }
