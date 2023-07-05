@@ -1,6 +1,6 @@
 //! Sha256 fallback function.
 use super::utils::{byte_decomposition, round_to_nearest_byte};
-pub use super::wu32::WU32;
+use super::wu32::WU32;
 use crate::helpers::VariableStore;
 use acir::{
     brillig_vm::{self, BinaryFieldOp, RegisterIndex},

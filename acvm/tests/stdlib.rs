@@ -3,7 +3,7 @@ use acir::{native_types::Witness, FieldElement};
 use acvm::pwg::{ACVMStatus, ACVM};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
-use stdlib::blackbox_fallbacks::sha256::WU32;
+use stdlib::blackbox_fallbacks::wu32::WU32;
 
 use crate::solver::StubbedBackend;
 
