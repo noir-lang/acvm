@@ -12,7 +12,7 @@ use acir::{
 };
 
 use acvm::{
-    pwg::{ForeignCallWaitInfo, OpcodeResolutionError, PartialWitnessGeneratorStatus, ACVM},
+    pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
 
@@ -127,12 +127,12 @@ fn inversion_brillig_oracle_equivalence() {
 
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on brillig call");
+    let solver_status = acvm.solve();
 
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
@@ -146,8 +146,8 @@ fn inversion_brillig_oracle_equivalence() {
     acvm.resolve_pending_foreign_call(foreign_call_result.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 }
 
 #[test]
@@ -255,11 +255,11 @@ fn double_inversion_brillig_oracle() {
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
@@ -273,11 +273,11 @@ fn double_inversion_brillig_oracle() {
     acvm.resolve_pending_foreign_call(x_plus_y_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should stall on brillig call");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "should be fully solved");
 
@@ -292,8 +292,8 @@ fn double_inversion_brillig_oracle() {
     acvm.resolve_pending_foreign_call(i_plus_j_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 }
 
 #[test]
@@ -375,11 +375,11 @@ fn oracle_dependent_execution() {
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
@@ -397,11 +397,11 @@ fn oracle_dependent_execution() {
     acvm.resolve_pending_foreign_call(x_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
@@ -421,8 +421,8 @@ fn oracle_dependent_execution() {
     // We've resolved all the brillig foreign calls so we should be able to complete execution now.
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 }
 
 #[test]
@@ -504,6 +504,6 @@ fn brillig_oracle_predicate() {
     .into();
 
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 }
