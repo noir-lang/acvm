@@ -29,10 +29,17 @@ mod block;
 
 pub use brillig::ForeignCallWaitInfo;
 
-#[derive(Debug, PartialEq)]
-pub enum PartialWitnessGeneratorStatus {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ACVMStatus {
     /// All opcodes have been solved.
     Solved,
+
+    /// The ACVM is in the process of executing the circuit.
+    InProgress,
+
+    /// The ACVM has encountered an irrecoverable error while executing the circuit and can not progress.
+    /// Most commonly this will be due to an unsatisfied constraint due to invalid inputs to the circuit.
+    Failure(OpcodeResolutionError),
 
     /// The ACVM has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
     /// to retrieve information from outside of the ACVM. The result of the foreign call must be passed back
@@ -62,7 +69,7 @@ pub enum OpcodeResolution {
 // TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
 // TODO: we could have a error enum for arithmetic failure cases in that module
 // TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeNotSolvable {
     #[error("missing assignment for witness index {0}")]
     MissingAssignment(u32),
@@ -70,7 +77,7 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
@@ -85,6 +92,8 @@ pub enum OpcodeResolutionError {
 }
 
 pub struct ACVM<B: BlackBoxFunctionSolver> {
+    status: ACVMStatus,
+
     backend: B,
     /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
     block_solvers: HashMap<BlockId, BlockSolver>,
@@ -102,6 +111,7 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         ACVM {
+            status: ACVMStatus::InProgress,
             backend,
             block_solvers: HashMap::default(),
             opcodes,
@@ -124,9 +134,22 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         &self.opcodes
     }
 
+    /// Updates the current status of the VM.
+    /// Returns the given status.
+    fn status(&mut self, status: ACVMStatus) -> ACVMStatus {
+        self.status = status.clone();
+        status
+    }
+
+    /// Sets the VM status to [ACVMStatus::Failure] using the provided `error`.
+    /// Returns the new status.
+    fn fail(&mut self, error: OpcodeResolutionError) -> ACVMStatus {
+        self.status(ACVMStatus::Failure(error))
+    }
+
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
-        if self.opcodes.is_empty() || self.get_pending_foreign_call().is_some() {
+        if self.status != ACVMStatus::Solved {
             panic!("ACVM is not ready to be finalized");
         }
         self.witness_map
@@ -153,7 +176,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// 1. All opcodes have been executed successfully.
     /// 2. The circuit has been found to be unsatisfiable.
     /// 2. A Brillig [foreign call][`UnresolvedBrilligCall`] has been encountered and must be resolved.
-    pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+    pub fn solve(&mut self) -> ACVMStatus {
         // TODO: Prevent execution with outstanding foreign calls?
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         while !self.opcodes.is_empty() {
@@ -212,7 +235,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
                     }
-                    Err(err) => return Err(err),
+                    Err(error) => return self.fail(error),
                 }
             }
 
@@ -221,18 +244,19 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
 
             // We have oracles that must be externally resolved
             if self.get_pending_foreign_call().is_some() {
-                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
+                return self.status(ACVMStatus::RequiresForeignCall);
             }
 
             // We are stalled because of an opcode being bad
             if stalled && !self.opcodes.is_empty() {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+                let error = OpcodeResolutionError::OpcodeNotSolvable(
                     opcode_not_solvable
                         .expect("infallible: cannot be stalled and None at the same time"),
-                ));
+                );
+                return self.fail(error);
             }
         }
-        Ok(PartialWitnessGeneratorStatus::Solved)
+        self.status(ACVMStatus::Solved)
     }
 }
 
