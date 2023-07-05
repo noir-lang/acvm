@@ -163,8 +163,6 @@ impl WU32 {
 
     /// Returns the quotient and remainder such that lhs = rhs * quotient + remainder
     // This should be the same as its equivalent in the Noir repo
-    // TODO: In Noir there's a constrain that "Constrain r < rhs"
-    // Is it necessary here
     pub fn euclidean_division(
         lhs: &WU32,
         rhs: &WU32,
@@ -195,6 +193,16 @@ impl WU32 {
         });
         new_gates.push(r_range_opcode);
         new_gates.push(q_range_opcode);
+        let num_witness = variables.finalize();
+
+        // constrain r < rhs
+        let (rhs_sub_r, extra_gates, num_witness) =
+            rhs.sub_no_overflow(&WU32::new(r_witness), num_witness);
+        new_gates.extend(extra_gates);
+        let rhs_sub_r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: rhs_sub_r.inner, num_bits: lhs.width },
+        });
+        new_gates.push(rhs_sub_r_range_opcode);
 
         // constrain lhs = rhs * quotient + remainder
         let rhs_expr = Expression::from(rhs.inner);
@@ -203,7 +211,6 @@ impl WU32 {
         let rhs_constraint = &rhs_constraint.unwrap() + &Expression::from(r_witness);
         let div_euclidean = &lhs_constraint - &rhs_constraint;
         new_gates.push(Opcode::Arithmetic(div_euclidean));
-        let num_witness = variables.finalize();
 
         (WU32::new(q_witness), WU32::new(r_witness), new_gates, num_witness)
     }
@@ -259,13 +266,11 @@ impl WU32 {
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),
@@ -312,19 +317,16 @@ impl WU32 {
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 2
                     mul_terms: vec![],
                     linear_combinations: vec![],
                     q_c: FieldElement::from(1_u128 << self.width),
@@ -371,6 +373,70 @@ impl WU32 {
         (sub_mod, new_gates, num_witness)
     }
 
+    /// Caculate and constrain `self` - `rhs` - 1 without allowing overflow
+    /// This is a helper function to `euclidean_division`
+    //  There is a `-1` cus theres a case where rhs = 2^32 and remainder = 0
+    pub(crate) fn sub_no_overflow(
+        &self,
+        rhs: &WU32,
+        mut num_witness: u32,
+    ) -> (WU32, Vec<Opcode>, u32) {
+        let mut new_gates = Vec::new();
+        let mut variables = VariableStore::new(&mut num_witness);
+        let new_witness = variables.new_variable();
+
+        // calculate self - rhs - 1
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![
+                BrilligInputs::Single(Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(FieldElement::one(), self.inner)],
+                    q_c: FieldElement::zero(),
+                }),
+                BrilligInputs::Single(Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![(FieldElement::one(), rhs.inner)],
+                    q_c: FieldElement::zero(),
+                }),
+                BrilligInputs::Single(Expression {
+                    mul_terms: vec![],
+                    linear_combinations: vec![],
+                    q_c: FieldElement::one(),
+                }),
+            ],
+            outputs: vec![BrilligOutputs::Simple(new_witness)],
+            foreign_call_results: vec![],
+            bytecode: vec![
+                brillig_vm::Opcode::BinaryIntOp {
+                    op: brillig_vm::BinaryIntOp::Sub,
+                    bit_size: 127,
+                    lhs: RegisterIndex::from(0),
+                    rhs: RegisterIndex::from(1),
+                    destination: RegisterIndex::from(0),
+                },
+                brillig_vm::Opcode::BinaryIntOp {
+                    op: brillig_vm::BinaryIntOp::Sub,
+                    bit_size: 127,
+                    lhs: RegisterIndex::from(0),
+                    rhs: RegisterIndex::from(2),
+                    destination: RegisterIndex::from(0),
+                },
+            ],
+            predicate: None,
+        });
+        new_gates.push(brillig_opcode);
+        let num_witness = variables.finalize();
+
+        // constrain subtraction
+        let mut sub_constraint = Expression::from(self.inner);
+        sub_constraint.push_addition_term(-FieldElement::one(), new_witness);
+        sub_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
+        sub_constraint.q_c = -FieldElement::one();
+        new_gates.push(Opcode::Arithmetic(sub_constraint));
+
+        (WU32::new(new_witness), new_gates, num_witness)
+    }
+
     /// Calculate and constrain `self` * `rhs`
     pub(crate) fn mul(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
@@ -381,13 +447,11 @@ impl WU32 {
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),
@@ -432,13 +496,11 @@ impl WU32 {
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),
@@ -477,13 +539,11 @@ impl WU32 {
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),

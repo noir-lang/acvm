@@ -137,7 +137,6 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
     let brillig_opcode = Opcode::Brillig(Brillig {
         inputs: vec![
             BrilligInputs::Single(Expression {
-                // Input Register 0
                 mul_terms: vec![],
                 linear_combinations: vec![],
                 q_c: FieldElement::from(number as u128),
