@@ -22,7 +22,12 @@ pub enum BlackBoxFunc {
     SHA256,
     /// Calculates the Blake2s hash of the inputs.
     Blake2s,
-    /// Verifies a Schnorr signature over the embedded curve.
+    /// Verifies a Schnorr signature over a curve which is "pairing friendly" with the curve on which the ACIR circuit is defined.
+    ///
+    /// The exact curve which this signature uses will vary based on the curve being used by ACIR.
+    /// For example, the BN254 curve supports Schnorr signatures over the [Grumpkin][grumpkin] curve.
+    ///
+    /// [grumpkin]: https://hackmd.io/@aztec-network/ByzgNxBfd#2-Grumpkin---A-curve-on-top-of-BN-254-for-SNARK-efficient-group-operations
     SchnorrVerify,
     /// Calculates a Pedersen commitment to the inputs.
     Pedersen,

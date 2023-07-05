@@ -17,21 +17,19 @@ pub(crate) fn schnorr_verify(
     initial_witness: &mut WitnessMap,
     public_key_x: FunctionInput,
     public_key_y: FunctionInput,
-    signature_s: FunctionInput,
-    signature_e: FunctionInput,
+    signature: &[FunctionInput],
     message: &[FunctionInput],
     output: Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
 
-    let signature_s: &FieldElement = witness_to_value(initial_witness, signature_s.witness)?;
-    let signature_e: &FieldElement = witness_to_value(initial_witness, signature_e.witness)?;
+    let signature = to_u8_vec(initial_witness, signature)?;
 
     let message = to_u8_vec(initial_witness, message)?;
 
     let valid_signature =
-        backend.schnorr_verify(public_key_x, public_key_y, signature_s, signature_e, &message)?;
+        backend.schnorr_verify(public_key_x, public_key_y, &signature, &message)?;
 
     insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
 

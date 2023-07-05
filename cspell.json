@@ -21,6 +21,7 @@
         "endianness",
         "euclidian",
         "funcs",
+        "grumpkin",
         "hasher",
         "keccak",
         "Merkle",
