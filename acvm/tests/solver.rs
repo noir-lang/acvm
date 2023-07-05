@@ -149,7 +149,7 @@ fn inversion_brillig_oracle_equivalence() {
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
-    // ACVM should be finalizable in `Solved` state.
+    // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
 
@@ -298,7 +298,7 @@ fn double_inversion_brillig_oracle() {
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
-    // ACVM should be finalizable in `Solved` state.
+    // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
 
@@ -430,7 +430,7 @@ fn oracle_dependent_execution() {
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
-    // ACVM should be finalizable in `Solved` state.
+    // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
 
@@ -516,6 +516,6 @@ fn brillig_oracle_predicate() {
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
-    // ACVM should be finalizable in `Solved` state.
+    // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
