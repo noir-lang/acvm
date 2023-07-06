@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.16.0](https://github.com/noir-lang/acvm/compare/acvm-v0.15.1...acvm-v0.16.0) (2023-07-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** replace `PartialWitnessGeneratorStatus` with `ACVMStatus` ([#410](https://github.com/noir-lang/acvm/issues/410))
+* **acir:** revert changes to `SchnorrVerify` opcode ([#409](https://github.com/noir-lang/acvm/issues/409))
+* **acvm:** Replace `PartialWitnessGenerator` trait with `BlackBoxFunctionSolver` ([#378](https://github.com/noir-lang/acvm/issues/378))
+* **acvm:** Encapsulate internal state of ACVM within a struct ([#384](https://github.com/noir-lang/acvm/issues/384))
+* remove unused `OpcodeResolutionError::IncorrectNumFunctionArguments` variant ([#397](https://github.com/noir-lang/acvm/issues/397))
+* **acir:** Remove `Oracle` opcode ([#368](https://github.com/noir-lang/acvm/issues/368))
+* **acir:** Use fixed length data structures in black box function inputs/outputs where possible. ([#386](https://github.com/noir-lang/acvm/issues/386))
+
+### Features
+
+* **acir:** Remove `Oracle` opcode ([#368](https://github.com/noir-lang/acvm/issues/368)) ([63354df](https://github.com/noir-lang/acvm/commit/63354df1fe47a4f1128b91641d1b66dfc1281794))
+* **acir:** Use fixed length data structures in black box function inputs/outputs where possible. ([#386](https://github.com/noir-lang/acvm/issues/386)) ([b139d4d](https://github.com/noir-lang/acvm/commit/b139d4d566c715009465a430aab0fb819aacab4f))
+* **acvm:** Derive `Copy` for `Language` ([#406](https://github.com/noir-lang/acvm/issues/406)) ([69a6c22](https://github.com/noir-lang/acvm/commit/69a6c224d80be556ac5388ffeb7a02424df22031))
+* **acvm:** Encapsulate internal state of ACVM within a struct ([#384](https://github.com/noir-lang/acvm/issues/384)) ([84d4867](https://github.com/noir-lang/acvm/commit/84d4867b2d97097d451d59174781555dafd2591f))
+* **acvm:** Replace `PartialWitnessGenerator` trait with `BlackBoxFunctionSolver` ([#378](https://github.com/noir-lang/acvm/issues/378)) ([73fbc95](https://github.com/noir-lang/acvm/commit/73fbc95942b0039565c93719809975f66dc9ec53))
+* **acvm:** replace `PartialWitnessGeneratorStatus` with `ACVMStatus` ([#410](https://github.com/noir-lang/acvm/issues/410)) ([fc3240d](https://github.com/noir-lang/acvm/commit/fc3240d456d0128f6eb42096beb8b7a586ea48da))
+* **brillig:** implemented first blackbox functions ([#401](https://github.com/noir-lang/acvm/issues/401)) ([62d40f7](https://github.com/noir-lang/acvm/commit/62d40f7c03cd1102f615b8d565f82496962db637))
+
+
+### Bug Fixes
+
+* **acir:** revert changes to `SchnorrVerify` opcode ([#409](https://github.com/noir-lang/acvm/issues/409)) ([f1c7940](https://github.com/noir-lang/acvm/commit/f1c7940f4ac618c7b440b6ed30199f85cbe72cca))
+
+
+### Miscellaneous Chores
+
+* remove unused `OpcodeResolutionError::IncorrectNumFunctionArguments` variant ([#397](https://github.com/noir-lang/acvm/issues/397)) ([d1368d0](https://github.com/noir-lang/acvm/commit/d1368d041eb42d265a4ef385e066b82bc36d0743))
+
 ## [0.15.1](https://github.com/noir-lang/acvm/compare/acvm-v0.15.0...acvm-v0.15.1) (2023-06-20)
 
 
