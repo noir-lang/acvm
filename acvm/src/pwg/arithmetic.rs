@@ -27,6 +27,7 @@ impl ArithmeticSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         gate: &Expression,
+        opcode_index: usize,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
         // Evaluate multiplication term
@@ -46,14 +47,14 @@ impl ArithmeticSolver {
                     let total_sum = a + gate.q_c;
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
-                            Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                            Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index })
                         } else {
                             Ok(OpcodeResolution::Solved)
                         }
                     } else {
                         let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
-                        insert_value(&w1, assignment, initial_witness)?;
+                        insert_value(&w1, assignment, initial_witness, opcode_index)?;
                         Ok(OpcodeResolution::Solved)
                     }
                 } else {
@@ -71,14 +72,14 @@ impl ArithmeticSolver {
                 let total_sum = sum + gate.q_c;
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
-                        Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                        Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index })
                     } else {
                         Ok(OpcodeResolution::Solved)
                     }
                 } else {
                     let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
-                    insert_value(&unknown_var, assignment, initial_witness)?;
+                    insert_value(&unknown_var, assignment, initial_witness, opcode_index)?;
                     Ok(OpcodeResolution::Solved)
                 }
             }
@@ -86,7 +87,7 @@ impl ArithmeticSolver {
                 // All the variables in the MulTerm are solved and the Fan-in is also solved
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
-                    Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                    Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index })
                 } else {
                     Ok(OpcodeResolution::Solved)
                 }
@@ -101,14 +102,14 @@ impl ArithmeticSolver {
                 let total_sum = total_prod + partial_sum + gate.q_c;
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
-                        Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                        Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index })
                     } else {
                         Ok(OpcodeResolution::Solved)
                     }
                 } else {
                     let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
-                    insert_value(&unknown_var, assignment, initial_witness)?;
+                    insert_value(&unknown_var, assignment, initial_witness, opcode_index)?;
                     Ok(OpcodeResolution::Solved)
                 }
             }
@@ -278,8 +279,8 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), Ok(OpcodeResolution::Solved));
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), Ok(OpcodeResolution::Solved));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a, 0), Ok(OpcodeResolution::Solved));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b, 1), Ok(OpcodeResolution::Solved));
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }

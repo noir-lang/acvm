@@ -84,7 +84,7 @@ pub enum OpcodeResolutionError {
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain,
+    UnsatisfiedConstrain { opcode_index: usize },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
@@ -102,6 +102,9 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
     opcodes: Vec<Opcode>,
 
+    /// the position of the each opcode in the opcodes
+    opcodes_idx: Vec<usize>,
+
     witness_map: WitnessMap,
 
     /// A list of foreign calls which must be resolved before the ACVM can resume execution.
@@ -110,11 +113,13 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+        let opcodes_idx = (0..opcodes.len()).collect();
         ACVM {
             status: ACVMStatus::InProgress,
             backend,
             block_solvers: HashMap::default(),
             opcodes,
+            opcodes_idx,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
         }
@@ -181,25 +186,29 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
         while !self.opcodes.is_empty() {
             unresolved_opcodes.clear();
+            let mut unresolved_idx = Vec::new();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
-            for opcode in &self.opcodes {
+            for (i, opcode) in self.opcodes.iter().enumerate() {
                 let resolution = match opcode {
                     Opcode::Arithmetic(expr) => {
-                        ArithmeticSolver::solve(&mut self.witness_map, expr)
+                        ArithmeticSolver::solve(&mut self.witness_map, expr, self.opcodes_idx[i])
                     }
-                    Opcode::BlackBoxFuncCall(bb_func) => {
-                        blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
-                    }
+                    Opcode::BlackBoxFuncCall(bb_func) => blackbox::solve(
+                        &self.backend,
+                        &mut self.witness_map,
+                        bb_func,
+                        self.opcodes_idx[i],
+                    ),
                     Opcode::Directive(directive) => {
-                        solve_directives(&mut self.witness_map, directive)
+                        solve_directives(&mut self.witness_map, directive, self.opcodes_idx[i])
                     }
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                         let solver = self.block_solvers.entry(block.id).or_default();
                         solver.solve(&mut self.witness_map, &block.trace)
                     }
                     Opcode::Brillig(brillig) => {
-                        BrilligSolver::solve(&mut self.witness_map, brillig)
+                        BrilligSolver::solve(&mut self.witness_map, brillig, self.opcodes_idx[i])
                     }
                 };
                 match resolution {
@@ -209,6 +218,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
                         unresolved_opcodes.push(opcode.clone());
+                        unresolved_idx.push(self.opcodes_idx[i]);
                     }
                     Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
                         stalled = false;
@@ -231,6 +241,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
                         unresolved_opcodes.push(opcode.clone());
+                        unresolved_idx.push(self.opcodes_idx[i]);
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -241,6 +252,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
 
             // Before potentially ending execution, we must save the list of opcodes which remain to be solved.
             std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
+            std::mem::swap(&mut self.opcodes_idx, &mut unresolved_idx);
 
             // We have oracles that must be externally resolved
             if self.get_pending_foreign_call().is_some() {
@@ -298,6 +310,7 @@ pub fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
     initial_witness: &mut WitnessMap,
+    opcode_index: usize,
 ) -> Result<(), OpcodeResolutionError> {
     let optional_old_value = initial_witness.insert(*witness, value_to_insert);
 
@@ -307,7 +320,7 @@ pub fn insert_value(
     };
 
     if old_value != value_to_insert {
-        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index });
     }
 
     Ok(())

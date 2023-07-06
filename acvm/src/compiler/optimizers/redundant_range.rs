@@ -69,18 +69,19 @@ impl RangeOptimizer {
 
     /// Returns a `Circuit` where each Witness is only range constrained
     /// once to the lowest number `bit size` possible.
-    pub(crate) fn replace_redundant_ranges(self) -> Circuit {
+    pub(crate) fn replace_redundant_ranges(self, order_list: Vec<usize>) -> (Circuit, Vec<usize>) {
         let mut already_seen_witness = HashSet::new();
 
+        let mut new_order_list = Vec::with_capacity(order_list.len());
         let mut optimized_opcodes = Vec::with_capacity(self.circuit.opcodes.len());
-
-        for opcode in self.circuit.opcodes {
-            let (witness, num_bits) = match extract_range_opcode(&opcode) {
+        for (idx, opcode) in self.circuit.opcodes.iter().enumerate() {
+            let (witness, num_bits) = match extract_range_opcode(opcode) {
                 Some(range_opcode) => range_opcode,
                 None => {
                     // If its not the range opcode, add it to the opcode
                     // list and continue;
-                    optimized_opcodes.push(opcode);
+                    optimized_opcodes.push(opcode.clone());
+                    new_order_list.push(order_list[idx]);
                     continue;
                 }
             };
@@ -99,16 +100,20 @@ impl RangeOptimizer {
             // then we should add retain this range opcode.
             if is_lowest_bit_size {
                 already_seen_witness.insert(witness);
-                optimized_opcodes.push(opcode);
+                new_order_list.push(order_list[idx]);
+                optimized_opcodes.push(opcode.clone());
             }
         }
 
-        Circuit {
-            current_witness_index: self.circuit.current_witness_index,
-            opcodes: optimized_opcodes,
-            public_parameters: self.circuit.public_parameters,
-            return_values: self.circuit.return_values,
-        }
+        (
+            Circuit {
+                current_witness_index: self.circuit.current_witness_index,
+                opcodes: optimized_opcodes,
+                public_parameters: self.circuit.public_parameters,
+                return_values: self.circuit.return_values,
+            },
+            new_order_list,
+        )
     }
 }
 
@@ -164,7 +169,7 @@ mod tests {
     fn retain_lowest_range_size() {
         // The optimizer should keep the lowest bit size range constraint
         let circuit = test_circuit(vec![(Witness(1), 32), (Witness(1), 16)]);
-
+        let opcode_idx = circuit.default_opcode_idx();
         let optimizer = RangeOptimizer::new(circuit);
 
         let range_size = *optimizer
@@ -176,7 +181,7 @@ mod tests {
             "expected a range size of 16 since that was the lowest bit size provided"
         );
 
-        let optimized_circuit = optimizer.replace_redundant_ranges();
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_idx);
         assert_eq!(optimized_circuit.opcodes.len(), 1);
 
         let (witness, num_bits) =
@@ -196,9 +201,9 @@ mod tests {
             (Witness(2), 23),
             (Witness(2), 23),
         ]);
-
+        let opcode_idx = circuit.default_opcode_idx();
         let optimizer = RangeOptimizer::new(circuit);
-        let optimized_circuit = optimizer.replace_redundant_ranges();
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_idx);
         assert_eq!(optimized_circuit.opcodes.len(), 2);
 
         let (witness_a, num_bits_a) =
@@ -222,9 +227,9 @@ mod tests {
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
-
+        let opcode_idx = circuit.default_opcode_idx();
         let optimizer = RangeOptimizer::new(circuit);
-        let optimized_circuit = optimizer.replace_redundant_ranges();
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_idx);
         assert_eq!(optimized_circuit.opcodes.len(), 5)
     }
 }

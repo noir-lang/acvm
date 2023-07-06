@@ -23,8 +23,9 @@ mod sorting;
 pub(super) fn solve_directives(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
+    opcode_idx: usize,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    match solve_directives_internal(initial_witness, directive) {
+    match solve_directives_internal(initial_witness, directive, opcode_idx) {
         Ok(_) => Ok(OpcodeResolution::Solved),
         Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
             Ok(OpcodeResolution::Stalled(unsolved))
@@ -36,11 +37,12 @@ pub(super) fn solve_directives(
 fn solve_directives_internal(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
+    opcode_index: usize,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
-            insert_value(result, val.inverse(), initial_witness)
+            insert_value(result, val.inverse(), initial_witness, opcode_index)
         }
         Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
@@ -65,11 +67,13 @@ fn solve_directives_internal(
                 q,
                 FieldElement::from_be_bytes_reduce(&int_q.to_bytes_be()),
                 initial_witness,
+                opcode_index,
             )?;
             insert_value(
                 r,
                 FieldElement::from_be_bytes_reduce(&int_r.to_bytes_be()),
                 initial_witness,
+                opcode_index,
             )?;
 
             Ok(())
@@ -82,7 +86,7 @@ fn solve_directives_internal(
             let decomposed_integer = big_integer.to_radix_le(*radix);
 
             if b.len() < decomposed_integer.len() {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index });
             }
 
             for (i, witness) in b.iter().enumerate() {
@@ -95,7 +99,7 @@ fn solve_directives_internal(
                     None => FieldElement::zero(),
                 };
 
-                insert_value(witness, value, initial_witness)?
+                insert_value(witness, value, initial_witness, opcode_index)?
             }
 
             Ok(())
@@ -129,7 +133,7 @@ fn solve_directives_internal(
             let control = sorting::route(base, b);
             for (w, value) in bits.iter().zip(control) {
                 let value = if value { FieldElement::one() } else { FieldElement::zero() };
-                insert_value(w, value, initial_witness)?;
+                insert_value(w, value, initial_witness, opcode_index)?;
             }
             Ok(())
         }

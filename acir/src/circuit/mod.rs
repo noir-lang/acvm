@@ -54,6 +54,10 @@ impl Circuit {
         let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
         Ok(circuit)
     }
+
+    pub fn default_opcode_idx(&self) -> Vec<usize> {
+        (0..self.opcodes.len()).collect()
+    }
 }
 
 impl std::fmt::Display for Circuit {

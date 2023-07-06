@@ -20,6 +20,7 @@ pub(crate) fn schnorr_verify(
     signature: &[FunctionInput],
     message: &[FunctionInput],
     output: Witness,
+    opcode_idx: usize,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
@@ -31,7 +32,7 @@ pub(crate) fn schnorr_verify(
     let valid_signature =
         backend.schnorr_verify(public_key_x, public_key_y, &signature, &message)?;
 
-    insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
+    insert_value(&output, FieldElement::from(valid_signature), initial_witness, opcode_idx)?;
 
     Ok(OpcodeResolution::Solved)
 }

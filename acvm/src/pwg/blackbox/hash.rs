@@ -36,12 +36,13 @@ pub(super) fn hash_to_field_128_security(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     output: &Witness,
+    opcode_idx: usize,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let message_input = get_hash_input(initial_witness, inputs, None)?;
     let digest = blake2s256(&message_input);
 
     let reduced_res = FieldElement::from_be_bytes_reduce(&digest);
-    insert_value(output, reduced_res, initial_witness)?;
+    insert_value(output, reduced_res, initial_witness, opcode_idx)?;
 
     Ok(OpcodeResolution::Solved)
 }
@@ -55,6 +56,7 @@ pub(super) fn solve_generic_256_hash_opcode(
     outputs: &[Witness],
     hash_function: fn(data: &[u8]) -> [u8; 32],
     black_box_func: BlackBoxFunc,
+    opcode_idx: usize,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let message_input = get_hash_input(initial_witness, inputs, var_message_size)?;
     let digest: [u8; 32] = hash_function(&message_input);
@@ -65,7 +67,7 @@ pub(super) fn solve_generic_256_hash_opcode(
             format!("Expected 32 outputs but encountered {}", outputs.len()),
         )
     })?;
-    write_digest_to_outputs(initial_witness, outputs, digest)?;
+    write_digest_to_outputs(initial_witness, outputs, digest, opcode_idx)?;
 
     Ok(OpcodeResolution::Solved)
 }
@@ -113,12 +115,14 @@ fn write_digest_to_outputs(
     initial_witness: &mut WitnessMap,
     outputs: [Witness; 32],
     digest: [u8; 32],
+    opcode_idx: usize,
 ) -> Result<(), OpcodeResolutionError> {
     for (output_witness, value) in outputs.iter().zip(digest.into_iter()) {
         insert_value(
             output_witness,
             FieldElement::from_be_bytes_reduce(&[value]),
             initial_witness,
+            opcode_idx,
         )?;
     }
 

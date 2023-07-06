@@ -16,9 +16,10 @@ impl FallbackTransformer {
         acir: Circuit,
         is_supported: impl Fn(&Opcode) -> bool,
         simplifier: &CircuitSimplifier,
-    ) -> Result<Circuit, CompileError> {
+        opcode_idx: Vec<usize>,
+    ) -> Result<(Circuit, Vec<usize>), CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
-
+        let mut new_opcode_idx = Vec::with_capacity(opcode_idx.len());
         let mut witness_idx = acir.current_witness_index + 1;
         // add opcodes for defining the witness that will be solved through simplification but must be kept
         for w in &simplifier.defined {
@@ -34,6 +35,7 @@ impl FallbackTransformer {
                     | Opcode::ROM(_)
                     | Opcode::RAM(_) => {
                         // directive, arithmetic expression or blocks are handled by acvm
+                        new_opcode_idx.push(opcode_idx[idx]);
                         acir_supported_opcodes.push(opcode);
                         continue;
                     }
@@ -42,6 +44,7 @@ impl FallbackTransformer {
                         // supported by the backend. If it is supported, then we can simply
                         // collect the opcode
                         if is_supported(&opcode) {
+                            new_opcode_idx.push(opcode_idx[idx]);
                             acir_supported_opcodes.push(opcode);
                             continue;
                         } else {
@@ -51,7 +54,7 @@ impl FallbackTransformer {
                             let (updated_witness_index, opcodes_fallback) =
                                 Self::opcode_fallback(bb_func_call, witness_idx)?;
                             witness_idx = updated_witness_index;
-
+                            new_opcode_idx.extend(vec![opcode_idx[idx]; opcodes_fallback.len()]);
                             acir_supported_opcodes.extend(opcodes_fallback);
                         }
                     }
@@ -59,12 +62,15 @@ impl FallbackTransformer {
             }
         }
 
-        Ok(Circuit {
-            current_witness_index: witness_idx,
-            opcodes: acir_supported_opcodes,
-            public_parameters: acir.public_parameters,
-            return_values: acir.return_values,
-        })
+        Ok((
+            Circuit {
+                current_witness_index: witness_idx,
+                opcodes: acir_supported_opcodes,
+                public_parameters: acir.public_parameters,
+                return_values: acir.return_values,
+            },
+            new_opcode_idx,
+        ))
     }
 
     fn opcode_fallback(
