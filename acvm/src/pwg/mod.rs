@@ -243,9 +243,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             Ok(OpcodeResolution::InProgressBrillig(_)) => {
                 unreachable!("Handled above")
             }
-            Ok(OpcodeResolution::Stalled(not_solvable)) => self.status(ACVMStatus::Failure(
-                OpcodeResolutionError::OpcodeNotSolvable(not_solvable),
-            )),
+            Ok(OpcodeResolution::Stalled(not_solvable)) => {
+                self.fail(OpcodeResolutionError::OpcodeNotSolvable(not_solvable))
+            }
             Err(error) => self.fail(error),
         }
     }

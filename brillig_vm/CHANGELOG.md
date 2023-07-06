@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.15.1...brillig_vm-v0.16.0) (2023-07-06)
+
+
+### Features
+
+* **brillig:** implemented first blackbox functions ([#401](https://github.com/noir-lang/acvm/issues/401)) ([62d40f7](https://github.com/noir-lang/acvm/commit/62d40f7c03cd1102f615b8d565f82496962db637))
+
 ## [0.15.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.15.0...brillig_vm-v0.15.1) (2023-06-20)
 
 
