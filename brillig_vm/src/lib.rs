@@ -190,6 +190,8 @@ impl VM {
 
                 let mut invalid_foreign_call_result = false;
                 for (destination, output) in destinations.iter().zip(values) {
+                    dbg!(output);
+                    dbg!(values);
                     match destination {
                         RegisterOrMemory::RegisterIndex(value_index) => match output {
                             ForeignCallOutput::Single(value) => {
@@ -202,6 +204,7 @@ impl VM {
                         RegisterOrMemory::HeapArray(HeapArray { pointer: pointer_index, size }) => {
                             match output {
                                 ForeignCallOutput::Array(values) => {
+
                                     if values.len() != *size {
                                         invalid_foreign_call_result = true;
                                         break;
