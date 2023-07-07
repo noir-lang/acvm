@@ -407,15 +407,15 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
 /// even when it is put back into the list of opcodes out of order.
 /// This happens when we resolve a Brillig opcode call.
 pub fn canonical_brillig_hash(brillig: &Brillig) -> u64 {
-    let mut serialize_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
-    serialize_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
-    serialize_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
-    serialize_vector.extend(rmp_serde::to_vec(&brillig.predicate).unwrap());
+    let mut serialized_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.predicate).unwrap());
 
     use std::collections::hash_map::DefaultHasher;
     use std::hash::Hasher;
 
     let mut hasher = DefaultHasher::new();
-    hasher.write(&serialize_vector);
+    hasher.write(&serialized_vector);
     hasher.finish()
 }
