@@ -5,9 +5,9 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
-        Opcode,
+        Opcode, OpcodeLabel,
     },
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
@@ -518,4 +518,41 @@ fn brillig_oracle_predicate() {
 
     // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
+}
+
+#[test]
+fn unsatisfied_opcode_resolved() {
+    let a = Witness(0);
+    let b = Witness(1);
+    let c = Witness(2);
+    let d = Witness(3);
+
+    // a = b + c + d;
+    let gate_a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![
+            (FieldElement::one(), a),
+            (-FieldElement::one(), b),
+            (-FieldElement::one(), c),
+            (-FieldElement::one(), d),
+        ],
+        q_c: FieldElement::zero(),
+    };
+
+    let mut values = WitnessMap::new();
+    values.insert(a, FieldElement::from(4_i128));
+    values.insert(b, FieldElement::from(2_i128));
+    values.insert(c, FieldElement::from(1_i128));
+    values.insert(d, FieldElement::from(2_i128));
+
+    let opcodes = vec![Opcode::Arithmetic(gate_a)];
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let solver_status = acvm.solve();
+    assert_eq!(
+        solver_status,
+        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_index: OpcodeLabel::Resolved(0)
+        }),
+        "The first gate is not satisfiable, expected an error indicating this"
+    );
 }
