@@ -39,6 +39,8 @@ pub enum BlackBoxFunc {
     HashToField128Security,
     /// Verifies a ECDSA signature over the secp256k1 curve.
     EcdsaSecp256k1,
+    /// Verifies a ECDSA signature over the secp256r1 curve.
+    EcdsaSecp256r1,
     /// Performs scalar multiplication over the embedded curve on which [`FieldElement`][acir_field::FieldElement] is defined.
     FixedBaseScalarMul,
     /// Calculates the Keccak256 hash of the inputs.
@@ -69,6 +71,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::RANGE => "range",
             BlackBoxFunc::Keccak256 => "keccak256",
             BlackBoxFunc::RecursiveAggregation => "recursive_aggregation",
+            BlackBoxFunc::EcdsaSecp256r1 => "ecdsa_secp256r1",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -79,6 +82,7 @@ impl BlackBoxFunc {
             "pedersen" => Some(BlackBoxFunc::Pedersen),
             "hash_to_field_128_security" => Some(BlackBoxFunc::HashToField128Security),
             "ecdsa_secp256k1" => Some(BlackBoxFunc::EcdsaSecp256k1),
+            "ecdsa_secp256r1" => Some(BlackBoxFunc::EcdsaSecp256r1),
             "fixed_base_scalar_mul" => Some(BlackBoxFunc::FixedBaseScalarMul),
             "and" => Some(BlackBoxFunc::AND),
             "xor" => Some(BlackBoxFunc::XOR),

@@ -20,7 +20,10 @@ use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
 use logic::{and, xor};
 use pedersen::pedersen;
 use range::solve_range_opcode;
-use signature::{ecdsa::secp256k1_prehashed, schnorr::schnorr_verify};
+use signature::{
+    ecdsa::{secp256k1_prehashed, secp256r1_prehashed},
+    schnorr::schnorr_verify,
+};
 
 /// Check if all of the inputs to the function have assignments
 ///
@@ -123,6 +126,20 @@ pub(crate) fn solve(
             hashed_message: message,
             output,
         } => secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *output,
+        ),
+        BlackBoxFuncCall::EcdsaSecp256r1 {
+            public_key_x,
+            public_key_y,
+            signature,
+            hashed_message: message,
+            output,
+        } => secp256r1_prehashed(
             initial_witness,
             public_key_x,
             public_key_y,
