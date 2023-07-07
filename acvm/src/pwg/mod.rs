@@ -109,6 +109,9 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     /// A list of foreign calls which must be resolved before the ACVM can resume execution.
     pending_foreign_calls: Vec<UnresolvedBrilligCall>,
+
+    /// Opcode index of the pending brillig opcodes
+    pending_brillig_idx: HashMap<u64, usize>,
 }
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
@@ -122,6 +125,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             opcodes_idx,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
+            pending_brillig_idx: HashMap::new(),
         }
     }
 
@@ -172,6 +176,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolved_brillig = foreign_call.resolve(foreign_call_result);
 
         // Mark this opcode to be executed next.
+        let hash = resolved_brillig.canonical_hash();
+        self.opcodes_idx.insert(0, self.pending_brillig_idx[&hash]);
         self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
     }
 
@@ -227,7 +233,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
-                        unresolved_idx.push(self.opcodes_idx[i]);
+                        let hash = brillig.canonical_hash();
+                        self.pending_brillig_idx.insert(hash, self.opcodes_idx[i]);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,

@@ -1,10 +1,12 @@
+use std::hash::Hasher;
+
 use crate::native_types::{Expression, Witness};
 use brillig_vm::ForeignCallResult;
 use serde::{Deserialize, Serialize};
 
 /// Inputs for the Brillig VM. These are the initial inputs
 /// that the Brillig VM will use to start.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub enum BrilligInputs {
     Single(Expression),
     Array(Vec<Expression>),
@@ -12,7 +14,7 @@ pub enum BrilligInputs {
 
 /// Outputs for the Brillig VM. Once the VM has completed
 /// execution, this will be the object that is returned.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug, Hash)]
 pub enum BrilligOutputs {
     Simple(Witness),
     Array(Vec<Witness>),
@@ -29,4 +31,18 @@ pub struct Brillig {
     pub bytecode: Vec<brillig_vm::Opcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,
+}
+
+impl Brillig {
+    pub fn canonical_hash(&self) -> u64 {
+        let mut serialize_vector = rmp_serde::to_vec(&self.inputs).unwrap();
+        serialize_vector.extend(rmp_serde::to_vec(&self.outputs).unwrap());
+        serialize_vector.extend(rmp_serde::to_vec(&self.bytecode).unwrap());
+        serialize_vector.extend(rmp_serde::to_vec(&self.predicate).unwrap());
+
+        use std::collections::hash_map::DefaultHasher;
+        let mut hasher = DefaultHasher::new();
+        hasher.write(&serialize_vector);
+        hasher.finish()
+    }
 }
