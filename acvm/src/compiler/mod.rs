@@ -36,7 +36,7 @@ pub fn compile(
 
     // Track original opcode index throughout the transformation passes of the compilation
     // by applying the modifications done to the circuit opcodes also to the opcode_idx (delete and insert)
-    let opcode_idx: Vec<usize> = acir.default_opcode_idx();
+    let opcode_idx: Vec<usize> = acir.default_opcode_indices();
 
     // Fallback transformer pass
     let (acir, opcode_idx) =

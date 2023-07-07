@@ -55,7 +55,7 @@ impl Circuit {
         Ok(circuit)
     }
 
-    pub fn default_opcode_idx(&self) -> Vec<usize> {
+    pub fn default_opcode_indices(&self) -> Vec<usize> {
         (0..self.opcodes.len()).collect()
     }
 }

@@ -477,7 +477,7 @@ mod tests {
         let support_all = |_opcode: &Opcode| true;
         let mut acir = Circuit::default();
         acir.opcodes = circuit;
-        let opcode_idx = acir.default_opcode_idx();
+        let opcode_idx = acir.default_opcode_indices();
         let (acir, _) =
             FallbackTransformer::transform(acir, support_all, &simplifier, opcode_idx).unwrap();
         assert_eq!(acir.opcodes.len(), 2);

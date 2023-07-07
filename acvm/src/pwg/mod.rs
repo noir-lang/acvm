@@ -227,6 +227,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
+                        unresolved_idx.push(self.opcodes_idx[i]);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,
