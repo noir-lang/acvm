@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{Circuit, Opcode},
+    circuit::{Circuit, Opcode, OpcodeLabel},
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
@@ -29,14 +29,14 @@ pub fn compile(
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &CircuitSimplifier,
-) -> Result<(Circuit, Vec<usize>), CompileError> {
+) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
     // Track original opcode index throughout the transformation passes of the compilation
     // by applying the modifications done to the circuit opcodes also to the opcode_idx (delete and insert)
-    let opcode_idx: Vec<usize> = acir.default_opcode_indices();
+    let opcode_idx: Vec<OpcodeLabel> = acir.default_opcode_indices();
 
     // Fallback transformer pass
     let (acir, opcode_idx) =

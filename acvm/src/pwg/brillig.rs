@@ -1,6 +1,9 @@
 use acir::{
     brillig_vm::{RegisterIndex, Registers, VMStatus, Value, VM},
-    circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
+    circuit::{
+        brillig::{Brillig, BrilligInputs, BrilligOutputs},
+        OpcodeLabel,
+    },
     native_types::WitnessMap,
     FieldElement,
 };
@@ -15,7 +18,7 @@ impl BrilligSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
-        opcode_idx: usize,
+        opcode_idx: OpcodeLabel,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
@@ -135,7 +138,7 @@ impl BrilligSolver {
     fn zero_out_brillig_outputs(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
-        opcode_idx: usize,
+        opcode_idx: OpcodeLabel,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         for output in &brillig.outputs {
             match output {

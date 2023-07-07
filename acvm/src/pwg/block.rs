@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use acir::{
-    circuit::opcodes::MemOp,
+    circuit::{opcodes::MemOp, OpcodeLabel},
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -19,7 +19,7 @@ use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 pub(super) struct BlockSolver {
     block_value: HashMap<u32, FieldElement>,
     solved_operations: usize,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 }
 
 impl BlockSolver {
@@ -111,7 +111,7 @@ impl BlockSolver {
 #[cfg(test)]
 mod tests {
     use acir::{
-        circuit::opcodes::MemOp,
+        circuit::{opcodes::MemOp, OpcodeLabel},
         native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
@@ -146,11 +146,11 @@ mod tests {
         });
         let mut initial_witness = WitnessMap::new();
         let mut value = FieldElement::zero();
-        insert_value(&Witness(1), value, &mut initial_witness, 0).unwrap();
+        insert_value(&Witness(1), value, &mut initial_witness, OpcodeLabel(0)).unwrap();
         value = FieldElement::one();
-        insert_value(&Witness(2), value, &mut initial_witness, 0).unwrap();
+        insert_value(&Witness(2), value, &mut initial_witness, OpcodeLabel(0)).unwrap();
         value = value + value;
-        insert_value(&Witness(3), value, &mut initial_witness, 0).unwrap();
+        insert_value(&Witness(3), value, &mut initial_witness, OpcodeLabel(0)).unwrap();
         let mut block_solver = BlockSolver::default();
         block_solver.solve(&mut initial_witness, &trace).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());

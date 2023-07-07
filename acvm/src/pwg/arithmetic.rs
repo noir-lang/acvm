@@ -1,4 +1,5 @@
 use acir::{
+    circuit::OpcodeLabel,
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
@@ -27,7 +28,7 @@ impl ArithmeticSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         gate: &Expression,
-        opcode_index: usize,
+        opcode_index: OpcodeLabel,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
         // Evaluate multiplication term
@@ -279,8 +280,14 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a, 0), Ok(OpcodeResolution::Solved));
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b, 1), Ok(OpcodeResolution::Solved));
+    assert_eq!(
+        ArithmeticSolver::solve(&mut values, &gate_a, OpcodeLabel(0)),
+        Ok(OpcodeResolution::Solved)
+    );
+    assert_eq!(
+        ArithmeticSolver::solve(&mut values, &gate_b, OpcodeLabel(1)),
+        Ok(OpcodeResolution::Solved)
+    );
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }

@@ -1,5 +1,6 @@
 use crate::pwg::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
+use acir::circuit::OpcodeLabel;
 use acir::{
     circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
@@ -13,7 +14,7 @@ pub(super) fn and(
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     assert_eq!(
         lhs.num_bits, rhs.num_bits,
@@ -36,7 +37,7 @@ pub(super) fn xor(
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     assert_eq!(
         lhs.num_bits, rhs.num_bits,
@@ -59,7 +60,7 @@ fn solve_logic_gate(
     b: &Witness,
     result: Witness,
     logic_op: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let w_l_value = witness_to_value(initial_witness, *a)?;
     let w_r_value = witness_to_value(initial_witness, *b)?;

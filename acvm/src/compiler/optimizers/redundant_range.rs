@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode, OpcodeLabel},
     native_types::Witness,
 };
 use std::collections::{BTreeMap, HashSet};
@@ -69,7 +69,10 @@ impl RangeOptimizer {
 
     /// Returns a `Circuit` where each Witness is only range constrained
     /// once to the lowest number `bit size` possible.
-    pub(crate) fn replace_redundant_ranges(self, order_list: Vec<usize>) -> (Circuit, Vec<usize>) {
+    pub(crate) fn replace_redundant_ranges(
+        self,
+        order_list: Vec<OpcodeLabel>,
+    ) -> (Circuit, Vec<OpcodeLabel>) {
         let mut already_seen_witness = HashSet::new();
 
         let mut new_order_list = Vec::with_capacity(order_list.len());

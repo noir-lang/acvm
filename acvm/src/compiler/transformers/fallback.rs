@@ -2,7 +2,7 @@ use crate::compiler::optimizers::CircuitSimplifier;
 
 use super::super::CompileError;
 use acir::{
-    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode, OpcodeLabel},
     native_types::Expression,
 };
 
@@ -16,8 +16,8 @@ impl FallbackTransformer {
         acir: Circuit,
         is_supported: impl Fn(&Opcode) -> bool,
         simplifier: &CircuitSimplifier,
-        opcode_idx: Vec<usize>,
-    ) -> Result<(Circuit, Vec<usize>), CompileError> {
+        opcode_idx: Vec<OpcodeLabel>,
+    ) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
         let mut new_opcode_idx = Vec::with_capacity(opcode_idx.len());
         let mut witness_idx = acir.current_witness_index + 1;

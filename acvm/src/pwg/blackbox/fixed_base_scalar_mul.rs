@@ -1,5 +1,5 @@
 use acir::{
-    circuit::opcodes::FunctionInput,
+    circuit::{opcodes::FunctionInput, OpcodeLabel},
     native_types::{Witness, WitnessMap},
 };
 
@@ -13,7 +13,7 @@ pub(super) fn fixed_base_scalar_mul(
     initial_witness: &mut WitnessMap,
     input: FunctionInput,
     outputs: (Witness, Witness),
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let scalar = witness_to_value(initial_witness, input.witness)?;
 

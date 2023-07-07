@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use acir::{
     brillig_vm::ForeignCallResult,
-    circuit::{brillig::Brillig, opcodes::BlockId, Opcode},
+    circuit::{brillig::Brillig, opcodes::BlockId, Opcode, OpcodeLabel},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -84,7 +84,7 @@ pub enum OpcodeResolutionError {
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain { opcode_index: usize },
+    UnsatisfiedConstrain { opcode_index: OpcodeLabel },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
@@ -103,7 +103,7 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     opcodes: Vec<Opcode>,
 
     /// The position of the each opcode in the opcodes
-    opcodes_idx: Vec<usize>,
+    opcodes_idx: Vec<OpcodeLabel>,
 
     witness_map: WitnessMap,
 
@@ -111,12 +111,13 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     pending_foreign_calls: Vec<UnresolvedBrilligCall>,
 
     /// Opcode index of the pending brillig opcodes
-    pending_brillig_idx: HashMap<u64, usize>,
+    pending_brillig_idx: HashMap<u64, OpcodeLabel>,
 }
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        let opcodes_idx = (0..opcodes.len()).collect();
+        let opcodes_idx =
+            (0..opcodes.len()).map(|opcode_index| OpcodeLabel(opcode_index as u64)).collect();
         ACVM {
             status: ACVMStatus::InProgress,
             backend,
@@ -318,7 +319,7 @@ pub fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
     initial_witness: &mut WitnessMap,
-    opcode_index: usize,
+    opcode_index: OpcodeLabel,
 ) -> Result<(), OpcodeResolutionError> {
     let optional_old_value = initial_witness.insert(*witness, value_to_insert);
 

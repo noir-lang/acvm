@@ -27,6 +27,11 @@ pub struct Circuit {
     pub return_values: PublicInputs,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+/// Opcodes are given labels so that callers can
+/// map opcodes to debug information related to their context.
+pub struct OpcodeLabel(pub u64);
+
 impl Circuit {
     pub fn num_vars(&self) -> u32 {
         self.current_witness_index + 1
@@ -55,8 +60,8 @@ impl Circuit {
         Ok(circuit)
     }
 
-    pub fn default_opcode_indices(&self) -> Vec<usize> {
-        (0..self.opcodes.len()).collect()
+    pub fn default_opcode_indices(&self) -> Vec<OpcodeLabel> {
+        (0..self.opcodes.len()).map(|label| OpcodeLabel(label as u64)).collect()
     }
 }
 

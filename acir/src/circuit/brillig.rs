@@ -1,5 +1,3 @@
-use std::hash::Hasher;
-
 use crate::native_types::{Expression, Witness};
 use brillig_vm::ForeignCallResult;
 use serde::{Deserialize, Serialize};
@@ -34,6 +32,10 @@ pub struct Brillig {
 }
 
 impl Brillig {
+    /// Canonically hashes the Brillig struct.
+    ///
+    /// Some Brillig instances may or may not be resolved, so we do
+    /// not hash the `foreign_call_results`.
     pub fn canonical_hash(&self) -> u64 {
         let mut serialize_vector = rmp_serde::to_vec(&self.inputs).unwrap();
         serialize_vector.extend(rmp_serde::to_vec(&self.outputs).unwrap());
@@ -41,6 +43,8 @@ impl Brillig {
         serialize_vector.extend(rmp_serde::to_vec(&self.predicate).unwrap());
 
         use std::collections::hash_map::DefaultHasher;
+        use std::hash::Hasher;
+
         let mut hasher = DefaultHasher::new();
         hasher.write(&serialize_vector);
         hasher.finish()

@@ -1,15 +1,13 @@
-use acir::{
-    circuit::opcodes::FunctionInput,
-    native_types::{Witness, WitnessMap},
-    FieldElement,
-};
-
+use super::to_u8_vec;
 use crate::{
     pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError},
     BlackBoxFunctionSolver,
 };
-
-use super::to_u8_vec;
+use acir::{
+    circuit::{opcodes::FunctionInput, OpcodeLabel},
+    native_types::{Witness, WitnessMap},
+    FieldElement,
+};
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn schnorr_verify(
@@ -20,7 +18,7 @@ pub(crate) fn schnorr_verify(
     signature: &[FunctionInput],
     message: &[FunctionInput],
     output: Witness,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;

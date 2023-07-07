@@ -1,5 +1,5 @@
 use acir::{
-    circuit::opcodes::FunctionInput,
+    circuit::{opcodes::FunctionInput, OpcodeLabel},
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -30,7 +30,7 @@ pub(crate) fn secp256k1_prehashed(
     signature_inputs: &[FunctionInput],
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 

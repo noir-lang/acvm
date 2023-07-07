@@ -1,7 +1,10 @@
 use std::cmp::Ordering;
 
 use acir::{
-    circuit::directives::{Directive, LogInfo, QuotientDirective},
+    circuit::{
+        directives::{Directive, LogInfo, QuotientDirective},
+        OpcodeLabel,
+    },
     native_types::WitnessMap,
     FieldElement,
 };
@@ -23,7 +26,7 @@ mod sorting;
 pub(super) fn solve_directives(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
-    opcode_idx: usize,
+    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match solve_directives_internal(initial_witness, directive, opcode_idx) {
         Ok(_) => Ok(OpcodeResolution::Solved),
@@ -37,7 +40,7 @@ pub(super) fn solve_directives(
 fn solve_directives_internal(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
-    opcode_index: usize,
+    opcode_index: OpcodeLabel,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
