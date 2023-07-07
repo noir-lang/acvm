@@ -389,7 +389,7 @@ fn oracle_dependent_execution() {
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
-        acvm.unresolved_opcodes()[0],
+        acvm.unresolved_opcodes()[0].0,
         Opcode::Arithmetic(inverse_equality_check.clone()),
         "Equality check of inverses should still be waiting to be resolved"
     );
@@ -411,7 +411,7 @@ fn oracle_dependent_execution() {
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
-        acvm.unresolved_opcodes()[0],
+        acvm.unresolved_opcodes()[0].0,
         Opcode::Arithmetic(inverse_equality_check),
         "Equality check of inverses should still be waiting to be resolved"
     );

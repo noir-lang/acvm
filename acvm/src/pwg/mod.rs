@@ -97,13 +97,10 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     backend: B,
     /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
     block_solvers: HashMap<BlockId, BlockSolver>,
-    /// A list of opcodes which are to be executed by the ACVM.
+    /// A list of opcodes which are to be executed by the ACVM, along with their label
     ///
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
-    opcodes: Vec<Opcode>,
-
-    /// The position of the each opcode in the opcodes
-    opcodes_idx: Vec<OpcodeLabel>,
+    opcodes_and_labels: Vec<(Opcode, OpcodeLabel)>,
 
     witness_map: WitnessMap,
 
@@ -116,15 +113,18 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        let opcodes_idx = (0..opcodes.len())
-            .map(|opcode_index| OpcodeLabel::Resolved(opcode_index as u64))
+        let opcodes_and_labels = opcodes
+            .iter()
+            .enumerate()
+            .map(|(opcode_index, opcode)| {
+                (opcode.clone(), OpcodeLabel::Resolved(opcode_index as u64))
+            })
             .collect();
         ACVM {
             status: ACVMStatus::InProgress,
             backend,
             block_solvers: HashMap::default(),
-            opcodes,
-            opcodes_idx,
+            opcodes_and_labels,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
             pending_brillig_idx: HashMap::new(),
@@ -141,8 +141,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Returns a slice containing the opcodes which remain to be solved.
     ///
     /// Note: this doesn't include any opcodes which are waiting on a pending foreign call.
-    pub fn unresolved_opcodes(&self) -> &[Opcode] {
-        &self.opcodes
+    pub fn unresolved_opcodes(&self) -> &[(Opcode, OpcodeLabel)] {
+        &self.opcodes_and_labels
     }
 
     /// Updates the current status of the VM.
@@ -179,8 +179,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
 
         // Mark this opcode to be executed next.
         let hash = canonical_brillig_hash(&resolved_brillig);
-        self.opcodes_idx.insert(0, self.pending_brillig_idx[&hash]);
-        self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
+        self.opcodes_and_labels
+            .insert(0, (Opcode::Brillig(resolved_brillig), self.pending_brillig_idx[&hash]));
     }
 
     /// Executes the ACVM's circuit until execution halts.
@@ -191,13 +191,12 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// 2. A Brillig [foreign call][`UnresolvedBrilligCall`] has been encountered and must be resolved.
     pub fn solve(&mut self) -> ACVMStatus {
         // TODO: Prevent execution with outstanding foreign calls?
-        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        while !self.opcodes.is_empty() {
+        let mut unresolved_opcodes: Vec<(Opcode, OpcodeLabel)> = Vec::new();
+        while !self.opcodes_and_labels.is_empty() {
             unresolved_opcodes.clear();
-            let mut unresolved_idx = Vec::new();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
-            for (i, opcode) in self.opcodes.iter().enumerate() {
+            for (opcode, opcode_label) in &self.opcodes_and_labels {
                 let mut resolution = match opcode {
                     Opcode::Arithmetic(expr) => {
                         ArithmeticSolver::solve(&mut self.witness_map, expr)
@@ -206,7 +205,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         &self.backend,
                         &mut self.witness_map,
                         bb_func,
-                        self.opcodes_idx[i],
+                        *opcode_label,
                     ),
                     Opcode::Directive(directive) => {
                         solve_directives(&mut self.witness_map, directive)
@@ -226,7 +225,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 if let Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index }) =
                     &mut resolution
                 {
-                    *opcode_index = self.opcodes_idx[i]
+                    *opcode_index = *opcode_label;
                 }
 
                 match resolution {
@@ -235,18 +234,17 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     }
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
-                        unresolved_opcodes.push(opcode.clone());
-                        unresolved_idx.push(self.opcodes_idx[i]);
+                        unresolved_opcodes.push((opcode.clone(), *opcode_label));
                     }
                     Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
                         stalled = false;
                         // InProgressBrillig Oracles must be externally re-solved
-                        let brillig = match opcode {
+                        let brillig = match &opcode {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
                         let hash = canonical_brillig_hash(&brillig);
-                        self.pending_brillig_idx.insert(hash, self.opcodes_idx[i]);
+                        self.pending_brillig_idx.insert(hash, *opcode_label);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,
@@ -260,8 +258,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
-                        unresolved_opcodes.push(opcode.clone());
-                        unresolved_idx.push(self.opcodes_idx[i]);
+                        unresolved_opcodes.push((opcode.clone(), *opcode_label));
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
@@ -271,8 +268,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             }
 
             // Before potentially ending execution, we must save the list of opcodes which remain to be solved.
-            std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
-            std::mem::swap(&mut self.opcodes_idx, &mut unresolved_idx);
+            std::mem::swap(&mut self.opcodes_and_labels, &mut unresolved_opcodes);
 
             // We have oracles that must be externally resolved
             if self.get_pending_foreign_call().is_some() {
@@ -280,7 +276,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             }
 
             // We are stalled because of an opcode being bad
-            if stalled && !self.opcodes.is_empty() {
+            if stalled && !self.opcodes_and_labels.is_empty() {
                 let error = OpcodeResolutionError::OpcodeNotSolvable(
                     opcode_not_solvable
                         .expect("infallible: cannot be stalled and None at the same time"),
