@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0](https://github.com/noir-lang/acvm/compare/root-v0.16.0...root-v0.17.0) (2023-07-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** add `EcdsaSecp256r1` blackbox function ([#408](https://github.com/noir-lang/acvm/issues/408))
+
+### Features
+
+* **acir:** add `EcdsaSecp256r1` blackbox function ([#408](https://github.com/noir-lang/acvm/issues/408)) ([9895817](https://github.com/noir-lang/acvm/commit/98958170c9fa9b4731e33b31cb494a72bb90549e))
+
 ## [0.16.0](https://github.com/noir-lang/acvm/compare/root-v0.15.1...root-v0.16.0) (2023-07-06)
 
 
