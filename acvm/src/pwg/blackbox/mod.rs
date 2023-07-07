@@ -62,12 +62,8 @@ pub(crate) fn solve(
     }
 
     match bb_func {
-        BlackBoxFuncCall::AND { lhs, rhs, output } => {
-            and(initial_witness, lhs, rhs, output, opcode_idx)
-        }
-        BlackBoxFuncCall::XOR { lhs, rhs, output } => {
-            xor(initial_witness, lhs, rhs, output, opcode_idx)
-        }
+        BlackBoxFuncCall::AND { lhs, rhs, output } => and(initial_witness, lhs, rhs, output),
+        BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input, opcode_idx),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => solve_generic_256_hash_opcode(
             initial_witness,
@@ -76,7 +72,6 @@ pub(crate) fn solve(
             outputs,
             sha256,
             bb_func.get_black_box_func(),
-            opcode_idx,
         ),
         BlackBoxFuncCall::Blake2s { inputs, outputs } => solve_generic_256_hash_opcode(
             initial_witness,
@@ -85,7 +80,6 @@ pub(crate) fn solve(
             outputs,
             blake2s256,
             bb_func.get_black_box_func(),
-            opcode_idx,
         ),
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => solve_generic_256_hash_opcode(
             initial_witness,
@@ -94,7 +88,6 @@ pub(crate) fn solve(
             outputs,
             keccak256,
             bb_func.get_black_box_func(),
-            opcode_idx,
         ),
         BlackBoxFuncCall::Keccak256VariableLength { inputs, var_message_size, outputs } => {
             solve_generic_256_hash_opcode(
@@ -104,11 +97,10 @@ pub(crate) fn solve(
                 outputs,
                 keccak256,
                 bb_func.get_black_box_func(),
-                opcode_idx,
             )
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
-            hash_to_field_128_security(initial_witness, inputs, output, opcode_idx)
+            hash_to_field_128_security(initial_witness, inputs, output)
         }
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
@@ -124,10 +116,9 @@ pub(crate) fn solve(
             signature,
             message,
             *output,
-            opcode_idx,
         ),
         BlackBoxFuncCall::Pedersen { inputs, domain_separator, outputs } => {
-            pedersen(backend, initial_witness, inputs, *domain_separator, *outputs, opcode_idx)
+            pedersen(backend, initial_witness, inputs, *domain_separator, *outputs)
         }
         BlackBoxFuncCall::EcdsaSecp256k1 {
             public_key_x,
@@ -142,10 +133,9 @@ pub(crate) fn solve(
             signature,
             message,
             *output,
-            opcode_idx,
         ),
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
-            fixed_base_scalar_mul(backend, initial_witness, *input, *outputs, opcode_idx)
+            fixed_base_scalar_mul(backend, initial_witness, *input, *outputs)
         }
         BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
     }

@@ -4,7 +4,7 @@ use crate::{
     BlackBoxFunctionSolver,
 };
 use acir::{
-    circuit::{opcodes::FunctionInput, OpcodeLabel},
+    circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -18,7 +18,6 @@ pub(crate) fn schnorr_verify(
     signature: &[FunctionInput],
     message: &[FunctionInput],
     output: Witness,
-    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
@@ -30,7 +29,7 @@ pub(crate) fn schnorr_verify(
     let valid_signature =
         backend.schnorr_verify(public_key_x, public_key_y, &signature, &message)?;
 
-    insert_value(&output, FieldElement::from(valid_signature), initial_witness, opcode_idx)?;
+    insert_value(&output, FieldElement::from(valid_signature), initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }

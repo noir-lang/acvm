@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{opcodes::FunctionInput, OpcodeLabel},
+    circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
 };
 
@@ -14,7 +14,6 @@ pub(super) fn pedersen(
     inputs: &[FunctionInput],
     domain_separator: u32,
     outputs: (Witness, Witness),
-    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let scalars: Result<Vec<_>, _> =
         inputs.iter().map(|input| witness_to_value(initial_witness, input.witness)).collect();
@@ -22,8 +21,8 @@ pub(super) fn pedersen(
 
     let (res_x, res_y) = backend.pedersen(&scalars, domain_separator)?;
 
-    insert_value(&outputs.0, res_x, initial_witness, opcode_idx)?;
-    insert_value(&outputs.1, res_y, initial_witness, opcode_idx)?;
+    insert_value(&outputs.0, res_x, initial_witness)?;
+    insert_value(&outputs.1, res_y, initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }

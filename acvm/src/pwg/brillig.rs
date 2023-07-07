@@ -1,9 +1,6 @@
 use acir::{
     brillig_vm::{RegisterIndex, Registers, VMStatus, Value, VM},
-    circuit::{
-        brillig::{Brillig, BrilligInputs, BrilligOutputs},
-        OpcodeLabel,
-    },
+    circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::WitnessMap,
     FieldElement,
 };
@@ -18,7 +15,6 @@ impl BrilligSolver {
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
-        opcode_idx: OpcodeLabel,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
@@ -36,7 +32,7 @@ impl BrilligSolver {
 
         // A zero predicate indicates the oracle should be skipped, and its outputs zeroed.
         if pred_value.is_zero() {
-            return Self::zero_out_brillig_outputs(initial_witness, brillig, opcode_idx);
+            return Self::zero_out_brillig_outputs(initial_witness, brillig);
         }
 
         // Set input values
@@ -99,23 +95,13 @@ impl BrilligSolver {
                     let register_value = vm.get_registers().get(RegisterIndex::from(i));
                     match output {
                         BrilligOutputs::Simple(witness) => {
-                            insert_value(
-                                witness,
-                                register_value.to_field(),
-                                initial_witness,
-                                opcode_idx,
-                            )?;
+                            insert_value(witness, register_value.to_field(), initial_witness)?;
                         }
                         BrilligOutputs::Array(witness_arr) => {
                             // Treat the register value as a pointer to memory
                             for (i, witness) in witness_arr.iter().enumerate() {
                                 let value = &vm.get_memory()[register_value.to_usize() + i];
-                                insert_value(
-                                    witness,
-                                    value.to_field(),
-                                    initial_witness,
-                                    opcode_idx,
-                                )?;
+                                insert_value(witness, value.to_field(), initial_witness)?;
                             }
                         }
                     }
@@ -138,16 +124,15 @@ impl BrilligSolver {
     fn zero_out_brillig_outputs(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
-        opcode_idx: OpcodeLabel,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         for output in &brillig.outputs {
             match output {
                 BrilligOutputs::Simple(witness) => {
-                    insert_value(witness, FieldElement::zero(), initial_witness, opcode_idx)?
+                    insert_value(witness, FieldElement::zero(), initial_witness)?
                 }
                 BrilligOutputs::Array(witness_arr) => {
                     for w in witness_arr {
-                        insert_value(w, FieldElement::zero(), initial_witness, opcode_idx)?
+                        insert_value(w, FieldElement::zero(), initial_witness)?
                     }
                 }
             }

@@ -116,8 +116,9 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        let opcodes_idx =
-            (0..opcodes.len()).map(|opcode_index| OpcodeLabel(opcode_index as u64)).collect();
+        let opcodes_idx = (0..opcodes.len())
+            .map(|opcode_index| OpcodeLabel::Resolved(opcode_index as u64))
+            .collect();
         ACVM {
             status: ACVMStatus::InProgress,
             backend,
@@ -197,9 +198,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             let mut stalled = true;
             let mut opcode_not_solvable = None;
             for (i, opcode) in self.opcodes.iter().enumerate() {
-                let resolution = match opcode {
+                let mut resolution = match opcode {
                     Opcode::Arithmetic(expr) => {
-                        ArithmeticSolver::solve(&mut self.witness_map, expr, self.opcodes_idx[i])
+                        ArithmeticSolver::solve(&mut self.witness_map, expr)
                     }
                     Opcode::BlackBoxFuncCall(bb_func) => blackbox::solve(
                         &self.backend,
@@ -208,16 +209,26 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         self.opcodes_idx[i],
                     ),
                     Opcode::Directive(directive) => {
-                        solve_directives(&mut self.witness_map, directive, self.opcodes_idx[i])
+                        solve_directives(&mut self.witness_map, directive)
                     }
                     Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
                         let solver = self.block_solvers.entry(block.id).or_default();
                         solver.solve(&mut self.witness_map, &block.trace)
                     }
                     Opcode::Brillig(brillig) => {
-                        BrilligSolver::solve(&mut self.witness_map, brillig, self.opcodes_idx[i])
+                        BrilligSolver::solve(&mut self.witness_map, brillig)
                     }
                 };
+
+                // If we have an unsatisfied constraint, the opcode label will be unresolved
+                // because the solvers do not have knowledge of this information.
+                // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
+                if let Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index }) =
+                    &mut resolution
+                {
+                    *opcode_index = self.opcodes_idx[i]
+                }
+
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {
                         stalled = false;
@@ -319,7 +330,6 @@ pub fn insert_value(
     witness: &Witness,
     value_to_insert: FieldElement,
     initial_witness: &mut WitnessMap,
-    opcode_index: OpcodeLabel,
 ) -> Result<(), OpcodeResolutionError> {
     let optional_old_value = initial_witness.insert(*witness, value_to_insert);
 
@@ -329,7 +339,9 @@ pub fn insert_value(
     };
 
     if old_value != value_to_insert {
-        return Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index });
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_index: OpcodeLabel::Unresolved,
+        });
     }
 
     Ok(())

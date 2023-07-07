@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{opcodes::FunctionInput, OpcodeLabel},
+    circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -30,7 +30,6 @@ pub(crate) fn secp256k1_prehashed(
     signature_inputs: &[FunctionInput],
     hashed_message_inputs: &[FunctionInput],
     output: Witness,
-    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let hashed_message = to_u8_vec(initial_witness, hashed_message_inputs)?;
 
@@ -62,7 +61,7 @@ pub(crate) fn secp256k1_prehashed(
     let is_valid =
         verify_secp256k1_ecdsa_signature(&hashed_message, &pub_key_x, &pub_key_y, &signature);
 
-    insert_value(&output, FieldElement::from(is_valid), initial_witness, opcode_idx)?;
+    insert_value(&output, FieldElement::from(is_valid), initial_witness)?;
     Ok(OpcodeResolution::Solved)
 }
 
