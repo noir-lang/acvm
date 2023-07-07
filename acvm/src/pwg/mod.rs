@@ -102,7 +102,7 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
     opcodes: Vec<Opcode>,
 
-    /// the position of the each opcode in the opcodes
+    /// The position of the each opcode in the opcodes
     opcodes_idx: Vec<usize>,
 
     witness_map: WitnessMap,
