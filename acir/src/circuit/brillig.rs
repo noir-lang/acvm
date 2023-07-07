@@ -30,23 +30,3 @@ pub struct Brillig {
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,
 }
-
-impl Brillig {
-    /// Canonically hashes the Brillig struct.
-    ///
-    /// Some Brillig instances may or may not be resolved, so we do
-    /// not hash the `foreign_call_results`.
-    pub fn canonical_hash(&self) -> u64 {
-        let mut serialize_vector = rmp_serde::to_vec(&self.inputs).unwrap();
-        serialize_vector.extend(rmp_serde::to_vec(&self.outputs).unwrap());
-        serialize_vector.extend(rmp_serde::to_vec(&self.bytecode).unwrap());
-        serialize_vector.extend(rmp_serde::to_vec(&self.predicate).unwrap());
-
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::Hasher;
-
-        let mut hasher = DefaultHasher::new();
-        hasher.write(&serialize_vector);
-        hasher.finish()
-    }
-}

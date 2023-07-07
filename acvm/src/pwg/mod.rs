@@ -178,7 +178,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolved_brillig = foreign_call.resolve(foreign_call_result);
 
         // Mark this opcode to be executed next.
-        let hash = resolved_brillig.canonical_hash();
+        let hash = canonical_brillig_hash(&resolved_brillig);
         self.opcodes_idx.insert(0, self.pending_brillig_idx[&hash]);
         self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
     }
@@ -245,7 +245,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
-                        let hash = brillig.canonical_hash();
+                        let hash = canonical_brillig_hash(&brillig);
                         self.pending_brillig_idx.insert(hash, self.opcodes_idx[i]);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
@@ -396,4 +396,26 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
         Language::R1CS => r1cs_is_supported,
         Language::PLONKCSat { .. } => plonk_is_supported,
     }
+}
+
+/// Canonically hashes the Brillig struct.
+///
+/// Some Brillig instances may or may not be resolved, so we do
+/// not hash the `foreign_call_results`.
+///
+/// This gives us a consistent hash that will be used to track `Brillig`
+/// even when it is put back into the list of opcodes out of order.
+/// This happens when we resolve a Brillig opcode call.
+pub fn canonical_brillig_hash(brillig: &Brillig) -> u64 {
+    let mut serialize_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
+    serialize_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
+    serialize_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
+    serialize_vector.extend(rmp_serde::to_vec(&brillig.predicate).unwrap());
+
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+
+    let mut hasher = DefaultHasher::new();
+    hasher.write(&serialize_vector);
+    hasher.finish()
 }
