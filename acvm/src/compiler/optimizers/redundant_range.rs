@@ -172,7 +172,7 @@ mod tests {
     fn retain_lowest_range_size() {
         // The optimizer should keep the lowest bit size range constraint
         let circuit = test_circuit(vec![(Witness(1), 32), (Witness(1), 16)]);
-        let opcode_idx = circuit.default_opcode_indices();
+        let opcode_idx = circuit.initial_opcode_labels();
         let optimizer = RangeOptimizer::new(circuit);
 
         let range_size = *optimizer
@@ -204,7 +204,7 @@ mod tests {
             (Witness(2), 23),
             (Witness(2), 23),
         ]);
-        let opcode_idx = circuit.default_opcode_indices();
+        let opcode_idx = circuit.initial_opcode_labels();
         let optimizer = RangeOptimizer::new(circuit);
         let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_idx);
         assert_eq!(optimized_circuit.opcodes.len(), 2);
@@ -230,7 +230,7 @@ mod tests {
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
-        let opcode_idx = circuit.default_opcode_indices();
+        let opcode_idx = circuit.initial_opcode_labels();
         let optimizer = RangeOptimizer::new(circuit);
         let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_idx);
         assert_eq!(optimized_circuit.opcodes.len(), 5)

@@ -60,7 +60,8 @@ impl Circuit {
         Ok(circuit)
     }
 
-    pub fn default_opcode_indices(&self) -> Vec<OpcodeLabel> {
+    /// Initial list of labels attached to opcodes.
+    pub fn initial_opcode_labels(&self) -> Vec<OpcodeLabel> {
         (0..self.opcodes.len()).map(|label| OpcodeLabel(label as u64)).collect()
     }
 }
