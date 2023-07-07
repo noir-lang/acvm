@@ -1,8 +1,5 @@
 use acir::{
-    circuit::{
-        opcodes::{BlackBoxFuncCall, FunctionInput},
-        OpcodeLabel,
-    },
+    circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
     native_types::{Witness, WitnessMap},
 };
 
@@ -50,7 +47,6 @@ pub(crate) fn solve(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
     bb_func: &BlackBoxFuncCall,
-    opcode_idx: OpcodeLabel,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let inputs = bb_func.get_inputs_vec();
     if !contains_all_inputs(initial_witness, &inputs) {
@@ -64,7 +60,7 @@ pub(crate) fn solve(
     match bb_func {
         BlackBoxFuncCall::AND { lhs, rhs, output } => and(initial_witness, lhs, rhs, output),
         BlackBoxFuncCall::XOR { lhs, rhs, output } => xor(initial_witness, lhs, rhs, output),
-        BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input, opcode_idx),
+        BlackBoxFuncCall::RANGE { input } => solve_range_opcode(initial_witness, input),
         BlackBoxFuncCall::SHA256 { inputs, outputs } => solve_generic_256_hash_opcode(
             initial_witness,
             inputs,

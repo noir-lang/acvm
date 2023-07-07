@@ -556,3 +556,85 @@ fn unsatisfied_opcode_resolved() {
         "The first gate is not satisfiable, expected an error indicating this"
     );
 }
+
+#[test]
+fn unsatisfied_opcode_resolved_brillig() {
+    let fe_0 = FieldElement::zero();
+    let fe_1 = FieldElement::one();
+    let w_x = Witness(1);
+    let w_y = Witness(2);
+    let w_oracle = Witness(3);
+    let w_x_plus_y = Witness(6);
+    let w_equal_res = Witness(7);
+    let w_lt_res = Witness(8);
+
+    let a = Witness(0);
+    let b = Witness(1);
+    let c = Witness(2);
+    let d = Witness(3);
+
+    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+        op: BinaryFieldOp::Equals,
+        lhs: RegisterIndex::from(0),
+        rhs: RegisterIndex::from(1),
+        destination: RegisterIndex::from(2),
+    };
+
+    let brillig_opcode = Opcode::Brillig(Brillig {
+        inputs: vec![
+            BrilligInputs::Single(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                q_c: fe_0,
+            }),
+            BrilligInputs::Single(Expression::default()),
+        ],
+        outputs: vec![
+            BrilligOutputs::Simple(w_x_plus_y),
+            BrilligOutputs::Simple(w_oracle),
+            BrilligOutputs::Simple(w_equal_res),
+            BrilligOutputs::Simple(w_lt_res),
+        ],
+        bytecode: vec![
+            equal_opcode,
+            // Oracles are named 'foreign calls' in brillig
+            brillig_vm::Opcode::ForeignCall {
+                function: "invert".into(),
+                destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
+                inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+            },
+        ],
+        predicate: Some(Expression::default()),
+        // oracle results
+        foreign_call_results: vec![],
+    });
+
+    let gate_a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![
+            (FieldElement::one(), a),
+            (-FieldElement::one(), b),
+            (-FieldElement::one(), c),
+            (-FieldElement::one(), d),
+        ],
+        q_c: FieldElement::zero(),
+    };
+
+    let mut values = WitnessMap::new();
+    values.insert(a, FieldElement::from(4_i128));
+    values.insert(b, FieldElement::from(2_i128));
+    values.insert(c, FieldElement::from(1_i128));
+    values.insert(d, FieldElement::from(2_i128));
+
+    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
+
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let solver_status = acvm.solve();
+    assert_eq!(
+        solver_status,
+        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_index: OpcodeLabel::Resolved(0)
+        }),
+        "The first gate is not satisfiable, expected an error indicating this"
+    );
+}

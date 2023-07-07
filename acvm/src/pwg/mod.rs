@@ -201,12 +201,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     Opcode::Arithmetic(expr) => {
                         ArithmeticSolver::solve(&mut self.witness_map, expr)
                     }
-                    Opcode::BlackBoxFuncCall(bb_func) => blackbox::solve(
-                        &self.backend,
-                        &mut self.witness_map,
-                        bb_func,
-                        *opcode_label,
-                    ),
+                    Opcode::BlackBoxFuncCall(bb_func) => {
+                        blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
+                    }
                     Opcode::Directive(directive) => {
                         solve_directives(&mut self.witness_map, directive)
                     }
