@@ -551,7 +551,7 @@ fn unsatisfied_opcode_resolved() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_index: OpcodeLabel::Resolved(0)
+            opcode_label: OpcodeLabel::Resolved(0)
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
@@ -635,7 +635,7 @@ fn unsatisfied_opcode_resolved_brillig() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_index: OpcodeLabel::Resolved(0)
+            opcode_label: OpcodeLabel::Resolved(0)
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );

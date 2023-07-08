@@ -86,7 +86,7 @@ fn solve_directives_internal(
 
             if b.len() < decomposed_integer.len() {
                 return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                    opcode_index: OpcodeLabel::Unresolved,
+                    opcode_label: OpcodeLabel::Unresolved,
                 });
             }
 

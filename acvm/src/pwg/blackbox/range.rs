@@ -11,7 +11,7 @@ pub(super) fn solve_range_opcode(
     let w_value = witness_to_value(initial_witness, input.witness)?;
     if w_value.num_bits() > input.num_bits {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_index: OpcodeLabel::Unresolved,
+            opcode_label: OpcodeLabel::Unresolved,
         });
     }
     Ok(OpcodeResolution::Solved)

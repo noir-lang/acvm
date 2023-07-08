@@ -48,7 +48,7 @@ impl ArithmeticSolver {
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                                opcode_index: OpcodeLabel::Unresolved,
+                                opcode_label: OpcodeLabel::Unresolved,
                             })
                         } else {
                             Ok(OpcodeResolution::Solved)
@@ -75,7 +75,7 @@ impl ArithmeticSolver {
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_index: OpcodeLabel::Unresolved,
+                            opcode_label: OpcodeLabel::Unresolved,
                         })
                     } else {
                         Ok(OpcodeResolution::Solved)
@@ -92,7 +92,7 @@ impl ArithmeticSolver {
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                        opcode_index: OpcodeLabel::Unresolved,
+                        opcode_label: OpcodeLabel::Unresolved,
                     })
                 } else {
                     Ok(OpcodeResolution::Solved)
@@ -109,7 +109,7 @@ impl ArithmeticSolver {
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_index: OpcodeLabel::Unresolved,
+                            opcode_label: OpcodeLabel::Unresolved,
                         })
                     } else {
                         Ok(OpcodeResolution::Solved)

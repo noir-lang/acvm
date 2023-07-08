@@ -84,7 +84,7 @@ pub enum OpcodeResolutionError {
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain { opcode_index: OpcodeLabel },
+    UnsatisfiedConstrain { opcode_label: OpcodeLabel },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
@@ -95,8 +95,10 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
     backend: B,
+
     /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
     block_solvers: HashMap<BlockId, BlockSolver>,
+
     /// A list of opcodes which are to be executed by the ACVM, along with their label
     ///
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
@@ -107,8 +109,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     /// A list of foreign calls which must be resolved before the ACVM can resume execution.
     pending_foreign_calls: Vec<UnresolvedBrilligCall>,
 
-    /// Opcode index of the pending brillig opcodes
-    pending_brillig_idx: HashMap<u64, OpcodeLabel>,
+    /// Map from a canonical hash of an unresolved Brillig call to its opcode label.
+    pending_brillig_label_maps: HashMap<UnresolvedBrilligCallHash, OpcodeLabel>,
 }
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
@@ -127,7 +129,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             opcodes_and_labels,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
-            pending_brillig_idx: HashMap::new(),
+            pending_brillig_label_maps: HashMap::new(),
         }
     }
 
@@ -180,7 +182,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         // Mark this opcode to be executed next.
         let hash = canonical_brillig_hash(&resolved_brillig);
         self.opcodes_and_labels
-            .insert(0, (Opcode::Brillig(resolved_brillig), self.pending_brillig_idx[&hash]));
+            .insert(0, (Opcode::Brillig(resolved_brillig), self.pending_brillig_label_maps[&hash]));
     }
 
     /// Executes the ACVM's circuit until execution halts.
@@ -219,8 +221,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 // If we have an unsatisfied constraint, the opcode label will be unresolved
                 // because the solvers do not have knowledge of this information.
                 // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
-                if let Err(OpcodeResolutionError::UnsatisfiedConstrain { opcode_index }) =
-                    &mut resolution
+                if let Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                    opcode_label: opcode_index,
+                }) = &mut resolution
                 {
                     *opcode_index = *opcode_label;
                 }
@@ -231,7 +234,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     //
                     // std::mem::swap(x, y)
                     resolution = Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                        opcode_index: *opcode_label,
+                        opcode_label: *opcode_label,
                     })
                 }
 
@@ -251,7 +254,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
                         let hash = canonical_brillig_hash(&brillig);
-                        self.pending_brillig_idx.insert(hash, *opcode_label);
+                        self.pending_brillig_label_maps.insert(hash, *opcode_label);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,
@@ -343,7 +346,7 @@ pub fn insert_value(
 
     if old_value != value_to_insert {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_index: OpcodeLabel::Unresolved,
+            opcode_label: OpcodeLabel::Unresolved,
         });
     }
 
@@ -409,7 +412,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
 /// This gives us a consistent hash that will be used to track `Brillig`
 /// even when it is put back into the list of opcodes out of order.
 /// This happens when we resolve a Brillig opcode call.
-pub fn canonical_brillig_hash(brillig: &Brillig) -> u64 {
+pub fn canonical_brillig_hash(brillig: &Brillig) -> UnresolvedBrilligCallHash {
     let mut serialized_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
     serialized_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
     serialized_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
@@ -422,3 +425,6 @@ pub fn canonical_brillig_hash(brillig: &Brillig) -> u64 {
     hasher.write(&serialized_vector);
     hasher.finish()
 }
+
+/// Hash of an unresolved brillig call instance
+pub(crate) type UnresolvedBrilligCallHash = u64;
