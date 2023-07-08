@@ -224,6 +224,16 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 {
                     *opcode_index = *opcode_label;
                 }
+                // If a brillig function has failed, we return an unsatisfied constraint error
+                // We intentionally ignore the brillig failure message, as there is no way to
+                // propagate this to the caller.
+                if let Err(OpcodeResolutionError::BrilligFunctionFailed(_)) = &mut resolution {
+                    //
+                    // std::mem::swap(x, y)
+                    resolution = Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_index: *opcode_label,
+                    })
+                }
 
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {

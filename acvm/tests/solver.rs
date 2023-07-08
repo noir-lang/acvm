@@ -559,19 +559,16 @@ fn unsatisfied_opcode_resolved() {
 
 #[test]
 fn unsatisfied_opcode_resolved_brillig() {
-    let fe_0 = FieldElement::zero();
-    let fe_1 = FieldElement::one();
-    let w_x = Witness(1);
-    let w_y = Witness(2);
-    let w_oracle = Witness(3);
-    let w_x_plus_y = Witness(6);
-    let w_equal_res = Witness(7);
-    let w_lt_res = Witness(8);
-
     let a = Witness(0);
     let b = Witness(1);
     let c = Witness(2);
     let d = Witness(3);
+
+    let fe_1 = FieldElement::one();
+    let fe_0 = FieldElement::zero();
+    let w_x = Witness(4);
+    let w_y = Witness(5);
+    let w_result = Witness(6);
 
     let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
@@ -579,32 +576,34 @@ fn unsatisfied_opcode_resolved_brillig() {
         rhs: RegisterIndex::from(1),
         destination: RegisterIndex::from(2),
     };
+    // Jump pass the trap if the values are equal, else
+    // jump to the trap
+    let location_of_stop = 3;
+
+    let jmp_if_opcode = brillig_vm::Opcode::JumpIf {
+        condition: RegisterIndex::from(2),
+        location: location_of_stop,
+    };
+
+    let trap_opcode = brillig_vm::Opcode::Trap;
+    let stop_opcode = brillig_vm::Opcode::Stop;
 
     let brillig_opcode = Opcode::Brillig(Brillig {
         inputs: vec![
             BrilligInputs::Single(Expression {
                 mul_terms: vec![],
-                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
+                linear_combinations: vec![(fe_1, w_x)],
                 q_c: fe_0,
             }),
-            BrilligInputs::Single(Expression::default()),
+            BrilligInputs::Single(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_y)],
+                q_c: fe_0,
+            }),
         ],
-        outputs: vec![
-            BrilligOutputs::Simple(w_x_plus_y),
-            BrilligOutputs::Simple(w_oracle),
-            BrilligOutputs::Simple(w_equal_res),
-            BrilligOutputs::Simple(w_lt_res),
-        ],
-        bytecode: vec![
-            equal_opcode,
-            // Oracles are named 'foreign calls' in brillig
-            brillig_vm::Opcode::ForeignCall {
-                function: "invert".into(),
-                destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
-                inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
-            },
-        ],
-        predicate: Some(Expression::default()),
+        outputs: vec![BrilligOutputs::Simple(w_result)],
+        bytecode: vec![equal_opcode, jmp_if_opcode, trap_opcode, stop_opcode],
+        predicate: Some(Expression::one()),
         // oracle results
         foreign_call_results: vec![],
     });
@@ -625,6 +624,9 @@ fn unsatisfied_opcode_resolved_brillig() {
     values.insert(b, FieldElement::from(2_i128));
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(2_i128));
+    values.insert(w_x, FieldElement::from(0_i128));
+    values.insert(w_y, FieldElement::from(1_i128));
+    values.insert(w_result, FieldElement::from(0_i128));
 
     let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
 
