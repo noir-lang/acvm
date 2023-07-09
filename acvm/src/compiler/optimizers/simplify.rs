@@ -432,7 +432,7 @@ impl CircuitSimplifier {
 #[cfg(test)]
 mod tests {
     use acir::{
-        circuit::Opcode,
+        circuit::{Circuit, Opcode},
         native_types::{Expression, Witness},
         FieldElement,
     };
