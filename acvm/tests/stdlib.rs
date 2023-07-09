@@ -122,4 +122,22 @@ proptest! {
         prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
+
+    #[test]
+    fn test_wu32_less_than(x in 0..u32::MAX, y in 0..u32::MAX) {
+        let lhs = FieldElement::from(x as u128);
+        let rhs = FieldElement::from(y as u128);
+        let w1 = Witness(1);
+        let w2 = Witness(2);
+        let result = x < y;
+        let u32_1 = WU32::new(w1);
+        let u32_2 = WU32::new(w2);
+        let (w, extra_gates, _) = u32_1.less_than_comparison(&u32_2, 3);
+        let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs)]).into();
+        let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+        let solver_status = acvm.solve();
+
+        prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+    }
 }

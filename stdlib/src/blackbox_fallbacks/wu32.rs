@@ -14,7 +14,7 @@ use acir::{
 /// WU32 (Witness u32) is a field element that represents a u32 integer
 /// It has a inner field of type [Witness] that points to the field element and width = 32
 // TODO: This can be generalized to u8, u64 and others if needed.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct WU32 {
     pub inner: Witness,
     width: u32,
@@ -531,7 +531,7 @@ impl WU32 {
     }
 
     /// Calculate and constrain `self` xor `rhs`
-    pub(crate) fn xor(&self, rhs: WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn xor(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -613,5 +613,109 @@ impl WU32 {
         new_gates.push(Opcode::Arithmetic(not_constraint));
 
         (WU32::new(new_witness), new_gates, num_witness)
+    }
+
+    pub(crate) fn more_than_eq_comparison(
+        &self,
+        rhs: &WU32,
+        mut num_witness: u32,
+    ) -> (WU32, Vec<Opcode>, u32) {
+        let mut new_gates = Vec::new();
+        let mut variables = VariableStore::new(&mut num_witness);
+        let new_witness = variables.new_variable();
+        let q_witness = variables.new_variable();
+        let r_witness = variables.new_variable();
+
+        // calculate 2^32 + self - rhs to avoid overflow
+        let brillig_opcode = Opcode::Brillig(Brillig {
+            inputs: vec![
+                BrilligInputs::Single(Expression {
+                    // Input Register 0
+                    mul_terms: vec![],
+                    linear_combinations: vec![(FieldElement::one(), self.inner)],
+                    q_c: FieldElement::zero(),
+                }),
+                BrilligInputs::Single(Expression {
+                    // Input Register 1
+                    mul_terms: vec![],
+                    linear_combinations: vec![(FieldElement::one(), rhs.inner)],
+                    q_c: FieldElement::zero(),
+                }),
+                BrilligInputs::Single(Expression {
+                    // Input Register 2
+                    mul_terms: vec![],
+                    linear_combinations: vec![],
+                    q_c: FieldElement::from(1_u128 << self.width),
+                }),
+            ],
+            outputs: vec![BrilligOutputs::Simple(new_witness)],
+            foreign_call_results: vec![],
+            bytecode: vec![
+                brillig_vm::Opcode::BinaryIntOp {
+                    op: brillig_vm::BinaryIntOp::Add,
+                    bit_size: 127,
+                    lhs: RegisterIndex::from(0),
+                    rhs: RegisterIndex::from(2),
+                    destination: RegisterIndex::from(0),
+                },
+                brillig_vm::Opcode::BinaryIntOp {
+                    op: brillig_vm::BinaryIntOp::Sub,
+                    bit_size: 127,
+                    lhs: RegisterIndex::from(0),
+                    rhs: RegisterIndex::from(1),
+                    destination: RegisterIndex::from(0),
+                },
+            ],
+            predicate: None,
+        });
+        new_gates.push(brillig_opcode);
+        let num_witness = variables.finalize();
+
+        // constrain subtraction
+        let mut sub_constraint = Expression::from(self.inner);
+        sub_constraint.push_addition_term(-FieldElement::one(), new_witness);
+        sub_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
+        sub_constraint.q_c = FieldElement::from(1_u128 << self.width);
+        new_gates.push(Opcode::Arithmetic(sub_constraint));
+
+        let (two_pow_rhs, extra_gates, num_witness) =
+            WU32::load_constant(2_u128.pow(self.width), num_witness);
+        new_gates.extend(extra_gates);
+
+        let quotient_opcode =
+            Opcode::Directive(acir::circuit::directives::Directive::Quotient(QuotientDirective {
+                a: new_witness.into(),
+                b: two_pow_rhs.inner.into(),
+                q: q_witness,
+                r: r_witness,
+                predicate: None,
+            }));
+        new_gates.push(quotient_opcode);
+
+        // make sure r and q are in 32 bit range
+        let r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: r_witness, num_bits: self.width },
+        });
+        let q_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
+            input: FunctionInput { witness: q_witness, num_bits: 1 },
+        });
+        new_gates.push(r_range_opcode);
+        new_gates.push(q_range_opcode);
+
+        (WU32::new(q_witness), new_gates, num_witness)
+    }
+
+    pub fn less_than_comparison(&self, rhs: &WU32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+        let mut new_gates = Vec::new();
+        let (mut comparison, extra_gates, num_witness) =
+            self.more_than_eq_comparison(rhs, num_witness);
+        new_gates.extend(extra_gates);
+
+        comparison.width = 1;
+
+        let (less_than, extra_gates, num_witness) = comparison.not(num_witness);
+        new_gates.extend(extra_gates);
+
+        (less_than, new_gates, num_witness)
     }
 }
