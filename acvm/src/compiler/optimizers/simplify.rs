@@ -475,8 +475,11 @@ mod tests {
         assert_eq!(circuit.len(), 3);
         assert_eq!(simplifier.solved_gates.len(), 1);
         let support_all = |_opcode: &Opcode| true;
-        let acir = acir::circuit::Circuit { opcodes: circuit, ..Default::default() };
-        let acir = FallbackTransformer::transform(acir, support_all, &simplifier).unwrap();
+        let mut acir = Circuit::default();
+        acir.opcodes = circuit;
+        let opcode_labels = acir.initial_opcode_labels();
+        let (acir, _) =
+            FallbackTransformer::transform(acir, support_all, &simplifier, opcode_labels).unwrap();
         assert_eq!(acir.opcodes.len(), 2);
     }
 }
