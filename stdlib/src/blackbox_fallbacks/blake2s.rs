@@ -11,7 +11,6 @@ use acir::{
 };
 
 const BLAKE2S_BLOCKBYTES_USIZE: usize = 64;
-
 const MSG_SCHEDULE_BLAKE2: [[usize; 16]; 10] = [
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
@@ -61,6 +60,7 @@ fn create_blake2s_constraint(
 ) -> (Vec<Witness>, u32, Vec<Opcode>) {
     let mut new_gates = Vec::new();
 
+    // prepare constants
     let (mut blake2s_state, extra_gates, num_witness) = Blake2sState::init(num_witness);
     new_gates.extend(extra_gates);
     let (blake2s_constants, extra_gates, num_witness) =
@@ -96,6 +96,7 @@ fn create_blake2s_constraint(
     new_gates.extend(extra_gates);
     blake2s_state.f[0] = u32_max;
 
+    // pad final block
     let mut final_block = input.get(offset..).unwrap().to_vec();
     for _ in 0..BLAKE2S_BLOCKBYTES_USIZE - final_block.len() {
         let (pad, extra_gates, updated_witness_counter) = WU32::load_constant(0_u128, num_witness);
@@ -163,9 +164,13 @@ fn blake2s_increment_counter(
     num_witness: u32,
 ) -> (Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
+
+    // t0 + inc
     let (state_t0, extra_gates, num_witness) = state.t[0].add(inc, num_witness);
     new_gates.extend(extra_gates);
     state.t[0] = state_t0;
+
+    // t1 + (t0 < inc)
     let (to_inc, extra_gates, num_witness) = state.t[0].less_than_comparison(inc, num_witness);
     new_gates.extend(extra_gates);
     let (state_t1, extra_gates, num_witness) = state.t[1].add(&to_inc, num_witness);
@@ -252,7 +257,6 @@ fn blake2s_compress(
 
 fn blake2s_round(
     state: &mut [WU32],
-    // blake2s_message_schedule: Blake2sMessageSchedule,
     msg: &[WU32],
     round: usize,
     num_witness: u32,
@@ -303,44 +307,52 @@ fn g(
 ) -> (Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
 
+    // calculate state[a] as `state[a] + state[b] + x`
     let (state_a_1, extra_gates, num_witness) = state[a].add(&state[b], num_witness);
     new_gates.extend(extra_gates);
     let (state_a, extra_gates, num_witness) = state_a_1.add(&x, num_witness);
     new_gates.extend(extra_gates);
     state[a] = state_a;
 
+    // calculate state[d] as `(state[d] ^ state[a]).ror(16)`
     let (state_d_1, extra_gates, num_witness) = state[d].xor(&state[a], num_witness);
     new_gates.extend(extra_gates);
     let (state_d, extra_gates, num_witness) = state_d_1.ror(16, num_witness);
     new_gates.extend(extra_gates);
     state[d] = state_d;
 
+    // calculate state[c] as `state[c] + state[d]`
     let (state_c, extra_gates, num_witness) = state[c].add(&state[d], num_witness);
     new_gates.extend(extra_gates);
     state[c] = state_c;
 
+    // caclulate state[b] as `(state[b] ^ state[c]).ror(12)`
     let (state_b_1, extra_gates, num_witness) = state[b].xor(&state[c], num_witness);
     new_gates.extend(extra_gates);
     let (state_b, extra_gates, num_witness) = state_b_1.ror(12, num_witness);
     new_gates.extend(extra_gates);
     state[b] = state_b;
 
+    // calculate state[a] as `state[a] + state[b] + y`
     let (state_a_1, extra_gates, num_witness) = state[a].add(&state[b], num_witness);
     new_gates.extend(extra_gates);
     let (state_a, extra_gates, num_witness) = state_a_1.add(&y, num_witness);
     new_gates.extend(extra_gates);
     state[a] = state_a;
 
+    // calculate state[d] as `(state[d] ^ state[a]).ror(8)`
     let (state_d_1, extra_gates, num_witness) = state[d].xor(&state[a], num_witness);
     new_gates.extend(extra_gates);
     let (state_d, extra_gates, num_witness) = state_d_1.ror(8, num_witness);
     new_gates.extend(extra_gates);
     state[d] = state_d;
 
+    // calculate state[c] as `state[c] + state[d]`
     let (state_c, extra_gates, num_witness) = state[c].add(&state[d], num_witness);
     new_gates.extend(extra_gates);
     state[c] = state_c;
 
+    // caclulate state[b] as `(state[b] ^ state[c]).ror(7)`
     let (state_b_1, extra_gates, num_witness) = state[b].xor(&state[c], num_witness);
     new_gates.extend(extra_gates);
     let (state_b, extra_gates, num_witness) = state_b_1.ror(7, num_witness);
@@ -350,6 +362,7 @@ fn g(
     (new_gates, num_witness)
 }
 
+/// Blake2s state `h` `t` and `f`
 #[derive(Debug)]
 struct Blake2sState {
     h: [WU32; 8],
@@ -362,12 +375,12 @@ impl Blake2sState {
         Blake2sState { h, t, f }
     }
 
+    /// Initialize internal state of Blake2s
     fn init(mut num_witness: u32) -> (Blake2sState, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut h = [WU32::default(); 8];
         let mut t = [WU32::default(); 2];
         let mut f = [WU32::default(); 2];
-
         let initial_h: Vec<u128> = vec![
             0x6b08e647, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
             0x5be0cd19,
@@ -403,6 +416,7 @@ impl Blake2sState {
     }
 }
 
+/// Blake2s IV (Initialization Vector)
 struct Blake2sIV {
     iv: [WU32; 8],
 }
@@ -412,6 +426,7 @@ impl Blake2sIV {
         Blake2sIV { iv }
     }
 
+    /// Initialize IV of Blake2s
     fn init(mut num_witness: u32) -> (Blake2sIV, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut iv = [WU32::default(); 8];

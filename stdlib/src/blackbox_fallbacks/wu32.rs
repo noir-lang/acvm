@@ -615,6 +615,8 @@ impl WU32 {
         (WU32::new(new_witness), new_gates, num_witness)
     }
 
+    /// Calculate and constrain `self` >= `rhs`
+    //  This should be similar to its equivalent in the Noir repo
     pub(crate) fn more_than_eq_comparison(
         &self,
         rhs: &WU32,
@@ -626,23 +628,20 @@ impl WU32 {
         let q_witness = variables.new_variable();
         let r_witness = variables.new_variable();
 
-        // calculate 2^32 + self - rhs to avoid overflow
+        // calculate 2^32 + self - rhs
         let brillig_opcode = Opcode::Brillig(Brillig {
             inputs: vec![
                 BrilligInputs::Single(Expression {
-                    // Input Register 0
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), self.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 1
                     mul_terms: vec![],
                     linear_combinations: vec![(FieldElement::one(), rhs.inner)],
                     q_c: FieldElement::zero(),
                 }),
                 BrilligInputs::Single(Expression {
-                    // Input Register 2
                     mul_terms: vec![],
                     linear_combinations: vec![],
                     q_c: FieldElement::from(1_u128 << self.width),
@@ -682,6 +681,10 @@ impl WU32 {
             WU32::load_constant(2_u128.pow(self.width), num_witness);
         new_gates.extend(extra_gates);
 
+        // constraint 2^{max_bits} + a - b = q * 2^{max_bits} + r
+        // q = 1 if a == b
+        // q = 1 if a > b
+        // q = 0 if a < b
         let quotient_opcode =
             Opcode::Directive(acir::circuit::directives::Directive::Quotient(QuotientDirective {
                 a: new_witness.into(),
@@ -692,7 +695,7 @@ impl WU32 {
             }));
         new_gates.push(quotient_opcode);
 
-        // make sure r and q are in 32 bit range
+        // make sure r in 32 bit range and q is 1 bit
         let r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
             input: FunctionInput { witness: r_witness, num_bits: self.width },
         });
@@ -705,14 +708,15 @@ impl WU32 {
         (WU32::new(q_witness), new_gates, num_witness)
     }
 
+    /// Calculate and constrain `self` < `rhs`
     pub fn less_than_comparison(&self, rhs: &WU32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (mut comparison, extra_gates, num_witness) =
             self.more_than_eq_comparison(rhs, num_witness);
         new_gates.extend(extra_gates);
-
         comparison.width = 1;
 
+        // `self` < `rhs` == not `self` >= `rhs`
         let (less_than, extra_gates, num_witness) = comparison.not(num_witness);
         new_gates.extend(extra_gates);
 
