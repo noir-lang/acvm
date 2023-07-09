@@ -2,20 +2,9 @@ use crate::{memory::Memory, opcodes::HeapVector, HeapArray, RegisterIndex, Regis
 use acir_field::FieldElement;
 use blake2::digest::generic_array::GenericArray;
 use blake2::{Blake2s256, Digest};
-use k256::elliptic_curve::sec1::FromEncodedPoint;
-use k256::elliptic_curve::PrimeField;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use sha3::Keccak256;
-
-use k256::{ecdsa::Signature, Scalar};
-use k256::{
-    elliptic_curve::{
-        sec1::{Coordinates, ToEncodedPoint},
-        IsHigh,
-    },
-    AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
-};
 
 /// These opcodes provide an equivalent of ACIR blackbox functions.
 /// They are implemented as native functions in the VM.
@@ -41,6 +30,14 @@ pub enum BlackBoxOp {
         signature: HeapArray,
         result: RegisterIndex,
     },
+    /// Verifies a ECDSA signature over the secp256r1 curve.
+    EcdsaSecp256r1 {
+        hashed_msg: HeapVector,
+        public_key_x: HeapArray,
+        public_key_y: HeapArray,
+        signature: HeapArray,
+        result: RegisterIndex,
+    },
 }
 
 impl BlackBoxOp {
@@ -59,6 +56,13 @@ impl BlackBoxOp {
                 generic_hash_to_field::<Blake2s256>(message, output, registers, memory);
             }
             BlackBoxOp::EcdsaSecp256k1 {
+                hashed_msg,
+                public_key_x,
+                public_key_y,
+                signature,
+                result: result_register,
+            }
+            | BlackBoxOp::EcdsaSecp256r1 {
                 hashed_msg,
                 public_key_x,
                 public_key_y,
@@ -93,12 +97,21 @@ impl BlackBoxOp {
                 .try_into()
                 .expect("Expected a 64-element signature array");
 
-                let result = verify_secp256k1_ecdsa_signature(
-                    &message_bytes,
-                    &public_key_x_bytes,
-                    &public_key_y_bytes,
-                    &signature_bytes,
-                );
+                let result = match self {
+                    BlackBoxOp::EcdsaSecp256k1 { .. } => verify_secp256k1_ecdsa_signature(
+                        &message_bytes,
+                        &public_key_x_bytes,
+                        &public_key_y_bytes,
+                        &signature_bytes,
+                    ),
+                    BlackBoxOp::EcdsaSecp256r1 { .. } => verify_secp256r1_ecdsa_signature(
+                        &message_bytes,
+                        &public_key_x_bytes,
+                        &public_key_y_bytes,
+                        &signature_bytes,
+                    ),
+                    _ => unreachable!(),
+                };
 
                 registers.set(*result_register, (result as u128).into())
             }
@@ -219,6 +232,74 @@ fn verify_secp256k1_ecdsa_signature(
     public_key_y_bytes: &[u8; 32],
     signature: &[u8; 64],
 ) -> bool {
+    use k256::elliptic_curve::sec1::FromEncodedPoint;
+    use k256::elliptic_curve::PrimeField;
+
+    use k256::{ecdsa::Signature, Scalar};
+    use k256::{
+        elliptic_curve::{
+            sec1::{Coordinates, ToEncodedPoint},
+            IsHigh,
+        },
+        AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
+    };
+    // Convert the inputs into k256 data structures
+
+    let signature = Signature::try_from(signature.as_slice()).unwrap();
+
+    let point = EncodedPoint::from_affine_coordinates(
+        public_key_x_bytes.into(),
+        public_key_y_bytes.into(),
+        true,
+    );
+    let pubkey = PublicKey::from_encoded_point(&point).unwrap();
+
+    let z = Scalar::from_repr(*GenericArray::from_slice(hashed_msg)).unwrap();
+
+    // Finished converting bytes into data structures
+
+    let r = signature.r();
+    let s = signature.s();
+
+    // Ensure signature is "low S" normalized ala BIP 0062
+    if s.is_high().into() {
+        return false;
+    }
+
+    let s_inv = s.invert().unwrap();
+    let u1 = z * s_inv;
+    let u2 = *r * s_inv;
+
+    #[allow(non_snake_case)]
+    let R: AffinePoint = ((ProjectivePoint::GENERATOR * u1)
+        + (ProjectivePoint::from(*pubkey.as_affine()) * u2))
+        .to_affine();
+
+    match R.to_encoded_point(false).coordinates() {
+        Coordinates::Uncompressed { x, y: _ } => Scalar::from_repr(*x).unwrap().eq(&r),
+        _ => unreachable!("Point is uncompressed"),
+    }
+}
+
+// TODO(https://github.com/noir-lang/acvm/issues/402): remove from here and use the one from acvm
+fn verify_secp256r1_ecdsa_signature(
+    hashed_msg: &[u8],
+    public_key_x_bytes: &[u8; 32],
+    public_key_y_bytes: &[u8; 32],
+    signature: &[u8; 64],
+) -> bool {
+    use p256::elliptic_curve::sec1::FromEncodedPoint;
+    use p256::elliptic_curve::PrimeField;
+
+    use p256::{ecdsa::Signature, Scalar};
+    use p256::{
+        elliptic_curve::{
+            sec1::{Coordinates, ToEncodedPoint},
+            IsHigh,
+        },
+        AffinePoint, EncodedPoint, ProjectivePoint, PublicKey,
+    };
+
     // Convert the inputs into k256 data structures
 
     let signature = Signature::try_from(signature.as_slice()).unwrap();

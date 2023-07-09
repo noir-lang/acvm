@@ -1,15 +1,13 @@
+use super::to_u8_vec;
+use crate::{
+    pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError},
+    BlackBoxFunctionSolver,
+};
 use acir::{
     circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
-
-use crate::{
-    pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError},
-    BlackBoxFunctionSolver,
-};
-
-use super::to_u8_vec;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn schnorr_verify(

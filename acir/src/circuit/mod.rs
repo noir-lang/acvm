@@ -27,6 +27,15 @@ pub struct Circuit {
     pub return_values: PublicInputs,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+/// Opcodes are given labels so that callers can
+/// map opcodes to debug information related to their context.
+pub enum OpcodeLabel {
+    #[default]
+    Unresolved,
+    Resolved(u64),
+}
+
 impl Circuit {
     pub fn num_vars(&self) -> u32 {
         self.current_witness_index + 1
@@ -53,6 +62,11 @@ impl Circuit {
         deflater.read_to_end(&mut buf_d).unwrap();
         let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
         Ok(circuit)
+    }
+
+    /// Initial list of labels attached to opcodes.
+    pub fn initial_opcode_labels(&self) -> Vec<OpcodeLabel> {
+        (0..self.opcodes.len()).map(|label| OpcodeLabel::Resolved(label as u64)).collect()
     }
 }
 
