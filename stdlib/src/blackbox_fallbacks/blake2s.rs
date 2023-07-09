@@ -295,6 +295,7 @@ fn blake2s_round(
     (new_gates, num_witness)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn g(
     state: &mut [WU32],
     a: usize,
@@ -394,19 +395,19 @@ impl Blake2sState {
             num_witness = updated_witness_counter;
         }
 
-        for i in 0..2 {
+        for ti in &mut t {
             let (new_witness, extra_gates, updated_witness_counter) =
                 WU32::load_constant(0_u128, num_witness);
             new_gates.extend(extra_gates);
-            t[i] = new_witness;
+            *ti = new_witness;
             num_witness = updated_witness_counter;
         }
 
-        for i in 0..2 {
+        for fi in &mut f {
             let (new_witness, extra_gates, updated_witness_counter) =
                 WU32::load_constant(0_u128, num_witness);
             new_gates.extend(extra_gates);
-            f[i] = new_witness;
+            *fi = new_witness;
             num_witness = updated_witness_counter;
         }
 
