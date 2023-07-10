@@ -104,13 +104,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        ACVM {
-            status: ACVMStatus::InProgress,
-            backend,
-            opcodes,
-            instruction_pointer: 0,
-            witness_map: initial_witness,
-        }
+        let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
+        ACVM { status, backend, opcodes, instruction_pointer: 0, witness_map: initial_witness }
     }
 
     /// Returns a reference to the current state of the ACVM's [`WitnessMap`].
