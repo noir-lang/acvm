@@ -101,6 +101,7 @@ pub trait SmartContract {
         &self,
         common_reference_string: &[u8],
         verification_key: &[u8],
+        circuit: &Circuit,
     ) -> Result<String, Self::Error>;
 }
 
