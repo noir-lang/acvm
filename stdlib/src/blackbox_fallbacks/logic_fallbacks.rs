@@ -1,10 +1,9 @@
+use super::utils::bit_decomposition;
 use acir::{
     acir_field::FieldElement,
     circuit::Opcode,
     native_types::{Expression, Witness},
 };
-
-use super::utils::bit_decomposition;
 
 // Range constraint
 pub fn range(gate: Expression, bit_size: u32, num_witness: u32) -> (u32, Vec<Opcode>) {
