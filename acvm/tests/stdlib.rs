@@ -1,10 +1,22 @@
 #![cfg(feature = "testing")]
 mod solver;
 use crate::solver::StubbedBackend;
-use acir::{native_types::Witness, FieldElement};
-use acvm::pwg::{ACVMStatus, ACVM};
+use acir::{
+    circuit::{
+        opcodes::{BlackBoxFuncCall, FunctionInput},
+        Circuit, Opcode, PublicInputs,
+    },
+    native_types::Witness,
+    FieldElement,
+};
+use acvm::{
+    compiler::{compile, CircuitSimplifier},
+    pwg::{ACVMStatus, ACVM},
+    Language,
+};
 use proptest::prelude::*;
-use std::collections::BTreeMap;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 use stdlib::blackbox_fallbacks::UInt32;
 
 proptest! {
@@ -122,4 +134,69 @@ proptest! {
         prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(3))]
+    #[test]
+    fn test_sha256(input_values in proptest::collection::vec(0..u8::MAX, 1..50)) {
+        let mut opcodes = Vec::new();
+        let mut witness_assignments = BTreeMap::new();
+        let mut sha256_input_witnesses: Vec<FunctionInput> = Vec::new();
+        let mut correct_result_witnesses: Vec<Witness> = Vec::new();
+        let mut output_witnesses: Vec<Witness> = Vec::new();
+
+        // prepare test data
+        hash_witnesses!(input_values, witness_assignments, sha256_input_witnesses, correct_result_witnesses, output_witnesses, Sha256);
+        let sha256_blackbox = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::SHA256 { inputs: sha256_input_witnesses, outputs: output_witnesses });
+        opcodes.push(sha256_blackbox);
+
+        // compile circuit
+        let circuit_simplifier = CircuitSimplifier::new(witness_assignments.len() as u32 + 32);
+        let circuit = Circuit {current_witness_index: witness_assignments.len() as u32 + 32,
+            opcodes, public_parameters: PublicInputs(BTreeSet::new()), return_values: PublicInputs(BTreeSet::new()) };
+        let circuit = compile(circuit, Language::PLONKCSat{ width: 3 }, does_not_support_sha256, &circuit_simplifier).unwrap().0;
+
+        // solve witnesses
+        let mut acvm = ACVM::new(StubbedBackend, circuit.opcodes, witness_assignments.into());
+        let solver_status = acvm.solve();
+
+        prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+    }
+}
+
+fn does_not_support_sha256(opcode: &Opcode) -> bool {
+    !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::SHA256 { .. }))
+}
+
+#[macro_export]
+macro_rules! hash_witnesses {
+    (
+        $input_values:ident,
+        $witness_assignments:ident,
+        $input_witnesses: ident,
+        $correct_result_witnesses:ident,
+        $output_witnesses:ident,
+        $hasher:ident
+    ) => {
+        let mut counter = 0;
+        let output = $hasher::digest($input_values.clone());
+        for inp_v in $input_values {
+            counter += 1;
+            let function_input = FunctionInput { witness: Witness(counter), num_bits: 8 };
+            $input_witnesses.push(function_input);
+            $witness_assignments.insert(Witness(counter), FieldElement::from(inp_v as u128));
+        }
+
+        for o_v in output {
+            counter += 1;
+            $correct_result_witnesses.push(Witness(counter));
+            $witness_assignments.insert(Witness(counter), FieldElement::from(o_v as u128));
+        }
+
+        for _ in 0..32 {
+            counter += 1;
+            $output_witnesses.push(Witness(counter));
+        }
+    };
 }
