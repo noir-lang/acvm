@@ -1,3 +1,4 @@
+#![cfg(feature = "testing")]
 mod solver;
 use crate::solver::StubbedBackend;
 use acir::{native_types::Witness, FieldElement};
