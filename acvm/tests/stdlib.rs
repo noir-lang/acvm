@@ -1,11 +1,10 @@
 mod solver;
+use crate::solver::StubbedBackend;
 use acir::{native_types::Witness, FieldElement};
 use acvm::pwg::{ACVMStatus, ACVM};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use stdlib::blackbox_fallbacks::UInt32;
-
-use crate::solver::StubbedBackend;
 
 proptest! {
     #[test]
@@ -19,7 +18,7 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
+        prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
@@ -38,8 +37,8 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&q_w.inner).unwrap(), &FieldElement::from(q as u128));
-        prop_assert_eq!(acvm.witness_map().get(&r_w.inner).unwrap(), &FieldElement::from(r as u128));
+        prop_assert_eq!(acvm.witness_map().get(&q_w.get_inner()).unwrap(), &FieldElement::from(q as u128));
+        prop_assert_eq!(acvm.witness_map().get(&r_w.get_inner()).unwrap(), &FieldElement::from(r as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
@@ -64,7 +63,7 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
         let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&w2.inner).unwrap(), &result);
+        prop_assert_eq!(acvm.witness_map().get(&w2.get_inner()).unwrap(), &result);
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
@@ -89,7 +88,7 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
                 let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&w2.inner).unwrap(), &result);
+        prop_assert_eq!(acvm.witness_map().get(&w2.get_inner()).unwrap(), &result);
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
@@ -104,7 +103,7 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
+        prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 
@@ -119,7 +118,7 @@ proptest! {
         let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
         let solver_status = acvm.solve();
 
-        prop_assert_eq!(acvm.witness_map().get(&w.inner).unwrap(), &FieldElement::from(result as u128));
+        prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
         prop_assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
     }
 }

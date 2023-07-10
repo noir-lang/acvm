@@ -113,6 +113,7 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
+            #[cfg(feature = "unstable-fallbacks")]
             BlackBoxFuncCall::SHA256 { inputs, outputs } => {
                 let mut sha256_inputs = Vec::new();
                 for input in inputs.iter() {

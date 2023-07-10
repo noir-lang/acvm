@@ -16,14 +16,14 @@ use acir::{
 // TODO: This can be generalized to u8, u64 and others if needed.
 #[derive(Copy, Clone, Debug)]
 pub struct UInt32 {
-    pub inner: Witness,
+    pub(crate) inner: Witness,
     width: u32,
 }
 
-/// The default has [Witness(1)]
-impl Default for UInt32 {
-    fn default() -> Self {
-        UInt32 { inner: Witness(1), width: 32 }
+impl UInt32 {
+    #[cfg(any(test, feature = "testing"))]
+    pub fn get_inner(&self) -> Witness {
+        self.inner
     }
 }
 
@@ -34,7 +34,7 @@ impl UInt32 {
     }
 
     /// Load a [u128] constant into the circuit
-    // TODO: This is currently a u128 instead of a u32 cus
+    // TODO: This is currently a u128 instead of a u32 because
     // in some cases we want to load 2^32 which does not fit in u32
     pub(crate) fn load_constant(
         constant: u128,
@@ -61,7 +61,7 @@ impl UInt32 {
         (UInt32::new(new_witness), new_gates, num_witness)
     }
 
-    /// load a [UInt32] from four [Witness]es each representing a [u8]
+    /// Load a [UInt32] from four [Witness]es each representing a [u8]
     pub(crate) fn from_witnesses(
         witnesses: &[Witness],
         mut num_witness: u32,
@@ -218,7 +218,7 @@ impl UInt32 {
         (UInt32::new(q_witness), UInt32::new(r_witness), new_gates, num_witness)
     }
 
-    /// rotate right `rotation` bits. `(x >> rotation) | (x << (width - rotation))`
+    /// Rotate right `rotation` bits. `(x >> rotation) | (x << (width - rotation))`
     // Switched `or` with `add` here
     // This should be the same as `u32.rotate_right(rotation)` in rust stdlib
     pub fn ror(&self, rotation: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
@@ -376,9 +376,9 @@ impl UInt32 {
         (sub_mod, new_gates, num_witness)
     }
 
-    /// Caculate and constrain `self` - `rhs` - 1 without allowing overflow
+    /// Calculate and constrain `self` - `rhs` - 1 without allowing overflow
     /// This is a helper function to `euclidean_division`
-    //  There is a `-1` cus theres a case where rhs = 2^32 and remainder = 0
+    //  There is a `-1` because theres a case where rhs = 2^32 and remainder = 0
     pub(crate) fn sub_no_overflow(
         &self,
         rhs: &UInt32,
