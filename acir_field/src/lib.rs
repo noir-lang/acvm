@@ -11,6 +11,10 @@ cfg_if::cfg_if! {
         mod generic_ark;
         pub type FieldElement = generic_ark::FieldElement<ark_bls12_381::Fr>;
         pub const CHOSEN_FIELD : FieldOptions = FieldOptions::BLS12_381;
+    } else if #[cfg(feature = "pallas")] {
+        mod generic_ark;
+        pub type FieldElement = generic_ark::FieldElement<ark_pallas::Fq>;
+        pub const CHOSEN_FIELD : FieldOptions = FieldOptions::Pallas;
     } else {
         compile_error!("please specify a field to compile with");
     }
@@ -20,6 +24,7 @@ cfg_if::cfg_if! {
 pub enum FieldOptions {
     BN254,
     BLS12_381,
+    Pallas,
 }
 
 // This is needed because features are additive through the dependency graph; if a dependency turns on the bn254, then it
@@ -37,4 +42,4 @@ macro_rules! assert_unique_feature {
 }
 // https://internals.rust-lang.org/t/mutually-exclusive-feature-flags/8601/7
 // If another field/feature is added, we add it here too
-assert_unique_feature!("bn254", "bls12_381");
+assert_unique_feature!("bn254", "bls12_381", "pallas");
