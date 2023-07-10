@@ -102,7 +102,6 @@ pub fn compile(
                     new_gates.push(intermediate_gate);
                 }
                 new_gates.push(arith_expr);
-                new_gates.sort();
                 for gate in new_gates {
                     new_opcode_labels.push(opcode_label[index]);
                     transformed_gates.push(Opcode::Arithmetic(gate));

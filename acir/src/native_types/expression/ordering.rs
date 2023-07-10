@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use super::Expression;
 
 // TODO: It's undecided whether `Expression` should implement `Ord/PartialOrd`.
-// This is currently used in ACVM in the compiler.
+// This is not currently used in ACVM.
 
 impl Ord for Expression {
     fn cmp(&self, other: &Self) -> Ordering {
