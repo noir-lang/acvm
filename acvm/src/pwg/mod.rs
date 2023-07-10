@@ -94,8 +94,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     backend: B,
 
-    /// A list of opcodes which are to be executed by the ACVM, along with their label
-    opcodes_and_labels: Vec<(Opcode, OpcodeLabel)>,
+    /// A list of opcodes which are to be executed by the ACVM.
+    opcodes: Vec<Opcode>,
     /// Index of the next opcode to be executed.
     instruction_pointer: usize,
 
@@ -104,17 +104,10 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
-        let opcodes_and_labels = opcodes
-            .iter()
-            .enumerate()
-            .map(|(opcode_index, opcode)| {
-                (opcode.clone(), OpcodeLabel::Resolved(opcode_index as u64))
-            })
-            .collect();
         ACVM {
             status: ACVMStatus::InProgress,
             backend,
-            opcodes_and_labels,
+            opcodes,
             instruction_pointer: 0,
             witness_map: initial_witness,
         }
@@ -128,8 +121,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     }
 
     /// Returns a slice containing the opcodes of the circuit being executed.
-    pub fn opcodes(&self) -> &[(Opcode, OpcodeLabel)] {
-        &self.opcodes_and_labels
+    pub fn opcodes(&self) -> &[Opcode] {
+        &self.opcodes
     }
 
     /// Returns the index of the current opcode to be executed.
@@ -193,7 +186,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolved_brillig = foreign_call.resolve(foreign_call_result);
 
         // Overwrite the brillig opcode with a new one with the foreign call response.
-        self.opcodes_and_labels[self.instruction_pointer].0 = Opcode::Brillig(resolved_brillig);
+        self.opcodes[self.instruction_pointer] = Opcode::Brillig(resolved_brillig);
 
         // Now that the foreign call has been resolved then we can resume execution.
         self.status(ACVMStatus::InProgress);
@@ -213,7 +206,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     }
 
     pub fn solve_opcode(&mut self) -> ACVMStatus {
-        let (opcode, opcode_label) = &self.opcodes_and_labels[self.instruction_pointer];
+        let opcode = &self.opcodes[self.instruction_pointer];
 
         let resolution = match opcode {
             Opcode::Arithmetic(expr) => ArithmeticSolver::solve(&mut self.witness_map, expr),
@@ -238,7 +231,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         match resolution {
             Ok(OpcodeResolution::Solved) => {
                 self.instruction_pointer += 1;
-                if self.instruction_pointer == self.opcodes_and_labels.len() {
+                if self.instruction_pointer == self.opcodes.len() {
                     self.status(ACVMStatus::Solved)
                 } else {
                     self.status(ACVMStatus::InProgress)
@@ -254,20 +247,20 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 self.fail(OpcodeResolutionError::OpcodeNotSolvable(not_solvable))
             }
             Err(mut error) => {
+                let opcode_label =
+                    OpcodeLabel::Resolved(self.instruction_pointer.try_into().unwrap());
                 match &mut error {
                     // If we have an unsatisfied constraint, the opcode label will be unresolved
                     // because the solvers do not have knowledge of this information.
                     // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
                     OpcodeResolutionError::UnsatisfiedConstrain { opcode_label: opcode_index } => {
-                        *opcode_index = *opcode_label;
+                        *opcode_index = opcode_label;
                     }
                     // If a brillig function has failed, we return an unsatisfied constraint error
                     // We intentionally ignore the brillig failure message, as there is no way to
                     // propagate this to the caller.
                     OpcodeResolutionError::BrilligFunctionFailed(_) => {
-                        error = OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_label: *opcode_label,
-                        }
+                        error = OpcodeResolutionError::UnsatisfiedConstrain { opcode_label }
                     }
                     // All other errors are thrown normally.
                     _ => (),
