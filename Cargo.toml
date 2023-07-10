@@ -13,7 +13,6 @@ repository = "https://github.com/noir-lang/acvm/"
 acir = { version = "0.17.0", path = "acir", default-features = false }
 acir_field = { version = "0.17.0", path = "acir_field", default-features = false }
 stdlib = { package = "acvm_stdlib", version = "0.17.0", path = "stdlib", default-features = false }
-rmp-serde = "1.1.0"
 
 num-bigint = "0.4"
 num-traits = "0.2"

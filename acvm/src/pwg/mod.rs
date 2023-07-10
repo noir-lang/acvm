@@ -383,28 +383,3 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
         Language::PLONKCSat { .. } => plonk_is_supported,
     }
 }
-
-/// Canonically hashes the Brillig struct.
-///
-/// Some Brillig instances may or may not be resolved, so we do
-/// not hash the `foreign_call_results`.
-///
-/// This gives us a consistent hash that will be used to track `Brillig`
-/// even when it is put back into the list of opcodes out of order.
-/// This happens when we resolve a Brillig opcode call.
-pub fn canonical_brillig_hash(brillig: &Brillig) -> UnresolvedBrilligCallHash {
-    let mut serialized_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
-    serialized_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
-    serialized_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
-    serialized_vector.extend(rmp_serde::to_vec(&brillig.predicate).unwrap());
-
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::Hasher;
-
-    let mut hasher = DefaultHasher::new();
-    hasher.write(&serialized_vector);
-    hasher.finish()
-}
-
-/// Hash of an unresolved brillig call instance
-pub(crate) type UnresolvedBrilligCallHash = u64;
