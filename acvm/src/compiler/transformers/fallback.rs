@@ -84,7 +84,7 @@ impl FallbackTransformer {
                     lhs.num_bits, rhs.num_bits,
                     "number of bits specified for each input must be the same"
                 );
-                stdlib::fallback::and(
+                stdlib::blackbox_fallbacks::and(
                     Expression::from(lhs.witness),
                     Expression::from(rhs.witness),
                     *output,
@@ -97,7 +97,7 @@ impl FallbackTransformer {
                     lhs.num_bits, rhs.num_bits,
                     "number of bits specified for each input must be the same"
                 );
-                stdlib::fallback::xor(
+                stdlib::blackbox_fallbacks::xor(
                     Expression::from(lhs.witness),
                     Expression::from(rhs.witness),
                     *output,
@@ -107,7 +107,7 @@ impl FallbackTransformer {
             }
             BlackBoxFuncCall::RANGE { input } => {
                 // Note there are no outputs because range produces no outputs
-                stdlib::fallback::range(
+                stdlib::blackbox_fallbacks::range(
                     Expression::from(input.witness),
                     input.num_bits,
                     current_witness_idx,

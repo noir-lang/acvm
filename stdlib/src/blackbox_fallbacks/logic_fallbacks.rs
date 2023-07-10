@@ -7,7 +7,7 @@ use acir::{
 
 // Perform bit decomposition on the provided expression
 #[deprecated(note = "use bit_decomposition function instead")]
-pub fn split(
+fn _split(
     gate: Expression,
     bit_size: u32,
     num_witness: u32,
