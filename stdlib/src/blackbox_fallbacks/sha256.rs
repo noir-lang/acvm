@@ -35,7 +35,6 @@ pub fn sha256(
 ) -> (u32, Vec<Opcode>) {
     let mut new_gates = Vec::new();
     let mut new_inputs = Vec::new();
-
     let mut total_num_bytes = 0;
 
     // Decompose the input field elements into bytes and collect the resulting witnesses.
