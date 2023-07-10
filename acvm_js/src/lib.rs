@@ -5,7 +5,7 @@ mod barretenberg;
 mod build_info;
 mod compression;
 mod execute;
-mod foreign_calls;
+mod foreign_call;
 mod js_witness_map;
 mod logging;
 mod public_witness;

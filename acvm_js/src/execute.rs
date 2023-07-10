@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     barretenberg::{pedersen::Pedersen, scalar_mul::ScalarMul, schnorr::SchnorrSig, Barretenberg},
-    foreign_calls::ForeignCallHandler,
+    foreign_call::{resolve_brillig, ForeignCallHandler},
     JsWitnessMap,
 };
 
@@ -79,7 +79,7 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
 pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
-    _foreign_call_handler: ForeignCallHandler,
+    foreign_call_handler: ForeignCallHandler,
 ) -> Result<JsWitnessMap, js_sys::JsString> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
@@ -96,8 +96,12 @@ pub async fn execute_circuit(
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
             ACVMStatus::Failure(error) => return Err(error.to_string().into()),
-            ACVMStatus::RequiresForeignCall { .. } => {
-                // TODO: add handling for `Brillig` opcodes.
+            ACVMStatus::RequiresForeignCall => {
+                while let Some(foreign_call) = acvm.get_pending_foreign_call() {
+                    let result = resolve_brillig(&foreign_call_handler, foreign_call).await?;
+
+                    acvm.resolve_pending_foreign_call(result);
+                }
             }
         }
     }

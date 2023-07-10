@@ -3,6 +3,7 @@ import initACVM, {
   executeCircuit,
   WitnessMap,
   initLogLevel,
+  ForeignCallHandler,
 } from "../../result/";
 
 beforeEach(async () => {
@@ -30,6 +31,82 @@ it("successfully executes circuit and extracts return value", async () => {
 
   // Solved witness should contain expected return value
   expect(solvedWitness.get(resultWitness)).to.be.eq(expectedResult);
+});
+
+it("successfully processes simple brillig foreign call opcodes", async () => {
+  const {
+    bytecode,
+    initialWitnessMap,
+    expectedWitnessMap,
+    oracleResponse,
+    oracleCallName,
+    oracleCallInputs,
+  } = await import("../shared/foreign_call");
+
+  let observedName = "";
+  let observedInputs: string[][] = [];
+  const foreignCallHandler: ForeignCallHandler = async (
+    name: string,
+    inputs: string[][]
+  ) => {
+    // Throwing inside the oracle callback causes a timeout so we log the observed values
+    // and defer the check against expected values until after the execution is complete.
+    observedName = name;
+    observedInputs = inputs;
+
+    return oracleResponse;
+  };
+  const solved_witness: WitnessMap = await executeCircuit(
+    bytecode,
+    initialWitnessMap,
+    foreignCallHandler
+  );
+
+  // Check that expected values were passed to oracle callback.
+  expect(observedName).to.be.eq(oracleCallName);
+  expect(observedInputs).to.be.deep.eq(oracleCallInputs);
+
+  // If incorrect value is written into circuit then execution should halt due to unsatisfied constraint in
+  // arithmetic opcode. Nevertheless, check that returned value was inserted correctly.
+  expect(solved_witness).to.be.deep.eq(expectedWitnessMap);
+});
+
+it("successfully processes complex brillig foreign call opcodes", async () => {
+  const {
+    bytecode,
+    initialWitnessMap,
+    expectedWitnessMap,
+    oracleResponse,
+    oracleCallName,
+    oracleCallInputs,
+  } = await import("../shared/complex_foreign_call");
+
+  let observedName = "";
+  let observedInputs: string[][] = [];
+  const foreignCallHandler: ForeignCallHandler = async (
+    name: string,
+    inputs: string[][]
+  ) => {
+    // Throwing inside the oracle callback causes a timeout so we log the observed values
+    // and defer the check against expected values until after the execution is complete.
+    observedName = name;
+    observedInputs = inputs;
+
+    return oracleResponse;
+  };
+  const solved_witness: WitnessMap = await executeCircuit(
+    bytecode,
+    initialWitnessMap,
+    foreignCallHandler
+  );
+
+  // Check that expected values were passed to oracle callback.
+  expect(observedName).to.be.eq(oracleCallName);
+  expect(observedInputs).to.be.deep.eq(oracleCallInputs);
+
+  // If incorrect value is written into circuit then execution should halt due to unsatisfied constraint in
+  // arithmetic opcode. Nevertheless, check that returned value was inserted correctly.
+  expect(solved_witness).to.be.deep.eq(expectedWitnessMap);
 });
 
 it("successfully executes a Pedersen opcode", async function () {
