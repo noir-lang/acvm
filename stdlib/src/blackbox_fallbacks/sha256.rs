@@ -213,14 +213,14 @@ fn sha256_block(
         num_witness = updated_witness_counter;
     }
 
-    let mut a = rolling_hash[0].clone();
-    let mut b = rolling_hash[1].clone();
-    let mut c = rolling_hash[2].clone();
-    let mut d = rolling_hash[3].clone();
-    let mut e = rolling_hash[4].clone();
-    let mut f = rolling_hash[5].clone();
-    let mut g = rolling_hash[6].clone();
-    let mut h = rolling_hash[7].clone();
+    let mut a = rolling_hash[0];
+    let mut b = rolling_hash[1];
+    let mut c = rolling_hash[2];
+    let mut d = rolling_hash[3];
+    let mut e = rolling_hash[4];
+    let mut f = rolling_hash[5];
+    let mut g = rolling_hash[6];
+    let mut h = rolling_hash[7];
 
     #[allow(non_snake_case)]
     for i in 0..64 {
@@ -291,12 +291,12 @@ fn sha256_block(
 
         h = g;
         g = f;
-        f = e.clone();
+        f = e;
         let (new_e, extra_gates, updated_witness_counter) = d.add(&temp1, updated_witness_counter);
         new_gates.extend(extra_gates);
         d = c;
         c = b;
-        b = a.clone();
+        b = a;
         let (new_a, extra_gates, updated_witness_counter) =
             temp1.add(&temp2, updated_witness_counter);
         new_gates.extend(extra_gates);

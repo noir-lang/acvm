@@ -5,19 +5,6 @@ use acir::{
     native_types::{Expression, Witness},
 };
 
-// Perform bit decomposition on the provided expression
-#[deprecated(note = "use bit_decomposition function instead")]
-fn _split(
-    gate: Expression,
-    bit_size: u32,
-    num_witness: u32,
-    new_gates: &mut Vec<Opcode>,
-) -> Vec<Witness> {
-    let (extra_gates, bits, _) = bit_decomposition(gate, bit_size, num_witness);
-    new_gates.extend(extra_gates);
-    bits
-}
-
 // Generates opcodes and directives to bit decompose the input `gate`
 // Returns the bits and the updated witness counter
 // TODO:Ideally, we return the updated witness counter, or we require the input

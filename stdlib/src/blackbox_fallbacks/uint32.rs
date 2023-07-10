@@ -14,7 +14,7 @@ use acir::{
 /// UInt32 contains a witness that points to a field element that represents a u32 integer
 /// It has a inner field of type [Witness] that points to the field element and width = 32
 // TODO: This can be generalized to u8, u64 and others if needed.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct UInt32 {
     pub inner: Witness,
     width: u32,
