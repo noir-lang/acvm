@@ -1,6 +1,6 @@
 //! Sha256 fallback function.
+use super::uint32::UInt32;
 use super::utils::{byte_decomposition, round_to_nearest_byte};
-use super::wu32::WU32;
 use crate::helpers::VariableStore;
 use acir::{
     brillig_vm::{self, BinaryFieldOp, RegisterIndex},
@@ -77,14 +77,14 @@ fn create_sha256_constraint(
     input.extend(pad_witness);
 
     // turn witness into u32 and load sha256 state
-    let (input, extra_gates, num_witness) = WU32::from_witnesses(&input, num_witness);
+    let (input, extra_gates, num_witness) = UInt32::from_witnesses(&input, num_witness);
     new_gates.extend(extra_gates);
     let (mut rolling_hash, extra_gates, num_witness) = prepare_state_constants(num_witness);
     new_gates.extend(extra_gates);
     let (round_constants, extra_gates, mut num_witness) = prepare_round_constants(num_witness);
     new_gates.extend(extra_gates);
     // split the input into blocks of size 16
-    let input: Vec<Vec<WU32>> = input.chunks(16).map(|block| block.to_vec()).collect();
+    let input: Vec<Vec<UInt32>> = input.chunks(16).map(|block| block.to_vec()).collect();
 
     // process sha256 blocks
     for i in &input {
@@ -164,15 +164,15 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
 }
 
 fn sha256_block(
-    input: &[WU32],
-    rolling_hash: Vec<WU32>,
-    round_constants: Vec<WU32>,
+    input: &[UInt32],
+    rolling_hash: Vec<UInt32>,
+    round_constants: Vec<UInt32>,
     mut num_witness: u32,
-) -> (Vec<WU32>, Vec<Opcode>, u32) {
+) -> (Vec<UInt32>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
     let mut w = Vec::new();
     w.extend(input.to_owned());
-    w.resize(64, WU32::default());
+    w.resize(64, UInt32::default());
 
     for i in 16..64 {
         // calculate s0 `w[i - 15].ror(7) ^ w[i - 15].ror(18) ^ (w[i - 15] >> 3)`
@@ -336,7 +336,7 @@ fn sha256_block(
 }
 
 /// Load initial state constants of Sha256
-pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<Opcode>, u32) {
+pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
     let mut new_witnesses = Vec::new();
 
@@ -347,7 +347,7 @@ pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<O
 
     for i in init_constants {
         let (new_witness, extra_gates, updated_witness_counter) =
-            WU32::load_constant(i, num_witness);
+            UInt32::load_constant(i, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
@@ -357,7 +357,7 @@ pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<O
 }
 
 /// Load round constants of Sha256
-pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<Opcode>, u32) {
+pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
     let mut new_witnesses = Vec::new();
 
@@ -376,7 +376,7 @@ pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<WU32>, Vec<O
 
     for i in round_constants {
         let (new_witness, extra_gates, updated_witness_counter) =
-            WU32::load_constant(i, num_witness);
+            UInt32::load_constant(i, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
