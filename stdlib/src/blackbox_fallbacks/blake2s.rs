@@ -1,8 +1,8 @@
 //! Blake2s fallback function.
 use std::vec;
 
+pub use super::uint32::UInt32;
 use super::utils::{byte_decomposition, round_to_nearest_byte};
-pub use super::wu32::WU32;
 
 use acir::{
     circuit::Opcode,
@@ -75,7 +75,7 @@ fn create_blake2s_constraint(
     while size > BLAKE2S_BLOCKBYTES_USIZE {
         let (extra_gates, updated_witness_counter) = blake2s_increment_counter(
             &mut blake2s_state,
-            &blake2s_constants.blake2s_blockbytes_wu32,
+            &blake2s_constants.blake2s_blockbytes_uint32,
             num_witness,
         );
         new_gates.extend(extra_gates);
@@ -92,20 +92,21 @@ fn create_blake2s_constraint(
     }
 
     let (u32_max, extra_gates, mut num_witness) =
-        WU32::load_constant(u32::MAX as u128, num_witness);
+        UInt32::load_constant(u32::MAX as u128, num_witness);
     new_gates.extend(extra_gates);
     blake2s_state.f[0] = u32_max;
 
     // pad final block
     let mut final_block = input.get(offset..).unwrap().to_vec();
     for _ in 0..BLAKE2S_BLOCKBYTES_USIZE - final_block.len() {
-        let (pad, extra_gates, updated_witness_counter) = WU32::load_constant(0_u128, num_witness);
+        let (pad, extra_gates, updated_witness_counter) =
+            UInt32::load_constant(0_u128, num_witness);
         new_gates.extend(extra_gates);
         final_block.push(pad.inner);
         num_witness = updated_witness_counter;
     }
 
-    let (size_w, extra_gates, num_witness) = WU32::load_constant(size as u128, num_witness);
+    let (size_w, extra_gates, num_witness) = UInt32::load_constant(size as u128, num_witness);
     new_gates.extend(extra_gates);
     let (extra_gates, num_witness) =
         blake2s_increment_counter(&mut blake2s_state, &size_w, num_witness);
@@ -160,7 +161,7 @@ fn create_blake2s_constraint(
 
 fn blake2s_increment_counter(
     mut state: &mut Blake2sState,
-    inc: &WU32,
+    inc: &UInt32,
     num_witness: u32,
 ) -> (Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
@@ -194,7 +195,7 @@ fn blake2s_compress(
         let mut mi_bytes = input.get(i * 4..i * 4 + 4).unwrap().to_vec();
         mi_bytes.reverse();
         let (mi, extra_gates, updated_witness_counter) =
-            WU32::from_witnesses(&mi_bytes, num_witness);
+            UInt32::from_witnesses(&mi_bytes, num_witness);
         new_gates.extend(extra_gates);
         m.push(mi[0]);
         num_witness = updated_witness_counter
@@ -256,8 +257,8 @@ fn blake2s_compress(
 }
 
 fn blake2s_round(
-    state: &mut [WU32],
-    msg: &[WU32],
+    state: &mut [UInt32],
+    msg: &[UInt32],
     round: usize,
     num_witness: u32,
 ) -> (Vec<Opcode>, u32) {
@@ -297,13 +298,13 @@ fn blake2s_round(
 
 #[allow(clippy::too_many_arguments)]
 fn g(
-    state: &mut [WU32],
+    state: &mut [UInt32],
     a: usize,
     b: usize,
     c: usize,
     d: usize,
-    x: WU32,
-    y: WU32,
+    x: UInt32,
+    y: UInt32,
     num_witness: u32,
 ) -> (Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
@@ -366,22 +367,22 @@ fn g(
 /// Blake2s state `h` `t` and `f`
 #[derive(Debug)]
 struct Blake2sState {
-    h: [WU32; 8],
-    t: [WU32; 2],
-    f: [WU32; 2],
+    h: [UInt32; 8],
+    t: [UInt32; 2],
+    f: [UInt32; 2],
 }
 
 impl Blake2sState {
-    fn new(h: [WU32; 8], t: [WU32; 2], f: [WU32; 2]) -> Self {
+    fn new(h: [UInt32; 8], t: [UInt32; 2], f: [UInt32; 2]) -> Self {
         Blake2sState { h, t, f }
     }
 
     /// Initialize internal state of Blake2s
     fn init(mut num_witness: u32) -> (Blake2sState, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
-        let mut h = [WU32::default(); 8];
-        let mut t = [WU32::default(); 2];
-        let mut f = [WU32::default(); 2];
+        let mut h = [UInt32::default(); 8];
+        let mut t = [UInt32::default(); 2];
+        let mut f = [UInt32::default(); 2];
         let initial_h: Vec<u128> = vec![
             0x6b08e647, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
             0x5be0cd19,
@@ -389,7 +390,7 @@ impl Blake2sState {
 
         for i in 0..initial_h.len() {
             let (new_witness, extra_gates, updated_witness_counter) =
-                WU32::load_constant(initial_h[i], num_witness);
+                UInt32::load_constant(initial_h[i], num_witness);
             new_gates.extend(extra_gates);
             h[i] = new_witness;
             num_witness = updated_witness_counter;
@@ -397,7 +398,7 @@ impl Blake2sState {
 
         for ti in &mut t {
             let (new_witness, extra_gates, updated_witness_counter) =
-                WU32::load_constant(0_u128, num_witness);
+                UInt32::load_constant(0_u128, num_witness);
             new_gates.extend(extra_gates);
             *ti = new_witness;
             num_witness = updated_witness_counter;
@@ -405,7 +406,7 @@ impl Blake2sState {
 
         for fi in &mut f {
             let (new_witness, extra_gates, updated_witness_counter) =
-                WU32::load_constant(0_u128, num_witness);
+                UInt32::load_constant(0_u128, num_witness);
             new_gates.extend(extra_gates);
             *fi = new_witness;
             num_witness = updated_witness_counter;
@@ -419,18 +420,18 @@ impl Blake2sState {
 
 /// Blake2s IV (Initialization Vector)
 struct Blake2sIV {
-    iv: [WU32; 8],
+    iv: [UInt32; 8],
 }
 
 impl Blake2sIV {
-    fn new(iv: [WU32; 8]) -> Self {
+    fn new(iv: [UInt32; 8]) -> Self {
         Blake2sIV { iv }
     }
 
     /// Initialize IV of Blake2s
     fn init(mut num_witness: u32) -> (Blake2sIV, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
-        let mut iv = [WU32::default(); 8];
+        let mut iv = [UInt32::default(); 8];
 
         let iv_value: Vec<u128> = vec![
             0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB,
@@ -439,7 +440,7 @@ impl Blake2sIV {
 
         for i in 0..iv_value.len() {
             let (new_witness, extra_gates, updated_witness_counter) =
-                WU32::load_constant(iv_value[i], num_witness);
+                UInt32::load_constant(iv_value[i], num_witness);
             new_gates.extend(extra_gates);
             iv[i] = new_witness;
             num_witness = updated_witness_counter;
@@ -452,20 +453,20 @@ impl Blake2sIV {
 }
 
 struct Blake2sConstantsInCircuit {
-    blake2s_blockbytes_wu32: WU32,
+    blake2s_blockbytes_uint32: UInt32,
 }
 
 impl Blake2sConstantsInCircuit {
-    fn new(blake2s_blockbytes_wu32: WU32) -> Self {
-        Blake2sConstantsInCircuit { blake2s_blockbytes_wu32 }
+    fn new(blake2s_blockbytes_uint32: UInt32) -> Self {
+        Blake2sConstantsInCircuit { blake2s_blockbytes_uint32 }
     }
 
     fn init(num_witness: u32) -> (Blake2sConstantsInCircuit, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
-        let (blake2s_blockbytes_wu32, extra_gates, num_witness) =
-            WU32::load_constant(64_u128, num_witness);
+        let (blake2s_blockbytes_uint32, extra_gates, num_witness) =
+            UInt32::load_constant(64_u128, num_witness);
         new_gates.extend(extra_gates);
 
-        (Blake2sConstantsInCircuit::new(blake2s_blockbytes_wu32), new_gates, num_witness)
+        (Blake2sConstantsInCircuit::new(blake2s_blockbytes_uint32), new_gates, num_witness)
     }
 }

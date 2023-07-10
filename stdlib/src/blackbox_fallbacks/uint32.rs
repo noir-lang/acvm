@@ -11,32 +11,35 @@ use acir::{
     FieldElement,
 };
 
-/// WU32 (Witness u32) is a field element that represents a u32 integer
+/// UInt32 (Witness u32) is a field element that represents a u32 integer
 /// It has a inner field of type [Witness] that points to the field element and width = 32
 // TODO: This can be generalized to u8, u64 and others if needed.
 #[derive(Copy, Clone, Debug)]
-pub struct WU32 {
+pub struct UInt32 {
     pub inner: Witness,
     width: u32,
 }
 
 /// The default has [Witness(1)]
-impl Default for WU32 {
+impl Default for UInt32 {
     fn default() -> Self {
-        WU32 { inner: Witness(1), width: 32 }
+        UInt32 { inner: Witness(1), width: 32 }
     }
 }
 
-impl WU32 {
-    /// Initialize A new [WU32] type with a [Witness]
+impl UInt32 {
+    /// Initialize A new [UInt32] type with a [Witness]
     pub fn new(witness: Witness) -> Self {
-        WU32 { inner: witness, width: 32 }
+        UInt32 { inner: witness, width: 32 }
     }
 
     /// Load a [u128] constant into the circuit
     // TODO: This is currently a u128 instead of a u32 cus
     // in some cases we want to load 2^32 which does not fit in u32
-    pub(crate) fn load_constant(constant: u128, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn load_constant(
+        constant: u128,
+        mut num_witness: u32,
+    ) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -55,17 +58,17 @@ impl WU32 {
         new_gates.push(brillig_opcode);
         let num_witness = variables.finalize();
 
-        (WU32::new(new_witness), new_gates, num_witness)
+        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
-    /// load a [WU32] from four [Witness]es each representing a [u8]
+    /// load a [UInt32] from four [Witness]es each representing a [u8]
     pub(crate) fn from_witnesses(
         witnesses: &[Witness],
         mut num_witness: u32,
-    ) -> (Vec<WU32>, Vec<Opcode>, u32) {
+    ) -> (Vec<UInt32>, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
-        let mut wu32 = Vec::new();
+        let mut uint32 = Vec::new();
 
         for i in 0..witnesses.len() / 4 {
             let new_witness = variables.new_variable();
@@ -145,7 +148,7 @@ impl WU32 {
                 ],
                 predicate: None,
             });
-            wu32.push(WU32::new(new_witness));
+            uint32.push(UInt32::new(new_witness));
             new_gates.push(brillig_opcode);
             let mut expr = Expression::from(new_witness);
             for j in 0..4 {
@@ -158,16 +161,16 @@ impl WU32 {
         }
         let num_witness = variables.finalize();
 
-        (wu32, new_gates, num_witness)
+        (uint32, new_gates, num_witness)
     }
 
     /// Returns the quotient and remainder such that lhs = rhs * quotient + remainder
     // This should be the same as its equivalent in the Noir repo
     pub fn euclidean_division(
-        lhs: &WU32,
-        rhs: &WU32,
+        lhs: &UInt32,
+        rhs: &UInt32,
         mut num_witness: u32,
-    ) -> (WU32, WU32, Vec<Opcode>, u32) {
+    ) -> (UInt32, UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let q_witness = variables.new_variable();
@@ -197,7 +200,7 @@ impl WU32 {
 
         // constrain r < rhs
         let (rhs_sub_r, extra_gates, num_witness) =
-            rhs.sub_no_overflow(&WU32::new(r_witness), num_witness);
+            rhs.sub_no_overflow(&UInt32::new(r_witness), num_witness);
         new_gates.extend(extra_gates);
         let rhs_sub_r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
             input: FunctionInput { witness: rhs_sub_r.inner, num_bits: lhs.width },
@@ -212,13 +215,13 @@ impl WU32 {
         let div_euclidean = &lhs_constraint - &rhs_constraint;
         new_gates.push(Opcode::Arithmetic(div_euclidean));
 
-        (WU32::new(q_witness), WU32::new(r_witness), new_gates, num_witness)
+        (UInt32::new(q_witness), UInt32::new(r_witness), new_gates, num_witness)
     }
 
     /// rotate right `rotation` bits. `(x >> rotation) | (x << (width - rotation))`
     // Switched `or` with `add` here
     // This should be the same as `u32.rotate_right(rotation)` in rust stdlib
-    pub fn ror(&self, rotation: u32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn ror(&self, rotation: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
 
         let (left_shift, extra_gates, num_witness) = self.leftshift(32 - rotation, num_witness);
@@ -232,10 +235,10 @@ impl WU32 {
     }
 
     /// left shift by `bits`
-    pub fn leftshift(&self, bits: u32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn leftshift(&self, bits: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (two_pow_rhs, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(bits), num_witness);
+            UInt32::load_constant(2_u128.pow(bits), num_witness);
         new_gates.extend(extra_gates);
         let (left_shift, extra_gates, num_witness) = self.mul(&two_pow_rhs, num_witness);
         new_gates.extend(extra_gates);
@@ -244,20 +247,20 @@ impl WU32 {
     }
 
     /// right shift by `bits`
-    pub fn rightshift(&self, bits: u32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn rightshift(&self, bits: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (two_pow_rhs, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(bits), num_witness);
+            UInt32::load_constant(2_u128.pow(bits), num_witness);
         new_gates.extend(extra_gates);
         let (right_shift, _, extra_gates, num_witness) =
-            WU32::euclidean_division(self, &two_pow_rhs, num_witness);
+            UInt32::euclidean_division(self, &two_pow_rhs, num_witness);
         new_gates.extend(extra_gates);
 
         (right_shift, new_gates, num_witness)
     }
 
     /// Caculate and constrain `self` + `rhs`
-    pub fn add(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn add(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -298,17 +301,17 @@ impl WU32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_width, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(self.width), num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), num_witness);
         new_gates.extend(extra_gates);
         let (_, add_mod, extra_gates, num_witness) =
-            WU32::euclidean_division(&WU32::new(new_witness), &two_pow_width, num_witness);
+            UInt32::euclidean_division(&UInt32::new(new_witness), &two_pow_width, num_witness);
         new_gates.extend(extra_gates);
 
         (add_mod, new_gates, num_witness)
     }
 
     /// Caculate and constrain `self` - `rhs`
-    pub fn sub(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn sub(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -364,10 +367,10 @@ impl WU32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_width, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(self.width), num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), num_witness);
         new_gates.extend(extra_gates);
         let (_, sub_mod, extra_gates, num_witness) =
-            WU32::euclidean_division(&WU32::new(new_witness), &two_pow_width, num_witness);
+            UInt32::euclidean_division(&UInt32::new(new_witness), &two_pow_width, num_witness);
         new_gates.extend(extra_gates);
 
         (sub_mod, new_gates, num_witness)
@@ -378,9 +381,9 @@ impl WU32 {
     //  There is a `-1` cus theres a case where rhs = 2^32 and remainder = 0
     pub(crate) fn sub_no_overflow(
         &self,
-        rhs: &WU32,
+        rhs: &UInt32,
         mut num_witness: u32,
-    ) -> (WU32, Vec<Opcode>, u32) {
+    ) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -434,11 +437,11 @@ impl WU32 {
         sub_constraint.q_c = -FieldElement::one();
         new_gates.push(Opcode::Arithmetic(sub_constraint));
 
-        (WU32::new(new_witness), new_gates, num_witness)
+        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` * `rhs`
-    pub(crate) fn mul(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn mul(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -478,17 +481,17 @@ impl WU32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_rhs, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(self.width), num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), num_witness);
         new_gates.extend(extra_gates);
         let (_, mul_mod, extra_gates, num_witness) =
-            WU32::euclidean_division(&WU32::new(new_witness), &two_pow_rhs, num_witness);
+            UInt32::euclidean_division(&UInt32::new(new_witness), &two_pow_rhs, num_witness);
         new_gates.extend(extra_gates);
 
         (mul_mod, new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` and `rhs`
-    pub(crate) fn and(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn and(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -527,11 +530,11 @@ impl WU32 {
         });
         new_gates.push(and_opcode);
 
-        (WU32::new(new_witness), new_gates, num_witness)
+        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` xor `rhs`
-    pub(crate) fn xor(&self, rhs: &WU32, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn xor(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -571,11 +574,11 @@ impl WU32 {
 
         let num_witness = variables.finalize();
 
-        (WU32::new(new_witness), new_gates, num_witness)
+        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain not `self`
-    pub(crate) fn not(&self, mut num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub(crate) fn not(&self, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -612,16 +615,16 @@ impl WU32 {
         not_constraint.q_c = -FieldElement::from((1_u128 << self.width) - 1);
         new_gates.push(Opcode::Arithmetic(not_constraint));
 
-        (WU32::new(new_witness), new_gates, num_witness)
+        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` >= `rhs`
     //  This should be similar to its equivalent in the Noir repo
     pub(crate) fn more_than_eq_comparison(
         &self,
-        rhs: &WU32,
+        rhs: &UInt32,
         mut num_witness: u32,
-    ) -> (WU32, Vec<Opcode>, u32) {
+    ) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let new_witness = variables.new_variable();
@@ -678,7 +681,7 @@ impl WU32 {
         new_gates.push(Opcode::Arithmetic(sub_constraint));
 
         let (two_pow_rhs, extra_gates, num_witness) =
-            WU32::load_constant(2_u128.pow(self.width), num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), num_witness);
         new_gates.extend(extra_gates);
 
         // constraint 2^{max_bits} + a - b = q * 2^{max_bits} + r
@@ -705,11 +708,15 @@ impl WU32 {
         new_gates.push(r_range_opcode);
         new_gates.push(q_range_opcode);
 
-        (WU32::new(q_witness), new_gates, num_witness)
+        (UInt32::new(q_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` < `rhs`
-    pub fn less_than_comparison(&self, rhs: &WU32, num_witness: u32) -> (WU32, Vec<Opcode>, u32) {
+    pub fn less_than_comparison(
+        &self,
+        rhs: &UInt32,
+        num_witness: u32,
+    ) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (mut comparison, extra_gates, num_witness) =
             self.more_than_eq_comparison(rhs, num_witness);

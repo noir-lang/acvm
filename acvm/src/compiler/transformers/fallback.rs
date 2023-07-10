@@ -126,6 +126,19 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
+            BlackBoxFuncCall::Blake2s { inputs, outputs } => {
+                let mut blake2s_inputs = Vec::new();
+                for input in inputs.iter() {
+                    let witness_index = Expression::from(input.witness);
+                    let num_bits = input.num_bits;
+                    blake2s_inputs.push((witness_index, num_bits));
+                }
+                stdlib::blackbox_fallbacks::blake2s::blake2s(
+                    blake2s_inputs,
+                    outputs.to_vec(),
+                    current_witness_idx,
+                )
+            }
             _ => {
                 return Err(CompileError::UnsupportedBlackBox(gc.get_black_box_func()));
             }
