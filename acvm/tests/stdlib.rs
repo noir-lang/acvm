@@ -1,11 +1,10 @@
 mod solver;
+use crate::solver::StubbedBackend;
 use acir::{native_types::Witness, FieldElement};
 use acvm::pwg::{ACVMStatus, ACVM};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use stdlib::blackbox_fallbacks::uint32::UInt32;
-
-use crate::solver::StubbedBackend;
 
 proptest! {
     #[test]

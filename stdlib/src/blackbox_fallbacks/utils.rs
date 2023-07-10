@@ -1,3 +1,4 @@
+use crate::helpers::VariableStore;
 use acir::{
     circuit::{
         directives::Directive,
@@ -7,8 +8,6 @@ use acir::{
     native_types::{Expression, Witness},
     FieldElement,
 };
-
-use crate::helpers::VariableStore;
 
 fn round_to_nearest_mul_8(num_bits: u32) -> u32 {
     let remainder = num_bits % 8;

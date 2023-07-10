@@ -1,14 +1,12 @@
 //! Blake2s fallback function.
-use std::vec;
-
 pub use super::uint32::UInt32;
 use super::utils::{byte_decomposition, round_to_nearest_byte};
-
 use acir::{
     circuit::Opcode,
     native_types::{Expression, Witness},
     FieldElement,
 };
+use std::vec;
 
 const BLAKE2S_BLOCKBYTES_USIZE: usize = 64;
 const MSG_SCHEDULE_BLAKE2: [[usize; 16]; 10] = [
