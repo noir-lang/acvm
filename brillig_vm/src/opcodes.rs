@@ -278,8 +278,6 @@ fn to_big_unsigned(a: BigInt, bit_size: u32) -> BigUint {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -299,7 +297,7 @@ mod tests {
             (a.wrapping_sub(2 * pow_2)) as i128
         }
     }
-    
+
     fn to_unsigned(a: i128, bit_size: u32) -> u128 {
         if a >= 0 {
             a as u128
