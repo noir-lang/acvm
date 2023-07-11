@@ -48,24 +48,24 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
     match op {
         BlackBoxOp::Sha256 { message, output } => {
             let message = to_u8_vec(read_heap_vector(memory, registers, message));
-            let bytes = sha256(message.as_slice()).unwrap();
+            let bytes = sha256(message.as_slice()).expect("Sha256 failed");
             memory.write_slice(registers.get(output.pointer).to_usize(), &to_value_vec(&bytes));
         }
         BlackBoxOp::Blake2s { message, output } => {
             let message = to_u8_vec(read_heap_vector(memory, registers, message));
-            let bytes = blake2s(message.as_slice()).unwrap();
+            let bytes = blake2s(message.as_slice()).expect("Blake2s failed");
             memory.write_slice(registers.get(output.pointer).to_usize(), &to_value_vec(&bytes));
         }
         BlackBoxOp::Keccak256 { message, output } => {
             let message = to_u8_vec(read_heap_vector(memory, registers, message));
-            let bytes = keccak256(message.as_slice()).unwrap();
+            let bytes = keccak256(message.as_slice()).expect("Keccak256 failed");
             memory.write_slice(registers.get(output.pointer).to_usize(), &to_value_vec(&bytes));
         }
         BlackBoxOp::HashToField128Security { message, output } => {
             let field = hash_to_field_128_security(&to_u8_vec(read_heap_vector(
                 memory, registers, message,
             )))
-            .unwrap();
+            .expect("HashToField128Security failed");
             registers.set(*output, field.into());
         }
         BlackBoxOp::EcdsaSecp256k1 {
@@ -83,22 +83,27 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
             result: result_register,
         } => {
             let public_key_x: [u8; 32] =
-                to_u8_vec(read_heap_array(memory, registers, public_key_x)).try_into().unwrap();
+                to_u8_vec(read_heap_array(memory, registers, public_key_x))
+                    .try_into()
+                    .expect("Invalid public key x length");
             let public_key_y: [u8; 32] =
-                to_u8_vec(read_heap_array(memory, registers, public_key_y)).try_into().unwrap();
-            let signature: [u8; 64] =
-                to_u8_vec(read_heap_array(memory, registers, signature)).try_into().unwrap();
+                to_u8_vec(read_heap_array(memory, registers, public_key_y))
+                    .try_into()
+                    .expect("Invalid public key y length");
+            let signature: [u8; 64] = to_u8_vec(read_heap_array(memory, registers, signature))
+                .try_into()
+                .expect("Invalid signature length");
 
             let hashed_msg = to_u8_vec(read_heap_vector(memory, registers, hashed_msg));
 
             let result = match op {
                 BlackBoxOp::EcdsaSecp256k1 { .. } => {
                     ecdsa_secp256k1_verify(&hashed_msg, &public_key_x, &public_key_y, &signature)
-                        .unwrap()
+                        .expect("EcdsaSecp256k1 failed")
                 }
                 BlackBoxOp::EcdsaSecp256r1 { .. } => {
                     ecdsa_secp256r1_verify(&hashed_msg, &public_key_x, &public_key_y, &signature)
-                        .unwrap()
+                        .expect("EcdsaSecp256r1 failed")
                 }
                 _ => unreachable!(),
             };
@@ -110,21 +115,25 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
             let public_key_y = registers.get(*public_key_y).to_field();
             let message: Vec<u8> = to_u8_vec(read_heap_vector(memory, registers, message));
             let signature: Vec<u8> = to_u8_vec(read_heap_vector(memory, registers, signature));
-            let verified =
-                solver.schnorr_verify(&public_key_x, &public_key_y, &signature, &message).unwrap();
+            let verified = solver
+                .schnorr_verify(&public_key_x, &public_key_y, &signature, &message)
+                .expect("SchnorrVerify failed");
             registers.set(*result, verified.into());
         }
         BlackBoxOp::FixedBaseScalarMul { input, result } => {
             let input = registers.get(*input).to_field();
-            let (x, y) = solver.fixed_base_scalar_mul(&input).unwrap();
+            let (x, y) = solver.fixed_base_scalar_mul(&input).expect("FixedBaseScalarMul failed");
             memory.write_slice(registers.get(result.pointer).to_usize(), &[x.into(), y.into()]);
         }
         BlackBoxOp::Pedersen { inputs, domain_separator, output } => {
             let inputs: Vec<FieldElement> =
                 read_heap_vector(memory, registers, inputs).iter().map(|x| x.to_field()).collect();
-            let domain_separator: u32 =
-                registers.get(*domain_separator).to_u128().try_into().unwrap();
-            let (x, y) = solver.pedersen(&inputs, domain_separator).unwrap();
+            let domain_separator: u32 = registers
+                .get(*domain_separator)
+                .to_u128()
+                .try_into()
+                .expect("Invalid domain separator");
+            let (x, y) = solver.pedersen(&inputs, domain_separator).expect("Pedersen failed");
             memory.write_slice(registers.get(output.pointer).to_usize(), &[x.into(), y.into()]);
         }
     }
