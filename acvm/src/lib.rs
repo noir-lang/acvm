@@ -100,6 +100,7 @@ pub trait SmartContract {
     fn eth_contract_from_vk(
         &self,
         common_reference_string: &[u8],
+        circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<String, Self::Error>;
 }
