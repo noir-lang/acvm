@@ -1,6 +1,10 @@
 #![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
+//! This crate provides the implementation of BlackBox functions of ACIR and Brillig.
+//! For functions that are backend-dependent, it provides a Trait [BlackBoxFunctionSolver] that must be implemented by the backend.
+//! For functions that have a reference implementation, such as [keccak256], this crate exports the reference implementation directly.
+
 use acir::BlackBoxFunc;
 use acir_field::FieldElement;
 use blake2::digest::generic_array::GenericArray;
@@ -17,10 +21,10 @@ pub enum BlackBoxResolutionError {
     Failed(BlackBoxFunc, String),
 }
 
-/// This component will generate outputs for [`Opcode::BlackBoxFuncCall`] where the underlying [`acir::BlackBoxFunc`]
+/// This component will generate outputs for Blackbox function calls where the underlying [`acir::BlackBoxFunc`]
 /// doesn't have a canonical Rust implementation.
-///
-/// Returns an [`BlackBoxResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
+///o
+/// Returns an [`BlackBoxResolutionError`] if the backend does not support the given [`acir::BlackBoxFunc`].
 pub trait BlackBoxFunctionSolver {
     fn schnorr_verify(
         &self,
@@ -78,7 +82,7 @@ pub fn ecdsa_secp256r1_verify(
     Ok(verify_secp256r1_ecdsa_signature(hashed_msg, public_key_x, public_key_y, signature))
 }
 
-/// Does a generic hash of the inputs returning the resulting 32 bytes as fields.
+/// Does a generic hash of the inputs returning the resulting 32 bytes separately.
 fn generic_hash_256<D: Digest>(message: &[u8]) -> Result<[u8; 32], String> {
     let output_bytes: [u8; 32] =
         D::digest(message).as_slice().try_into().map_err(|_| "digest should be 256 bits")?;
