@@ -9,21 +9,21 @@
 //! [acir]: https://crates.io/crates/acir
 //! [acvm]: https://crates.io/crates/acvm
 
+mod arithmetic;
 mod black_box;
-mod foreign_call;
 mod memory;
-mod opcodes;
 mod registers;
-mod value;
 
-pub use black_box::BlackBoxOp;
-pub use foreign_call::{ForeignCallOutput, ForeignCallResult};
+use arithmetic::{evaluate_binary_field_op, evaluate_binary_int_op};
+use black_box::evaluate_black_box;
+use brillig::{
+    BinaryFieldOp, BinaryIntOp, ForeignCallOutput, ForeignCallResult, HeapArray, HeapVector,
+    Opcode, RegisterIndex, RegisterOrMemory, Value,
+};
+
+pub use brillig;
 pub use memory::Memory;
-pub use opcodes::{BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, RegisterOrMemory};
-pub use opcodes::{Label, Opcode};
-pub use registers::{RegisterIndex, Registers};
-pub use value::Typ;
-pub use value::Value;
+pub use registers::Registers;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum VMStatus {
@@ -277,7 +277,7 @@ impl VM {
                 self.increment_program_counter()
             }
             Opcode::BlackBox(black_box_op) => {
-                black_box_op.evaluate(&mut self.registers, &mut self.memory);
+                evaluate_black_box(black_box_op, &mut self.registers, &mut self.memory);
                 self.increment_program_counter()
             }
         }
@@ -337,7 +337,8 @@ impl VM {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.evaluate_field(lhs_value.to_field(), rhs_value.to_field());
+        let result_value =
+            evaluate_binary_field_op(&op, lhs_value.to_field(), rhs_value.to_field());
 
         self.registers.set(result, result_value.into())
     }
@@ -355,7 +356,8 @@ impl VM {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value = op.evaluate_int(lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
+        let result_value =
+            evaluate_binary_int_op(&op, lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
         self.registers.set(result, result_value.into());
     }
 }

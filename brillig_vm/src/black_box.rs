@@ -1,128 +1,94 @@
-use crate::{memory::Memory, opcodes::HeapVector, HeapArray, RegisterIndex, Registers, Value};
 use acir_field::FieldElement;
 use blake2::digest::generic_array::GenericArray;
 use blake2::{Blake2s256, Digest};
-use serde::{Deserialize, Serialize};
+use brillig::{BlackBoxOp, HeapArray, HeapVector, RegisterIndex, Value};
 use sha2::Sha256;
 use sha3::Keccak256;
 
-/// These opcodes provide an equivalent of ACIR blackbox functions.
-/// They are implemented as native functions in the VM.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BlackBoxOp {
-    /// Calculates the SHA256 hash of the inputs.
-    Sha256 { message: HeapVector, output: HeapArray },
-    /// Calculates the Blake2s hash of the inputs.
-    Blake2s { message: HeapVector, output: HeapArray },
-    /// Calculates the Keccak256 hash of the inputs.
-    Keccak256 { message: HeapVector, output: HeapArray },
-    /// Hashes a set of inputs and applies the field modulus to the result
-    /// to return a value which can be represented as a [`FieldElement`][acir_field::FieldElement]
-    ///
-    /// This is implemented using the `Blake2s` hash function.
-    /// The "128" in the name specifies that this function should have 128 bits of security.
-    HashToField128Security { message: HeapVector, output: RegisterIndex },
-    /// Verifies a ECDSA signature over the secp256k1 curve.
-    EcdsaSecp256k1 {
-        hashed_msg: HeapVector,
-        public_key_x: HeapArray,
-        public_key_y: HeapArray,
-        signature: HeapArray,
-        result: RegisterIndex,
-    },
-    /// Verifies a ECDSA signature over the secp256r1 curve.
-    EcdsaSecp256r1 {
-        hashed_msg: HeapVector,
-        public_key_x: HeapArray,
-        public_key_y: HeapArray,
-        signature: HeapArray,
-        result: RegisterIndex,
-    },
-}
+use crate::{Memory, Registers};
 
-impl BlackBoxOp {
-    pub(crate) fn evaluate(&self, registers: &mut Registers, memory: &mut Memory) {
-        match self {
-            BlackBoxOp::Sha256 { message, output } => {
-                generic_hash_256::<Sha256>(message, output, registers, memory);
-            }
-            BlackBoxOp::Blake2s { message, output } => {
-                generic_hash_256::<Blake2s256>(message, output, registers, memory);
-            }
-            BlackBoxOp::Keccak256 { message, output } => {
-                generic_hash_256::<Keccak256>(message, output, registers, memory);
-            }
-            BlackBoxOp::HashToField128Security { message, output } => {
-                generic_hash_to_field::<Blake2s256>(message, output, registers, memory);
-            }
-            BlackBoxOp::EcdsaSecp256k1 {
-                hashed_msg,
-                public_key_x,
-                public_key_y,
-                signature,
-                result: result_register,
-            }
-            | BlackBoxOp::EcdsaSecp256r1 {
-                hashed_msg,
-                public_key_x,
-                public_key_y,
-                signature,
-                result: result_register,
-            } => {
-                let message_values = memory.read_slice(
-                    registers.get(hashed_msg.pointer).to_usize(),
-                    registers.get(hashed_msg.size).to_usize(),
-                );
-                let message_bytes = to_u8_vec(message_values);
+pub(crate) fn evaluate_black_box(op: &BlackBoxOp, registers: &mut Registers, memory: &mut Memory) {
+    match op {
+        BlackBoxOp::Sha256 { message, output } => {
+            generic_hash_256::<Sha256>(message, output, registers, memory);
+        }
+        BlackBoxOp::Blake2s { message, output } => {
+            generic_hash_256::<Blake2s256>(message, output, registers, memory);
+        }
+        BlackBoxOp::Keccak256 { message, output } => {
+            generic_hash_256::<Keccak256>(message, output, registers, memory);
+        }
+        BlackBoxOp::HashToField128Security { message, output } => {
+            generic_hash_to_field::<Blake2s256>(message, output, registers, memory);
+        }
+        BlackBoxOp::EcdsaSecp256k1 {
+            hashed_msg,
+            public_key_x,
+            public_key_y,
+            signature,
+            result: result_register,
+        }
+        | BlackBoxOp::EcdsaSecp256r1 {
+            hashed_msg,
+            public_key_x,
+            public_key_y,
+            signature,
+            result: result_register,
+        } => {
+            let message_values = memory.read_slice(
+                registers.get(hashed_msg.pointer).to_usize(),
+                registers.get(hashed_msg.size).to_usize(),
+            );
+            let message_bytes = to_u8_vec(message_values);
 
-                let public_key_x_bytes: [u8; 32] =
-                    to_u8_vec(memory.read_slice(
-                        registers.get(public_key_x.pointer).to_usize(),
-                        public_key_x.size,
-                    ))
-                    .try_into()
-                    .expect("Expected a 32-element public key x array");
+            let public_key_x_bytes: [u8; 32] = to_u8_vec(
+                memory
+                    .read_slice(registers.get(public_key_x.pointer).to_usize(), public_key_x.size),
+            )
+            .try_into()
+            .expect("Expected a 32-element public key x array");
 
-                let public_key_y_bytes: [u8; 32] =
-                    to_u8_vec(memory.read_slice(
-                        registers.get(public_key_y.pointer).to_usize(),
-                        public_key_y.size,
-                    ))
-                    .try_into()
-                    .expect("Expected a 32-element public key y array");
+            let public_key_y_bytes: [u8; 32] = to_u8_vec(
+                memory
+                    .read_slice(registers.get(public_key_y.pointer).to_usize(), public_key_y.size),
+            )
+            .try_into()
+            .expect("Expected a 32-element public key y array");
 
-                let signature_bytes: [u8; 64] = to_u8_vec(
-                    memory.read_slice(registers.get(signature.pointer).to_usize(), signature.size),
-                )
-                .try_into()
-                .expect("Expected a 64-element signature array");
+            let signature_bytes: [u8; 64] = to_u8_vec(
+                memory.read_slice(registers.get(signature.pointer).to_usize(), signature.size),
+            )
+            .try_into()
+            .expect("Expected a 64-element signature array");
 
-                let result = match self {
-                    BlackBoxOp::EcdsaSecp256k1 { .. } => verify_secp256k1_ecdsa_signature(
-                        &message_bytes,
-                        &public_key_x_bytes,
-                        &public_key_y_bytes,
-                        &signature_bytes,
-                    ),
-                    BlackBoxOp::EcdsaSecp256r1 { .. } => verify_secp256r1_ecdsa_signature(
-                        &message_bytes,
-                        &public_key_x_bytes,
-                        &public_key_y_bytes,
-                        &signature_bytes,
-                    ),
-                    _ => unreachable!(),
-                };
+            let result = match op {
+                BlackBoxOp::EcdsaSecp256k1 { .. } => verify_secp256k1_ecdsa_signature(
+                    &message_bytes,
+                    &public_key_x_bytes,
+                    &public_key_y_bytes,
+                    &signature_bytes,
+                ),
+                BlackBoxOp::EcdsaSecp256r1 { .. } => verify_secp256r1_ecdsa_signature(
+                    &message_bytes,
+                    &public_key_x_bytes,
+                    &public_key_y_bytes,
+                    &signature_bytes,
+                ),
+                _ => unreachable!(),
+            };
 
-                registers.set(*result_register, (result as u128).into())
-            }
+            registers.set(*result_register, (result as u128).into())
         }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use brillig::BlackBoxOp;
+
     use crate::{
-        black_box::to_u8_vec, BlackBoxOp, HeapArray, HeapVector, Memory, Registers, Value,
+        black_box::{evaluate_black_box, to_u8_vec},
+        HeapArray, HeapVector, Memory, Registers, Value,
     };
 
     fn to_value_vec(input: &[u8]) -> Vec<Value> {
@@ -152,7 +118,7 @@ mod test {
             output: HeapArray { pointer: 2.into(), size: 32 },
         };
 
-        op.evaluate(&mut registers, &mut memory);
+        evaluate_black_box(&op, &mut registers, &mut memory);
 
         let result = memory.read_slice(result_pointer, 32);
 

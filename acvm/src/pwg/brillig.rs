@@ -1,9 +1,10 @@
 use acir::{
-    brillig_vm::{RegisterIndex, Registers, VMStatus, Value, VM},
+    brillig::{RegisterIndex, Value},
     circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
     native_types::WitnessMap,
     FieldElement,
 };
+use brillig_vm::{Registers, VMStatus, VM};
 
 use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 

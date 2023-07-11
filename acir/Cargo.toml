@@ -12,8 +12,8 @@ repository.workspace = true
 
 [dependencies]
 acir_field.workspace = true
+brillig.workspace = true
 serde.workspace = true
-brillig_vm = { version = "0.17.0", path = "../brillig_vm", default-features = false }
 thiserror.workspace = true
 rmp-serde.workspace = true
 flate2 = "1.0.24"
@@ -25,5 +25,5 @@ strum_macros = "0.24"
 
 [features]
 default = ["bn254"]
-bn254 = ["acir_field/bn254", "brillig_vm/bn254"]
-bls12_381 = ["acir_field/bls12_381", "brillig_vm/bls12_381"]
+bn254 = ["acir_field/bn254", "brillig/bn254"]
+bls12_381 = ["acir_field/bls12_381", "brillig/bls12_381"]
