@@ -283,13 +283,15 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
                 self.increment_program_counter()
             }
             Opcode::BlackBox(black_box_op) => {
-                evaluate_black_box(
+                match evaluate_black_box(
                     black_box_op,
                     self.black_box_solver,
                     &mut self.registers,
                     &mut self.memory,
-                );
-                self.increment_program_counter()
+                ) {
+                    Ok(()) => self.increment_program_counter(),
+                    Err(e) => self.fail(e.to_string()),
+                }
             }
         }
     }
