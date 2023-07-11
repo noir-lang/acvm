@@ -1,5 +1,5 @@
-use acir_field::FieldElement;
-use brillig::{BinaryFieldOp, BinaryIntOp};
+use acir::brillig::{BinaryFieldOp, BinaryIntOp};
+use acir::FieldElement;
 
 /// Evaluate a binary operation on two FieldElements and return the result as a FieldElement.
 pub(crate) fn evaluate_binary_field_op(
