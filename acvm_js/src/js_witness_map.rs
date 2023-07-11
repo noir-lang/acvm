@@ -71,11 +71,7 @@ pub(crate) fn field_element_to_js_string(field_element: &FieldElement) -> JsStri
 
 #[cfg(test)]
 mod test {
-    #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::wasm_bindgen_test as test;
-
-    #[cfg(target_arch = "wasm32")]
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_worker);
 
     use std::collections::BTreeMap;
 
@@ -98,6 +94,19 @@ mod test {
 
         let js_map = JsWitnessMap::from(witness_map);
 
-        assert_eq!(js_map.get(&JsValue::from("1")), JsValue::from_str("1"));
+        assert_eq!(
+            js_map.get(&JsValue::from(1)),
+            JsValue::from_str("0x0000000000000000000000000000000000000000000000000000000000000001")
+        );
+        assert_eq!(
+            js_map.get(&JsValue::from(2)),
+            JsValue::from_str("0x0000000000000000000000000000000000000000000000000000000000000000")
+        );
+        assert_eq!(
+            js_map.get(&JsValue::from(3)),
+            // Equal to 21888242871839275222246405745257275088548364400416034343698204186575808495616,
+            // which is field modulus - 1: https://docs.rs/ark-bn254/latest/ark_bn254/
+            JsValue::from_str("0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000000")
+        );
     }
 }
