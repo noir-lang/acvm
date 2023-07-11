@@ -23,6 +23,12 @@ const MSG_SCHEDULE_BLAKE2: [[usize; 16]; 10] = [
     [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
     [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
 ];
+const INITIAL_H: [u128; 8] = [
+    0x6b08e647, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+];
+const IV_VALUE: [u128; 8] = [
+    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
+];
 
 pub fn blake2s(
     inputs: Vec<(Expression, u32)>,
@@ -383,14 +389,10 @@ impl Blake2sState {
         let mut h = Vec::new();
         let mut t = Vec::new();
         let mut f = Vec::new();
-        let initial_h: Vec<u128> = vec![
-            0x6b08e647, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
-            0x5be0cd19,
-        ];
 
-        for i in 0..initial_h.len() {
+        for init_h in INITIAL_H {
             let (new_witness, extra_gates, updated_witness_counter) =
-                UInt32::load_constant(initial_h[i], num_witness);
+                UInt32::load_constant(init_h, num_witness);
             new_gates.extend(extra_gates);
             h.push(new_witness);
             num_witness = updated_witness_counter;
@@ -433,14 +435,9 @@ impl Blake2sIV {
         let mut new_gates = Vec::new();
         let mut iv = Vec::new();
 
-        let iv_value: Vec<u128> = vec![
-            0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB,
-            0x5BE0CD19,
-        ];
-
-        for i in 0..iv_value.len() {
+        for iv_v in IV_VALUE {
             let (new_witness, extra_gates, updated_witness_counter) =
-                UInt32::load_constant(iv_value[i], num_witness);
+                UInt32::load_constant(iv_v, num_witness);
             new_gates.extend(extra_gates);
             iv.push(new_witness);
             num_witness = updated_witness_counter;
