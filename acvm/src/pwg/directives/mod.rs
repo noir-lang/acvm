@@ -1,7 +1,10 @@
 use std::cmp::Ordering;
 
 use acir::{
-    circuit::directives::{Directive, LogInfo, QuotientDirective},
+    circuit::{
+        directives::{Directive, LogInfo, QuotientDirective},
+        OpcodeLabel,
+    },
     native_types::WitnessMap,
     FieldElement,
 };
@@ -82,7 +85,9 @@ fn solve_directives_internal(
             let decomposed_integer = big_integer.to_radix_le(*radix);
 
             if b.len() < decomposed_integer.len() {
-                return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+                return Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                    opcode_label: OpcodeLabel::Unresolved,
+                });
             }
 
             for (i, witness) in b.iter().enumerate() {

@@ -42,8 +42,7 @@ pub enum BlackBoxFuncCall {
     SchnorrVerify {
         public_key_x: FunctionInput,
         public_key_y: FunctionInput,
-        signature_s: FunctionInput,
-        signature_e: FunctionInput,
+        signature: Vec<FunctionInput>,
         message: Vec<FunctionInput>,
         output: Witness,
     },
@@ -59,6 +58,13 @@ pub enum BlackBoxFuncCall {
         output: Witness,
     },
     EcdsaSecp256k1 {
+        public_key_x: Vec<FunctionInput>,
+        public_key_y: Vec<FunctionInput>,
+        signature: Vec<FunctionInput>,
+        hashed_message: Vec<FunctionInput>,
+        output: Witness,
+    },
+    EcdsaSecp256r1 {
         public_key_x: Vec<FunctionInput>,
         public_key_y: Vec<FunctionInput>,
         signature: Vec<FunctionInput>,
@@ -126,8 +132,7 @@ impl BlackBoxFuncCall {
             BlackBoxFunc::SchnorrVerify => BlackBoxFuncCall::SchnorrVerify {
                 public_key_x: FunctionInput::dummy(),
                 public_key_y: FunctionInput::dummy(),
-                signature_s: FunctionInput::dummy(),
-                signature_e: FunctionInput::dummy(),
+                signature: vec![],
                 message: vec![],
                 output: Witness(0),
             },
@@ -140,6 +145,13 @@ impl BlackBoxFuncCall {
                 BlackBoxFuncCall::HashToField128Security { inputs: vec![], output: Witness(0) }
             }
             BlackBoxFunc::EcdsaSecp256k1 => BlackBoxFuncCall::EcdsaSecp256k1 {
+                public_key_x: vec![],
+                public_key_y: vec![],
+                signature: vec![],
+                hashed_message: vec![],
+                output: Witness(0),
+            },
+            BlackBoxFunc::EcdsaSecp256r1 => BlackBoxFuncCall::EcdsaSecp256r1 {
                 public_key_x: vec![],
                 public_key_y: vec![],
                 signature: vec![],
@@ -175,6 +187,7 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::Pedersen { .. } => BlackBoxFunc::Pedersen,
             BlackBoxFuncCall::HashToField128Security { .. } => BlackBoxFunc::HashToField128Security,
             BlackBoxFuncCall::EcdsaSecp256k1 { .. } => BlackBoxFunc::EcdsaSecp256k1,
+            BlackBoxFuncCall::EcdsaSecp256r1 { .. } => BlackBoxFunc::EcdsaSecp256r1,
             BlackBoxFuncCall::FixedBaseScalarMul { .. } => BlackBoxFunc::FixedBaseScalarMul,
             BlackBoxFuncCall::Keccak256 { .. } => BlackBoxFunc::Keccak256,
             BlackBoxFuncCall::Keccak256VariableLength { .. } => BlackBoxFunc::Keccak256,
@@ -201,20 +214,37 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::SchnorrVerify {
                 public_key_x,
                 public_key_y,
-                signature_s,
-                signature_e,
+                signature,
                 message,
                 ..
             } => {
-                let mut inputs = Vec::with_capacity(4 + message.len());
+                let mut inputs = Vec::with_capacity(2 + signature.len() + message.len());
                 inputs.push(*public_key_x);
                 inputs.push(*public_key_y);
-                inputs.push(*signature_s);
-                inputs.push(*signature_e);
+                inputs.extend(signature.iter().copied());
                 inputs.extend(message.iter().copied());
                 inputs
             }
             BlackBoxFuncCall::EcdsaSecp256k1 {
+                public_key_x,
+                public_key_y,
+                signature,
+                hashed_message,
+                ..
+            } => {
+                let mut inputs = Vec::with_capacity(
+                    public_key_x.len()
+                        + public_key_y.len()
+                        + signature.len()
+                        + hashed_message.len(),
+                );
+                inputs.extend(public_key_x.iter().copied());
+                inputs.extend(public_key_y.iter().copied());
+                inputs.extend(signature.iter().copied());
+                inputs.extend(hashed_message.iter().copied());
+                inputs
+            }
+            BlackBoxFuncCall::EcdsaSecp256r1 {
                 public_key_x,
                 public_key_y,
                 signature,
@@ -270,7 +300,8 @@ impl BlackBoxFuncCall {
             | BlackBoxFuncCall::XOR { output, .. }
             | BlackBoxFuncCall::HashToField128Security { output, .. }
             | BlackBoxFuncCall::SchnorrVerify { output, .. }
-            | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. } => vec![*output],
+            | BlackBoxFuncCall::EcdsaSecp256k1 { output, .. }
+            | BlackBoxFuncCall::EcdsaSecp256r1 { output, .. } => vec![*output],
             BlackBoxFuncCall::FixedBaseScalarMul { outputs, .. }
             | BlackBoxFuncCall::Pedersen { outputs, .. } => vec![outputs.0, outputs.1],
             BlackBoxFuncCall::RANGE { .. } => vec![],

@@ -20,7 +20,7 @@ pub use acir::FieldElement;
 
 /// Supported NP complete languages
 /// This might need to be in ACIR instead
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Language {
     R1CS,
     PLONKCSat { width: usize },
@@ -76,8 +76,7 @@ pub trait BlackBoxFunctionSolver {
         &self,
         public_key_x: &FieldElement,
         public_key_y: &FieldElement,
-        signature_s: &FieldElement,
-        signature_e: &FieldElement,
+        signature: &[u8],
         message: &[u8],
     ) -> Result<bool, OpcodeResolutionError>;
     fn pedersen(
@@ -101,6 +100,7 @@ pub trait SmartContract {
     fn eth_contract_from_vk(
         &self,
         common_reference_string: &[u8],
+        circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<String, Self::Error>;
 }

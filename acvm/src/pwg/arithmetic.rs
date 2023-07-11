@@ -1,4 +1,5 @@
 use acir::{
+    circuit::OpcodeLabel,
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
@@ -46,7 +47,9 @@ impl ArithmeticSolver {
                     let total_sum = a + gate.q_c;
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
-                            Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                            Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                                opcode_label: OpcodeLabel::Unresolved,
+                            })
                         } else {
                             Ok(OpcodeResolution::Solved)
                         }
@@ -71,7 +74,9 @@ impl ArithmeticSolver {
                 let total_sum = sum + gate.q_c;
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
-                        Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                        Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                            opcode_label: OpcodeLabel::Unresolved,
+                        })
                     } else {
                         Ok(OpcodeResolution::Solved)
                     }
@@ -86,7 +91,9 @@ impl ArithmeticSolver {
                 // All the variables in the MulTerm are solved and the Fan-in is also solved
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
-                    Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                    Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_label: OpcodeLabel::Unresolved,
+                    })
                 } else {
                     Ok(OpcodeResolution::Solved)
                 }
@@ -101,7 +108,9 @@ impl ArithmeticSolver {
                 let total_sum = total_prod + partial_sum + gate.q_c;
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
-                        Err(OpcodeResolutionError::UnsatisfiedConstrain)
+                        Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                            opcode_label: OpcodeLabel::Unresolved,
+                        })
                     } else {
                         Ok(OpcodeResolution::Solved)
                     }

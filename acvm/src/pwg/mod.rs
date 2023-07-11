@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use acir::{
     brillig_vm::ForeignCallResult,
-    circuit::{brillig::Brillig, opcodes::BlockId, Opcode},
+    circuit::{brillig::Brillig, opcodes::BlockId, Opcode, OpcodeLabel},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -29,10 +29,17 @@ mod block;
 
 pub use brillig::ForeignCallWaitInfo;
 
-#[derive(Debug, PartialEq)]
-pub enum PartialWitnessGeneratorStatus {
+#[derive(Debug, Clone, PartialEq)]
+pub enum ACVMStatus {
     /// All opcodes have been solved.
     Solved,
+
+    /// The ACVM is in the process of executing the circuit.
+    InProgress,
+
+    /// The ACVM has encountered an irrecoverable error while executing the circuit and can not progress.
+    /// Most commonly this will be due to an unsatisfied constraint due to invalid inputs to the circuit.
+    Failure(OpcodeResolutionError),
 
     /// The ACVM has encountered a request for a Brillig [foreign call][acir::brillig_vm::Opcode::ForeignCall]
     /// to retrieve information from outside of the ACVM. The result of the foreign call must be passed back
@@ -62,7 +69,7 @@ pub enum OpcodeResolution {
 // TODO: ExpressionHasTooManyUnknowns is specific for arithmetic expressions
 // TODO: we could have a error enum for arithmetic failure cases in that module
 // TODO that can be converted into an OpcodeNotSolvable or OpcodeResolutionError enum
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeNotSolvable {
     #[error("missing assignment for witness index {0}")]
     MissingAssignment(u32),
@@ -70,14 +77,14 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
-#[derive(PartialEq, Eq, Debug, Error)]
+#[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain,
+    UnsatisfiedConstrain { opcode_label: OpcodeLabel },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
@@ -85,28 +92,44 @@ pub enum OpcodeResolutionError {
 }
 
 pub struct ACVM<B: BlackBoxFunctionSolver> {
+    status: ACVMStatus,
+
     backend: B,
+
     /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
     block_solvers: HashMap<BlockId, BlockSolver>,
-    /// A list of opcodes which are to be executed by the ACVM.
+
+    /// A list of opcodes which are to be executed by the ACVM, along with their label
     ///
     /// Note that this doesn't include any opcodes which are waiting on a pending foreign call.
-    opcodes: Vec<Opcode>,
+    opcodes_and_labels: Vec<(Opcode, OpcodeLabel)>,
 
     witness_map: WitnessMap,
 
     /// A list of foreign calls which must be resolved before the ACVM can resume execution.
     pending_foreign_calls: Vec<UnresolvedBrilligCall>,
+
+    /// Map from a canonical hash of an unresolved Brillig call to its opcode label.
+    pending_brillig_label_maps: HashMap<UnresolvedBrilligCallHash, OpcodeLabel>,
 }
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+        let opcodes_and_labels = opcodes
+            .iter()
+            .enumerate()
+            .map(|(opcode_index, opcode)| {
+                (opcode.clone(), OpcodeLabel::Resolved(opcode_index as u64))
+            })
+            .collect();
         ACVM {
+            status: ACVMStatus::InProgress,
             backend,
             block_solvers: HashMap::default(),
-            opcodes,
+            opcodes_and_labels,
             witness_map: initial_witness,
             pending_foreign_calls: Vec::new(),
+            pending_brillig_label_maps: HashMap::new(),
         }
     }
 
@@ -120,13 +143,26 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Returns a slice containing the opcodes which remain to be solved.
     ///
     /// Note: this doesn't include any opcodes which are waiting on a pending foreign call.
-    pub fn unresolved_opcodes(&self) -> &[Opcode] {
-        &self.opcodes
+    pub fn unresolved_opcodes(&self) -> &[(Opcode, OpcodeLabel)] {
+        &self.opcodes_and_labels
+    }
+
+    /// Updates the current status of the VM.
+    /// Returns the given status.
+    fn status(&mut self, status: ACVMStatus) -> ACVMStatus {
+        self.status = status.clone();
+        status
+    }
+
+    /// Sets the VM status to [ACVMStatus::Failure] using the provided `error`.
+    /// Returns the new status.
+    fn fail(&mut self, error: OpcodeResolutionError) -> ACVMStatus {
+        self.status(ACVMStatus::Failure(error))
     }
 
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
-        if self.opcodes.is_empty() || self.get_pending_foreign_call().is_some() {
+        if self.status != ACVMStatus::Solved {
             panic!("ACVM is not ready to be finalized");
         }
         self.witness_map
@@ -144,7 +180,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolved_brillig = foreign_call.resolve(foreign_call_result);
 
         // Mark this opcode to be executed next.
-        self.opcodes.insert(0, Opcode::Brillig(resolved_brillig));
+        let hash = canonical_brillig_hash(&resolved_brillig);
+        self.opcodes_and_labels
+            .insert(0, (Opcode::Brillig(resolved_brillig), self.pending_brillig_label_maps[&hash]));
     }
 
     /// Executes the ACVM's circuit until execution halts.
@@ -153,15 +191,15 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// 1. All opcodes have been executed successfully.
     /// 2. The circuit has been found to be unsatisfiable.
     /// 2. A Brillig [foreign call][`UnresolvedBrilligCall`] has been encountered and must be resolved.
-    pub fn solve(&mut self) -> Result<PartialWitnessGeneratorStatus, OpcodeResolutionError> {
+    pub fn solve(&mut self) -> ACVMStatus {
         // TODO: Prevent execution with outstanding foreign calls?
-        let mut unresolved_opcodes: Vec<Opcode> = Vec::new();
-        while !self.opcodes.is_empty() {
+        let mut unresolved_opcodes: Vec<(Opcode, OpcodeLabel)> = Vec::new();
+        while !self.opcodes_and_labels.is_empty() {
             unresolved_opcodes.clear();
             let mut stalled = true;
             let mut opcode_not_solvable = None;
-            for opcode in &self.opcodes {
-                let resolution = match opcode {
+            for (opcode, opcode_label) in &self.opcodes_and_labels {
+                let mut resolution = match opcode {
                     Opcode::Arithmetic(expr) => {
                         ArithmeticSolver::solve(&mut self.witness_map, expr)
                     }
@@ -179,21 +217,44 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         BrilligSolver::solve(&mut self.witness_map, brillig)
                     }
                 };
+
+                // If we have an unsatisfied constraint, the opcode label will be unresolved
+                // because the solvers do not have knowledge of this information.
+                // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
+                if let Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                    opcode_label: opcode_index,
+                }) = &mut resolution
+                {
+                    *opcode_index = *opcode_label;
+                }
+                // If a brillig function has failed, we return an unsatisfied constraint error
+                // We intentionally ignore the brillig failure message, as there is no way to
+                // propagate this to the caller.
+                if let Err(OpcodeResolutionError::BrilligFunctionFailed(_)) = &mut resolution {
+                    //
+                    // std::mem::swap(x, y)
+                    resolution = Err(OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_label: *opcode_label,
+                    })
+                }
+
                 match resolution {
                     Ok(OpcodeResolution::Solved) => {
                         stalled = false;
                     }
                     Ok(OpcodeResolution::InProgress) => {
                         stalled = false;
-                        unresolved_opcodes.push(opcode.clone());
+                        unresolved_opcodes.push((opcode.clone(), *opcode_label));
                     }
                     Ok(OpcodeResolution::InProgressBrillig(oracle_wait_info)) => {
                         stalled = false;
                         // InProgressBrillig Oracles must be externally re-solved
-                        let brillig = match opcode {
+                        let brillig = match &opcode {
                             Opcode::Brillig(brillig) => brillig.clone(),
                             _ => unreachable!("Brillig resolution for non brillig opcode"),
                         };
+                        let hash = canonical_brillig_hash(&brillig);
+                        self.pending_brillig_label_maps.insert(hash, *opcode_label);
                         self.pending_foreign_calls.push(UnresolvedBrilligCall {
                             brillig,
                             foreign_call_wait_info: oracle_wait_info,
@@ -207,32 +268,33 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         // We push those opcodes not solvable to the back as
                         // it could be because the opcodes are out of order, i.e. this assignment
                         // relies on a later opcodes' results
-                        unresolved_opcodes.push(opcode.clone());
+                        unresolved_opcodes.push((opcode.clone(), *opcode_label));
                     }
                     Err(OpcodeResolutionError::OpcodeNotSolvable(_)) => {
                         unreachable!("ICE - Result should have been converted to GateResolution")
                     }
-                    Err(err) => return Err(err),
+                    Err(error) => return self.fail(error),
                 }
             }
 
             // Before potentially ending execution, we must save the list of opcodes which remain to be solved.
-            std::mem::swap(&mut self.opcodes, &mut unresolved_opcodes);
+            std::mem::swap(&mut self.opcodes_and_labels, &mut unresolved_opcodes);
 
             // We have oracles that must be externally resolved
             if self.get_pending_foreign_call().is_some() {
-                return Ok(PartialWitnessGeneratorStatus::RequiresForeignCall);
+                return self.status(ACVMStatus::RequiresForeignCall);
             }
 
             // We are stalled because of an opcode being bad
-            if stalled && !self.opcodes.is_empty() {
-                return Err(OpcodeResolutionError::OpcodeNotSolvable(
+            if stalled && !self.opcodes_and_labels.is_empty() {
+                let error = OpcodeResolutionError::OpcodeNotSolvable(
                     opcode_not_solvable
                         .expect("infallible: cannot be stalled and None at the same time"),
-                ));
+                );
+                return self.fail(error);
             }
         }
-        Ok(PartialWitnessGeneratorStatus::Solved)
+        self.status(ACVMStatus::Solved)
     }
 }
 
@@ -283,7 +345,9 @@ pub fn insert_value(
     };
 
     if old_value != value_to_insert {
-        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_label: OpcodeLabel::Unresolved,
+        });
     }
 
     Ok(())
@@ -339,3 +403,28 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
         Language::PLONKCSat { .. } => plonk_is_supported,
     }
 }
+
+/// Canonically hashes the Brillig struct.
+///
+/// Some Brillig instances may or may not be resolved, so we do
+/// not hash the `foreign_call_results`.
+///
+/// This gives us a consistent hash that will be used to track `Brillig`
+/// even when it is put back into the list of opcodes out of order.
+/// This happens when we resolve a Brillig opcode call.
+pub fn canonical_brillig_hash(brillig: &Brillig) -> UnresolvedBrilligCallHash {
+    let mut serialized_vector = rmp_serde::to_vec(&brillig.inputs).unwrap();
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.outputs).unwrap());
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.bytecode).unwrap());
+    serialized_vector.extend(rmp_serde::to_vec(&brillig.predicate).unwrap());
+
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+
+    let mut hasher = DefaultHasher::new();
+    hasher.write(&serialized_vector);
+    hasher.finish()
+}
+
+/// Hash of an unresolved brillig call instance
+pub(crate) type UnresolvedBrilligCallHash = u64;

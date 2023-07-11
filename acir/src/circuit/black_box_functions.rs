@@ -22,7 +22,12 @@ pub enum BlackBoxFunc {
     SHA256,
     /// Calculates the Blake2s hash of the inputs.
     Blake2s,
-    /// Verifies a Schnorr signature over the embedded curve.
+    /// Verifies a Schnorr signature over a curve which is "pairing friendly" with the curve on which the ACIR circuit is defined.
+    ///
+    /// The exact curve which this signature uses will vary based on the curve being used by ACIR.
+    /// For example, the BN254 curve supports Schnorr signatures over the [Grumpkin][grumpkin] curve.
+    ///
+    /// [grumpkin]: https://hackmd.io/@aztec-network/ByzgNxBfd#2-Grumpkin---A-curve-on-top-of-BN-254-for-SNARK-efficient-group-operations
     SchnorrVerify,
     /// Calculates a Pedersen commitment to the inputs.
     Pedersen,
@@ -34,6 +39,8 @@ pub enum BlackBoxFunc {
     HashToField128Security,
     /// Verifies a ECDSA signature over the secp256k1 curve.
     EcdsaSecp256k1,
+    /// Verifies a ECDSA signature over the secp256r1 curve.
+    EcdsaSecp256r1,
     /// Performs scalar multiplication over the embedded curve on which [`FieldElement`][acir_field::FieldElement] is defined.
     FixedBaseScalarMul,
     /// Calculates the Keccak256 hash of the inputs.
@@ -64,6 +71,7 @@ impl BlackBoxFunc {
             BlackBoxFunc::RANGE => "range",
             BlackBoxFunc::Keccak256 => "keccak256",
             BlackBoxFunc::RecursiveAggregation => "recursive_aggregation",
+            BlackBoxFunc::EcdsaSecp256r1 => "ecdsa_secp256r1",
         }
     }
     pub fn lookup(op_name: &str) -> Option<BlackBoxFunc> {
@@ -74,6 +82,7 @@ impl BlackBoxFunc {
             "pedersen" => Some(BlackBoxFunc::Pedersen),
             "hash_to_field_128_security" => Some(BlackBoxFunc::HashToField128Security),
             "ecdsa_secp256k1" => Some(BlackBoxFunc::EcdsaSecp256k1),
+            "ecdsa_secp256r1" => Some(BlackBoxFunc::EcdsaSecp256r1),
             "fixed_base_scalar_mul" => Some(BlackBoxFunc::FixedBaseScalarMul),
             "and" => Some(BlackBoxFunc::AND),
             "xor" => Some(BlackBoxFunc::XOR),

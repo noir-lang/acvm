@@ -5,14 +5,14 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
-        Opcode,
+        Opcode, OpcodeLabel,
     },
-    native_types::{Expression, Witness},
+    native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
 use acvm::{
-    pwg::{ForeignCallWaitInfo, OpcodeResolutionError, PartialWitnessGeneratorStatus, ACVM},
+    pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
 
@@ -23,8 +23,7 @@ impl BlackBoxFunctionSolver for StubbedBackend {
         &self,
         _public_key_x: &FieldElement,
         _public_key_y: &FieldElement,
-        _signature_s: &FieldElement,
-        _signature_e: &FieldElement,
+        _signature: &[u8],
         _message: &[u8],
     ) -> Result<bool, OpcodeResolutionError> {
         panic!("Path not trodden by this test")
@@ -128,12 +127,12 @@ fn inversion_brillig_oracle_equivalence() {
 
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on brillig call");
+    let solver_status = acvm.solve();
 
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
@@ -147,8 +146,11 @@ fn inversion_brillig_oracle_equivalence() {
     acvm.resolve_pending_foreign_call(foreign_call_result.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+
+    // ACVM should be able to be finalized in `Solved` state.
+    acvm.finalize();
 }
 
 #[test]
@@ -256,11 +258,11 @@ fn double_inversion_brillig_oracle() {
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "brillig should have been removed");
 
@@ -274,11 +276,11 @@ fn double_inversion_brillig_oracle() {
     acvm.resolve_pending_foreign_call(x_plus_y_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should stall on brillig call");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert!(acvm.unresolved_opcodes().is_empty(), "should be fully solved");
 
@@ -293,8 +295,11 @@ fn double_inversion_brillig_oracle() {
     acvm.resolve_pending_foreign_call(i_plus_j_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+
+    // ACVM should be able to be finalized in `Solved` state.
+    acvm.finalize();
 }
 
 #[test]
@@ -376,15 +381,15 @@ fn oracle_dependent_execution() {
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
-        acvm.unresolved_opcodes()[0],
+        acvm.unresolved_opcodes()[0].0,
         Opcode::Arithmetic(inverse_equality_check.clone()),
         "Equality check of inverses should still be waiting to be resolved"
     );
@@ -398,15 +403,15 @@ fn oracle_dependent_execution() {
     acvm.resolve_pending_foreign_call(x_inverse.into());
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should stall on oracle");
+    let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        PartialWitnessGeneratorStatus::RequiresForeignCall,
-        "Should require oracle data"
+        ACVMStatus::RequiresForeignCall,
+        "should require foreign call response"
     );
     assert_eq!(acvm.unresolved_opcodes().len(), 1, "brillig should have been removed");
     assert_eq!(
-        acvm.unresolved_opcodes()[0],
+        acvm.unresolved_opcodes()[0].0,
         Opcode::Arithmetic(inverse_equality_check),
         "Equality check of inverses should still be waiting to be resolved"
     );
@@ -422,8 +427,11 @@ fn oracle_dependent_execution() {
     // We've resolved all the brillig foreign calls so we should be able to complete execution now.
 
     // After filling data request, continue solving
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+
+    // ACVM should be able to be finalized in `Solved` state.
+    acvm.finalize();
 }
 
 #[test]
@@ -505,6 +513,130 @@ fn brillig_oracle_predicate() {
     .into();
 
     let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
-    let solver_status = acvm.solve().expect("should not stall on brillig call");
-    assert_eq!(solver_status, PartialWitnessGeneratorStatus::Solved, "should be fully solved");
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
+
+    // ACVM should be able to be finalized in `Solved` state.
+    acvm.finalize();
+}
+
+#[test]
+fn unsatisfied_opcode_resolved() {
+    let a = Witness(0);
+    let b = Witness(1);
+    let c = Witness(2);
+    let d = Witness(3);
+
+    // a = b + c + d;
+    let gate_a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![
+            (FieldElement::one(), a),
+            (-FieldElement::one(), b),
+            (-FieldElement::one(), c),
+            (-FieldElement::one(), d),
+        ],
+        q_c: FieldElement::zero(),
+    };
+
+    let mut values = WitnessMap::new();
+    values.insert(a, FieldElement::from(4_i128));
+    values.insert(b, FieldElement::from(2_i128));
+    values.insert(c, FieldElement::from(1_i128));
+    values.insert(d, FieldElement::from(2_i128));
+
+    let opcodes = vec![Opcode::Arithmetic(gate_a)];
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let solver_status = acvm.solve();
+    assert_eq!(
+        solver_status,
+        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_label: OpcodeLabel::Resolved(0)
+        }),
+        "The first gate is not satisfiable, expected an error indicating this"
+    );
+}
+
+#[test]
+fn unsatisfied_opcode_resolved_brillig() {
+    let a = Witness(0);
+    let b = Witness(1);
+    let c = Witness(2);
+    let d = Witness(3);
+
+    let fe_1 = FieldElement::one();
+    let fe_0 = FieldElement::zero();
+    let w_x = Witness(4);
+    let w_y = Witness(5);
+    let w_result = Witness(6);
+
+    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+        op: BinaryFieldOp::Equals,
+        lhs: RegisterIndex::from(0),
+        rhs: RegisterIndex::from(1),
+        destination: RegisterIndex::from(2),
+    };
+    // Jump pass the trap if the values are equal, else
+    // jump to the trap
+    let location_of_stop = 3;
+
+    let jmp_if_opcode = brillig_vm::Opcode::JumpIf {
+        condition: RegisterIndex::from(2),
+        location: location_of_stop,
+    };
+
+    let trap_opcode = brillig_vm::Opcode::Trap;
+    let stop_opcode = brillig_vm::Opcode::Stop;
+
+    let brillig_opcode = Opcode::Brillig(Brillig {
+        inputs: vec![
+            BrilligInputs::Single(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_x)],
+                q_c: fe_0,
+            }),
+            BrilligInputs::Single(Expression {
+                mul_terms: vec![],
+                linear_combinations: vec![(fe_1, w_y)],
+                q_c: fe_0,
+            }),
+        ],
+        outputs: vec![BrilligOutputs::Simple(w_result)],
+        bytecode: vec![equal_opcode, jmp_if_opcode, trap_opcode, stop_opcode],
+        predicate: Some(Expression::one()),
+        // oracle results
+        foreign_call_results: vec![],
+    });
+
+    let gate_a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![
+            (FieldElement::one(), a),
+            (-FieldElement::one(), b),
+            (-FieldElement::one(), c),
+            (-FieldElement::one(), d),
+        ],
+        q_c: FieldElement::zero(),
+    };
+
+    let mut values = WitnessMap::new();
+    values.insert(a, FieldElement::from(4_i128));
+    values.insert(b, FieldElement::from(2_i128));
+    values.insert(c, FieldElement::from(1_i128));
+    values.insert(d, FieldElement::from(2_i128));
+    values.insert(w_x, FieldElement::from(0_i128));
+    values.insert(w_y, FieldElement::from(1_i128));
+    values.insert(w_result, FieldElement::from(0_i128));
+
+    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
+
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let solver_status = acvm.solve();
+    assert_eq!(
+        solver_status,
+        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
+            opcode_label: OpcodeLabel::Resolved(0)
+        }),
+        "The first gate is not satisfiable, expected an error indicating this"
+    );
 }

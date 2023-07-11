@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.17.0](https://github.com/noir-lang/acvm/compare/acir-v0.16.0...acir-v0.17.0) (2023-07-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** add `EcdsaSecp256r1` blackbox function ([#408](https://github.com/noir-lang/acvm/issues/408))
+
+### Features
+
+* **acir:** add `EcdsaSecp256r1` blackbox function ([#408](https://github.com/noir-lang/acvm/issues/408)) ([9895817](https://github.com/noir-lang/acvm/commit/98958170c9fa9b4731e33b31cb494a72bb90549e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.16.0 to 0.17.0
+
+## [0.16.0](https://github.com/noir-lang/acvm/compare/acir-v0.15.1...acir-v0.16.0) (2023-07-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** revert changes to `SchnorrVerify` opcode ([#409](https://github.com/noir-lang/acvm/issues/409))
+* **acir:** Remove `Oracle` opcode ([#368](https://github.com/noir-lang/acvm/issues/368))
+* **acir:** Use fixed length data structures in black box function inputs/outputs where possible. ([#386](https://github.com/noir-lang/acvm/issues/386))
+* **acir:** Implement `Add` trait for `Witness` & make output of `Mul` on `Expression` optional ([#393](https://github.com/noir-lang/acvm/issues/393))
+
+### Features
+
+* **acir:** Implement `Add` trait for `Witness` & make output of `Mul` on `Expression` optional ([#393](https://github.com/noir-lang/acvm/issues/393)) ([5bcdfc6](https://github.com/noir-lang/acvm/commit/5bcdfc62e4936922135add171d60a948922581ff))
+* **acir:** Remove `Oracle` opcode ([#368](https://github.com/noir-lang/acvm/issues/368)) ([63354df](https://github.com/noir-lang/acvm/commit/63354df1fe47a4f1128b91641d1b66dfc1281794))
+* **acir:** Use fixed length data structures in black box function inputs/outputs where possible. ([#386](https://github.com/noir-lang/acvm/issues/386)) ([b139d4d](https://github.com/noir-lang/acvm/commit/b139d4d566c715009465a430aab0fb819aacab4f))
+
+
+### Bug Fixes
+
+* **acir:** revert changes to `SchnorrVerify` opcode ([#409](https://github.com/noir-lang/acvm/issues/409)) ([f1c7940](https://github.com/noir-lang/acvm/commit/f1c7940f4ac618c7b440b6ed30199f85cbe72cca))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.15.1 to 0.16.0
+
 ## [0.15.1](https://github.com/noir-lang/acvm/compare/acir-v0.15.0...acir-v0.15.1) (2023-06-20)
 
 
