@@ -10,7 +10,7 @@ use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
 /// Attempts to solve a `HashToField128Security` opcode
 /// If successful, `initial_witness` will be mutated to contain the new witness assignment.
-pub(super) fn hash_to_field(
+pub(super) fn solve_hash_to_field(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     output: &Witness,

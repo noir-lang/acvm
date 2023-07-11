@@ -34,11 +34,17 @@
     "acvm": {
       "component": "acvm"
     },
+    "brillig": {
+      "component": "brillig"
+    },
     "brillig_vm": {
       "component": "brillig_vm"
     },
     "stdlib": {
       "component": "acvm_stdlib"
+    },
+    "blackbox_solver": {
+      "component": "acvm_blackbox_solver"
     }
   },
   "plugins": [
@@ -54,8 +60,10 @@
         "acir",
         "acir_field",
         "acvm",
+        "brillig",
         "brillig_vm",
-        "acvm_stdlib"
+        "acvm_stdlib",
+        "acvm_blackbox_solver"
       ]
     }
   ]

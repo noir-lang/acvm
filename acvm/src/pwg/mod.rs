@@ -104,6 +104,7 @@ impl From<BlackBoxResolutionError> for OpcodeResolutionError {
         }
     }
 }
+
 pub struct ACVM<B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
