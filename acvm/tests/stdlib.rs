@@ -206,7 +206,7 @@ macro_rules! test_hashes {
                 let blackbox = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::$opcode { inputs: input_witnesses, outputs: output_witnesses.clone() });
                 opcodes.push(blackbox);
 
-                // constrain the out_put to be the same
+                // constrain the output to be the same as the hasher
                 for i in 0..correct_result_witnesses.len() {
                     let mut output_constraint = Expression::from(correct_result_witnesses[i]);
                     output_constraint.push_addition_term(-FieldElement::one(), output_witnesses[i]);
