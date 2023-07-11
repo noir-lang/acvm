@@ -33,6 +33,7 @@ pub enum BlackBoxOp {
         signature: HeapArray,
         result: RegisterIndex,
     },
+    /// Verifies a Schnorr signature over a curve which is "pairing friendly" with the curve on which the Brillig bytecode is defined.
     SchnorrVerify {
         public_key_x: RegisterIndex,
         public_key_y: RegisterIndex,
