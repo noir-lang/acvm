@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig_vm::{self, BinaryFieldOp, RegisterIndex, RegisterOrMemory, Value},
+    brillig::{BinaryFieldOp, Opcode as BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
@@ -15,6 +15,7 @@ use acvm::{
     pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
+use blackbox_solver::BlackBoxResolutionError;
 
 struct StubbedBackend;
 
@@ -25,20 +26,20 @@ impl BlackBoxFunctionSolver for StubbedBackend {
         _public_key_y: &FieldElement,
         _signature: &[u8],
         _message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError> {
+    ) -> Result<bool, BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
     fn pedersen(
         &self,
         _inputs: &[FieldElement],
         _domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
     fn fixed_base_scalar_mul(
         &self,
         _input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
 }
@@ -62,7 +63,7 @@ fn inversion_brillig_oracle_equivalence() {
     let w_x_plus_y = Witness(6);
     let w_equal_res = Witness(7);
 
-    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+    let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
         lhs: RegisterIndex::from(0),
         rhs: RegisterIndex::from(1),
@@ -90,7 +91,7 @@ fn inversion_brillig_oracle_equivalence() {
         bytecode: vec![
             equal_opcode,
             // Oracles are named 'foreign calls' in brillig
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
@@ -178,7 +179,7 @@ fn double_inversion_brillig_oracle() {
     let w_ij_oracle = Witness(10);
     let w_i_plus_j = Witness(11);
 
-    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+    let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
         lhs: RegisterIndex::from(0),
         rhs: RegisterIndex::from(1),
@@ -213,12 +214,12 @@ fn double_inversion_brillig_oracle() {
         bytecode: vec![
             equal_opcode,
             // Oracles are named 'foreign calls' in brillig
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
             },
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(3))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(2))],
@@ -340,12 +341,12 @@ fn oracle_dependent_execution() {
         foreign_call_results: vec![],
         bytecode: vec![
             // Oracles are named 'foreign calls' in brillig
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
             },
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(3))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(2))],
@@ -455,7 +456,7 @@ fn brillig_oracle_predicate() {
     let w_equal_res = Witness(7);
     let w_lt_res = Witness(8);
 
-    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+    let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
         lhs: RegisterIndex::from(0),
         rhs: RegisterIndex::from(1),
@@ -480,7 +481,7 @@ fn brillig_oracle_predicate() {
         bytecode: vec![
             equal_opcode,
             // Oracles are named 'foreign calls' in brillig
-            brillig_vm::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
@@ -570,7 +571,7 @@ fn unsatisfied_opcode_resolved_brillig() {
     let w_y = Witness(5);
     let w_result = Witness(6);
 
-    let equal_opcode = brillig_vm::Opcode::BinaryFieldOp {
+    let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
         lhs: RegisterIndex::from(0),
         rhs: RegisterIndex::from(1),
@@ -580,13 +581,11 @@ fn unsatisfied_opcode_resolved_brillig() {
     // jump to the trap
     let location_of_stop = 3;
 
-    let jmp_if_opcode = brillig_vm::Opcode::JumpIf {
-        condition: RegisterIndex::from(2),
-        location: location_of_stop,
-    };
+    let jmp_if_opcode =
+        BrilligOpcode::JumpIf { condition: RegisterIndex::from(2), location: location_of_stop };
 
-    let trap_opcode = brillig_vm::Opcode::Trap;
-    let stop_opcode = brillig_vm::Opcode::Stop;
+    let trap_opcode = BrilligOpcode::Trap;
+    let stop_opcode = BrilligOpcode::Stop;
 
     let brillig_opcode = Opcode::Brillig(Brillig {
         inputs: vec![

@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["acir_field", "acir", "acvm", "stdlib", "brillig_vm"]
+members = ["acir_field", "acir", "acvm", "stdlib", "brillig", "brillig_vm", "blackbox_solver"]
 
 [workspace.package]
 authors = ["The Noir Team <team@noir-lang.org>"]
@@ -13,6 +13,9 @@ repository = "https://github.com/noir-lang/acvm/"
 acir = { version = "0.17.0", path = "acir", default-features = false }
 acir_field = { version = "0.17.0", path = "acir_field", default-features = false }
 stdlib = { package = "acvm_stdlib", version = "0.17.0", path = "stdlib", default-features = false }
+brillig = { version = "0.17.0", path = "brillig", default-features = false }
+blackbox_solver = { package = "acvm_blackbox_solver", version = "0.17.0", path = "blackbox_solver", default-features = false }
+
 rmp-serde = "1.1.0"
 
 num-bigint = "0.4"
@@ -22,20 +25,3 @@ thiserror = "1.0.21"
 
 
 serde = { version = "1.0.136", features = ["derive"] }
-blake2 = "0.10.6"
-sha2 = "0.10.6"
-sha3 = "0.10.6"
-k256 = { version = "0.11.0", features = [
-    "ecdsa",
-    "ecdsa-core",
-    "sha256",
-    "digest",
-    "arithmetic",
-] }
-p256 = { version = "0.11.0", features = [
-    "ecdsa",
-    "ecdsa-core",
-    "sha256",
-    "digest",
-    "arithmetic",
-] }
