@@ -1,6 +1,6 @@
 [package]
-name = "brillig_vm"
-description = "The virtual machine that processes Brillig bytecode, used to introduce non-determinism to the ACVM"
+name = "acvm_blackbox_solver"
+description = "A solver for the blackbox functions found in ACIR and Brillig"
 version = "0.17.0"
 authors.workspace = true
 edition.workspace = true
@@ -12,10 +12,15 @@ repository.workspace = true
 
 [dependencies]
 acir_field.workspace = true
-brillig.workspace = true
-blackbox_solver.workspace = true
+acir.workspace = true
+blake2.workspace = true
+sha2.workspace = true
+sha3.workspace = true
+k256.workspace = true
+p256.workspace = true
+thiserror.workspace = true
 
 [features]
 default = ["bn254"]
-bn254 = ["acir_field/bn254", "brillig/bn254"]
-bls12_381 = ["acir_field/bls12_381", "brillig/bls12_381"]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]

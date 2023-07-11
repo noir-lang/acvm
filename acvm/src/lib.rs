@@ -8,6 +8,7 @@ use acir::{
     circuit::{Circuit, Opcode},
     native_types::WitnessMap,
 };
+pub use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use core::fmt::Debug;
 use pwg::{OpcodeResolution, OpcodeResolutionError};
 
@@ -65,29 +66,6 @@ pub trait CommonReferenceString {
         common_reference_string: Vec<u8>,
         circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error>;
-}
-
-/// This component will generate outputs for [`Opcode::BlackBoxFuncCall`] where the underlying [`acir::BlackBoxFunc`]
-/// doesn't have a canonical Rust implementation.
-///
-/// Returns an [`OpcodeResolutionError`] if the backend does not support the given [`Opcode::BlackBoxFuncCall`].
-pub trait BlackBoxFunctionSolver {
-    fn schnorr_verify(
-        &self,
-        public_key_x: &FieldElement,
-        public_key_y: &FieldElement,
-        signature: &[u8],
-        message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError>;
-    fn pedersen(
-        &self,
-        inputs: &[FieldElement],
-        domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError>;
-    fn fixed_base_scalar_mul(
-        &self,
-        input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError>;
 }
 
 pub trait SmartContract {

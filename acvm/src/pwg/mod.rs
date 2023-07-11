@@ -8,6 +8,7 @@ use acir::{
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
+use blackbox_solver::BlackBoxResolutionError;
 
 use self::{
     arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
@@ -91,6 +92,18 @@ pub enum OpcodeResolutionError {
     BrilligFunctionFailed(String),
 }
 
+impl From<BlackBoxResolutionError> for OpcodeResolutionError {
+    fn from(value: BlackBoxResolutionError) -> Self {
+        match value {
+            BlackBoxResolutionError::Failed(func, reason) => {
+                OpcodeResolutionError::BlackBoxFunctionFailed(func, reason)
+            }
+            BlackBoxResolutionError::Unsupported(func) => {
+                OpcodeResolutionError::UnsupportedBlackBoxFunc(func)
+            }
+        }
+    }
+}
 pub struct ACVM<B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
@@ -214,7 +227,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         solver.solve(&mut self.witness_map, &block.trace)
                     }
                     Opcode::Brillig(brillig) => {
-                        BrilligSolver::solve(&mut self.witness_map, brillig)
+                        BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend)
                     }
                 };
 

@@ -15,6 +15,7 @@ use acvm::{
     pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
+use blackbox_solver::BlackBoxResolutionError;
 
 struct StubbedBackend;
 
@@ -25,20 +26,20 @@ impl BlackBoxFunctionSolver for StubbedBackend {
         _public_key_y: &FieldElement,
         _signature: &[u8],
         _message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError> {
+    ) -> Result<bool, BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
     fn pedersen(
         &self,
         _inputs: &[FieldElement],
         _domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
     fn fixed_base_scalar_mul(
         &self,
         _input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
 }

@@ -14,8 +14,10 @@ mod black_box;
 mod memory;
 mod registers;
 
+use acir_field::FieldElement;
 use arithmetic::{evaluate_binary_field_op, evaluate_binary_int_op};
 use black_box::evaluate_black_box;
+use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use brillig::{
     BinaryFieldOp, BinaryIntOp, ForeignCallOutput, ForeignCallResult, HeapArray, HeapVector,
     Opcode, RegisterIndex, RegisterOrMemory, Value,
@@ -49,7 +51,7 @@ pub enum VMStatus {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// VM encapsulates the state of the Brillig VM during execution.
-pub struct VM {
+pub struct VM<'bb_solver, B: BlackBoxFunctionSolver> {
     /// Register storage
     registers: Registers,
     /// Instruction pointer
@@ -68,16 +70,19 @@ pub struct VM {
     memory: Memory,
     /// Call stack
     call_stack: Vec<Value>,
+    /// The solver for blackbox functions
+    black_box_solver: &'bb_solver B,
 }
 
-impl VM {
+impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
     /// Constructs a new VM instance
     pub fn new(
         inputs: Registers,
         memory: Vec<Value>,
         bytecode: Vec<Opcode>,
         foreign_call_results: Vec<ForeignCallResult>,
-    ) -> VM {
+        black_box_solver: &'bb_solver B,
+    ) -> Self {
         Self {
             registers: inputs,
             program_counter: 0,
@@ -87,6 +92,7 @@ impl VM {
             status: VMStatus::InProgress,
             memory: memory.into(),
             call_stack: Vec::new(),
+            black_box_solver,
         }
     }
 
@@ -277,7 +283,12 @@ impl VM {
                 self.increment_program_counter()
             }
             Opcode::BlackBox(black_box_op) => {
-                evaluate_black_box(black_box_op, &mut self.registers, &mut self.memory);
+                evaluate_black_box(
+                    black_box_op,
+                    self.black_box_solver,
+                    &mut self.registers,
+                    &mut self.memory,
+                );
                 self.increment_program_counter()
             }
         }
@@ -362,6 +373,33 @@ impl VM {
     }
 }
 
+pub(crate) struct DummyBlackBoxSolver;
+
+impl BlackBoxFunctionSolver for DummyBlackBoxSolver {
+    fn schnorr_verify(
+        &self,
+        _public_key_x: &FieldElement,
+        _public_key_y: &FieldElement,
+        _signature: &[u8],
+        _message: &[u8],
+    ) -> Result<bool, BlackBoxResolutionError> {
+        Ok(true)
+    }
+    fn pedersen(
+        &self,
+        _inputs: &[FieldElement],
+        _domain_separator: u32,
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
+        Ok((2_u128.into(), 3_u128.into()))
+    }
+    fn fixed_base_scalar_mul(
+        &self,
+        _input: &FieldElement,
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
+        Ok((4_u128.into(), 5_u128.into()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -384,7 +422,7 @@ mod tests {
         };
 
         // Start VM
-        let mut vm = VM::new(input_registers, vec![], vec![opcode], vec![]);
+        let mut vm = VM::new(input_registers, vec![], vec![opcode], vec![], &DummyBlackBoxSolver);
 
         // Process a single VM opcode
         //
@@ -427,7 +465,8 @@ mod tests {
         opcodes.push(Opcode::Jump { location: 2 });
         opcodes.push(Opcode::JumpIf { condition: RegisterIndex::from(2), location: 3 });
 
-        let mut vm = VM::new(Registers::load(registers), vec![], opcodes, vec![]);
+        let mut vm =
+            VM::new(Registers::load(registers), vec![], opcodes, vec![], &DummyBlackBoxSolver);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::InProgress);
@@ -473,6 +512,7 @@ mod tests {
             vec![],
             vec![jump_opcode, trap_opcode, not_equal_cmp_opcode, jump_if_not_opcode, add_opcode],
             vec![],
+            &DummyBlackBoxSolver,
         );
 
         let status = vm.process_opcode();
@@ -507,7 +547,8 @@ mod tests {
         let mov_opcode =
             Opcode::Mov { destination: RegisterIndex::from(2), source: RegisterIndex::from(0) };
 
-        let mut vm = VM::new(input_registers, vec![], vec![mov_opcode], vec![]);
+        let mut vm =
+            VM::new(input_registers, vec![], vec![mov_opcode], vec![], &DummyBlackBoxSolver);
 
         let status = vm.process_opcode();
         assert_eq!(status, VMStatus::Finished);
@@ -569,6 +610,7 @@ mod tests {
             vec![],
             vec![equal_opcode, not_equal_opcode, less_than_opcode, less_than_equal_opcode],
             vec![],
+            &DummyBlackBoxSolver,
         );
 
         let status = vm.process_opcode();
@@ -815,14 +857,17 @@ mod tests {
         Registers::load(vec![Value::from(0u128); 16])
     }
     /// Helper to execute brillig code
-    fn brillig_execute_and_get_vm(memory: Vec<Value>, opcodes: Vec<Opcode>) -> VM {
-        let mut vm = VM::new(empty_registers(), memory, opcodes, vec![]);
+    fn brillig_execute_and_get_vm(
+        memory: Vec<Value>,
+        opcodes: Vec<Opcode>,
+    ) -> VM<'static, DummyBlackBoxSolver> {
+        let mut vm = VM::new(empty_registers(), memory, opcodes, vec![], &DummyBlackBoxSolver);
         brillig_execute(&mut vm);
         assert_eq!(vm.call_stack, vec![]);
         vm
     }
 
-    fn brillig_execute(vm: &mut VM) {
+    fn brillig_execute(vm: &mut VM<DummyBlackBoxSolver>) {
         loop {
             let status = vm.process_opcode();
             if matches!(status, VMStatus::Finished | VMStatus::ForeignCallWait { .. }) {

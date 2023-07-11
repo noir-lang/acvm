@@ -33,4 +33,15 @@ pub enum BlackBoxOp {
         signature: HeapArray,
         result: RegisterIndex,
     },
+    SchnorrVerify {
+        public_key_x: RegisterIndex,
+        public_key_y: RegisterIndex,
+        message: HeapVector,
+        signature: HeapVector,
+        result: RegisterIndex,
+    },
+    /// Calculates a Pedersen commitment to the inputs.
+    Pedersen { inputs: HeapVector, domain_separator: RegisterIndex, output: HeapArray },
+    /// Performs scalar multiplication over the embedded curve on which [`FieldElement`][acir_field::FieldElement] is defined.
+    FixedBaseScalarMul { input: RegisterIndex, result: HeapArray },
 }

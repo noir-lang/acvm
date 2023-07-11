@@ -19,6 +19,7 @@ rmp-serde.workspace = true
 acir.workspace = true
 stdlib.workspace = true
 brillig_vm = { version = "0.17.0", path = "../brillig_vm", default-features = false }
+blackbox_solver.workspace = true
 
 blake2.workspace = true
 sha2.workspace = true

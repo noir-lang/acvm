@@ -4,6 +4,7 @@ use acir::{
     native_types::WitnessMap,
     FieldElement,
 };
+use blackbox_solver::BlackBoxFunctionSolver;
 use brillig_vm::{Registers, VMStatus, VM};
 
 use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
@@ -13,9 +14,10 @@ use super::{get_value, insert_value};
 pub(super) struct BrilligSolver;
 
 impl BrilligSolver {
-    pub(super) fn solve(
+    pub(super) fn solve<B: BlackBoxFunctionSolver>(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
+        bb_solver: &B,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
@@ -81,6 +83,7 @@ impl BrilligSolver {
             input_memory,
             brillig.bytecode.clone(),
             brillig.foreign_call_results.clone(),
+            bb_solver,
         );
 
         // Run the Brillig VM on these inputs, bytecode, etc!

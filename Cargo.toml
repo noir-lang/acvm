@@ -14,6 +14,8 @@ acir = { version = "0.17.0", path = "acir", default-features = false }
 acir_field = { version = "0.17.0", path = "acir_field", default-features = false }
 stdlib = { package = "acvm_stdlib", version = "0.17.0", path = "stdlib", default-features = false }
 brillig = { version = "0.17.0", path = "brillig", default-features = false }
+blackbox_solver = { package = "acvm_blackbox_solver", version = "0.17.0", path = "blackbox_solver", default-features = false }
+
 rmp-serde = "1.1.0"
 
 num-bigint = "0.4"
