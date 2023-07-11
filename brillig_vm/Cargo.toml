@@ -12,14 +12,11 @@ repository.workspace = true
 
 [dependencies]
 acir_field.workspace = true
-serde.workspace = true
-blake2.workspace = true
-sha2.workspace = true
-sha3.workspace = true
-k256.workspace = true
-p256.workspace = true
+acir.workspace = true
+brillig.workspace = true
+blackbox_solver.workspace = true
 
 [features]
 default = ["bn254"]
-bn254 = ["acir_field/bn254"]
-bls12_381 = ["acir_field/bls12_381"]
+bn254 = ["acir_field/bn254", "acir/bn254", "brillig/bn254"]
+bls12_381 = ["acir_field/bls12_381", "acir/bls12_381", "brillig/bls12_381"]
