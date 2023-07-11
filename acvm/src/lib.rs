@@ -18,6 +18,8 @@ pub use async_trait::async_trait;
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
+// re-export brillig vm
+pub use brillig_vm;
 
 /// Supported NP complete languages
 /// This might need to be in ACIR instead

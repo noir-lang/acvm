@@ -2,6 +2,7 @@ use acir::{
     circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
     native_types::{Witness, WitnessMap},
 };
+use blackbox_solver::{blake2s, keccak256, sha256};
 
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;
@@ -15,8 +16,7 @@ mod signature;
 
 use fixed_base_scalar_mul::fixed_base_scalar_mul;
 // Hash functions should eventually be exposed for external consumers.
-use hash::{blake2s256, keccak256, sha256};
-use hash::{hash_to_field_128_security, solve_generic_256_hash_opcode};
+use hash::{hash_to_field, solve_generic_256_hash_opcode};
 use logic::{and, xor};
 use pedersen::pedersen;
 use range::solve_range_opcode;
@@ -77,7 +77,7 @@ pub(crate) fn solve(
             inputs,
             None,
             outputs,
-            blake2s256,
+            blake2s,
             bb_func.get_black_box_func(),
         ),
         BlackBoxFuncCall::Keccak256 { inputs, outputs } => solve_generic_256_hash_opcode(
@@ -99,7 +99,7 @@ pub(crate) fn solve(
             )
         }
         BlackBoxFuncCall::HashToField128Security { inputs, output } => {
-            hash_to_field_128_security(initial_witness, inputs, output)
+            hash_to_field(initial_witness, inputs, output)
         }
         BlackBoxFuncCall::SchnorrVerify {
             public_key_x,
