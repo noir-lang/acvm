@@ -247,6 +247,7 @@ pub(super) fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Ve
 mod tests {
     use super::route;
     use acir::FieldElement;
+    use proptest as _;
     use rand::prelude::*;
 
     fn execute_network(config: Vec<bool>, inputs: Vec<FieldElement>) -> Vec<FieldElement> {
