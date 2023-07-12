@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.1...acvm_stdlib-v0.18.2) (2023-07-12)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `Blake2s` black box function ([#424](https://github.com/noir-lang/acvm/issues/424)) ([982d940](https://github.com/noir-lang/acvm/commit/982d94087d46092ce7a5e94dbd7e732195f58e42))
+
 ## [0.18.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.0...acvm_stdlib-v0.18.1) (2023-07-12)
 
 
