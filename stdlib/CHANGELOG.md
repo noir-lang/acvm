@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.17.0...acvm_stdlib-v0.18.0) (2023-07-12)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `SHA256` black box function ([#407](https://github.com/noir-lang/acvm/issues/407)) ([040369a](https://github.com/noir-lang/acvm/commit/040369adc8749fa5ec2edd255ff54c105c3140f5))
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.16.0...acvm_stdlib-v0.17.0) (2023-07-07)
 
 
