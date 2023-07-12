@@ -310,52 +310,6 @@ impl UInt32 {
         (add_mod, new_gates, num_witness)
     }
 
-    /// Caculate and constrain `self` + `rhs` with overflow
-    pub fn add_with_overflow(
-        &self,
-        rhs: &UInt32,
-        mut num_witness: u32,
-    ) -> (UInt32, Vec<Opcode>, u32) {
-        let mut new_gates = Vec::new();
-        let mut variables = VariableStore::new(&mut num_witness);
-        let new_witness = variables.new_variable();
-
-        // calculate `self` + `rhs` with overflow
-        let brillig_opcode = Opcode::Brillig(Brillig {
-            inputs: vec![
-                BrilligInputs::Single(Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![(FieldElement::one(), self.inner)],
-                    q_c: FieldElement::zero(),
-                }),
-                BrilligInputs::Single(Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![(FieldElement::one(), rhs.inner)],
-                    q_c: FieldElement::zero(),
-                }),
-            ],
-            outputs: vec![BrilligOutputs::Simple(new_witness)],
-            foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryFieldOp {
-                op: brillig::BinaryFieldOp::Add,
-                lhs: RegisterIndex::from(0),
-                rhs: RegisterIndex::from(1),
-                destination: RegisterIndex::from(0),
-            }],
-            predicate: None,
-        });
-        new_gates.push(brillig_opcode);
-        let num_witness = variables.finalize();
-
-        // constrain addition
-        let mut add_expr = Expression::from(new_witness);
-        add_expr.push_addition_term(-FieldElement::one(), self.inner);
-        add_expr.push_addition_term(-FieldElement::one(), rhs.inner);
-        new_gates.push(Opcode::Arithmetic(add_expr));
-
-        (UInt32::new(new_witness), new_gates, num_witness)
-    }
-
     /// Caculate and constrain `self` - `rhs`
     pub fn sub(&self, rhs: &UInt32, mut num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
@@ -534,51 +488,6 @@ impl UInt32 {
         new_gates.extend(extra_gates);
 
         (mul_mod, new_gates, num_witness)
-    }
-
-    /// Calculate and constrain `self` * `rhs` with overflow
-    pub(crate) fn mul_with_overflow(
-        &self,
-        rhs: &UInt32,
-        mut num_witness: u32,
-    ) -> (UInt32, Vec<Opcode>, u32) {
-        let mut new_gates = Vec::new();
-        let mut variables = VariableStore::new(&mut num_witness);
-        let new_witness = variables.new_variable();
-
-        // calulate `self` * `rhs` with overflow
-        let brillig_opcode = Opcode::Brillig(Brillig {
-            inputs: vec![
-                BrilligInputs::Single(Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![(FieldElement::one(), self.inner)],
-                    q_c: FieldElement::zero(),
-                }),
-                BrilligInputs::Single(Expression {
-                    mul_terms: vec![],
-                    linear_combinations: vec![(FieldElement::one(), rhs.inner)],
-                    q_c: FieldElement::zero(),
-                }),
-            ],
-            outputs: vec![BrilligOutputs::Simple(new_witness)],
-            foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryFieldOp {
-                op: brillig::BinaryFieldOp::Mul,
-                lhs: RegisterIndex::from(0),
-                rhs: RegisterIndex::from(1),
-                destination: RegisterIndex::from(0),
-            }],
-            predicate: None,
-        });
-        new_gates.push(brillig_opcode);
-        let num_witness = variables.finalize();
-
-        // constrain mul
-        let mut mul_constraint = Expression::from(new_witness);
-        mul_constraint.push_multiplication_term(-FieldElement::one(), self.inner, rhs.inner);
-        new_gates.push(Opcode::Arithmetic(mul_constraint));
-
-        (UInt32::new(new_witness), new_gates, num_witness)
     }
 
     /// Calculate and constrain `self` and `rhs`
