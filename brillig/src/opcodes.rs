@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub type Label = usize;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RegisterIndex(pub usize);
 
 /// `RegisterIndex` refers to the index in VM register space.
