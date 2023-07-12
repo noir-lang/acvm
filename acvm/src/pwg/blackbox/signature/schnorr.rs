@@ -22,8 +22,13 @@ pub(crate) fn schnorr_verify(
     let public_key_x: &FieldElement = witness_to_value(initial_witness, public_key_x.witness)?;
     let public_key_y: &FieldElement = witness_to_value(initial_witness, public_key_y.witness)?;
 
-    let signature = to_u8_vec(initial_witness, signature)?;
-
+    // This error should never be emitted in practice as it would imply malformed ACIR generation.
+    let signature: [u8; 64] = to_u8_vec(initial_witness, signature)?.try_into().map_err(|_| {
+        OpcodeResolutionError::BlackBoxFunctionFailed(
+            acir::BlackBoxFunc::SchnorrVerify,
+            format!("expected signature size 32 but received {}", signature.len()),
+        )
+    })?;
     let message = to_u8_vec(initial_witness, message)?;
 
     let valid_signature =

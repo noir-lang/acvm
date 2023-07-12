@@ -30,7 +30,7 @@ pub trait BlackBoxFunctionSolver {
         &self,
         public_key_x: &FieldElement,
         public_key_y: &FieldElement,
-        signature: &[u8],
+        signature: &[u8; 64],
         message: &[u8],
     ) -> Result<bool, BlackBoxResolutionError>;
     fn pedersen(

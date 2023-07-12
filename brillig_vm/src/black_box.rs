@@ -135,7 +135,15 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
             let public_key_x = registers.get(*public_key_x).to_field();
             let public_key_y = registers.get(*public_key_y).to_field();
             let message: Vec<u8> = to_u8_vec(read_heap_vector(memory, registers, message));
-            let signature: Vec<u8> = to_u8_vec(read_heap_vector(memory, registers, signature));
+            // This error should never be emitted in practice as it would imply malformed Brillig generation.
+            let signature: [u8; 64] = to_u8_vec(read_heap_vector(memory, registers, signature))
+                .try_into()
+                .map_err(|_| {
+                    BlackBoxResolutionError::Failed(
+                        acir::BlackBoxFunc::SchnorrVerify,
+                        format!("expected signature size 64 but received {}", signature.size.0),
+                    )
+                })?;
             let verified =
                 solver.schnorr_verify(&public_key_x, &public_key_y, &signature, &message)?;
             registers.set(*result, verified.into());
