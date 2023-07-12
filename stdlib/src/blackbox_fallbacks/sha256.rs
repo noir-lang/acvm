@@ -3,7 +3,7 @@ use super::uint32::UInt32;
 use super::utils::{byte_decomposition, round_to_nearest_byte};
 use crate::helpers::VariableStore;
 use acir::{
-    brillig::{self, BinaryFieldOp, RegisterIndex},
+    brillig,
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         opcodes::{BlackBoxFuncCall, FunctionInput},
@@ -149,22 +149,14 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
     let pad = variables.new_variable();
 
     let brillig_opcode = Opcode::Brillig(Brillig {
-        inputs: vec![
-            BrilligInputs::Single(Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![],
-                q_c: FieldElement::from(number as u128),
-            }),
-            BrilligInputs::Single(Expression::default()),
-        ],
+        inputs: vec![BrilligInputs::Single(Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![],
+            q_c: FieldElement::from(number as u128),
+        })],
         outputs: vec![BrilligOutputs::Simple(pad)],
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::BinaryFieldOp {
-            op: BinaryFieldOp::Add,
-            lhs: RegisterIndex::from(0),
-            rhs: RegisterIndex::from(1),
-            destination: RegisterIndex::from(0),
-        }],
+        bytecode: vec![brillig::Opcode::Stop],
         predicate: None,
     });
     new_gates.push(brillig_opcode);
@@ -355,7 +347,7 @@ pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec
 
     for i in INIT_CONSTANTS {
         let (new_witness, extra_gates, updated_witness_counter) =
-            UInt32::load_constant(i, num_witness);
+            UInt32::load_constant(i, 32, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
@@ -371,7 +363,7 @@ pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec
 
     for i in ROUND_CONSTANTS {
         let (new_witness, extra_gates, updated_witness_counter) =
-            UInt32::load_constant(i, num_witness);
+            UInt32::load_constant(i, 32, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
