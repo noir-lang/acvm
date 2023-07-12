@@ -239,7 +239,7 @@ impl UInt32 {
     pub fn leftshift(&self, bits: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (two_pow_rhs, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(bits), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(bits), 128, num_witness);
         new_gates.extend(extra_gates);
         let (left_shift, extra_gates, num_witness) = self.mul(&two_pow_rhs, num_witness);
         new_gates.extend(extra_gates);
@@ -251,7 +251,7 @@ impl UInt32 {
     pub fn rightshift(&self, bits: u32, num_witness: u32) -> (UInt32, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (two_pow_rhs, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(bits), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(bits), 128, num_witness);
         new_gates.extend(extra_gates);
         let (right_shift, _, extra_gates, num_witness) =
             UInt32::euclidean_division(self, &two_pow_rhs, num_witness);
@@ -302,7 +302,7 @@ impl UInt32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_width, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(self.width), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), 128, num_witness);
         new_gates.extend(extra_gates);
         let (_, add_mod, extra_gates, num_witness) =
             UInt32::euclidean_division(&UInt32::new(new_witness, 32), &two_pow_width, num_witness);
@@ -414,7 +414,7 @@ impl UInt32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_width, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(self.width), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), 128, num_witness);
         new_gates.extend(extra_gates);
         let (_, sub_mod, extra_gates, num_witness) =
             UInt32::euclidean_division(&UInt32::new(new_witness, 128), &two_pow_width, num_witness);
@@ -528,7 +528,7 @@ impl UInt32 {
 
         // mod 2^width to get final result as the remainder
         let (two_pow_rhs, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(self.width), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), 128, num_witness);
         new_gates.extend(extra_gates);
         let (_, mul_mod, extra_gates, num_witness) =
             UInt32::euclidean_division(&UInt32::new(new_witness, 128), &two_pow_rhs, num_witness);
@@ -773,7 +773,7 @@ impl UInt32 {
         new_gates.push(Opcode::Arithmetic(sub_constraint));
 
         let (two_pow_rhs, extra_gates, num_witness) =
-            UInt32::load_constant(2_u128.pow(self.width), 256, num_witness);
+            UInt32::load_constant(2_u128.pow(self.width), 128, num_witness);
         new_gates.extend(extra_gates);
 
         // constraint 2^{max_bits} + a - b = q * 2^{max_bits} + r
