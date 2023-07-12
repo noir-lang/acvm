@@ -1,6 +1,6 @@
 use crate::native_types::{Expression, Witness};
+use brillig::BrilligOpcode;
 use brillig::ForeignCallResult;
-use brillig::Opcode as BrilligOpcode;
 use serde::{Deserialize, Serialize};
 
 /// Inputs for the Brillig VM. These are the initial inputs

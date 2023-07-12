@@ -10,8 +10,8 @@
 //! [acvm]: https://crates.io/crates/acvm
 
 use acir::brillig::{
-    BinaryFieldOp, BinaryIntOp, ForeignCallOutput, ForeignCallResult, HeapArray, HeapVector,
-    Opcode, RegisterIndex, RegisterOrMemory, Value,
+    BinaryFieldOp, BinaryIntOp, BrilligOpcode, ForeignCallOutput, ForeignCallResult, HeapArray,
+    HeapVector, RegisterIndex, RegisterOrMemory, Value,
 };
 use acir::FieldElement;
 // Re-export `brillig`.
@@ -36,7 +36,7 @@ pub enum VMStatus {
     Failure {
         message: String,
     },
-    /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
+    /// The VM process is not solvable as a [foreign call][BrilligOpcode::ForeignCall] has been
     /// reached where the outputs are yet to be resolved.  
     ///
     /// The caller should interpret the information returned to compute a [ForeignCallResult]
@@ -59,13 +59,13 @@ pub struct VM<'bb_solver, B: BlackBoxFunctionSolver> {
     /// Instruction pointer
     program_counter: usize,
     /// A counter maintained throughout a Brillig process that determines
-    /// whether the caller has resolved the results of a [foreign call][Opcode::ForeignCall].
+    /// whether the caller has resolved the results of a [foreign call][BrilligOpcode::ForeignCall].
     foreign_call_counter: usize,
     /// Represents the outputs of all foreign calls during a Brillig process
     /// List is appended onto by the caller upon reaching a [VMStatus::ForeignCallWait]
     foreign_call_results: Vec<ForeignCallResult>,
     /// Executable opcodes
-    bytecode: Vec<Opcode>,
+    bytecode: Vec<BrilligOpcode>,
     /// Status of the VM
     status: VMStatus,
     /// Memory of the VM
@@ -81,7 +81,7 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
     pub fn new(
         inputs: Registers,
         memory: Vec<Value>,
-        bytecode: Vec<Opcode>,
+        bytecode: Vec<BrilligOpcode>,
         foreign_call_results: Vec<ForeignCallResult>,
         black_box_solver: &'bb_solver B,
     ) -> Self {
@@ -117,7 +117,7 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
     }
 
     /// Sets the current status of the VM to `fail`.
-    /// Indicating that the VM encountered a `Trap` Opcode
+    /// Indicating that the VM encountered a `Trap` BrilligOpcode
     /// or an invalid state.
     fn fail(&mut self, message: String) -> VMStatus {
         self.status(VMStatus::Failure { message });
@@ -146,16 +146,16 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
     pub fn process_opcode(&mut self) -> VMStatus {
         let opcode = &self.bytecode[self.program_counter];
         match opcode {
-            Opcode::BinaryFieldOp { op, lhs, rhs, destination: result } => {
+            BrilligOpcode::BinaryFieldOp { op, lhs, rhs, destination: result } => {
                 self.process_binary_field_op(*op, *lhs, *rhs, *result);
                 self.increment_program_counter()
             }
-            Opcode::BinaryIntOp { op, bit_size, lhs, rhs, destination: result } => {
+            BrilligOpcode::BinaryIntOp { op, bit_size, lhs, rhs, destination: result } => {
                 self.process_binary_int_op(*op, *bit_size, *lhs, *rhs, *result);
                 self.increment_program_counter()
             }
-            Opcode::Jump { location: destination } => self.set_program_counter(*destination),
-            Opcode::JumpIf { condition, location: destination } => {
+            BrilligOpcode::Jump { location: destination } => self.set_program_counter(*destination),
+            BrilligOpcode::JumpIf { condition, location: destination } => {
                 // Check if condition is true
                 // We use 0 to mean false and any other value to mean true
                 let condition_value = self.registers.get(*condition);
@@ -164,21 +164,21 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
                 }
                 self.increment_program_counter()
             }
-            Opcode::JumpIfNot { condition, location: destination } => {
+            BrilligOpcode::JumpIfNot { condition, location: destination } => {
                 let condition_value = self.registers.get(*condition);
                 if condition_value.is_zero() {
                     return self.set_program_counter(*destination);
                 }
                 self.increment_program_counter()
             }
-            Opcode::Return => {
+            BrilligOpcode::Return => {
                 if let Some(register) = self.call_stack.pop() {
                     self.set_program_counter(register.to_usize())
                 } else {
                     self.fail("return opcode hit, but callstack already empty".to_string())
                 }
             }
-            Opcode::ForeignCall { function, destinations, inputs } => {
+            BrilligOpcode::ForeignCall { function, destinations, inputs } => {
                 if self.foreign_call_counter >= self.foreign_call_results.len() {
                     // When this opcode is called, it is possible that the results of a foreign call are
                     // not yet known (not enough entries in `foreign_call_results`).
@@ -253,14 +253,14 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
                 self.foreign_call_counter += 1;
                 self.increment_program_counter()
             }
-            Opcode::Mov { destination: destination_register, source: source_register } => {
+            BrilligOpcode::Mov { destination: destination_register, source: source_register } => {
                 let source_value = self.registers.get(*source_register);
                 self.registers.set(*destination_register, source_value);
                 self.increment_program_counter()
             }
-            Opcode::Trap => self.fail("explicit trap hit in brillig".to_string()),
-            Opcode::Stop => self.finish(),
-            Opcode::Load { destination: destination_register, source_pointer } => {
+            BrilligOpcode::Trap => self.fail("explicit trap hit in brillig".to_string()),
+            BrilligOpcode::Stop => self.finish(),
+            BrilligOpcode::Load { destination: destination_register, source_pointer } => {
                 // Convert our source_pointer to a usize
                 let source = self.registers.get(*source_pointer);
                 // Use our usize source index to lookup the value in memory
@@ -268,23 +268,23 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
                 self.registers.set(*destination_register, *value);
                 self.increment_program_counter()
             }
-            Opcode::Store { destination_pointer, source: source_register } => {
+            BrilligOpcode::Store { destination_pointer, source: source_register } => {
                 // Convert our destination_pointer to a usize
                 let destination = self.registers.get(*destination_pointer).to_usize();
                 // Use our usize destination index to set the value in memory
                 self.memory.write(destination, self.registers.get(*source_register));
                 self.increment_program_counter()
             }
-            Opcode::Call { location } => {
+            BrilligOpcode::Call { location } => {
                 // Push a return location
                 self.call_stack.push(Value::from(self.program_counter + 1));
                 self.set_program_counter(*location)
             }
-            Opcode::Const { destination, value } => {
+            BrilligOpcode::Const { destination, value } => {
                 self.registers.set(*destination, *value);
                 self.increment_program_counter()
             }
-            Opcode::BlackBox(black_box_op) => {
+            BrilligOpcode::BlackBox(black_box_op) => {
                 match evaluate_black_box(
                     black_box_op,
                     self.black_box_solver,
@@ -417,7 +417,7 @@ mod tests {
 
         // Add opcode to add the value in register `0` and `1`
         // and place the output in register `2`
-        let opcode = Opcode::BinaryIntOp {
+        let opcode = BrilligOpcode::BinaryIntOp {
             op: BinaryIntOp::Add,
             bit_size: 2,
             lhs: RegisterIndex::from(0),
@@ -463,11 +463,16 @@ mod tests {
             RegisterIndex::from(registers.len() - 1)
         };
 
-        let equal_cmp_opcode =
-            Opcode::BinaryIntOp { op: BinaryIntOp::Equals, bit_size: 1, lhs, rhs, destination };
+        let equal_cmp_opcode = BrilligOpcode::BinaryIntOp {
+            op: BinaryIntOp::Equals,
+            bit_size: 1,
+            lhs,
+            rhs,
+            destination,
+        };
         opcodes.push(equal_cmp_opcode);
-        opcodes.push(Opcode::Jump { location: 2 });
-        opcodes.push(Opcode::JumpIf { condition: RegisterIndex::from(2), location: 3 });
+        opcodes.push(BrilligOpcode::Jump { location: 2 });
+        opcodes.push(BrilligOpcode::JumpIf { condition: RegisterIndex::from(2), location: 3 });
 
         let mut vm =
             VM::new(Registers::load(registers), vec![], opcodes, vec![], &DummyBlackBoxSolver);
@@ -490,21 +495,21 @@ mod tests {
         let input_registers =
             Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(0u128)]);
 
-        let trap_opcode = Opcode::Trap;
+        let trap_opcode = BrilligOpcode::Trap;
 
-        let not_equal_cmp_opcode = Opcode::BinaryFieldOp {
+        let not_equal_cmp_opcode = BrilligOpcode::BinaryFieldOp {
             op: BinaryFieldOp::Equals,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
             destination: RegisterIndex::from(2),
         };
 
-        let jump_opcode = Opcode::Jump { location: 2 };
+        let jump_opcode = BrilligOpcode::Jump { location: 2 };
 
         let jump_if_not_opcode =
-            Opcode::JumpIfNot { condition: RegisterIndex::from(2), location: 1 };
+            BrilligOpcode::JumpIfNot { condition: RegisterIndex::from(2), location: 1 };
 
-        let add_opcode = Opcode::BinaryFieldOp {
+        let add_opcode = BrilligOpcode::BinaryFieldOp {
             op: BinaryFieldOp::Add,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -548,8 +553,10 @@ mod tests {
         let input_registers =
             Registers::load(vec![Value::from(1u128), Value::from(2u128), Value::from(3u128)]);
 
-        let mov_opcode =
-            Opcode::Mov { destination: RegisterIndex::from(2), source: RegisterIndex::from(0) };
+        let mov_opcode = BrilligOpcode::Mov {
+            destination: RegisterIndex::from(2),
+            source: RegisterIndex::from(0),
+        };
 
         let mut vm =
             VM::new(input_registers, vec![], vec![mov_opcode], vec![], &DummyBlackBoxSolver);
@@ -577,7 +584,7 @@ mod tests {
             Value::from(6u128),
         ]);
 
-        let equal_opcode = Opcode::BinaryIntOp {
+        let equal_opcode = BrilligOpcode::BinaryIntOp {
             bit_size,
             op: BinaryIntOp::Equals,
             lhs: RegisterIndex::from(0),
@@ -585,7 +592,7 @@ mod tests {
             destination: RegisterIndex::from(2),
         };
 
-        let not_equal_opcode = Opcode::BinaryIntOp {
+        let not_equal_opcode = BrilligOpcode::BinaryIntOp {
             bit_size,
             op: BinaryIntOp::Equals,
             lhs: RegisterIndex::from(0),
@@ -593,7 +600,7 @@ mod tests {
             destination: RegisterIndex::from(2),
         };
 
-        let less_than_opcode = Opcode::BinaryIntOp {
+        let less_than_opcode = BrilligOpcode::BinaryIntOp {
             bit_size,
             op: BinaryIntOp::LessThan,
             lhs: RegisterIndex::from(3),
@@ -601,7 +608,7 @@ mod tests {
             destination: RegisterIndex::from(2),
         };
 
-        let less_than_equal_opcode = Opcode::BinaryIntOp {
+        let less_than_equal_opcode = BrilligOpcode::BinaryIntOp {
             bit_size,
             op: BinaryIntOp::LessThanEquals,
             lhs: RegisterIndex::from(3),
@@ -657,17 +664,20 @@ mod tests {
             let r_tmp = RegisterIndex::from(2);
             let start = [
                 // i = 0
-                Opcode::Const { destination: r_i, value: 0u128.into() },
+                BrilligOpcode::Const { destination: r_i, value: 0u128.into() },
                 // len = memory.len() (approximation)
-                Opcode::Const { destination: r_len, value: Value::from(memory.len() as u128) },
+                BrilligOpcode::Const {
+                    destination: r_len,
+                    value: Value::from(memory.len() as u128),
+                },
             ];
             let loop_body = [
                 // *i = i
-                Opcode::Store { destination_pointer: r_i, source: r_i },
+                BrilligOpcode::Store { destination_pointer: r_i, source: r_i },
                 // tmp = 1
-                Opcode::Const { destination: r_tmp, value: 1u128.into() },
+                BrilligOpcode::Const { destination: r_tmp, value: 1u128.into() },
                 // i = i + 1 (tmp)
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_i,
                     lhs: r_i,
                     op: BinaryIntOp::Add,
@@ -675,7 +685,7 @@ mod tests {
                     bit_size,
                 },
                 // tmp = i < len
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_i,
                     op: BinaryIntOp::LessThan,
@@ -683,7 +693,7 @@ mod tests {
                     bit_size,
                 },
                 // if tmp != 0 goto loop_body
-                Opcode::JumpIf { condition: r_tmp, location: start.len() },
+                BrilligOpcode::JumpIf { condition: r_tmp, location: start.len() },
             ];
             let vm = brillig_execute_and_get_vm(memory, [&start[..], &loop_body[..]].concat());
             vm.get_memory().clone()
@@ -722,17 +732,20 @@ mod tests {
             let r_tmp = RegisterIndex::from(3);
             let start = [
                 // sum = 0
-                Opcode::Const { destination: r_sum, value: 0u128.into() },
+                BrilligOpcode::Const { destination: r_sum, value: 0u128.into() },
                 // i = 0
-                Opcode::Const { destination: r_i, value: 0u128.into() },
+                BrilligOpcode::Const { destination: r_i, value: 0u128.into() },
                 // len = array.len() (approximation)
-                Opcode::Const { destination: r_len, value: Value::from(memory.len() as u128) },
+                BrilligOpcode::Const {
+                    destination: r_len,
+                    value: Value::from(memory.len() as u128),
+                },
             ];
             let loop_body = [
                 // tmp = *i
-                Opcode::Load { destination: r_tmp, source_pointer: r_i },
+                BrilligOpcode::Load { destination: r_tmp, source_pointer: r_i },
                 // sum = sum + tmp
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_sum,
                     lhs: r_sum,
                     op: BinaryIntOp::Add,
@@ -740,9 +753,9 @@ mod tests {
                     bit_size,
                 },
                 // tmp = 1
-                Opcode::Const { destination: r_tmp, value: 1u128.into() },
+                BrilligOpcode::Const { destination: r_tmp, value: 1u128.into() },
                 // i = i + 1 (tmp)
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_i,
                     lhs: r_i,
                     op: BinaryIntOp::Add,
@@ -750,7 +763,7 @@ mod tests {
                     bit_size,
                 },
                 // tmp = i < len
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_i,
                     op: BinaryIntOp::LessThan,
@@ -758,7 +771,7 @@ mod tests {
                     bit_size,
                 },
                 // if tmp != 0 goto loop_body
-                Opcode::JumpIf { condition: r_tmp, location: start.len() },
+                BrilligOpcode::JumpIf { condition: r_tmp, location: start.len() },
             ];
             let vm = brillig_execute_and_get_vm(memory, [&start[..], &loop_body[..]].concat());
             vm.registers.get(r_sum)
@@ -796,20 +809,23 @@ mod tests {
 
             let start = [
                 // i = 0
-                Opcode::Const { destination: r_i, value: 0u128.into() },
+                BrilligOpcode::Const { destination: r_i, value: 0u128.into() },
                 // len = memory.len() (approximation)
-                Opcode::Const { destination: r_len, value: Value::from(memory.len() as u128) },
+                BrilligOpcode::Const {
+                    destination: r_len,
+                    value: Value::from(memory.len() as u128),
+                },
                 // call recursive_fn
-                Opcode::Call {
+                BrilligOpcode::Call {
                     location: 4, // Call after 'start'
                 },
                 // end program by jumping to end
-                Opcode::Jump { location: 100 },
+                BrilligOpcode::Jump { location: 100 },
             ];
 
             let recursive_fn = [
                 // tmp = len <= i
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_tmp,
                     lhs: r_len,
                     op: BinaryIntOp::LessThanEquals,
@@ -817,16 +833,16 @@ mod tests {
                     bit_size,
                 },
                 // if !tmp, goto end
-                Opcode::JumpIf {
+                BrilligOpcode::JumpIf {
                     condition: r_tmp,
                     location: start.len() + 6, // 7 ops in recursive_fn, go to 'Return'
                 },
                 // *i = i
-                Opcode::Store { destination_pointer: r_i, source: r_i },
+                BrilligOpcode::Store { destination_pointer: r_i, source: r_i },
                 // tmp = 1
-                Opcode::Const { destination: r_tmp, value: 1u128.into() },
+                BrilligOpcode::Const { destination: r_tmp, value: 1u128.into() },
                 // i = i + 1 (tmp)
-                Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     destination: r_i,
                     lhs: r_i,
                     op: BinaryIntOp::Add,
@@ -834,8 +850,8 @@ mod tests {
                     bit_size,
                 },
                 // call recursive_fn
-                Opcode::Call { location: start.len() },
-                Opcode::Return {},
+                BrilligOpcode::Call { location: start.len() },
+                BrilligOpcode::Return {},
             ];
 
             let vm = brillig_execute_and_get_vm(memory, [&start[..], &recursive_fn[..]].concat());
@@ -863,7 +879,7 @@ mod tests {
     /// Helper to execute brillig code
     fn brillig_execute_and_get_vm(
         memory: Vec<Value>,
-        opcodes: Vec<Opcode>,
+        opcodes: Vec<BrilligOpcode>,
     ) -> VM<'static, DummyBlackBoxSolver> {
         let mut vm = VM::new(empty_registers(), memory, opcodes, vec![], &DummyBlackBoxSolver);
         brillig_execute(&mut vm);
@@ -888,9 +904,9 @@ mod tests {
 
         let double_program = vec![
             // Load input register with value 5
-            Opcode::Const { destination: r_input, value: Value::from(5u128) },
+            BrilligOpcode::Const { destination: r_input, value: Value::from(5u128) },
             // Call foreign function "double" with the input register
-            Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "double".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(r_result)],
                 inputs: vec![RegisterOrMemory::RegisterIndex(r_input)],
@@ -941,11 +957,11 @@ mod tests {
 
         let invert_program = vec![
             // input = 0
-            Opcode::Const { destination: r_input, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_input, value: Value::from(0u128) },
             // output = 0
-            Opcode::Const { destination: r_output, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_output, value: Value::from(0u128) },
             // *output = matrix_2x2_transpose(*input)
-            Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
                 destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
                     pointer: r_output,
@@ -1007,18 +1023,24 @@ mod tests {
         // First call:
         let string_double_program = vec![
             // input_pointer = 0
-            Opcode::Const { destination: r_input_pointer, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_input_pointer, value: Value::from(0u128) },
             // input_size = input_string.len() (constant here)
-            Opcode::Const { destination: r_input_size, value: Value::from(input_string.len()) },
+            BrilligOpcode::Const {
+                destination: r_input_size,
+                value: Value::from(input_string.len()),
+            },
             // output_pointer = 0 + input_size = input_size
-            Opcode::Const { destination: r_output_pointer, value: Value::from(input_string.len()) },
+            BrilligOpcode::Const {
+                destination: r_output_pointer,
+                value: Value::from(input_string.len()),
+            },
             // output_size = input_size * 2
-            Opcode::Const {
+            BrilligOpcode::Const {
                 destination: r_output_size,
                 value: Value::from(input_string.len() * 2),
             },
             // output_pointer[0..output_size] = string_double(input_pointer[0...input_size])
-            Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "string_double".into(),
                 destinations: vec![RegisterOrMemory::HeapVector(HeapVector {
                     pointer: r_output_pointer,
@@ -1076,11 +1098,11 @@ mod tests {
 
         let invert_program = vec![
             // input = 0
-            Opcode::Const { destination: r_input, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_input, value: Value::from(0u128) },
             // output = 0
-            Opcode::Const { destination: r_output, value: Value::from(4u128) },
+            BrilligOpcode::Const { destination: r_output, value: Value::from(4u128) },
             // *output = matrix_2x2_transpose(*input)
-            Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
                 destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
                     pointer: r_output,
@@ -1152,13 +1174,13 @@ mod tests {
 
         let matrix_mul_program = vec![
             // input = 0
-            Opcode::Const { destination: r_input_a, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_input_a, value: Value::from(0u128) },
             // input = 0
-            Opcode::Const { destination: r_input_b, value: Value::from(4u128) },
+            BrilligOpcode::Const { destination: r_input_b, value: Value::from(4u128) },
             // output = 0
-            Opcode::Const { destination: r_output, value: Value::from(0u128) },
+            BrilligOpcode::Const { destination: r_output, value: Value::from(0u128) },
             // *output = matrix_2x2_transpose(*input)
-            Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "matrix_2x2_transpose".into(),
                 destinations: vec![RegisterOrMemory::HeapArray(HeapArray {
                     pointer: r_output,

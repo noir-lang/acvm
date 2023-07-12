@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use acir::{
-    brillig::{BinaryFieldOp, Opcode as BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
+    brillig::{BinaryFieldOp, BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,

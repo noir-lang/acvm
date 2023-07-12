@@ -2,8 +2,9 @@
 use super::uint32::UInt32;
 use super::utils::{byte_decomposition, round_to_nearest_byte};
 use crate::helpers::VariableStore;
+use acir::brillig::BrilligOpcode;
 use acir::{
-    brillig::{self, BinaryFieldOp, RegisterIndex},
+    brillig::{BinaryFieldOp, RegisterIndex},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         opcodes::{BlackBoxFuncCall, FunctionInput},
@@ -159,7 +160,7 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
         ],
         outputs: vec![BrilligOutputs::Simple(pad)],
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::BinaryFieldOp {
+        bytecode: vec![BrilligOpcode::BinaryFieldOp {
             op: BinaryFieldOp::Add,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),

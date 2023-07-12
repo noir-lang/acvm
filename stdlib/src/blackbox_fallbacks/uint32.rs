@@ -1,6 +1,6 @@
 use crate::helpers::VariableStore;
 use acir::{
-    brillig::{self, RegisterIndex},
+    brillig::{self, BrilligOpcode, RegisterIndex},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::QuotientDirective,
@@ -52,7 +52,7 @@ impl UInt32 {
             })],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::Stop],
+            bytecode: vec![BrilligOpcode::Stop],
             predicate: None,
         });
         new_gates.push(brillig_opcode);
@@ -103,42 +103,42 @@ impl UInt32 {
                 outputs: vec![BrilligOutputs::Simple(new_witness)],
                 foreign_call_results: vec![],
                 bytecode: vec![
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Shl,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(4),
                         destination: RegisterIndex::from(0),
                     },
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Add,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(1),
                         destination: RegisterIndex::from(0),
                     },
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Shl,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(4),
                         destination: RegisterIndex::from(0),
                     },
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Add,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(2),
                         destination: RegisterIndex::from(0),
                     },
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Shl,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(4),
                         destination: RegisterIndex::from(0),
                     },
-                    brillig::Opcode::BinaryIntOp {
+                    BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Add,
                         bit_size: 32,
                         lhs: RegisterIndex::from(0),
@@ -281,7 +281,7 @@ impl UInt32 {
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryIntOp {
+            bytecode: vec![BrilligOpcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Add,
                 bit_size: 127,
                 lhs: RegisterIndex::from(0),
@@ -338,14 +338,14 @@ impl UInt32 {
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
             bytecode: vec![
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Add,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),
                     rhs: RegisterIndex::from(2),
                     destination: RegisterIndex::from(0),
                 },
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Sub,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),
@@ -410,14 +410,14 @@ impl UInt32 {
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
             bytecode: vec![
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Sub,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),
                     rhs: RegisterIndex::from(1),
                     destination: RegisterIndex::from(0),
                 },
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Sub,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),
@@ -462,7 +462,7 @@ impl UInt32 {
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryIntOp {
+            bytecode: vec![BrilligOpcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Mul,
                 bit_size: 127,
                 lhs: RegisterIndex::from(0),
@@ -511,7 +511,7 @@ impl UInt32 {
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryIntOp {
+            bytecode: vec![BrilligOpcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::And,
                 bit_size: 32,
                 lhs: RegisterIndex::from(0),
@@ -554,7 +554,7 @@ impl UInt32 {
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryIntOp {
+            bytecode: vec![BrilligOpcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Xor,
                 bit_size: 32,
                 lhs: RegisterIndex::from(0),
@@ -598,7 +598,7 @@ impl UInt32 {
             ],
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
-            bytecode: vec![brillig::Opcode::BinaryIntOp {
+            bytecode: vec![BrilligOpcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Sub,
                 bit_size: 32,
                 lhs: RegisterIndex::from(1),

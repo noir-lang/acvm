@@ -18,6 +18,6 @@ pub use foreign_call::{ForeignCallOutput, ForeignCallResult};
 pub use opcodes::{
     BinaryFieldOp, BinaryIntOp, HeapArray, HeapVector, RegisterIndex, RegisterOrMemory,
 };
-pub use opcodes::{Label, Opcode};
+pub use opcodes::{BrilligOpcode, Label};
 pub use value::Typ;
 pub use value::Value;

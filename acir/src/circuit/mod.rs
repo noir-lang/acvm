@@ -27,6 +27,73 @@ pub struct Circuit {
     pub return_values: PublicInputs,
 }
 
+#[cfg(test)]
+mod reflection {
+    use std::{
+        fs::File,
+        io::Write,
+        path::{Path, PathBuf},
+    };
+
+    use brillig::{
+        BinaryFieldOp, BinaryIntOp, BlackBoxOp, BrilligOpcode, ForeignCallOutput, RegisterOrMemory,
+    };
+    use serde_reflection::{Tracer, TracerConfig};
+
+    use crate::circuit::{
+        brillig::{BrilligInputs, BrilligOutputs},
+        directives::{Directive, LogInfo},
+        opcodes::BlackBoxFuncCall,
+        Circuit, Opcode,
+    };
+
+    #[test]
+    fn yamlgen() {
+        let mut tracer = Tracer::new(TracerConfig::default());
+        tracer.trace_simple_type::<Circuit>().unwrap();
+        tracer.trace_simple_type::<Opcode>().unwrap();
+        tracer.trace_simple_type::<BinaryFieldOp>().unwrap();
+        tracer.trace_simple_type::<BlackBoxFuncCall>().unwrap();
+        tracer.trace_simple_type::<BrilligInputs>().unwrap();
+        tracer.trace_simple_type::<BrilligOutputs>().unwrap();
+        tracer.trace_simple_type::<BrilligOpcode>().unwrap();
+        tracer.trace_simple_type::<BinaryIntOp>().unwrap();
+        tracer.trace_simple_type::<BlackBoxOp>().unwrap();
+        tracer.trace_simple_type::<Directive>().unwrap();
+        tracer.trace_simple_type::<ForeignCallOutput>().unwrap();
+        tracer.trace_simple_type::<RegisterOrMemory>().unwrap();
+        tracer.trace_simple_type::<LogInfo>().unwrap();
+
+        let registry = tracer.registry().unwrap();
+
+        let data = serde_json::to_vec(&registry).unwrap();
+        write_to_file(&data, &PathBuf::from("./acir.json"));
+
+        // Create C++ class definitions.
+        let mut source = Vec::new();
+        let config = serde_generate::CodeGeneratorConfig::new("Circuit".to_string())
+            .with_encodings(vec![serde_generate::Encoding::Bincode]);
+        let generator = serde_generate::cpp::CodeGenerator::new(&config);
+        generator.output(&mut source, &registry).unwrap();
+
+        write_to_file(&source, &PathBuf::from("./acir.cpp"));
+    }
+
+    pub(super) fn write_to_file(bytes: &[u8], path: &Path) -> String {
+        let display = path.display();
+
+        let mut file = match File::create(path) {
+            Err(why) => panic!("couldn't create {display}: {why}"),
+            Ok(file) => file,
+        };
+
+        match file.write_all(bytes) {
+            Err(why) => panic!("couldn't write to {display}: {why}"),
+            Ok(_) => display.to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 /// Opcodes are given labels so that callers can
 /// map opcodes to debug information related to their context.
