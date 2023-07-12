@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.18.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.18.0...brillig_vm-v0.18.1) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
+## [0.18.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.17.0...brillig_vm-v0.18.0) (2023-07-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422))
+
+### Features
+
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422)) ([093342e](https://github.com/noir-lang/acvm/commit/093342ea9481a311fa71343b8b7a22774788838a))
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.16.0...brillig_vm-v0.17.0) (2023-07-07)
 
 

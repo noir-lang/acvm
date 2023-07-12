@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.18.1](https://github.com/noir-lang/acvm/compare/acir-v0.18.0...acir-v0.18.1) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
+## [0.18.0](https://github.com/noir-lang/acvm/compare/acir-v0.17.0...acir-v0.18.0) (2023-07-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422))
+* Returns index of failing opcode and transformation mapping ([#412](https://github.com/noir-lang/acvm/issues/412))
+
+### Features
+
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422)) ([093342e](https://github.com/noir-lang/acvm/commit/093342ea9481a311fa71343b8b7a22774788838a))
+* Returns index of failing opcode and transformation mapping ([#412](https://github.com/noir-lang/acvm/issues/412)) ([79950e9](https://github.com/noir-lang/acvm/commit/79950e943f60e4082e1cf5ec4442aa67ea91aade))
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/acir-v0.16.0...acir-v0.17.0) (2023-07-07)
 
 
