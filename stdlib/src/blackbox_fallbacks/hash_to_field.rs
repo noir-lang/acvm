@@ -43,15 +43,15 @@ pub fn hash_to_field(
 fn field_from_be_bytes(result: &[Witness], num_witness: u32) -> (Witness, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
 
-    let (mut new_witness, extra_gates, num_witness) = UInt32::load_constant(0, 256, num_witness);
+    let (mut new_witness, extra_gates, num_witness) = UInt32::load_constant(0, num_witness);
     new_gates.extend(extra_gates);
 
-    let (const_256, extra_gates, mut num_witness) = UInt32::load_constant(256, 256, num_witness);
+    let (const_256, extra_gates, mut num_witness) = UInt32::load_constant(256, num_witness);
     new_gates.extend(extra_gates);
 
     for r in result.iter().take(result.len() - 1) {
         let (updated_witness, extra_gates, updated_witness_counter) =
-            new_witness.add_with_overflow(&UInt32::new(*r, 32), num_witness);
+            new_witness.add_with_overflow(&UInt32::new(*r), num_witness);
         new_gates.extend(extra_gates);
         let (updated_witness, extra_gates, updated_witness_counter) =
             updated_witness.mul_with_overflow(&const_256, updated_witness_counter);
@@ -61,7 +61,7 @@ fn field_from_be_bytes(result: &[Witness], num_witness: u32) -> (Witness, Vec<Op
     }
 
     let (new_witness, extra_gates, num_witness) =
-        new_witness.add_with_overflow(&UInt32::new(result[result.len() - 1], 32), num_witness);
+        new_witness.add_with_overflow(&UInt32::new(result[result.len() - 1]), num_witness);
     new_gates.extend(extra_gates);
 
     (new_witness.inner, new_gates, num_witness)

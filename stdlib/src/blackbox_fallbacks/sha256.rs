@@ -347,7 +347,7 @@ pub(crate) fn prepare_state_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec
 
     for i in INIT_CONSTANTS {
         let (new_witness, extra_gates, updated_witness_counter) =
-            UInt32::load_constant(i, 32, num_witness);
+            UInt32::load_constant(i, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
@@ -363,7 +363,7 @@ pub(crate) fn prepare_round_constants(mut num_witness: u32) -> (Vec<UInt32>, Vec
 
     for i in ROUND_CONSTANTS {
         let (new_witness, extra_gates, updated_witness_counter) =
-            UInt32::load_constant(i, 32, num_witness);
+            UInt32::load_constant(i, num_witness);
         new_gates.extend(extra_gates);
         new_witnesses.push(new_witness);
         num_witness = updated_witness_counter;
