@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashSet};
 
 use acir::{
     native_types::{Expression, Witness},
@@ -17,6 +17,8 @@ use indexmap::IndexMap;
 // Have a single transformer that you instantiate with a width, then pass many gates through
 pub(crate) struct CSatTransformer {
     width: usize,
+    /// Track the witness that can be solved
+    solvable_witness: HashSet<Witness>,
 }
 
 impl CSatTransformer {
@@ -24,14 +26,47 @@ impl CSatTransformer {
     pub(crate) fn new(width: usize) -> CSatTransformer {
         assert!(width > 2);
 
-        CSatTransformer { width }
+        CSatTransformer { width, solvable_witness: HashSet::new() }
+    }
+
+    /// Returns true if the equation 'expression=0' can be solved, and add the solved witness to set of solvable witness
+    fn solvable_expression(&mut self, gate: &Expression) -> bool {
+        let mut unresolved = Vec::new();
+        for (_, w1, w2) in &gate.mul_terms {
+            if !self.solvable_witness.contains(w1) {
+                unresolved.push(w1);
+                if !self.solvable_witness.contains(w2) {
+                    return false;
+                }
+            }
+            if !self.solvable_witness.contains(w2) {
+                unresolved.push(w2);
+                if !self.solvable_witness.contains(w1) {
+                    return false;
+                }
+            }
+        }
+        for (_, w) in &gate.linear_combinations {
+            if !self.solvable_witness.contains(w) {
+                unresolved.push(w);
+            }
+        }
+        if unresolved.len() == 1 {
+            self.solvable(*unresolved[0]);
+        }
+        unresolved.len() <= 1
+    }
+
+    /// Adds the witness to set of solvable witness
+    pub(crate) fn solvable(&mut self, witness: Witness) {
+        self.solvable_witness.insert(witness);
     }
 
     // Still missing dead witness optimization.
     // To do this, we will need the whole set of arithmetic gates
     // I think it can also be done before the local optimization seen here, as dead variables will come from the user
     pub(crate) fn transform(
-        &self,
+        &mut self,
         gate: Expression,
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
         num_witness: &mut u32,
@@ -45,6 +80,7 @@ impl CSatTransformer {
         let mut gate =
             self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness);
         gate.sort();
+        self.solvable_expression(&gate);
         gate
     }
 
@@ -72,7 +108,7 @@ impl CSatTransformer {
     // We can no longer extract another full gate, hence the algorithm terminates. Creating two intermediate variables t and t2.
     // This stage of preprocessing does not guarantee that all polynomials can fit into a gate. It only guarantees that all full gates have been extracted from each polynomial
     fn full_gate_scan_optimization(
-        &self,
+        &mut self,
         mut gate: Expression,
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
         num_witness: &mut u32,
@@ -98,9 +134,15 @@ impl CSatTransformer {
         // This will be our new gate which will be equal to `self` except we will have intermediate variables that will be constrained to any
         // subset of the terms that can be represented as full gates
         let mut new_gate = Expression::default();
-
-        while !gate.mul_terms.is_empty() {
-            let pair = gate.mul_terms[0];
+        let mut mul_term_remains = Vec::new();
+        for pair in gate.mul_terms {
+            // We want to layout solvable intermediate variable, if we cannot solve one of the witness
+            // that means the intermediate gate will not be immediatly solvable
+            if !self.solvable_witness.contains(&pair.1) || !self.solvable_witness.contains(&pair.2)
+            {
+                mul_term_remains.push(pair);
+                continue;
+            }
 
             // Check if this pair is present in the simplified fan-in
             // We are assuming that the fan-in/fan-out has been simplified.
@@ -153,17 +195,22 @@ impl CSatTransformer {
                     }
 
                     // Now we have used up 2 spaces in our arithmetic gate. The width now dictates, how many more we can add
-                    let remaining_space = self.width - 2 - 1; // We minus 1 because we need an extra space to contain the intermediate variable
-                                                              // Keep adding terms until we have no more left, or we reach the width
-                    for _ in 0..remaining_space {
+                    let mut remaining_space = self.width - 2 - 1; // We minus 1 because we need an extra space to contain the intermediate variable
+                                                                  // Keep adding terms until we have no more left, or we reach the width
+                    let mut remaining_linear_terms = Vec::new();
+                    while remaining_space > 0 {
                         if let Some(wire_term) = gate.linear_combinations.pop() {
                             // Add this element into the new gate
-                            intermediate_gate.linear_combinations.push(wire_term);
+                            if self.solvable_witness.contains(&wire_term.1) {
+                                intermediate_gate.linear_combinations.push(wire_term);
+                                remaining_space -= 1;
+                            } else {
+                                remaining_linear_terms.push(wire_term);
+                            }
                         } else {
-                            // No more elements left in the old gate, we could stop the whole function
-                            // We could alternative let it keep going, as it will never reach this branch again since there are no more elements left
-                            // XXX: Future optimization
-                            // no_more_left = true
+                            // No more usable elements left in the old gate
+                            gate.linear_combinations = remaining_linear_terms;
+                            break;
                         }
                     }
                     // Constraint this intermediate_gate to be equal to the temp variable by adding it into the IndexMap
@@ -179,12 +226,12 @@ impl CSatTransformer {
                     );
 
                     // Add intermediate variable to the new gate instead of the full gate
+                    self.solvable_witness.insert(inter_var.1);
                     new_gate.linear_combinations.push(inter_var);
                 }
             };
-            // Remove this term as we are finished processing it
-            gate.mul_terms.remove(0);
         }
+        gate.mul_terms = mul_term_remains;
 
         // Add the rest of the elements back into the new_gate
         new_gate.mul_terms.extend(gate.mul_terms.clone());
@@ -283,24 +330,31 @@ impl CSatTransformer {
         }
 
         // 2. Create Intermediate variables for the multiplication gates
+        let mut mult_terms_remains = Vec::new();
         for mul_term in gate.mul_terms.clone().into_iter() {
-            let mut intermediate_gate = Expression::default();
+            if self.solvable_witness.contains(&mul_term.1)
+                && self.solvable_witness.contains(&mul_term.2)
+            {
+                let mut intermediate_gate = Expression::default();
 
-            // Push mul term into the gate
-            intermediate_gate.mul_terms.push(mul_term);
-            // Get an intermediate variable which squashes the multiplication term
-            let inter_var = Self::get_or_create_intermediate_vars(
-                intermediate_variables,
-                intermediate_gate,
-                num_witness,
-            );
+                // Push mul term into the gate
+                intermediate_gate.mul_terms.push(mul_term);
+                // Get an intermediate variable which squashes the multiplication term
+                let inter_var = Self::get_or_create_intermediate_vars(
+                    intermediate_variables,
+                    intermediate_gate,
+                    num_witness,
+                );
 
-            // Add intermediate variable as a part of the fan-in for the original gate
-            gate.linear_combinations.push(inter_var);
+                // Add intermediate variable as a part of the fan-in for the original gate
+                gate.linear_combinations.push(inter_var);
+            } else {
+                mult_terms_remains.push(mul_term);
+            }
         }
 
         // Remove all of the mul terms as we have intermediate variables to represent them now
-        gate.mul_terms.clear();
+        gate.mul_terms = mult_terms_remains;
 
         // We now only have a polynomial with only fan-in/fan-out terms i.e. terms of the form Ax + By + Cd + ...
         // Lets create intermediate variables if all of them cannot fit into the width
@@ -318,29 +372,38 @@ impl CSatTransformer {
             // Collect as many terms up to the given width-1 and constrain them to an intermediate variable
             let mut intermediate_gate = Expression::default();
 
-            for _ in 0..(self.width - 1) {
-                match gate.linear_combinations.pop() {
-                    Some(term) => {
-                        intermediate_gate.linear_combinations.push(term);
-                    }
-                    None => {
-                        break; // We can also do nothing here
-                    }
-                };
-            }
-            let inter_var = Self::get_or_create_intermediate_vars(
-                intermediate_variables,
-                intermediate_gate,
-                num_witness,
-            );
+            let mut linear_term_remains = Vec::new();
 
-            added.push(inter_var);
+            for term in gate.linear_combinations {
+                if self.solvable_witness.contains(&term.1)
+                    && intermediate_gate.linear_combinations.len() < self.width - 1
+                {
+                    intermediate_gate.linear_combinations.push(term);
+                } else {
+                    linear_term_remains.push(term);
+                }
+            }
+            gate.linear_combinations = linear_term_remains;
+            let not_full = intermediate_gate.linear_combinations.len() < self.width - 1;
+            if intermediate_gate.linear_combinations.len() > 1 {
+                let inter_var = Self::get_or_create_intermediate_vars(
+                    intermediate_variables,
+                    intermediate_gate,
+                    num_witness,
+                );
+                added.push(inter_var);
+            }
+            //intermediate gate is not full, but the gate still has too many terms
+            if not_full && gate.linear_combinations.len() > self.width {
+                dbg!(&gate.linear_combinations);
+                unreachable!("ICE - could not reduce the expresion");
+            }
         }
 
         // Add back the intermediate variables to
         // keep consistency with the original equation.
         gate.linear_combinations.extend(added);
-
+        dbg!("should stpr");
         self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness)
     }
 }
@@ -368,7 +431,7 @@ fn simple_reduction_smoke_test() {
 
     let mut num_witness = 4;
 
-    let optimizer = CSatTransformer::new(3);
+    let mut optimizer = CSatTransformer::new(3);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 

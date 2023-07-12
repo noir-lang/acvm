@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{Circuit, Opcode, OpcodeLabel},
+    circuit::{brillig::BrilligOutputs, directives::Directive, Circuit, Opcode, OpcodeLabel},
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
@@ -26,6 +26,7 @@ pub enum CompileError {
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
+    inputs: Vec<Witness>,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &CircuitSimplifier,
@@ -58,12 +59,18 @@ pub fn compile(
     let range_optimizer = RangeOptimizer::new(acir);
     let (acir, opcode_label) = range_optimizer.replace_redundant_ranges(opcode_label);
 
-    let transformer = match &np_language {
+    let mut transformer = match &np_language {
         crate::Language::R1CS => {
             let transformer = R1CSTransformer::new(acir);
             return Ok((transformer.transform(), opcode_label));
         }
-        crate::Language::PLONKCSat { width } => CSatTransformer::new(*width),
+        crate::Language::PLONKCSat { width } => {
+            let mut csat = CSatTransformer::new(*width);
+            for value in inputs {
+                csat.solvable(value);
+            }
+            csat
+        }
     };
 
     // TODO: the code below is only for CSAT transformer
@@ -107,9 +114,91 @@ pub fn compile(
                     transformed_gates.push(Opcode::Arithmetic(gate));
                 }
             }
-            other_gate => {
+            Opcode::BlackBoxFuncCall(func) => {
+                match func {
+                    acir::circuit::opcodes::BlackBoxFuncCall::AND { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::XOR { output, .. } => {
+                        transformer.solvable(*output)
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::RANGE { .. } => (),
+                    acir::circuit::opcodes::BlackBoxFuncCall::SHA256 { outputs, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Keccak256 { outputs, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Keccak256VariableLength {
+                        outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::RecursiveAggregation {
+                        output_aggregation_object: outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Blake2s { outputs, .. } => {
+                        for witness in outputs {
+                            transformer.solvable(*witness);
+                        }
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::FixedBaseScalarMul {
+                        outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Pedersen { outputs, .. } => {
+                        transformer.solvable(outputs.0);
+                        transformer.solvable(outputs.1)
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::HashToField128Security {
+                        output,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256k1 { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256r1 { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::SchnorrVerify { output, .. } => {
+                        transformer.solvable(*output)
+                    }
+                }
+
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(other_gate.clone())
+                transformed_gates.push(opcode.clone());
+            }
+            Opcode::Directive(directive) => {
+                dbg!(&directive);
+                match directive {
+                    Directive::Invert { result, .. } => {
+                        transformer.solvable(*result);
+                    }
+                    Directive::Quotient(quotient_directive) => {
+                        transformer.solvable(quotient_directive.q);
+                        transformer.solvable(quotient_directive.r);
+                    }
+                    Directive::ToLeRadix { b, .. } => {
+                        for w in b {
+                            transformer.solvable(*w);
+                        }
+                    }
+                    Directive::PermutationSort { bits, .. } => {
+                        for w in bits {
+                            transformer.solvable(*w);
+                        }
+                    }
+                    Directive::Log(_) => (),
+                }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
+            }
+            Opcode::Block(_) => todo!(),
+            Opcode::ROM(_) => todo!(),
+            Opcode::RAM(_) => todo!(),
+            Opcode::Brillig(brillig) => {
+                for output in &brillig.outputs {
+                    match output {
+                        BrilligOutputs::Simple(w) => transformer.solvable(*w),
+                        BrilligOutputs::Array(v) => {
+                            for w in v {
+                                transformer.solvable(*w);
+                            }
+                        }
+                    }
+                }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
             }
         }
     }
