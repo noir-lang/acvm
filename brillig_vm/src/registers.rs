@@ -1,4 +1,4 @@
-use brillig::{RegisterIndex, Value};
+use acir::brillig::{RegisterIndex, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Registers {
