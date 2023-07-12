@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1](https://github.com/noir-lang/acvm/compare/root-v0.18.0...root-v0.18.1) (2023-07-12)
+
+
+### Bug Fixes
+
+* Crate publishing order ([#428](https://github.com/noir-lang/acvm/issues/428)) ([4f69cb5](https://github.com/noir-lang/acvm/commit/4f69cb5782435a2fcf45bb0985e1bb0eb944b194))
+
 ## [0.18.0](https://github.com/noir-lang/acvm/compare/root-v0.17.0...root-v0.18.0) (2023-07-12)
 
 
