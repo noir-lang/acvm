@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.18.0](https://github.com/noir-lang/acvm/compare/acvm-v0.17.0...acvm-v0.18.0) (2023-07-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422))
+* **acvm:** Remove `CircuitSimplifer` ([#421](https://github.com/noir-lang/acvm/issues/421))
+* **acvm:** Add `circuit: &Circuit` to `eth_contract_from_vk` function signature ([#420](https://github.com/noir-lang/acvm/issues/420))
+* Returns index of failing opcode and transformation mapping ([#412](https://github.com/noir-lang/acvm/issues/412))
+
+### Features
+
+* **acvm:** Add `circuit: &Circuit` to `eth_contract_from_vk` function signature ([#420](https://github.com/noir-lang/acvm/issues/420)) ([744e9da](https://github.com/noir-lang/acvm/commit/744e9da71f7ca477a5390a63f47211dd4dffb8b3))
+* add backend-solvable blackboxes to brillig & unify implementations ([#422](https://github.com/noir-lang/acvm/issues/422)) ([093342e](https://github.com/noir-lang/acvm/commit/093342ea9481a311fa71343b8b7a22774788838a))
+* Returns index of failing opcode and transformation mapping ([#412](https://github.com/noir-lang/acvm/issues/412)) ([79950e9](https://github.com/noir-lang/acvm/commit/79950e943f60e4082e1cf5ec4442aa67ea91aade))
+* **stdlib:** Add fallback implementation of `SHA256` black box function ([#407](https://github.com/noir-lang/acvm/issues/407)) ([040369a](https://github.com/noir-lang/acvm/commit/040369adc8749fa5ec2edd255ff54c105c3140f5))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Remove `CircuitSimplifer` ([#421](https://github.com/noir-lang/acvm/issues/421)) ([e07a56d](https://github.com/noir-lang/acvm/commit/e07a56d9c542a7f03ce156761054cd403de0bd23))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.17.0 to 0.18.0
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/acvm-v0.16.0...acvm-v0.17.0) (2023-07-07)
 
 
