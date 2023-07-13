@@ -17,7 +17,7 @@ serde.workspace = true
 thiserror.workspace = true
 rmp-serde = { workspace = true, optional = true }
 flate2 = "1.0.24"
-bincode = { version = "2.0.0-rc.3", optional = true, features = ["serde"] }
+bincode.workspace = true
 
 [dev-dependencies]
 serde_json = "1.0"
@@ -28,7 +28,7 @@ serde-generate = "0.25.1"
 
 
 [features]
-default = ["bn254", "bincode"]
+default = ["bn254"]
 bn254 = ["acir_field/bn254", "brillig/bn254"]
 bls12_381 = ["acir_field/bls12_381", "brillig/bls12_381"]
 serialize-messagepack = ["rmp-serde"]
