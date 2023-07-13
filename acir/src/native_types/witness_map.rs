@@ -1,3 +1,4 @@
+
 use std::{
     collections::{btree_map, BTreeMap},
     io::Read,
@@ -5,15 +6,15 @@ use std::{
 };
 
 use acir_field::FieldElement;
-use flate2::{
-    bufread::{DeflateDecoder, DeflateEncoder},
-    Compression,
-};
+use flate2::bufread::GzDecoder;
+#[cfg(not(feature="serialize-bincode"))]
+use flate2::{bufread::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::native_types::Witness;
 
+#[cfg(not(feature="serialize-bincode"))]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -22,6 +23,13 @@ enum SerializationError {
     #[error(transparent)]
     MsgpackDecode(#[from] rmp_serde::decode::Error),
 
+    #[error(transparent)]
+    Deflate(#[from] std::io::Error),
+}
+
+#[cfg(feature="serialize-bincode")]
+#[derive(Debug, Error)]
+enum SerializationError {
     #[error(transparent)]
     Deflate(#[from] std::io::Error),
 }
@@ -85,6 +93,7 @@ impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     }
 }
 
+#[cfg(not(feature="serialize-bincode"))]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
@@ -97,6 +106,17 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
+#[cfg(feature="serialize-bincode")]
+impl TryFrom<WitnessMap> for Vec<u8> {
+    type Error = WitnessMapError;
+
+    fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
+        let buf = bincode::serde::encode_to_vec(&val, bincode::config::standard()).unwrap();
+        Ok(buf)
+    }
+}
+
+#[cfg(not(feature="serialize-bincode"))]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
@@ -106,6 +126,20 @@ impl TryFrom<&[u8]> for WitnessMap {
         deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
         let witness_map =
             rmp_serde::from_slice(buf_d.as_slice()).map_err(|err| WitnessMapError(err.into()))?;
+        Ok(Self(witness_map))
+    }
+}
+
+#[cfg(feature="serialize-bincode")]
+impl TryFrom<&[u8]> for WitnessMap {
+    type Error = WitnessMapError;
+
+    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
+        let mut deflater = GzDecoder::new(bytes);
+        let mut buf_d = Vec::new();
+        deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
+        let (witness_map, _len) =
+            bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard()).unwrap();
         Ok(Self(witness_map))
     }
 }
