@@ -315,7 +315,7 @@ impl CSatTransformer {
     //
     // Cases, a lot of mul terms, a lot of fan-in terms, 50/50
     fn partial_gate_scan_optimization(
-        &self,
+        &mut self,
         mut gate: Expression,
         intermediate_variables: &mut IndexMap<Expression, (FieldElement, Witness)>,
         num_witness: &mut u32,
@@ -391,19 +391,18 @@ impl CSatTransformer {
                     intermediate_gate,
                     num_witness,
                 );
+                self.solvable(inter_var.1);
                 added.push(inter_var);
             }
             //intermediate gate is not full, but the gate still has too many terms
             if not_full && gate.linear_combinations.len() > self.width {
-                dbg!(&gate.linear_combinations);
-                unreachable!("ICE - could not reduce the expresion");
+                unreachable!("Could not reduce the expresion");
             }
         }
 
         // Add back the intermediate variables to
         // keep consistency with the original equation.
         gate.linear_combinations.extend(added);
-        dbg!("should stpr");
         self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness)
     }
 }
@@ -432,13 +431,16 @@ fn simple_reduction_smoke_test() {
     let mut num_witness = 4;
 
     let mut optimizer = CSatTransformer::new(3);
+    optimizer.solvable(b);
+    optimizer.solvable(c);
+    optimizer.solvable(d);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
     // a = b + c + d => a - b - c - d = 0
     // For width3, the result becomes:
-    // a - b + e = 0
-    // - c - d  - e = 0
+    // a - d + e = 0
+    // - c - b  - e = 0
     //
     // a - b + e = 0
     let e = Witness(4);
@@ -446,7 +448,7 @@ fn simple_reduction_smoke_test() {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
-            (-FieldElement::one(), b),
+            (-FieldElement::one(), d),
             (FieldElement::one(), e),
         ],
         q_c: FieldElement::zero(),
@@ -455,10 +457,10 @@ fn simple_reduction_smoke_test() {
 
     assert_eq!(intermediate_variables.len(), 1);
 
-    // e = - c - d
+    // e = - c - b
     let expected_intermediate_gate = Expression {
         mul_terms: vec![],
-        linear_combinations: vec![(-FieldElement::one(), d), (-FieldElement::one(), c)],
+        linear_combinations: vec![(-FieldElement::one(), c), (-FieldElement::one(), b)],
         q_c: FieldElement::zero(),
     };
     let (_, normalized_gate) = CSatTransformer::normalize(expected_intermediate_gate);
