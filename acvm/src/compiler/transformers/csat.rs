@@ -467,3 +467,42 @@ fn simple_reduction_smoke_test() {
     assert!(intermediate_variables.contains_key(&normalized_gate));
     assert_eq!(intermediate_variables[&normalized_gate].1, e);
 }
+
+#[test]
+fn stepwise_reduction_test() {
+    let a = Witness(0);
+    let b = Witness(1);
+    let c = Witness(2);
+    let d = Witness(3);
+    let e = Witness(4);
+
+    // a = b + c + d + e;
+    let gate_a = Expression {
+        mul_terms: vec![],
+        linear_combinations: vec![
+            (-FieldElement::one(), a),
+            (FieldElement::one(), b),
+            (FieldElement::one(), c),
+            (FieldElement::one(), d),
+            (FieldElement::one(), e),
+        ],
+        q_c: FieldElement::zero(),
+    };
+
+    let mut intermediate_variables: IndexMap<Expression, (FieldElement, Witness)> = IndexMap::new();
+
+    let mut num_witness = 4;
+
+    let mut optimizer = CSatTransformer::new(3);
+    optimizer.solvable(a);
+    optimizer.solvable(c);
+    optimizer.solvable(d);
+    optimizer.solvable(e);
+    let got_optimized_gate_a =
+        optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
+
+    let witnesses: Vec<Witness> =
+        got_optimized_gate_a.linear_combinations.iter().map(|(_, w)| *w).collect();
+    // Since b is not known, it cannot be put inside intermediate gates, so it must belong to the transformed gate.
+    assert!(witnesses.contains(&b));
+}
