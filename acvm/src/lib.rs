@@ -20,6 +20,8 @@ pub use acir;
 pub use acir::FieldElement;
 // re-export brillig vm
 pub use brillig_vm;
+// re-export blackbox solver
+pub use blackbox_solver;
 
 /// Supported NP complete languages
 /// This might need to be in ACIR instead
