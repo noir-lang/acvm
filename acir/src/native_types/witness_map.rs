@@ -7,14 +7,14 @@ use std::{
 
 use acir_field::FieldElement;
 use flate2::bufread::GzDecoder;
-#[cfg(not(feature="serialize-bincode"))]
+#[cfg(feature="serialize-messagepack")]
 use flate2::{bufread::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::native_types::Witness;
 
-#[cfg(not(feature="serialize-bincode"))]
+#[cfg(feature="serialize-messagepack")]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -27,7 +27,7 @@ enum SerializationError {
     Deflate(#[from] std::io::Error),
 }
 
-#[cfg(feature="serialize-bincode")]
+#[cfg(not(feature="serialize-messagepack"))]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -93,7 +93,7 @@ impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     }
 }
 
-#[cfg(not(feature="serialize-bincode"))]
+#[cfg(feature="serialize-messagepack")]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
@@ -106,7 +106,7 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
-#[cfg(feature="serialize-bincode")]
+#[cfg(not(feature="serialize-messagepack"))]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
@@ -116,7 +116,7 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
-#[cfg(not(feature="serialize-bincode"))]
+#[cfg(feature="serialize-messagepack")]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
@@ -130,7 +130,7 @@ impl TryFrom<&[u8]> for WitnessMap {
     }
 }
 
-#[cfg(feature="serialize-bincode")]
+#[cfg(not(feature="serialize-messagepack"))]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
