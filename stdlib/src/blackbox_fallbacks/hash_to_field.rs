@@ -78,7 +78,7 @@ fn field_from_be_bytes(result: &[Witness], num_witness: u32) -> (Witness, Vec<Op
     (new_witness, new_gates, num_witness)
 }
 
-/// Caculate and constrain `self` + `rhs` with overflow
+/// Caculate and constrain `self` + `rhs` as field
 fn field_addition(
     lhs: &Witness,
     rhs: &Witness,
@@ -88,7 +88,7 @@ fn field_addition(
     let mut variables = VariableStore::new(&mut num_witness);
     let new_witness = variables.new_variable();
 
-    // calculate `self` + `rhs` with overflow
+    // calculate `self` + `rhs` as field
     let brillig_opcode = Opcode::Brillig(Brillig {
         inputs: vec![
             BrilligInputs::Single(Expression {
@@ -124,7 +124,7 @@ fn field_addition(
     (new_witness, new_gates, num_witness)
 }
 
-/// Calculate and constrain `self` * `rhs` with overflow
+/// Calculate and constrain `self` * `rhs` as field
 pub(crate) fn field_mul(
     lhs: &Witness,
     rhs: &Witness,
