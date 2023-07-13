@@ -1,10 +1,10 @@
-use crate::helpers::VariableStore;
-
+//! HashToField128Security fallback function.
 use super::{
     blake2s::create_blake2s_constraint,
     utils::{byte_decomposition, round_to_nearest_byte},
     UInt32,
 };
+use crate::helpers::VariableStore;
 use acir::{
     brillig::{self, RegisterIndex},
     circuit::{
@@ -36,6 +36,7 @@ pub fn hash_to_field(
     let (result, num_witness, extra_gates) = create_blake2s_constraint(new_inputs, num_witness);
     new_gates.extend(extra_gates);
 
+    // transform bytes to a single field
     let (result, extra_gates, num_witness) = field_from_be_bytes(&result, num_witness);
     new_gates.extend(extra_gates);
 
@@ -46,17 +47,19 @@ pub fn hash_to_field(
     (num_witness, new_gates)
 }
 
+/// Convert bytes represented by [Witness]es to a single [FieldElement]
 fn field_from_be_bytes(result: &[Witness], num_witness: u32) -> (Witness, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
 
+    // Load `0` and `256` by borrowing the load constant function from UInt32
     let (new_witness, extra_gates, num_witness) = UInt32::load_constant(0, num_witness);
     let mut new_witness = new_witness.inner;
     new_gates.extend(extra_gates);
-
     let (const_256, extra_gates, mut num_witness) = UInt32::load_constant(256, num_witness);
     let const_256 = const_256.inner;
     new_gates.extend(extra_gates);
 
+    // add byte and multiply 256 each round
     for r in result.iter().take(result.len() - 1) {
         let (updated_witness, extra_gates, updated_witness_counter) =
             field_addition(&new_witness, r, num_witness);
