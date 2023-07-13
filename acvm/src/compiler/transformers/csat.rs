@@ -226,7 +226,7 @@ impl CSatTransformer {
                     );
 
                     // Add intermediate variable to the new gate instead of the full gate
-                    self.solvable_witness.insert(inter_var.1);
+                    self.solvable(inter_var.1);
                     new_gate.linear_combinations.push(inter_var);
                 }
             };
@@ -348,6 +348,7 @@ impl CSatTransformer {
 
                 // Add intermediate variable as a part of the fan-in for the original gate
                 gate.linear_combinations.push(inter_var);
+                self.solvable(inter_var.1);
             } else {
                 mult_terms_remains.push(mul_term);
             }
