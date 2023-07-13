@@ -51,7 +51,7 @@ pub fn hash_to_field(
 fn field_from_be_bytes(result: &[Witness], num_witness: u32) -> (Witness, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
 
-    // Load `0` and `256` by borrowing the load constant function from UInt32
+    // Load `0` and `256` using the load constant function from UInt32
     let (new_witness, extra_gates, num_witness) = UInt32::load_constant(0, num_witness);
     let mut new_witness = new_witness.inner;
     new_gates.extend(extra_gates);
