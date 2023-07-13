@@ -80,6 +80,7 @@ impl Circuit {
         let buf = bincode::serde::encode_to_vec(&self, bincode::config::standard()).unwrap();
         let mut encoder = GzEncoder::new(writer, Compression::default());
         encoder.write_all(&buf).unwrap();
+        encoder.finish().unwrap();
         Ok(())
     }
 
