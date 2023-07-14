@@ -13,7 +13,6 @@ use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
     // current_witness_index is the highest witness index in the circuit. The next witness to be added to this circuit
@@ -52,7 +51,7 @@ impl Circuit {
         PublicInputs(public_inputs)
     }
 
-    #[cfg(feature="serialize-messagepack")]
+    #[cfg(feature = "serialize-messagepack")]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = rmp_serde::to_vec(&self).unwrap();
         let mut deflater = flate2::write::DeflateEncoder::new(writer, Compression::best());
@@ -60,7 +59,7 @@ impl Circuit {
 
         Ok(())
     }
-    #[cfg(feature="serialize-messagepack")]
+    #[cfg(feature = "serialize-messagepack")]
     pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
         let mut deflater = flate2::read::DeflateDecoder::new(reader);
         let mut buf_d = Vec::new();
@@ -69,7 +68,7 @@ impl Circuit {
         Ok(circuit)
     }
 
-    #[cfg(not(feature="serialize-messagepack"))]
+    #[cfg(not(feature = "serialize-messagepack"))]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = bincode::serialize(&self).unwrap();
         let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
@@ -78,7 +77,7 @@ impl Circuit {
         Ok(())
     }
 
-    #[cfg(not(feature="serialize-messagepack"))]
+    #[cfg(not(feature = "serialize-messagepack"))]
     pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
         let mut gz_decoder = flate2::read::GzDecoder::new(reader);
         let mut buf_d = Vec::new();

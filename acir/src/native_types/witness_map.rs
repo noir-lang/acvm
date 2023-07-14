@@ -13,7 +13,7 @@ use thiserror::Error;
 
 use crate::native_types::Witness;
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -26,7 +26,7 @@ enum SerializationError {
     Deflate(#[from] std::io::Error),
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -92,10 +92,10 @@ impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     }
 }
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
-    
+
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
         let buf = rmp_serde::to_vec(&val).map_err(|err| WitnessMapError(err.into()))?;
         let mut deflater = flate2::write::DeflateEncoder::new(buf.as_slice(), Compression::best());
@@ -105,7 +105,7 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
@@ -118,10 +118,10 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
-    
+
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         let mut deflater = flate2::bufread::DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
@@ -132,7 +132,7 @@ impl TryFrom<&[u8]> for WitnessMap {
     }
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
@@ -140,8 +140,7 @@ impl TryFrom<&[u8]> for WitnessMap {
         let mut deflater = GzDecoder::new(bytes);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
-        let witness_map =
-            bincode::deserialize(buf_d.as_slice()).unwrap();
+        let witness_map = bincode::deserialize(buf_d.as_slice()).unwrap();
         Ok(Self(witness_map))
     }
 }
