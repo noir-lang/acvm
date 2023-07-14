@@ -58,7 +58,7 @@ fn solve_directives_internal(
                 None => FieldElement::one(),
             };
 
-            let (int_r, int_q) = if pred_value.is_zero() {
+            let (int_r, int_q) = if pred_value.is_zero() || int_b.is_zero() {
                 (BigUint::zero(), BigUint::zero())
             } else {
                 (&int_a % &int_b, &int_a / &int_b)
