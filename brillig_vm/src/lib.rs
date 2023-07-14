@@ -9,21 +9,23 @@
 //! [acir]: https://crates.io/crates/acir
 //! [acvm]: https://crates.io/crates/acvm
 
+use acir::brillig::{
+    BinaryFieldOp, BinaryIntOp, ForeignCallOutput, ForeignCallResult, HeapArray, HeapVector,
+    Opcode, RegisterIndex, RegisterOrMemory, Value,
+};
+use acir::FieldElement;
+// Re-export `brillig`.
+pub use acir::brillig;
+
 mod arithmetic;
 mod black_box;
 mod memory;
 mod registers;
 
-use acir_field::FieldElement;
 use arithmetic::{evaluate_binary_field_op, evaluate_binary_int_op};
 use black_box::evaluate_black_box;
 use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
-use brillig::{
-    BinaryFieldOp, BinaryIntOp, ForeignCallOutput, ForeignCallResult, HeapArray, HeapVector,
-    Opcode, RegisterIndex, RegisterOrMemory, Value,
-};
 
-pub use brillig;
 pub use memory::Memory;
 pub use registers::Registers;
 

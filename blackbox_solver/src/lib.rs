@@ -5,8 +5,7 @@
 //! For functions that are backend-dependent, it provides a Trait [BlackBoxFunctionSolver] that must be implemented by the backend.
 //! For functions that have a reference implementation, such as [keccak256], this crate exports the reference implementation directly.
 
-use acir::BlackBoxFunc;
-use acir_field::FieldElement;
+use acir::{BlackBoxFunc, FieldElement};
 use blake2::digest::generic_array::GenericArray;
 use blake2::{Blake2s256, Digest};
 use sha2::Sha256;
