@@ -114,6 +114,7 @@ impl RangeOptimizer {
                 opcodes: optimized_opcodes,
                 public_parameters: self.circuit.public_parameters,
                 return_values: self.circuit.return_values,
+                inputs: self.circuit.inputs,
             },
             new_order_list,
         )
@@ -165,6 +166,7 @@ mod tests {
             opcodes,
             public_parameters: PublicInputs::default(),
             return_values: PublicInputs::default(),
+            inputs: Vec::new(),
         }
     }
 

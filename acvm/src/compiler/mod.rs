@@ -26,7 +26,6 @@ pub enum CompileError {
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
-    inputs: Vec<Witness>,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
     simplifier: &CircuitSimplifier,
@@ -66,8 +65,8 @@ pub fn compile(
         }
         crate::Language::PLONKCSat { width } => {
             let mut csat = CSatTransformer::new(*width);
-            for value in inputs {
-                csat.solvable(value);
+            for value in &acir.inputs {
+                csat.solvable(*value);
             }
             csat
         }
@@ -204,7 +203,6 @@ pub fn compile(
     }
 
     let current_witness_index = next_witness_index - 1;
-
     Ok((
         Circuit {
             current_witness_index,
@@ -212,6 +210,7 @@ pub fn compile(
             // The optimizer does not add new public inputs
             public_parameters: acir.public_parameters,
             return_values: acir.return_values,
+            inputs: acir.inputs,
         },
         new_opcode_labels,
     ))

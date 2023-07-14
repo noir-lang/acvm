@@ -25,6 +25,8 @@ pub struct Circuit {
     pub public_parameters: PublicInputs,
     /// The set of public inputs calculated within the circuit.
     pub return_values: PublicInputs,
+    /// Input witnesses (both private and public) to the circuit
+    pub inputs: Vec<Witness>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -158,6 +160,7 @@ mod tests {
             opcodes: vec![and_opcode(), range_opcode(), directive_opcode()],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
+            inputs: vec![Witness(4), Witness(12)],
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -186,6 +189,7 @@ mod tests {
             ],
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            inputs: vec![Witness(4), Witness(2)],
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();

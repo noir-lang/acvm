@@ -69,6 +69,7 @@ impl FallbackTransformer {
                 opcodes: acir_supported_opcodes,
                 public_parameters: acir.public_parameters,
                 return_values: acir.return_values,
+                inputs: acir.inputs,
             },
             new_opcode_labels,
         ))
