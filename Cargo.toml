@@ -16,7 +16,7 @@ stdlib = { package = "acvm_stdlib", version = "0.18.1", path = "stdlib", default
 brillig = { version = "0.18.1", path = "brillig", default-features = false }
 blackbox_solver = { package = "acvm_blackbox_solver", version = "0.18.1", path = "blackbox_solver", default-features = false }
 
-bincode = { version = "2.0.0-rc.3", features = ["serde"] }
+bincode = "*"
 rmp-serde = "1.1.0"
 
 num-bigint = "0.4"

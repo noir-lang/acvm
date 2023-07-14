@@ -77,7 +77,7 @@ impl Circuit {
 
     #[cfg(not(feature="serialize-messagepack"))]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
-        let buf = bincode::serde::encode_to_vec(&self, bincode::config::standard()).unwrap();
+        let buf = bincode::serialize(&self).unwrap();
         let mut encoder = GzEncoder::new(writer, Compression::default());
         encoder.write_all(&buf).unwrap();
         encoder.finish().unwrap();
@@ -89,7 +89,7 @@ impl Circuit {
         let mut gz_decoder = flate2::read::GzDecoder::new(reader);
         let mut buf_d = Vec::new();
         gz_decoder.read_to_end(&mut buf_d).unwrap();
-        let (circuit, _len): (Circuit, usize) = bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard()).unwrap();
+        let (circuit, _len): (Circuit, usize) = bincode::deserialize(buf_d.as_slice()).unwrap();
         Ok(circuit)
     }
 
