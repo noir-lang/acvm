@@ -111,7 +111,10 @@ impl TryFrom<WitnessMap> for Vec<u8> {
 
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
         let buf = bincode::serialize(&val).unwrap();
-        Ok(buf)
+        let mut deflater = GzEncoder::new(buf.as_slice(), Compression::best());
+        let mut buf_c = Vec::new();
+        deflater.read_to_end(&mut buf_c).map_err(|err| WitnessMapError(err.into()))?;
+        Ok(buf_c)
     }
 }
 
