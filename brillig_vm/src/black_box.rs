@@ -1,10 +1,9 @@
-use acir::BlackBoxFunc;
-use acir_field::FieldElement;
+use acir::brillig::{BlackBoxOp, HeapArray, HeapVector, Value};
+use acir::{BlackBoxFunc, FieldElement};
 use blackbox_solver::{
     blake2s, ecdsa_secp256k1_verify, ecdsa_secp256r1_verify, hash_to_field_128_security, keccak256,
     sha256, BlackBoxFunctionSolver, BlackBoxResolutionError,
 };
-use brillig::{BlackBoxOp, HeapArray, HeapVector, Value};
 
 use crate::{Memory, Registers};
 
@@ -166,7 +165,7 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
 
 #[cfg(test)]
 mod test {
-    use brillig::BlackBoxOp;
+    use acir::brillig::BlackBoxOp;
 
     use crate::{
         black_box::{evaluate_black_box, to_u8_vec, to_value_vec},

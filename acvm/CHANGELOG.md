@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acvm-v0.18.1...acvm-v0.18.2) (2023-07-12)
+
+
+### Features
+
+* **acvm:** reexport `blackbox_solver` crate from `acvm` ([#431](https://github.com/noir-lang/acvm/issues/431)) ([517e942](https://github.com/noir-lang/acvm/commit/517e942b732d7107f6e064c6791917d1508229b3))
+* **stdlib:** Add fallback implementation of `Blake2s` black box function ([#424](https://github.com/noir-lang/acvm/issues/424)) ([982d940](https://github.com/noir-lang/acvm/commit/982d94087d46092ce7a5e94dbd7e732195f58e42))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.18.1 to 0.18.2
+
 ## [0.18.1](https://github.com/noir-lang/acvm/compare/acvm-v0.18.0...acvm-v0.18.1) (2023-07-12)
 
 
