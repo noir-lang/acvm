@@ -6,6 +6,8 @@ use std::{
 
 use acir_field::FieldElement;
 use flate2::bufread::GzDecoder;
+use flate2::bufread::GzEncoder;
+use flate2::Compression;
 #[cfg(feature="serialize-messagepack")]
 use flate2::{bufread::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
