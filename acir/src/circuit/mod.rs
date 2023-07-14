@@ -6,19 +6,13 @@ pub mod opcodes;
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
 
-
-#[cfg(feature="serialize-messagepack")]
-use flate2::{read::DeflateDecoder, write::DeflateEncoder};
 use std::io::prelude::*;
 
-#[cfg(not(feature="serialize-messagepack"))]
-use flate2::write::GzEncoder;
 use flate2::Compression;
 
-// use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::io::prelude::*;
+
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
@@ -61,14 +55,14 @@ impl Circuit {
     #[cfg(feature="serialize-messagepack")]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = rmp_serde::to_vec(&self).unwrap();
-        let mut deflater = DeflateEncoder::new(writer, Compression::best());
+        let mut deflater = flate2::write::DeflateEncoder::new(writer, Compression::best());
         deflater.write_all(&buf).unwrap();
 
         Ok(())
     }
     #[cfg(feature="serialize-messagepack")]
     pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
-        let mut deflater = DeflateDecoder::new(reader);
+        let mut deflater = flate2::read::DeflateDecoder::new(reader);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();
         let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
@@ -78,7 +72,7 @@ impl Circuit {
     #[cfg(not(feature="serialize-messagepack"))]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = bincode::serialize(&self).unwrap();
-        let mut encoder = GzEncoder::new(writer, Compression::default());
+        let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
         encoder.write_all(&buf).unwrap();
         encoder.finish().unwrap();
         Ok(())
