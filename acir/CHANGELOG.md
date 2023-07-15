@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.0](https://github.com/noir-lang/acvm/compare/acir-v0.18.2...acir-v0.19.0) (2023-07-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436))
+
+### Features
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436)) ([4683240](https://github.com/noir-lang/acvm/commit/46832400a8bc20135a8a895ab9477b14449734d9))
+
 ## [0.18.2](https://github.com/noir-lang/acvm/compare/acir-v0.18.1...acir-v0.18.2) (2023-07-12)
 
 
