@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0](https://github.com/noir-lang/acvm/compare/root-v0.18.2...root-v0.19.0) (2023-07-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436))
+
+### Features
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436)) ([4683240](https://github.com/noir-lang/acvm/commit/46832400a8bc20135a8a895ab9477b14449734d9))
+
 ## [0.18.2](https://github.com/noir-lang/acvm/compare/root-v0.18.1...root-v0.18.2) (2023-07-12)
 
 
