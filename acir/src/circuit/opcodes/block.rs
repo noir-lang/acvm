@@ -40,11 +40,11 @@ impl MemoryBlock {
                 .index
                 .to_const()
                 .expect("Non-const index during Block initialization");
-            if index != FieldElement::from(i as i128) {
-                todo!(
-                    "invalid index when initializing a block, we could try to sort the init phase"
-                );
-            }
+            assert_eq!(
+                index,
+                FieldElement::from(i as i128),
+                "invalid index when initializing a block, we could try to sort the init phase"
+            );
             let value = self.trace[i].value.clone();
             assert!(value.is_degree_one_univariate(), "Block initialization requires a witness");
             init.push(value);
