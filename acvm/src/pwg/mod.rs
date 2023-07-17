@@ -169,7 +169,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Return a reference to the arguments for the next pending foreign call, if one exists.
     pub fn get_pending_foreign_call(&self) -> Option<&ForeignCallWaitInfo> {
         if let ACVMStatus::RequiresForeignCall(foreign_call) = &self.status {
-            Some(&foreign_call)
+            Some(foreign_call)
         } else {
             None
         }
