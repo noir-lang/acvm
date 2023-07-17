@@ -134,7 +134,7 @@ impl CSatTransformer {
         // This will be our new gate which will be equal to `self` except we will have intermediate variables that will be constrained to any
         // subset of the terms that can be represented as full gates
         let mut new_gate = Expression::default();
-        let mut mul_term_remains = Vec::new();
+        let mut mul_term_remains = Vec::with_capacity(gate.mul_terms.len());
         for pair in gate.mul_terms {
             // We want to layout solvable intermediate variable, if we cannot solve one of the witness
             // that means the intermediate gate will not be immediatly solvable
@@ -197,7 +197,8 @@ impl CSatTransformer {
                     // Now we have used up 2 spaces in our arithmetic gate. The width now dictates, how many more we can add
                     let mut remaining_space = self.width - 2 - 1; // We minus 1 because we need an extra space to contain the intermediate variable
                                                                   // Keep adding terms until we have no more left, or we reach the width
-                    let mut remaining_linear_terms = Vec::new();
+                    let mut remaining_linear_terms =
+                        Vec::with_capacity(gate.linear_combinations.len());
                     while remaining_space > 0 {
                         if let Some(wire_term) = gate.linear_combinations.pop() {
                             // Add this element into the new gate
