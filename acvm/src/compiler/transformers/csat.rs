@@ -331,7 +331,7 @@ impl CSatTransformer {
         }
 
         // 2. Create Intermediate variables for the multiplication gates
-        let mut mult_terms_remains = Vec::new();
+        let mut remaining_mul_terms = Vec::new();
         for mul_term in gate.mul_terms.clone().into_iter() {
             if self.solvable_witness.contains(&mul_term.1)
                 && self.solvable_witness.contains(&mul_term.2)
@@ -351,12 +351,12 @@ impl CSatTransformer {
                 gate.linear_combinations.push(inter_var);
                 self.mark_solvable(inter_var.1);
             } else {
-                mult_terms_remains.push(mul_term);
+                remaining_mul_terms.push(mul_term);
             }
         }
 
         // Remove all of the mul terms as we have intermediate variables to represent them now
-        gate.mul_terms = mult_terms_remains;
+        gate.mul_terms = remaining_mul_terms;
 
         // We now only have a polynomial with only fan-in/fan-out terms i.e. terms of the form Ax + By + Cd + ...
         // Lets create intermediate variables if all of them cannot fit into the width
