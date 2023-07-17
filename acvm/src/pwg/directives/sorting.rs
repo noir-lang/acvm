@@ -245,9 +245,11 @@ pub(super) fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Ve
 
 #[cfg(test)]
 mod tests {
+    // Silence `unused_crate_dependencies` warning
+    use proptest as _;
+
     use super::route;
     use acir::FieldElement;
-    use proptest as _;
     use rand::prelude::*;
 
     fn execute_network(config: Vec<bool>, inputs: Vec<FieldElement>) -> Vec<FieldElement> {
