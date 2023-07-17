@@ -15,7 +15,7 @@ acir_field.workspace = true
 brillig.workspace = true
 serde.workspace = true
 thiserror.workspace = true
-rmp-serde = { workspace = true, optional = true }
+rmp-serde.workspace = true
 flate2 = "1.0.24"
 bincode.workspace = true
 
