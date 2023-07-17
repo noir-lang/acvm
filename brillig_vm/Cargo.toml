@@ -1,7 +1,7 @@
 [package]
 name = "brillig_vm"
 description = "The virtual machine that processes Brillig bytecode, used to introduce non-determinism to the ACVM"
-version = "0.17.0"
+version = "0.19.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,15 +11,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acir_field.workspace = true
-serde.workspace = true
-blake2.workspace = true
-sha2.workspace = true
-sha3.workspace = true
-k256.workspace = true
-p256.workspace = true
+acir.workspace = true
+blackbox_solver.workspace = true
 
 [features]
 default = ["bn254"]
-bn254 = ["acir_field/bn254"]
-bls12_381 = ["acir_field/bls12_381"]
+bn254 = ["acir/bn254"]
+bls12_381 = ["acir/bls12_381"]

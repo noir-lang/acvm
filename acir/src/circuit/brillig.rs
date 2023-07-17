@@ -1,5 +1,6 @@
 use crate::native_types::{Expression, Witness};
-use brillig_vm::ForeignCallResult;
+use brillig::ForeignCallResult;
+use brillig::Opcode as BrilligOpcode;
 use serde::{Deserialize, Serialize};
 
 /// Inputs for the Brillig VM. These are the initial inputs
@@ -26,7 +27,7 @@ pub struct Brillig {
     // Each element of this vector corresponds to a single foreign call but may contain several values.
     pub foreign_call_results: Vec<ForeignCallResult>,
     /// The Brillig VM bytecode to be executed by this ACIR opcode.
-    pub bytecode: Vec<brillig_vm::Opcode>,
+    pub bytecode: Vec<BrilligOpcode>,
     /// Predicate of the Brillig execution - indicates if it should be skipped
     pub predicate: Option<Expression>,
 }

@@ -3,45 +3,22 @@ use acir::{
     native_types::{Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
-use blake2::{Blake2s256, Digest};
-use sha2::Sha256;
-use sha3::Keccak256;
+use blackbox_solver::{hash_to_field_128_security, BlackBoxResolutionError};
 
 use crate::pwg::{insert_value, witness_to_value};
 use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
 
-/// Returns the sha256 hash of the provided `data`.
-pub(crate) fn sha256(data: &[u8]) -> [u8; 32] {
-    generic_hash_256::<Sha256>(data)
-}
-
-/// Returns the blake2s hash of the provided `data`.
-pub(crate) fn blake2s256(data: &[u8]) -> [u8; 32] {
-    generic_hash_256::<Blake2s256>(data)
-}
-
-/// Returns the keccak256 hash of the provided `data`.
-pub(crate) fn keccak256(data: &[u8]) -> [u8; 32] {
-    generic_hash_256::<Keccak256>(data)
-}
-
-/// Hashes `data` into a 32 byte digest.
-fn generic_hash_256<D: Digest>(data: &[u8]) -> [u8; 32] {
-    D::digest(data).as_slice().try_into().expect("digest should be 256 bits")
-}
-
 /// Attempts to solve a `HashToField128Security` opcode
 /// If successful, `initial_witness` will be mutated to contain the new witness assignment.
-pub(super) fn hash_to_field_128_security(
+pub(super) fn solve_hash_to_field(
     initial_witness: &mut WitnessMap,
     inputs: &[FunctionInput],
     output: &Witness,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let message_input = get_hash_input(initial_witness, inputs, None)?;
-    let digest = blake2s256(&message_input);
+    let field = hash_to_field_128_security(&message_input)?;
 
-    let reduced_res = FieldElement::from_be_bytes_reduce(&digest);
-    insert_value(output, reduced_res, initial_witness)?;
+    insert_value(output, field, initial_witness)?;
 
     Ok(OpcodeResolution::Solved)
 }
@@ -53,11 +30,11 @@ pub(super) fn solve_generic_256_hash_opcode(
     inputs: &[FunctionInput],
     var_message_size: Option<&FunctionInput>,
     outputs: &[Witness],
-    hash_function: fn(data: &[u8]) -> [u8; 32],
+    hash_function: fn(data: &[u8]) -> Result<[u8; 32], BlackBoxResolutionError>,
     black_box_func: BlackBoxFunc,
 ) -> Result<OpcodeResolution, OpcodeResolutionError> {
     let message_input = get_hash_input(initial_witness, inputs, var_message_size)?;
-    let digest: [u8; 32] = hash_function(&message_input);
+    let digest: [u8; 32] = hash_function(&message_input)?;
 
     let outputs: [Witness; 32] = outputs.try_into().map_err(|_| {
         OpcodeResolutionError::BlackBoxFunctionFailed(

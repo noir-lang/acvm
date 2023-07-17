@@ -1,6 +1,6 @@
 [package]
-name = "acvm_stdlib"
-description = "The ACVM standard library."
+name = "brillig"
+description = "Brillig is the bytecode ACIR uses for non-determinism."
 version = "0.19.0"
 authors.workspace = true
 edition.workspace = true
@@ -11,10 +11,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acir.workspace = true
+acir_field.workspace = true
+serde.workspace = true
 
 [features]
 default = ["bn254"]
-bn254 = ["acir/bn254"]
-bls12_381 = ["acir/bls12_381"]
-testing = ["bn254"]
+bn254 = ["acir_field/bn254"]
+bls12_381 = ["acir_field/bls12_381"]
