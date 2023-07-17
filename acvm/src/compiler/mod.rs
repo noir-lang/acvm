@@ -66,7 +66,7 @@ pub fn compile(
         crate::Language::PLONKCSat { width } => {
             let mut csat = CSatTransformer::new(*width);
             for value in acir.circuit_arguments() {
-                csat.solvable(value);
+                csat.mark_solvable(value);
             }
             csat
         }
@@ -117,7 +117,7 @@ pub fn compile(
                 match func {
                     acir::circuit::opcodes::BlackBoxFuncCall::AND { output, .. }
                     | acir::circuit::opcodes::BlackBoxFuncCall::XOR { output, .. } => {
-                        transformer.solvable(*output)
+                        transformer.mark_solvable(*output)
                     }
                     acir::circuit::opcodes::BlackBoxFuncCall::RANGE { .. } => (),
                     acir::circuit::opcodes::BlackBoxFuncCall::SHA256 { outputs, .. }
@@ -132,7 +132,7 @@ pub fn compile(
                     }
                     | acir::circuit::opcodes::BlackBoxFuncCall::Blake2s { outputs, .. } => {
                         for witness in outputs {
-                            transformer.solvable(*witness);
+                            transformer.mark_solvable(*witness);
                         }
                     }
                     acir::circuit::opcodes::BlackBoxFuncCall::FixedBaseScalarMul {
@@ -140,8 +140,8 @@ pub fn compile(
                         ..
                     }
                     | acir::circuit::opcodes::BlackBoxFuncCall::Pedersen { outputs, .. } => {
-                        transformer.solvable(outputs.0);
-                        transformer.solvable(outputs.1)
+                        transformer.mark_solvable(outputs.0);
+                        transformer.mark_solvable(outputs.1)
                     }
                     acir::circuit::opcodes::BlackBoxFuncCall::HashToField128Security {
                         output,
@@ -150,7 +150,7 @@ pub fn compile(
                     | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256k1 { output, .. }
                     | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256r1 { output, .. }
                     | acir::circuit::opcodes::BlackBoxFuncCall::SchnorrVerify { output, .. } => {
-                        transformer.solvable(*output)
+                        transformer.mark_solvable(*output)
                     }
                 }
 
@@ -160,20 +160,20 @@ pub fn compile(
             Opcode::Directive(directive) => {
                 match directive {
                     Directive::Invert { result, .. } => {
-                        transformer.solvable(*result);
+                        transformer.mark_solvable(*result);
                     }
                     Directive::Quotient(quotient_directive) => {
-                        transformer.solvable(quotient_directive.q);
-                        transformer.solvable(quotient_directive.r);
+                        transformer.mark_solvable(quotient_directive.q);
+                        transformer.mark_solvable(quotient_directive.r);
                     }
                     Directive::ToLeRadix { b, .. } => {
                         for w in b {
-                            transformer.solvable(*w);
+                            transformer.mark_solvable(*w);
                         }
                     }
                     Directive::PermutationSort { bits, .. } => {
                         for w in bits {
-                            transformer.solvable(*w);
+                            transformer.mark_solvable(*w);
                         }
                     }
                     Directive::Log(_) => (),
@@ -187,10 +187,10 @@ pub fn compile(
             Opcode::Brillig(brillig) => {
                 for output in &brillig.outputs {
                     match output {
-                        BrilligOutputs::Simple(w) => transformer.solvable(*w),
+                        BrilligOutputs::Simple(w) => transformer.mark_solvable(*w),
                         BrilligOutputs::Array(v) => {
                             for w in v {
-                                transformer.solvable(*w);
+                                transformer.mark_solvable(*w);
                             }
                         }
                     }

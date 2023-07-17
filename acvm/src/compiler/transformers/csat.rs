@@ -52,13 +52,13 @@ impl CSatTransformer {
             }
         }
         if unresolved.len() == 1 {
-            self.solvable(*unresolved[0]);
+            self.mark_solvable(*unresolved[0]);
         }
         unresolved.len() <= 1
     }
 
     /// Adds the witness to set of solvable witness
-    pub(crate) fn solvable(&mut self, witness: Witness) {
+    pub(crate) fn mark_solvable(&mut self, witness: Witness) {
         self.solvable_witness.insert(witness);
     }
 
@@ -227,7 +227,7 @@ impl CSatTransformer {
                     );
 
                     // Add intermediate variable to the new gate instead of the full gate
-                    self.solvable(inter_var.1);
+                    self.mark_solvable(inter_var.1);
                     new_gate.linear_combinations.push(inter_var);
                 }
             };
@@ -349,7 +349,7 @@ impl CSatTransformer {
 
                 // Add intermediate variable as a part of the fan-in for the original gate
                 gate.linear_combinations.push(inter_var);
-                self.solvable(inter_var.1);
+                self.mark_solvable(inter_var.1);
             } else {
                 mult_terms_remains.push(mul_term);
             }
@@ -393,7 +393,7 @@ impl CSatTransformer {
                     intermediate_gate,
                     num_witness,
                 );
-                self.solvable(inter_var.1);
+                self.mark_solvable(inter_var.1);
                 added.push(inter_var);
             }
             //intermediate gate is not full, but the gate still has too many terms
@@ -433,9 +433,9 @@ fn simple_reduction_smoke_test() {
     let mut num_witness = 4;
 
     let mut optimizer = CSatTransformer::new(3);
-    optimizer.solvable(b);
-    optimizer.solvable(c);
-    optimizer.solvable(d);
+    optimizer.mark_solvable(b);
+    optimizer.mark_solvable(c);
+    optimizer.mark_solvable(d);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
@@ -496,10 +496,10 @@ fn stepwise_reduction_test() {
     let mut num_witness = 4;
 
     let mut optimizer = CSatTransformer::new(3);
-    optimizer.solvable(a);
-    optimizer.solvable(c);
-    optimizer.solvable(d);
-    optimizer.solvable(e);
+    optimizer.mark_solvable(a);
+    optimizer.mark_solvable(c);
+    optimizer.mark_solvable(d);
+    optimizer.mark_solvable(e);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
