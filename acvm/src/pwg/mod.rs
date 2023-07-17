@@ -2,7 +2,7 @@
 
 use acir::{
     brillig::ForeignCallResult,
-    circuit::{brillig::Brillig, Opcode, OpcodeLabel},
+    circuit::{Opcode, OpcodeLabel},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -45,7 +45,7 @@ pub enum ACVMStatus {
     /// to the ACVM using [`ACVM::resolve_pending_foreign_call`].
     ///
     /// Once this is done, the ACVM can be restarted to solve the remaining opcodes.
-    RequiresForeignCall(UnresolvedBrilligCall),
+    RequiresForeignCall(ForeignCallWaitInfo),
 }
 
 #[derive(Debug, PartialEq)]
@@ -162,43 +162,33 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
 
     /// Sets the status of the VM to `RequiresForeignCall`.
     /// Indicating that the VM is now waiting for a foreign call to be resolved.
-    fn wait_for_foreign_call(
-        &mut self,
-        opcode: Opcode,
-        foreign_call_wait_info: ForeignCallWaitInfo,
-    ) -> ACVMStatus {
-        let brillig = match opcode {
-            Opcode::Brillig(brillig) => brillig,
-            _ => unreachable!("Brillig resolution for non brillig opcode"),
-        };
-        let foreign_call = UnresolvedBrilligCall { brillig, foreign_call_wait_info };
+    fn wait_for_foreign_call(&mut self, foreign_call: ForeignCallWaitInfo) -> ACVMStatus {
         self.status(ACVMStatus::RequiresForeignCall(foreign_call))
     }
 
     /// Return a reference to the arguments for the next pending foreign call, if one exists.
     pub fn get_pending_foreign_call(&self) -> Option<&ForeignCallWaitInfo> {
         if let ACVMStatus::RequiresForeignCall(foreign_call) = &self.status {
-            Some(&foreign_call.foreign_call_wait_info)
+            Some(&foreign_call)
         } else {
             None
         }
     }
 
-    /// Resolves a pending foreign call using a result calculated outside of the ACVM.
+    /// Resolves a foreign call's [result][acir::brillig_vm::ForeignCallResult] using a result calculated outside of the ACVM.
+    ///
+    /// The ACVM can then be restarted to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub fn resolve_pending_foreign_call(&mut self, foreign_call_result: ForeignCallResult) {
-        let foreign_call = if let ACVMStatus::RequiresForeignCall(foreign_call) = &self.status {
-            // TODO: We can avoid this clone
-            foreign_call.clone()
+        let opcode = &mut self.opcodes[self.instruction_pointer];
+        if let Opcode::Brillig(brillig) = opcode {
+            // Overwrite the brillig opcode with a new one with the foreign call response.
+            brillig.foreign_call_results.push(foreign_call_result);
+
+            // Now that the foreign call has been resolved then we can resume execution.
+            self.status(ACVMStatus::InProgress);
         } else {
-            panic!("no foreign call")
-        };
-        let resolved_brillig = foreign_call.resolve(foreign_call_result);
-
-        // Overwrite the brillig opcode with a new one with the foreign call response.
-        self.opcodes[self.instruction_pointer] = Opcode::Brillig(resolved_brillig);
-
-        // Now that the foreign call has been resolved then we can resume execution.
-        self.status(ACVMStatus::InProgress);
+            panic!("Brillig resolution for non brillig opcode");
+        }
     }
 
     /// Executes the ACVM's circuit until execution halts.
@@ -206,7 +196,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Execution can halt due to three reasons:
     /// 1. All opcodes have been executed successfully.
     /// 2. The circuit has been found to be unsatisfiable.
-    /// 2. A Brillig [foreign call][`UnresolvedBrilligCall`] has been encountered and must be resolved.
+    /// 2. A Brillig [foreign call][`ForeignCallWaitInfo`] has been encountered and must be resolved.
     pub fn solve(&mut self) -> ACVMStatus {
         while self.status == ACVMStatus::InProgress {
             self.solve_opcode();
@@ -231,8 +221,8 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend);
 
                 match resolution {
-                    Ok(OpcodeResolution::InProgressBrillig(foreign_call_wait_info)) => {
-                        return self.wait_for_foreign_call(opcode.clone(), foreign_call_wait_info)
+                    Ok(OpcodeResolution::InProgressBrillig(foreign_call)) => {
+                        return self.wait_for_foreign_call(foreign_call)
                     }
                     res => res,
                 }
@@ -334,30 +324,6 @@ pub fn insert_value(
     }
 
     Ok(())
-}
-
-/// A Brillig VM process has requested the caller to solve a [foreign call][brillig_vm::Opcode::ForeignCall] externally
-/// and to re-run the process with the foreign call's resolved outputs.
-#[derive(Debug, PartialEq, Clone)]
-pub struct UnresolvedBrilligCall {
-    /// The current Brillig VM process that has been paused.
-    /// This process will be updated by the caller after resolving a foreign call's result.
-    ///
-    /// This can be done using [`UnresolvedBrilligCall::resolve`].
-    pub brillig: Brillig,
-    /// Inputs for a pending foreign call required to restart bytecode processing.
-    pub foreign_call_wait_info: brillig::ForeignCallWaitInfo,
-}
-
-impl UnresolvedBrilligCall {
-    /// Inserts the [foreign call's result][acir::brillig_vm::ForeignCallResult] into the calling [`Brillig` opcode][Brillig].
-    ///
-    /// The [ACVM][solve] can then be restarted with the updated [Brillig opcode][Opcode::Brillig]
-    /// to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
-    pub fn resolve(mut self, foreign_call_result: ForeignCallResult) -> Brillig {
-        self.brillig.foreign_call_results.push(foreign_call_result);
-        self.brillig
-    }
 }
 
 #[deprecated(
