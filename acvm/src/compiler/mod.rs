@@ -158,7 +158,6 @@ pub fn compile(
                 transformed_gates.push(opcode.clone());
             }
             Opcode::Directive(directive) => {
-                dbg!(&directive);
                 match directive {
                     Directive::Invert { result, .. } => {
                         transformer.solvable(*result);
