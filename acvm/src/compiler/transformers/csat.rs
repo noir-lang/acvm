@@ -396,9 +396,9 @@ impl CSatTransformer {
                 self.mark_solvable(inter_var.1);
                 added.push(inter_var);
             }
-            //intermediate gate is not full, but the gate still has too many terms
+            // The intermediate gate is not full, but the gate still has too many terms
             if not_full && gate.linear_combinations.len() > self.width {
-                unreachable!("Could not reduce the expresion");
+                unreachable!("Could not reduce the expression");
             }
         }
 
