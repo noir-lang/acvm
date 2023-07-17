@@ -134,13 +134,13 @@ impl CSatTransformer {
         // This will be our new gate which will be equal to `self` except we will have intermediate variables that will be constrained to any
         // subset of the terms that can be represented as full gates
         let mut new_gate = Expression::default();
-        let mut mul_term_remains = Vec::with_capacity(gate.mul_terms.len());
+        let mut remaining_mul_terms = Vec::with_capacity(gate.mul_terms.len());
         for pair in gate.mul_terms {
             // We want to layout solvable intermediate variable, if we cannot solve one of the witness
             // that means the intermediate gate will not be immediatly solvable
             if !self.solvable_witness.contains(&pair.1) || !self.solvable_witness.contains(&pair.2)
             {
-                mul_term_remains.push(pair);
+                remaining_mul_terms.push(pair);
                 continue;
             }
 
@@ -232,7 +232,7 @@ impl CSatTransformer {
                 }
             };
         }
-        gate.mul_terms = mul_term_remains;
+        gate.mul_terms = remaining_mul_terms;
 
         // Add the rest of the elements back into the new_gate
         new_gate.mul_terms.extend(gate.mul_terms.clone());
