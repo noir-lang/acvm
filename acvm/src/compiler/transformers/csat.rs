@@ -374,7 +374,7 @@ impl CSatTransformer {
             // Collect as many terms up to the given width-1 and constrain them to an intermediate variable
             let mut intermediate_gate = Expression::default();
 
-            let mut linear_term_remains = Vec::new();
+            let mut remaining_linear_terms = Vec::with_capacity(gate.linear_combinations.len());
 
             for term in gate.linear_combinations {
                 if self.solvable_witness.contains(&term.1)
@@ -382,10 +382,10 @@ impl CSatTransformer {
                 {
                     intermediate_gate.linear_combinations.push(term);
                 } else {
-                    linear_term_remains.push(term);
+                    remaining_linear_terms.push(term);
                 }
             }
-            gate.linear_combinations = linear_term_remains;
+            gate.linear_combinations = remaining_linear_terms;
             let not_full = intermediate_gate.linear_combinations.len() < self.width - 1;
             if intermediate_gate.linear_combinations.len() > 1 {
                 let inter_var = Self::get_or_create_intermediate_vars(
