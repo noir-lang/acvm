@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm-v0.19.0...acvm-v0.19.1) (2023-07-17)
+
+
+### Bug Fixes
+
+* Remove panic when we divide 0/0 in quotient directive ([#437](https://github.com/noir-lang/acvm/issues/437)) ([9c8ff64](https://github.com/noir-lang/acvm/commit/9c8ff64ebf27a86787ae184e10ed9581041ec0ff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.0 to 0.19.1
+
 ## [0.19.0](https://github.com/noir-lang/acvm/compare/acvm-v0.18.2...acvm-v0.19.0) (2023-07-15)
 
 
