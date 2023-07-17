@@ -65,8 +65,8 @@ pub fn compile(
         }
         crate::Language::PLONKCSat { width } => {
             let mut csat = CSatTransformer::new(*width);
-            for value in &acir.inputs {
-                csat.solvable(*value);
+            for value in acir.circuit_arguments() {
+                csat.solvable(value);
             }
             csat
         }
@@ -208,9 +208,9 @@ pub fn compile(
             current_witness_index,
             opcodes: transformed_gates,
             // The optimizer does not add new public inputs
+            private_parameters: acir.private_parameters,
             public_parameters: acir.public_parameters,
             return_values: acir.return_values,
-            inputs: acir.inputs,
         },
         new_opcode_labels,
     ))
