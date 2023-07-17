@@ -15,7 +15,7 @@ acir_field.workspace = true
 brillig.workspace = true
 serde.workspace = true
 thiserror.workspace = true
-rmp-serde.workspace = true
+rmp-serde = { workspace = true, optional = true }
 flate2 = "1.0.24"
 bincode.workspace = true
 
@@ -28,4 +28,4 @@ strum_macros = "0.24"
 default = ["bn254"]
 bn254 = ["acir_field/bn254", "brillig/bn254"]
 bls12_381 = ["acir_field/bls12_381", "brillig/bls12_381"]
-serialize-messagepack = []
+serialize-messagepack = ["rmp-serde"]
