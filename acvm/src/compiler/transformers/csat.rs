@@ -331,7 +331,7 @@ impl CSatTransformer {
         }
 
         // 2. Create Intermediate variables for the multiplication gates
-        let mut remaining_mul_terms = Vec::new();
+        let mut remaining_mul_terms = Vec::with_capacity(gate.mul_terms.len());
         for mul_term in gate.mul_terms.clone().into_iter() {
             if self.solvable_witness.contains(&mul_term.1)
                 && self.solvable_witness.contains(&mul_term.2)
