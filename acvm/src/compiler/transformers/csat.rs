@@ -137,7 +137,7 @@ impl CSatTransformer {
         let mut remaining_mul_terms = Vec::with_capacity(gate.mul_terms.len());
         for pair in gate.mul_terms {
             // We want to layout solvable intermediate variable, if we cannot solve one of the witness
-            // that means the intermediate gate will not be immediatly solvable
+            // that means the intermediate gate will not be immediately solvable
             if !self.solvable_witness.contains(&pair.1) || !self.solvable_witness.contains(&pair.2)
             {
                 remaining_mul_terms.push(pair);
