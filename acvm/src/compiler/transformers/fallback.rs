@@ -132,6 +132,20 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
+            #[cfg(feature = "unstable-fallbacks")]
+            BlackBoxFuncCall::HashToField128Security { inputs, output } => {
+                let mut blake2s_input = Vec::new();
+                for input in inputs.iter() {
+                    let witness_index = Expression::from(input.witness);
+                    let num_bits = input.num_bits;
+                    blake2s_input.push((witness_index, num_bits));
+                }
+                stdlib::blackbox_fallbacks::hash_to_field(
+                    blake2s_input,
+                    *output,
+                    current_witness_idx,
+                )
+            }
             _ => {
                 return Err(CompileError::UnsupportedBlackBox(gc.get_black_box_func()));
             }

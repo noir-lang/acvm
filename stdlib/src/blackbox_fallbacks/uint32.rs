@@ -68,7 +68,7 @@ impl UInt32 {
     ) -> (Vec<UInt32>, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
-        let mut uint32 = Vec::new();
+        let mut uint32s = Vec::new();
 
         for i in 0..witnesses.len() / 4 {
             let new_witness = variables.new_variable();
@@ -148,7 +148,7 @@ impl UInt32 {
                 ],
                 predicate: None,
             });
-            uint32.push(UInt32::new(new_witness));
+            uint32s.push(UInt32::new(new_witness));
             new_gates.push(brillig_opcode);
             let mut expr = Expression::from(new_witness);
             for j in 0..4 {
@@ -161,7 +161,7 @@ impl UInt32 {
         }
         let num_witness = variables.finalize();
 
-        (uint32, new_gates, num_witness)
+        (uint32s, new_gates, num_witness)
     }
 
     /// Returns the quotient and remainder such that lhs = rhs * quotient + remainder
@@ -513,7 +513,7 @@ impl UInt32 {
             foreign_call_results: vec![],
             bytecode: vec![brillig::Opcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::And,
-                bit_size: 32,
+                bit_size: self.width,
                 lhs: RegisterIndex::from(0),
                 rhs: RegisterIndex::from(1),
                 destination: RegisterIndex::from(0),
@@ -556,7 +556,7 @@ impl UInt32 {
             foreign_call_results: vec![],
             bytecode: vec![brillig::Opcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Xor,
-                bit_size: 32,
+                bit_size: self.width,
                 lhs: RegisterIndex::from(0),
                 rhs: RegisterIndex::from(1),
                 destination: RegisterIndex::from(0),
@@ -600,7 +600,7 @@ impl UInt32 {
             foreign_call_results: vec![],
             bytecode: vec![brillig::Opcode::BinaryIntOp {
                 op: brillig::BinaryIntOp::Sub,
-                bit_size: 32,
+                bit_size: self.width,
                 lhs: RegisterIndex::from(1),
                 rhs: RegisterIndex::from(0),
                 destination: RegisterIndex::from(0),
