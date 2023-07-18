@@ -147,7 +147,6 @@ macro_rules! impl_uint {
             }
 
             /// Rotate left `rotation` bits. `(x << rotation) | (x >> (width - rotation))`
-            // Switched `or` with `add` here
             // This should be the same as `u32.rotate_left(rotation)` in rust stdlib
             pub fn rol(&self, rotation: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let rotation = rotation % self.width;
@@ -164,7 +163,6 @@ macro_rules! impl_uint {
             }
 
             /// Rotate right `rotation` bits. `(x >> rotation) | (x << (width - rotation))`
-            // Switched `or` with `add` here
             // This should be the same as `u32.rotate_right(rotation)` in rust stdlib
             pub fn ror(&self, rotation: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let rotation = rotation % self.width;

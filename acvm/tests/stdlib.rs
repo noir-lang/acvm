@@ -20,8 +20,9 @@ use proptest::prelude::*;
 use sha2::Sha256;
 use sha3::Keccak256;
 use std::collections::{BTreeMap, BTreeSet};
-use stdlib::blackbox_fallbacks::{UInt32, UInt64};
+use stdlib::blackbox_fallbacks::{UInt32, UInt64, UInt8};
 
+test_uint!(test_uint8, UInt8, u8, 8);
 test_uint!(test_uint32, UInt32, u32, 32);
 test_uint!(test_uint64, UInt64, u64, 64);
 
@@ -98,7 +99,8 @@ macro_rules! test_uint_inner {
             }
 
             #[test]
-            fn $euclidean_division(x in 0..$u::MAX, y in 0..$u::MAX) {
+            fn $euclidean_division(x in 0..$u::MAX, y in 1
+                ..$u::MAX) {
                 let lhs = FieldElement::from(x as u128);
                 let rhs = FieldElement::from(y as u128);
                 let w1 = Witness(1);
