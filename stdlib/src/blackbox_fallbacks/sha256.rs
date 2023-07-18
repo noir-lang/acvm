@@ -143,7 +143,7 @@ fn create_sha256_constraint(
     (result, num_witness, new_gates)
 }
 
-fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<Opcode>) {
+pub(crate) fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<Opcode>) {
     let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
     let pad = variables.new_variable();
