@@ -1,4 +1,4 @@
-use acvm::acir::brillig_vm::{ForeignCallOutput, ForeignCallResult, Value};
+use acvm::brillig_vm::brillig::{ForeignCallOutput, ForeignCallResult, Value};
 use wasm_bindgen::JsValue;
 
 use crate::js_witness_map::js_value_to_field_element;

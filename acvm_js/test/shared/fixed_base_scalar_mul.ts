@@ -1,6 +1,6 @@
 // let fixed_base_scalar_mul = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::FixedBaseScalarMul {
 //     input: FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() },
-//     outputs: vec![Witness(2), Witness(3)],
+//     outputs: (Witness(2), Witness(3)),
 // });
 
 // let circuit = Circuit {
@@ -10,10 +10,9 @@
 //     return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(3)])),
 // };
 export const bytecode = Uint8Array.from([
-  1, 53, 0, 202, 255, 148, 4, 145, 129, 176, 66, 108, 97, 99, 107, 66, 111, 120,
-  70, 117, 110, 99, 67, 97, 108, 108, 129, 178, 70, 105, 120, 101, 100, 66, 97,
-  115, 101, 83, 99, 97, 108, 97, 114, 77, 117, 108, 146, 146, 1, 204, 254, 146,
-  2, 3, 144, 146, 2, 3,
+  31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 77, 136, 81, 10, 0, 80, 4, 192, 246, 60,
+  95, 238, 127, 94, 33, 138, 213, 90, 77, 129, 71, 83, 181, 169, 167, 146, 126,
+  22, 57, 173, 31, 204, 136, 111, 48, 60, 0, 0, 0,
 ]);
 
 export const initialWitnessMap = new Map([

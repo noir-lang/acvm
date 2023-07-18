@@ -3,7 +3,7 @@
 //         witness: Witness(1),
 //         num_bits: FieldElement::max_num_bits(),
 //     }],
-//     outputs: vec![Witness(2), Witness(3)],
+//     outputs: (Witness(2), Witness(3)),
 //     domain_separator: 0,
 // });
 
@@ -14,9 +14,9 @@
 //     return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(3)])),
 // };
 export const bytecode = Uint8Array.from([
-  1, 45, 0, 210, 255, 148, 4, 145, 129, 176, 66, 108, 97, 99, 107, 66, 111, 120,
-  70, 117, 110, 99, 67, 97, 108, 108, 129, 168, 80, 101, 100, 101, 114, 115,
-  101, 110, 147, 145, 146, 1, 204, 254, 0, 146, 2, 3, 144, 146, 2, 3,
+  31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 136, 129, 9, 0, 48, 8, 195, 50, 39,
+  254, 127, 177, 168, 40, 8, 6, 74, 219, 40, 240, 104, 170, 237, 124, 159, 45,
+  153, 207, 34, 199, 7, 17, 37, 243, 208, 72, 0, 0, 0,
 ]);
 
 export const initialWitnessMap = new Map([

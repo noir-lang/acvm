@@ -1,4 +1,4 @@
-use acvm::{acir::brillig_vm::ForeignCallResult, pwg::ForeignCallWaitInfo};
+use acvm::{brillig_vm::brillig::ForeignCallResult, pwg::ForeignCallWaitInfo};
 
 use js_sys::JsString;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};

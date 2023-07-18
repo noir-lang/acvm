@@ -1,7 +1,7 @@
 use acvm::{
     acir::{circuit::Circuit, BlackBoxFunc},
-    pwg::{ACVMStatus, OpcodeResolutionError, ACVM},
-    BlackBoxFunctionSolver, FieldElement,
+    pwg::{ACVMStatus, ACVM},
+    BlackBoxFunctionSolver, BlackBoxResolutionError, FieldElement,
 };
 
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -30,7 +30,7 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
         public_key_y: &FieldElement,
         signature: &[u8],
         message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError> {
+    ) -> Result<bool, BlackBoxResolutionError> {
         let pub_key_bytes: Vec<u8> =
             public_key_x.to_be_bytes().iter().copied().chain(public_key_y.to_be_bytes()).collect();
 
@@ -39,10 +39,7 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
         let sig_e: [u8; 32] = signature[32..64].try_into().unwrap();
 
         self.blackbox_vendor.verify_signature(pub_key, sig_s, sig_e, message).map_err(|err| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                BlackBoxFunc::SchnorrVerify,
-                err.to_string(),
-            )
+            BlackBoxResolutionError::Failed(BlackBoxFunc::SchnorrVerify, err.to_string())
         })
     }
 
@@ -50,21 +47,18 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
         &self,
         inputs: &[FieldElement],
         domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
-        self.blackbox_vendor.encrypt(inputs.to_vec(), domain_separator).map_err(|err| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
-        })
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
+        self.blackbox_vendor
+            .encrypt(inputs.to_vec(), domain_separator)
+            .map_err(|err| BlackBoxResolutionError::Failed(BlackBoxFunc::Pedersen, err.to_string()))
     }
 
     fn fixed_base_scalar_mul(
         &self,
         input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         self.blackbox_vendor.fixed_base(input).map_err(|err| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                BlackBoxFunc::FixedBaseScalarMul,
-                err.to_string(),
-            )
+            BlackBoxResolutionError::Failed(BlackBoxFunc::FixedBaseScalarMul, err.to_string())
         })
     }
 }

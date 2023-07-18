@@ -1,4 +1,4 @@
-use acvm::acir::brillig_vm::Value;
+use acvm::brillig_vm::brillig::Value;
 
 use crate::js_witness_map::field_element_to_js_string;
 
