@@ -82,9 +82,11 @@ fn create_keccak_constraint(
     let mut new_gates = Vec::new();
     let num_blocks = input.len() / BLOCK_SIZE + 1;
 
+    // pad keccak
     let (input, extra_gates, mut num_witness) = pad_keccak(input, num_blocks, num_witness);
     new_gates.extend(extra_gates);
 
+    // prepare state
     let mut state = Vec::new();
     for _ in 0..200 {
         let (zero, extra_gates, updated_witness_counter) = UInt8::load_constant(0, num_witness);
@@ -93,6 +95,7 @@ fn create_keccak_constraint(
         num_witness = updated_witness_counter;
     }
 
+    // process block
     for i in 0..num_blocks {
         for j in 0..BLOCK_SIZE {
             let (new_state, extra_gates, updated_witness_counter) =
@@ -114,6 +117,7 @@ fn create_keccak_constraint(
 fn keccakf(state: Vec<UInt8>, num_witness: u32) -> (Vec<UInt8>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
 
+    // turn state into UInt64
     let mut state_witnesses: Vec<Witness> = Vec::new();
     for i in 0..state.len() / 8 {
         for j in 0..8 {
@@ -124,6 +128,7 @@ fn keccakf(state: Vec<UInt8>, num_witness: u32) -> (Vec<UInt8>, Vec<Opcode>, u32
         UInt64::from_witnesses(&state_witnesses, num_witness);
     new_gates.extend(extra_gates);
 
+    // process round
     for round_constant in ROUND_CONSTANTS {
         let (new_state_u64, extra_gates, updated_witness_counter) =
             keccak_round(state_u64, round_constant, num_witness);
@@ -132,6 +137,7 @@ fn keccakf(state: Vec<UInt8>, num_witness: u32) -> (Vec<UInt8>, Vec<Opcode>, u32
         num_witness = updated_witness_counter;
     }
 
+    // turn state back to UInt8
     let state_u64_witnesses: Vec<Witness> = state_u64.into_iter().map(|x| x.inner).collect();
     let mut state_u8 = Vec::new();
     for state_u64_witness in state_u64_witnesses {
@@ -240,9 +246,9 @@ fn pad_keccak(
     let total_len = BLOCK_SIZE * num_blocks;
 
     let (mut num_witness, pad_witness, extra_gates) = pad(0x01, 8, num_witness);
+
     new_gates.extend(extra_gates);
     input.push(pad_witness);
-
     for _ in 0..total_len - input.len() {
         let (updated_witness_counter, pad_witness, extra_gates) = pad(0x00, 8, num_witness);
         new_gates.extend(extra_gates);
@@ -255,7 +261,6 @@ fn pad_keccak(
     let (final_pad, extra_gates, num_witness) =
         UInt8::new(input[total_len - 1]).xor(&zero_x_80, num_witness);
     new_gates.extend(extra_gates);
-
     input[total_len - 1] = final_pad.inner;
 
     (input, new_gates, num_witness)
