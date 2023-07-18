@@ -14,7 +14,7 @@ use acir::{
 const BITS: usize = 256;
 const WORD_SIZE: usize = 8;
 const BLOCK_SIZE: usize = (1600 - BITS * 2) / WORD_SIZE;
-const ROUND_CONSTANTS: [u128; 24] = [
+const ROUND_CONSTANTS: [u64; 24] = [
     1,
     0x8082,
     0x800000000000808a,
@@ -149,7 +149,7 @@ fn keccakf(state: Vec<UInt8>, num_witness: u32) -> (Vec<UInt8>, Vec<Opcode>, u32
 
 fn keccak_round(
     mut a: Vec<UInt64>,
-    round_const: u128,
+    round_const: u64,
     mut num_witness: u32,
 ) -> (Vec<UInt64>, Vec<Opcode>, u32) {
     let mut new_gates = Vec::new();
@@ -252,7 +252,6 @@ fn pad_keccak(
 
     let (zero_x_80, extra_gates, num_witness) = UInt8::load_constant(0x80, num_witness);
     new_gates.extend(extra_gates);
-
     let (final_pad, extra_gates, num_witness) =
         UInt8::new(input[total_len - 1]).xor(&zero_x_80, num_witness);
     new_gates.extend(extra_gates);

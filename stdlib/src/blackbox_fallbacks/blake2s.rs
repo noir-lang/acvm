@@ -23,10 +23,10 @@ const MSG_SCHEDULE_BLAKE2: [[usize; 16]; 10] = [
     [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
     [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
 ];
-const INITIAL_H: [u128; 8] = [
+const INITIAL_H: [u32; 8] = [
     0x6b08e647, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
 ];
-const IV_VALUE: [u128; 8] = [
+const IV_VALUE: [u32; 8] = [
     0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A, 0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
 ];
 
@@ -97,22 +97,20 @@ pub(crate) fn create_blake2s_constraint(
         num_witness = updated_witness_counter;
     }
 
-    let (u32_max, extra_gates, mut num_witness) =
-        UInt32::load_constant(u32::MAX as u128, num_witness);
+    let (u32_max, extra_gates, mut num_witness) = UInt32::load_constant(u32::MAX, num_witness);
     new_gates.extend(extra_gates);
     blake2s_state.f[0] = u32_max;
 
     // pad final block
     let mut final_block = input.get(offset..).unwrap().to_vec();
     for _ in 0..BLAKE2S_BLOCKBYTES_USIZE - final_block.len() {
-        let (pad, extra_gates, updated_witness_counter) =
-            UInt32::load_constant(0_u128, num_witness);
+        let (pad, extra_gates, updated_witness_counter) = UInt32::load_constant(0_u32, num_witness);
         new_gates.extend(extra_gates);
         final_block.push(pad.inner);
         num_witness = updated_witness_counter;
     }
 
-    let (size_w, extra_gates, num_witness) = UInt32::load_constant(size as u128, num_witness);
+    let (size_w, extra_gates, num_witness) = UInt32::load_constant(size as u32, num_witness);
     new_gates.extend(extra_gates);
     let (extra_gates, num_witness) =
         blake2s_increment_counter(&mut blake2s_state, &size_w, num_witness);
@@ -400,7 +398,7 @@ impl Blake2sState {
 
         for _ in 0..2 {
             let (new_witness, extra_gates, updated_witness_counter) =
-                UInt32::load_constant(0_u128, num_witness);
+                UInt32::load_constant(0_u32, num_witness);
             new_gates.extend(extra_gates);
             t.push(new_witness);
             num_witness = updated_witness_counter;
@@ -408,7 +406,7 @@ impl Blake2sState {
 
         for _ in 0..2 {
             let (new_witness, extra_gates, updated_witness_counter) =
-                UInt32::load_constant(0_u128, num_witness);
+                UInt32::load_constant(0_u32, num_witness);
             new_gates.extend(extra_gates);
             f.push(new_witness);
             num_witness = updated_witness_counter;
@@ -461,7 +459,7 @@ impl Blake2sConstantsInCircuit {
     fn init(num_witness: u32) -> (Blake2sConstantsInCircuit, Vec<Opcode>, u32) {
         let mut new_gates = Vec::new();
         let (blake2s_blockbytes_uint32, extra_gates, num_witness) =
-            UInt32::load_constant(64_u128, num_witness);
+            UInt32::load_constant(64_u32, num_witness);
         new_gates.extend(extra_gates);
 
         (Blake2sConstantsInCircuit::new(blake2s_blockbytes_uint32), new_gates, num_witness)

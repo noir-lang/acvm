@@ -1,6 +1,6 @@
 use crate::impl_uint;
 
-impl_uint!(UInt32, 32);
+impl_uint!(UInt32, u32, 32);
 impl UInt32 {
     /// Load a [UInt32] from four [Witness]es each representing a [u8]
     pub(crate) fn from_witnesses(
