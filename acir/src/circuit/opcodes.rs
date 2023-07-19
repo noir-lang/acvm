@@ -48,30 +48,16 @@ pub enum Opcode {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum OpcodeEnum {
-    Arithmetic,
-    BlackBoxFuncCall,
-    Directive,
-    Block,
-    ROM,
-    RAM,
-    Brillig,
+pub enum UnsupportedOpcode {
     MemoryOp,
     MemoryInit,
 }
 
-impl std::fmt::Display for OpcodeEnum {
+impl std::fmt::Display for UnsupportedOpcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OpcodeEnum::Arithmetic => write!(f, "Arithmetic"),
-            OpcodeEnum::BlackBoxFuncCall => write!(f, "BlackBoxFuncCall"),
-            OpcodeEnum::Directive => write!(f, "Directive"),
-            OpcodeEnum::Block => write!(f, "Block"),
-            OpcodeEnum::ROM => write!(f, "ROM"),
-            OpcodeEnum::RAM => write!(f, "RAM"),
-            OpcodeEnum::Brillig => write!(f, "Brillig"),
-            OpcodeEnum::MemoryOp => write!(f, "MemoryOp"),
-            OpcodeEnum::MemoryInit => write!(f, "MemoryInit"),
+            UnsupportedOpcode::MemoryOp => write!(f, "MemoryOp"),
+            UnsupportedOpcode::MemoryInit => write!(f, "MemoryInit"),
         }
     }
 }
@@ -93,17 +79,14 @@ impl Opcode {
         }
     }
 
-    pub fn to_enum(&self) -> OpcodeEnum {
+    pub fn unsupported_opcode(&self) -> UnsupportedOpcode {
         match self {
-            Opcode::Arithmetic(_) => OpcodeEnum::Arithmetic,
-            Opcode::BlackBoxFuncCall(_) => OpcodeEnum::BlackBoxFuncCall,
-            Opcode::Directive(_) => OpcodeEnum::Directive,
-            Opcode::Block(_) => OpcodeEnum::Block,
-            Opcode::ROM(_) => OpcodeEnum::ROM,
-            Opcode::RAM(_) => OpcodeEnum::RAM,
-            Opcode::Brillig(_) => OpcodeEnum::Brillig,
-            Opcode::MemoryOp { .. } => OpcodeEnum::MemoryOp,
-            Opcode::MemoryInit { .. } => OpcodeEnum::MemoryInit,
+            Opcode::MemoryOp { .. } => UnsupportedOpcode::MemoryOp,
+            Opcode::MemoryInit { .. } => UnsupportedOpcode::MemoryInit,
+            Opcode::BlackBoxFuncCall(_) => {
+                unreachable!("Unsupported Blackbox function should not be reported here")
+            }
+            _ => unreachable!("Opcode is supported"),
         }
     }
 
