@@ -182,9 +182,9 @@ pub fn compile(
                 new_opcode_labels.push(opcode_label[index]);
                 transformed_gates.push(opcode.clone());
             }
-            Opcode::Block(_) => todo!(),
-            Opcode::ROM(_) => todo!(),
-            Opcode::RAM(_) => todo!(),
+            Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
+                unimplemented!("Stepwise execution is not compatible with {}", opcode.name())
+            }
             Opcode::Brillig(brillig) => {
                 for output in &brillig.outputs {
                     match output {

@@ -29,20 +29,20 @@ impl CSatTransformer {
         CSatTransformer { width, solvable_witness: HashSet::new() }
     }
 
-    /// Returns true if the equation 'expression=0' can be solved, and add the solved witness to set of solvable witness
-    fn solvable_expression(&mut self, gate: &Expression) -> bool {
+    /// Check if the equation 'expression=0' can be solved, and if yes, add the solved witness to set of solvable witness
+    fn try_solve(&mut self, gate: &Expression) {
         let mut unresolved = Vec::new();
         for (_, w1, w2) in &gate.mul_terms {
             if !self.solvable_witness.contains(w1) {
                 unresolved.push(w1);
                 if !self.solvable_witness.contains(w2) {
-                    return false;
+                    return;
                 }
             }
             if !self.solvable_witness.contains(w2) {
                 unresolved.push(w2);
                 if !self.solvable_witness.contains(w1) {
-                    return false;
+                    return;
                 }
             }
         }
@@ -54,7 +54,6 @@ impl CSatTransformer {
         if unresolved.len() == 1 {
             self.solvable(*unresolved[0]);
         }
-        unresolved.len() <= 1
     }
 
     /// Adds the witness to set of solvable witness
@@ -80,7 +79,7 @@ impl CSatTransformer {
         let mut gate =
             self.partial_gate_scan_optimization(gate, intermediate_variables, num_witness);
         gate.sort();
-        self.solvable_expression(&gate);
+        self.try_solve(&gate);
         gate
     }
 
@@ -354,7 +353,7 @@ impl CSatTransformer {
             }
         }
 
-        // Remove all of the mul terms as we have intermediate variables to represent them now
+        // Remove the mul terms which are represented by intermediate variables
         gate.mul_terms = mult_terms_remains;
 
         // We now only have a polynomial with only fan-in/fan-out terms i.e. terms of the form Ax + By + Cd + ...
