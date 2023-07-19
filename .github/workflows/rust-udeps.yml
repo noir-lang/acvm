@@ -16,8 +16,8 @@ jobs:
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@nightly
 
-      - name: Install cargo-udeps
-        run: cargo install cargo-udeps --locked
+      - name: "Install cargo-udeps"
+        uses: taiki-e/install-action@cargo-udeps
 
       - name: Install dependencies
         run: sudo apt update && sudo apt install libomp-dev
