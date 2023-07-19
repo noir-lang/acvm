@@ -1,4 +1,3 @@
-#![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
 //! The Brillig bytecode is distinct from regular [ACIR][acir] in that it does not generate constraints.

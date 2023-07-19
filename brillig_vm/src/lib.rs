@@ -1,4 +1,3 @@
-#![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
 //! The Brillig VM is a specialized VM which allows the [ACVM][acvm] to perform custom non-determinism.
