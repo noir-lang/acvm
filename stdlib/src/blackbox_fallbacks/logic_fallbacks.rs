@@ -19,6 +19,9 @@ pub fn range(gate: Expression, bit_size: u32, mut num_witness: u32) -> (u32, Vec
     (updated_witness_counter, new_gates)
 }
 
+/// Returns a set of opcodes which constrain `a & b == result`
+///
+/// `a` and `b` are assumed to be constrained to fit within `bit_size` externally.
 pub fn and(
     a: Expression,
     b: Expression,
@@ -69,6 +72,9 @@ pub fn and(
     (updated_witness_counter, new_gates)
 }
 
+/// Returns a set of opcodes which constrain `a ^ b == result`
+///
+/// `a` and `b` are assumed to be constrained to fit within `bit_size` externally.
 pub fn xor(
     a: Expression,
     b: Expression,
