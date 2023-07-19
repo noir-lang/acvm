@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{Circuit, Opcode, OpcodeLabel},
+    circuit::{opcodes::OpcodeEnum, Circuit, Opcode, OpcodeLabel},
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
@@ -19,6 +19,8 @@ use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
     UnsupportedBlackBox(BlackBoxFunc),
+    #[error("The opcode {0} is not supported by the backend and acvm does not have a fallback implementation")]
+    UnsupportedOpcode(OpcodeEnum),
 }
 
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
