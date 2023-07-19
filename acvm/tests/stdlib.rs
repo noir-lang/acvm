@@ -14,11 +14,9 @@ use acvm::{
     pwg::{ACVMStatus, ACVM},
     Language,
 };
-use blake2::{Blake2s256, Digest};
+use blackbox_solver::{blake2s, hash_to_field_128_security, keccak256, sha256};
 use paste::paste;
 use proptest::prelude::*;
-use sha2::Sha256;
-use sha3::Keccak256;
 use std::collections::{BTreeMap, BTreeSet};
 use stdlib::blackbox_fallbacks::{UInt32, UInt64, UInt8};
 
@@ -220,9 +218,9 @@ macro_rules! test_uint_inner {
     };
 }
 
-test_hashes!(test_sha256, Sha256, SHA256, does_not_support_sha256);
-test_hashes!(test_blake2s, Blake2s256, Blake2s, does_not_support_blake2s);
-test_hashes!(test_keccak, Keccak256, Keccak256, does_not_support_keccak);
+test_hashes!(test_sha256, sha256, SHA256, does_not_support_sha256);
+test_hashes!(test_blake2s, blake2s, Blake2s, does_not_support_blake2s);
+test_hashes!(test_keccak, keccak256, Keccak256, does_not_support_keccak);
 
 fn does_not_support_sha256(opcode: &Opcode) -> bool {
     !matches!(opcode, Opcode::BlackBoxFuncCall(BlackBoxFuncCall::SHA256 { .. }))
@@ -254,7 +252,7 @@ macro_rules! test_hashes {
 
                 // prepare test data
                 let mut counter = 0;
-                let output = $hasher::digest(input_values.clone());
+                let output = $hasher(&input_values).unwrap();
                 for inp_v in input_values {
                     counter += 1;
                     let function_input = FunctionInput { witness: Witness(counter), num_bits: 8 };
@@ -311,18 +309,17 @@ proptest! {
 
         // prepare test data
         let mut counter = 0;
-        let output = Blake2s256::digest(input_values.clone());
+        let output = hash_to_field_128_security(&input_values.clone()).unwrap();
         for inp_v in input_values {
             counter += 1;
             let function_input = FunctionInput { witness: Witness(counter), num_bits: 8 };
             input_witnesses.push(function_input);
             witness_assignments.insert(Witness(counter), FieldElement::from(inp_v as u128));
         }
-        let correct_result_of_hash_to_field = FieldElement::from_be_bytes_reduce(&output);
 
         counter += 1;
         let correct_result_witnesses: Witness = Witness(counter);
-        witness_assignments.insert(Witness(counter), correct_result_of_hash_to_field);
+        witness_assignments.insert(Witness(counter), output);
 
         counter += 1;
         let output_witness: Witness = Witness(counter);

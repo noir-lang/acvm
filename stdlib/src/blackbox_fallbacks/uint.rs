@@ -454,34 +454,7 @@ macro_rules! impl_uint {
                 let mut new_gates = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
-
-                let brillig_opcode = Opcode::Brillig(Brillig {
-                    inputs: vec![
-                        BrilligInputs::Single(Expression {
-                            mul_terms: vec![],
-                            linear_combinations: vec![(FieldElement::one(), self.inner)],
-                            q_c: FieldElement::zero(),
-                        }),
-                        BrilligInputs::Single(Expression {
-                            mul_terms: vec![],
-                            linear_combinations: vec![(FieldElement::one(), rhs.inner)],
-                            q_c: FieldElement::zero(),
-                        }),
-                    ],
-                    outputs: vec![BrilligOutputs::Simple(new_witness)],
-                    foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::BinaryIntOp {
-                        op: brillig::BinaryIntOp::And,
-                        bit_size: self.width,
-                        lhs: RegisterIndex::from(0),
-                        rhs: RegisterIndex::from(1),
-                        destination: RegisterIndex::from(0),
-                    }],
-                    predicate: None,
-                });
-                new_gates.push(brillig_opcode);
                 let num_witness = variables.finalize();
-
                 let and_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
                     lhs: FunctionInput { witness: self.inner, num_bits: self.width },
                     rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
@@ -497,41 +470,13 @@ macro_rules! impl_uint {
                 let mut new_gates = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
-
-                let brillig_opcode = Opcode::Brillig(Brillig {
-                    inputs: vec![
-                        BrilligInputs::Single(Expression {
-                            mul_terms: vec![],
-                            linear_combinations: vec![(FieldElement::one(), self.inner)],
-                            q_c: FieldElement::zero(),
-                        }),
-                        BrilligInputs::Single(Expression {
-                            mul_terms: vec![],
-                            linear_combinations: vec![(FieldElement::one(), rhs.inner)],
-                            q_c: FieldElement::zero(),
-                        }),
-                    ],
-                    outputs: vec![BrilligOutputs::Simple(new_witness)],
-                    foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::BinaryIntOp {
-                        op: brillig::BinaryIntOp::Xor,
-                        bit_size: self.width,
-                        lhs: RegisterIndex::from(0),
-                        rhs: RegisterIndex::from(1),
-                        destination: RegisterIndex::from(0),
-                    }],
-                    predicate: None,
-                });
-                new_gates.push(brillig_opcode);
-
+                let num_witness = variables.finalize();
                 let xor_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::XOR {
                     lhs: FunctionInput { witness: self.inner, num_bits: self.width },
                     rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
                     output: new_witness,
                 });
                 new_gates.push(xor_opcode);
-
-                let num_witness = variables.finalize();
 
                 ($name::new(new_witness), new_gates, num_witness)
             }
