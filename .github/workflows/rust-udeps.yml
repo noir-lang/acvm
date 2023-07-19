@@ -1,0 +1,34 @@
+name: Rust Unused Dependencies
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        default: "."
+        required: false
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  unused-deps:
+    name: Unused deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-udeps
+        run: cargo install cargo-udeps --locked
+
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install libomp-dev
+
+      - name: Run cargo udeps
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          cargo +nightly udeps --all-targets
