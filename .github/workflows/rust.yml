@@ -14,3 +14,7 @@ jobs:
   format:
     name: cargo fmt
     uses: noir-lang/.github/.github/workflows/rust-format.yml@main
+
+  unused-deps:
+    name: cargo udeps
+    uses: noir-lang/.github/.github/workflows/rust-unused-deps.yml@main
