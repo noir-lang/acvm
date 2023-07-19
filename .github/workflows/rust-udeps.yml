@@ -1,12 +1,6 @@
 name: Rust Unused Dependencies
 
-on:
-  workflow_call:
-    inputs:
-      working-directory:
-        default: "."
-        required: false
-        type: string
+on: [push, pull_request]
 
 env:
   CARGO_TERM_COLOR: always
