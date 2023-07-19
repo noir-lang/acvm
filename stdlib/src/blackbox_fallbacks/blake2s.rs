@@ -60,7 +60,7 @@ pub fn blake2s(
     (num_witness, new_gates)
 }
 
-fn create_blake2s_constraint(
+pub(crate) fn create_blake2s_constraint(
     input: Vec<Witness>,
     num_witness: u32,
 ) -> (Vec<Witness>, u32, Vec<Opcode>) {

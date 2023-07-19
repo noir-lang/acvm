@@ -6,10 +6,12 @@ pub mod opcodes;
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
 
-use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
+use std::io::prelude::*;
+
+use flate2::Compression;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::io::prelude::*;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
@@ -49,18 +51,38 @@ impl Circuit {
         PublicInputs(public_inputs)
     }
 
+    #[cfg(feature = "serialize-messagepack")]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = rmp_serde::to_vec(&self).unwrap();
-        let mut deflater = DeflateEncoder::new(writer, Compression::best());
+        let mut deflater = flate2::write::DeflateEncoder::new(writer, Compression::best());
         deflater.write_all(&buf).unwrap();
 
         Ok(())
     }
+    #[cfg(feature = "serialize-messagepack")]
     pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
-        let mut deflater = DeflateDecoder::new(reader);
+        let mut deflater = flate2::read::DeflateDecoder::new(reader);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();
         let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
+        Ok(circuit)
+    }
+
+    #[cfg(not(feature = "serialize-messagepack"))]
+    pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
+        let buf = bincode::serialize(&self).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
+        encoder.write_all(&buf).unwrap();
+        encoder.finish().unwrap();
+        Ok(())
+    }
+
+    #[cfg(not(feature = "serialize-messagepack"))]
+    pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
+        let mut gz_decoder = flate2::read::GzDecoder::new(reader);
+        let mut buf_d = Vec::new();
+        gz_decoder.read_to_end(&mut buf_d).unwrap();
+        let circuit = bincode::deserialize(&buf_d).unwrap();
         Ok(circuit)
     }
 
