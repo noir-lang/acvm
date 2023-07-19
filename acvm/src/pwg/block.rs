@@ -30,6 +30,7 @@ impl BlockSolver {
         self.block_value.get(&index).copied()
     }
 
+    /// Set the block_value from a MemoryInit opcode
     pub(crate) fn init(&mut self, init: &[Witness], initial_witness: &WitnessMap) {
         for (i, w) in init.iter().enumerate() {
             self.insert_value(i as u32, initial_witness[w]);
