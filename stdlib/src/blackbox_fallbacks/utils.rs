@@ -23,6 +23,41 @@ pub(crate) fn round_to_nearest_byte(num_bits: u32) -> u32 {
     round_to_nearest_mul_8(num_bits) / 8
 }
 
+pub(crate) fn boolean_expr(expr: &Expression, variables: &mut VariableStore) -> Expression {
+    &mul_with_witness(expr, expr, variables) - expr
+}
+
+/// Returns an expression which represents a*b
+/// If one has multiplicative term and the other is of degree one or more,
+/// the function creates intermediate variables accordingly
+pub(crate) fn mul_with_witness(
+    a: &Expression,
+    b: &Expression,
+    variables: &mut VariableStore,
+) -> Expression {
+    let a_arith;
+    let a_arith = if !a.mul_terms.is_empty() && !b.is_const() {
+        let a_witness = variables.new_variable();
+        a_arith = Expression::from(a_witness);
+        &a_arith
+    } else {
+        a
+    };
+    let b_arith;
+    let b_arith = if !b.mul_terms.is_empty() && !a.is_const() {
+        if a == b {
+            a_arith
+        } else {
+            let b_witness = variables.new_variable();
+            b_arith = Expression::from(b_witness);
+            &b_arith
+        }
+    } else {
+        b
+    };
+    (a_arith * b_arith).expect("Both expressions are reduced to be degree<=1")
+}
+
 // Generates opcodes and directives to bit decompose the input `gate`
 // Returns the bits and the updated witness counter
 // TODO:Ideally, we return the updated witness counter, or we require the input
@@ -57,9 +92,7 @@ pub(crate) fn bit_decomposition(
     let two = FieldElement::from(2_i128);
     for &bit in &bit_vector {
         // Bit constraint to ensure each bit is a zero or one; bit^2 - bit = 0
-        let mut expr = Expression::default();
-        expr.push_multiplication_term(FieldElement::one(), bit, bit);
-        expr.push_addition_term(-FieldElement::one(), bit);
+        let expr = boolean_expr(&bit.into(), &mut variables);
         binary_exprs.push(Opcode::Arithmetic(expr));
 
         // Constraint to ensure that the bits are constrained to be a bit decomposition

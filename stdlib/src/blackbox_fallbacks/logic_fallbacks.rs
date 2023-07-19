@@ -1,4 +1,6 @@
-use super::utils::bit_decomposition;
+use crate::{blackbox_fallbacks::utils::mul_with_witness, helpers::VariableStore};
+
+use super::utils::{bit_decomposition, boolean_expr};
 use acir::{
     acir_field::FieldElement,
     circuit::Opcode,
@@ -6,7 +8,13 @@ use acir::{
 };
 
 // Range constraint
-pub fn range(gate: Expression, bit_size: u32, num_witness: u32) -> (u32, Vec<Opcode>) {
+pub fn range(gate: Expression, bit_size: u32, mut num_witness: u32) -> (u32, Vec<Opcode>) {
+    if bit_size == 1 {
+        let mut variables = VariableStore::new(&mut num_witness);
+        let bit_constraint = Opcode::Arithmetic(boolean_expr(&gate, &mut variables));
+        return (variables.finalize(), vec![bit_constraint]);
+    }
+
     let (new_gates, _, updated_witness_counter) = bit_decomposition(gate, bit_size, num_witness);
     (updated_witness_counter, new_gates)
 }
@@ -16,8 +24,16 @@ pub fn and(
     b: Expression,
     result: Witness,
     bit_size: u32,
-    num_witness: u32,
+    mut num_witness: u32,
 ) -> (u32, Vec<Opcode>) {
+    if bit_size == 1 {
+        let mut variables = VariableStore::new(&mut num_witness);
+
+        let mut and_expr = mul_with_witness(&a, &b, &mut variables);
+        and_expr.push_addition_term(-FieldElement::one(), result);
+
+        return (variables.finalize(), vec![Opcode::Arithmetic(and_expr)]);
+    }
     // Decompose the operands into bits
     //
     let (extra_gates_a, a_bits, updated_witness_counter) =
@@ -58,8 +74,18 @@ pub fn xor(
     b: Expression,
     result: Witness,
     bit_size: u32,
-    num_witness: u32,
+    mut num_witness: u32,
 ) -> (u32, Vec<Opcode>) {
+    if bit_size == 1 {
+        let mut variables = VariableStore::new(&mut num_witness);
+
+        let product = mul_with_witness(&a, &b, &mut variables);
+        let mut xor_expr = &(&a + &b) - &product;
+        xor_expr.push_addition_term(-FieldElement::one(), result);
+
+        return (variables.finalize(), vec![Opcode::Arithmetic(xor_expr)]);
+    }
+
     // Decompose the operands into bits
     //
     let (extra_gates_a, a_bits, updated_witness_counter) =
