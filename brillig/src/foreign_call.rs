@@ -9,8 +9,6 @@ pub enum ForeignCallOutput {
 }
 
 /// Represents the full output of a [foreign call][crate::Opcode::ForeignCall].
-///
-/// See [`VMStatus::ForeignCallWait`][crate::VMStatus::ForeignCallWait] for more information.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct ForeignCallResult {
     /// Resolved output values of the foreign call.

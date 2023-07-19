@@ -1,5 +1,5 @@
 #![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
-pub mod fallback;
+pub mod blackbox_fallbacks;
 pub mod helpers;

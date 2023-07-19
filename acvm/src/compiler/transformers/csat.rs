@@ -52,12 +52,12 @@ impl CSatTransformer {
             }
         }
         if unresolved.len() == 1 {
-            self.solvable(*unresolved[0]);
+            self.mark_solvable(*unresolved[0]);
         }
     }
 
     /// Adds the witness to set of solvable witness
-    pub(crate) fn solvable(&mut self, witness: Witness) {
+    pub(crate) fn mark_solvable(&mut self, witness: Witness) {
         self.solvable_witness.insert(witness);
     }
 
@@ -133,13 +133,13 @@ impl CSatTransformer {
         // This will be our new gate which will be equal to `self` except we will have intermediate variables that will be constrained to any
         // subset of the terms that can be represented as full gates
         let mut new_gate = Expression::default();
-        let mut mul_term_remains = Vec::new();
+        let mut remaining_mul_terms = Vec::with_capacity(gate.mul_terms.len());
         for pair in gate.mul_terms {
             // We want to layout solvable intermediate variable, if we cannot solve one of the witness
-            // that means the intermediate gate will not be immediatly solvable
+            // that means the intermediate gate will not be immediately solvable
             if !self.solvable_witness.contains(&pair.1) || !self.solvable_witness.contains(&pair.2)
             {
-                mul_term_remains.push(pair);
+                remaining_mul_terms.push(pair);
                 continue;
             }
 
@@ -196,7 +196,8 @@ impl CSatTransformer {
                     // Now we have used up 2 spaces in our arithmetic gate. The width now dictates, how many more we can add
                     let mut remaining_space = self.width - 2 - 1; // We minus 1 because we need an extra space to contain the intermediate variable
                                                                   // Keep adding terms until we have no more left, or we reach the width
-                    let mut remaining_linear_terms = Vec::new();
+                    let mut remaining_linear_terms =
+                        Vec::with_capacity(gate.linear_combinations.len());
                     while remaining_space > 0 {
                         if let Some(wire_term) = gate.linear_combinations.pop() {
                             // Add this element into the new gate
@@ -225,12 +226,12 @@ impl CSatTransformer {
                     );
 
                     // Add intermediate variable to the new gate instead of the full gate
-                    self.solvable(inter_var.1);
+                    self.mark_solvable(inter_var.1);
                     new_gate.linear_combinations.push(inter_var);
                 }
             };
         }
-        gate.mul_terms = mul_term_remains;
+        gate.mul_terms = remaining_mul_terms;
 
         // Add the rest of the elements back into the new_gate
         new_gate.mul_terms.extend(gate.mul_terms.clone());
@@ -329,7 +330,7 @@ impl CSatTransformer {
         }
 
         // 2. Create Intermediate variables for the multiplication gates
-        let mut mult_terms_remains = Vec::new();
+        let mut remaining_mul_terms = Vec::with_capacity(gate.mul_terms.len());
         for mul_term in gate.mul_terms.clone().into_iter() {
             if self.solvable_witness.contains(&mul_term.1)
                 && self.solvable_witness.contains(&mul_term.2)
@@ -347,14 +348,14 @@ impl CSatTransformer {
 
                 // Add intermediate variable as a part of the fan-in for the original gate
                 gate.linear_combinations.push(inter_var);
-                self.solvable(inter_var.1);
+                self.mark_solvable(inter_var.1);
             } else {
-                mult_terms_remains.push(mul_term);
+                remaining_mul_terms.push(mul_term);
             }
         }
 
-        // Remove the mul terms which are represented by intermediate variables
-        gate.mul_terms = mult_terms_remains;
+        // Remove all of the mul terms as we have intermediate variables to represent them now
+        gate.mul_terms = remaining_mul_terms;
 
         // We now only have a polynomial with only fan-in/fan-out terms i.e. terms of the form Ax + By + Cd + ...
         // Lets create intermediate variables if all of them cannot fit into the width
@@ -372,7 +373,7 @@ impl CSatTransformer {
             // Collect as many terms up to the given width-1 and constrain them to an intermediate variable
             let mut intermediate_gate = Expression::default();
 
-            let mut linear_term_remains = Vec::new();
+            let mut remaining_linear_terms = Vec::with_capacity(gate.linear_combinations.len());
 
             for term in gate.linear_combinations {
                 if self.solvable_witness.contains(&term.1)
@@ -380,10 +381,10 @@ impl CSatTransformer {
                 {
                     intermediate_gate.linear_combinations.push(term);
                 } else {
-                    linear_term_remains.push(term);
+                    remaining_linear_terms.push(term);
                 }
             }
-            gate.linear_combinations = linear_term_remains;
+            gate.linear_combinations = remaining_linear_terms;
             let not_full = intermediate_gate.linear_combinations.len() < self.width - 1;
             if intermediate_gate.linear_combinations.len() > 1 {
                 let inter_var = Self::get_or_create_intermediate_vars(
@@ -391,12 +392,12 @@ impl CSatTransformer {
                     intermediate_gate,
                     num_witness,
                 );
-                self.solvable(inter_var.1);
+                self.mark_solvable(inter_var.1);
                 added.push(inter_var);
             }
-            //intermediate gate is not full, but the gate still has too many terms
+            // The intermediate gate is not full, but the gate still has too many terms
             if not_full && gate.linear_combinations.len() > self.width {
-                unreachable!("Could not reduce the expresion");
+                unreachable!("Could not reduce the expression");
             }
         }
 
@@ -431,9 +432,9 @@ fn simple_reduction_smoke_test() {
     let mut num_witness = 4;
 
     let mut optimizer = CSatTransformer::new(3);
-    optimizer.solvable(b);
-    optimizer.solvable(c);
-    optimizer.solvable(d);
+    optimizer.mark_solvable(b);
+    optimizer.mark_solvable(c);
+    optimizer.mark_solvable(d);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
@@ -494,10 +495,10 @@ fn stepwise_reduction_test() {
     let mut num_witness = 4;
 
     let mut optimizer = CSatTransformer::new(3);
-    optimizer.solvable(a);
-    optimizer.solvable(c);
-    optimizer.solvable(d);
-    optimizer.solvable(e);
+    optimizer.mark_solvable(a);
+    optimizer.mark_solvable(c);
+    optimizer.mark_solvable(d);
+    optimizer.mark_solvable(e);
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 

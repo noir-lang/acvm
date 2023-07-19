@@ -6,10 +6,12 @@ pub mod opcodes;
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
 
-use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
+use std::io::prelude::*;
+
+use flate2::Compression;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-use std::io::prelude::*;
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Circuit {
@@ -18,6 +20,8 @@ pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
 
+    /// The set of private inputs to the circuit.
+    pub private_parameters: BTreeSet<Witness>,
     // ACIR distinguishes between the public inputs which are provided externally or calculated within the circuit and returned.
     // The elements of these sets may not be mutually exclusive, i.e. a parameter may be returned from the circuit.
     // All public inputs (parameters and return values) must be provided to the verifier at verification time.
@@ -25,8 +29,6 @@ pub struct Circuit {
     pub public_parameters: PublicInputs,
     /// The set of public inputs calculated within the circuit.
     pub return_values: PublicInputs,
-    /// Input witnesses (both private and public) to the circuit
-    pub inputs: Vec<Witness>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
@@ -43,6 +45,11 @@ impl Circuit {
         self.current_witness_index + 1
     }
 
+    /// Returns all witnesses which are required to execute the circuit successfully.
+    pub fn circuit_arguments(&self) -> BTreeSet<Witness> {
+        self.private_parameters.union(&self.public_parameters.0).cloned().collect()
+    }
+
     /// Returns all public inputs. This includes those provided as parameters to the circuit and those
     /// computed as return values.
     pub fn public_inputs(&self) -> PublicInputs {
@@ -51,18 +58,38 @@ impl Circuit {
         PublicInputs(public_inputs)
     }
 
+    #[cfg(feature = "serialize-messagepack")]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
         let buf = rmp_serde::to_vec(&self).unwrap();
-        let mut deflater = DeflateEncoder::new(writer, Compression::best());
+        let mut deflater = flate2::write::DeflateEncoder::new(writer, Compression::best());
         deflater.write_all(&buf).unwrap();
 
         Ok(())
     }
+    #[cfg(feature = "serialize-messagepack")]
     pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
-        let mut deflater = DeflateDecoder::new(reader);
+        let mut deflater = flate2::read::DeflateDecoder::new(reader);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).unwrap();
         let circuit = rmp_serde::from_slice(buf_d.as_slice()).unwrap();
+        Ok(circuit)
+    }
+
+    #[cfg(not(feature = "serialize-messagepack"))]
+    pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
+        let buf = bincode::serialize(&self).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
+        encoder.write_all(&buf).unwrap();
+        encoder.finish().unwrap();
+        Ok(())
+    }
+
+    #[cfg(not(feature = "serialize-messagepack"))]
+    pub fn read<R: std::io::Read>(reader: R) -> std::io::Result<Self> {
+        let mut gz_decoder = flate2::read::GzDecoder::new(reader);
+        let mut buf_d = Vec::new();
+        gz_decoder.read_to_end(&mut buf_d).unwrap();
+        let circuit = bincode::deserialize(&buf_d).unwrap();
         Ok(circuit)
     }
 
@@ -158,9 +185,9 @@ mod tests {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode(), directive_opcode()],
+            private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
-            inputs: vec![Witness(4), Witness(12)],
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -187,9 +214,9 @@ mod tests {
                 range_opcode(),
                 and_opcode(),
             ],
+            private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
-            inputs: vec![Witness(4), Witness(2)],
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();
