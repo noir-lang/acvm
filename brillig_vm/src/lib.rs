@@ -22,11 +22,12 @@ mod black_box;
 mod memory;
 mod registers;
 
-use arithmetic::{evaluate_binary_field_op, evaluate_binary_int_op};
+use arithmetic::{evaluate_binary_bigint_op, evaluate_binary_field_op};
 use black_box::evaluate_black_box;
 use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 
 pub use memory::Memory;
+use num_bigint::BigUint;
 pub use registers::Registers;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -371,9 +372,13 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
         let lhs_value = self.registers.get(lhs);
         let rhs_value = self.registers.get(rhs);
 
-        let result_value =
-            evaluate_binary_int_op(&op, lhs_value.to_u128(), rhs_value.to_u128(), bit_size);
-        self.registers.set(result, result_value.into());
+        // Convert to big integers
+        let lhs_big = BigUint::from_bytes_be(&lhs_value.to_field().to_be_bytes());
+        let rhs_big = BigUint::from_bytes_be(&rhs_value.to_field().to_be_bytes());
+        let result_value = evaluate_binary_bigint_op(&op, lhs_big, rhs_big, bit_size);
+        // Convert back to field element
+        self.registers
+            .set(result, FieldElement::from_be_bytes_reduce(&result_value.to_bytes_be()).into());
     }
 }
 
