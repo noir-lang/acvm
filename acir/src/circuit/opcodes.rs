@@ -48,16 +48,16 @@ pub enum Opcode {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum UnsupportedOpcode {
+pub enum UnsupportedMemoryOpcode {
     MemoryOp,
     MemoryInit,
 }
 
-impl std::fmt::Display for UnsupportedOpcode {
+impl std::fmt::Display for UnsupportedMemoryOpcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnsupportedOpcode::MemoryOp => write!(f, "MemoryOp"),
-            UnsupportedOpcode::MemoryInit => write!(f, "MemoryInit"),
+            UnsupportedMemoryOpcode::MemoryOp => write!(f, "MemoryOp"),
+            UnsupportedMemoryOpcode::MemoryInit => write!(f, "MemoryInit"),
         }
     }
 }
@@ -79,10 +79,10 @@ impl Opcode {
         }
     }
 
-    pub fn unsupported_opcode(&self) -> UnsupportedOpcode {
+    pub fn unsupported_opcode(&self) -> UnsupportedMemoryOpcode {
         match self {
-            Opcode::MemoryOp { .. } => UnsupportedOpcode::MemoryOp,
-            Opcode::MemoryInit { .. } => UnsupportedOpcode::MemoryInit,
+            Opcode::MemoryOp { .. } => UnsupportedMemoryOpcode::MemoryOp,
+            Opcode::MemoryInit { .. } => UnsupportedMemoryOpcode::MemoryInit,
             Opcode::BlackBoxFuncCall(_) => {
                 unreachable!("Unsupported Blackbox function should not be reported here")
             }

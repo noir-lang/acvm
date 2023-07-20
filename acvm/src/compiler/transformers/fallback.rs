@@ -34,7 +34,9 @@ impl FallbackTransformer {
                 }
                 Opcode::MemoryInit { .. } | Opcode::MemoryOp { .. } => {
                     if !is_supported(&opcode) {
-                        return Err(CompileError::UnsupportedOpcode(opcode.unsupported_opcode()));
+                        return Err(CompileError::UnsupportedMemoryOpcode(
+                            opcode.unsupported_opcode(),
+                        ));
                     }
                     new_opcode_labels.push(opcode_labels[idx]);
                     acir_supported_opcodes.push(opcode);
