@@ -32,6 +32,15 @@ impl FallbackTransformer {
                     acir_supported_opcodes.push(opcode);
                     continue;
                 }
+                Opcode::MemoryInit { .. } | Opcode::MemoryOp { .. } => {
+                    if !is_supported(&opcode) {
+                        return Err(CompileError::UnsupportedMemoryOpcode(
+                            opcode.unsupported_opcode(),
+                        ));
+                    }
+                    new_opcode_labels.push(opcode_labels[idx]);
+                    acir_supported_opcodes.push(opcode);
+                }
                 Opcode::BlackBoxFuncCall(bb_func_call) => {
                     // We know it is an black box function. Now check if it is
                     // supported by the backend. If it is supported, then we can simply
