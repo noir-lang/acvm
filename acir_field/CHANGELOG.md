@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acir_field-v0.19.0...acir_field-v0.19.1) (2023-07-17)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
+## [0.19.0](https://github.com/noir-lang/acvm/compare/acir_field-v0.18.2...acir_field-v0.19.0) (2023-07-15)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acir_field-v0.18.1...acir_field-v0.18.2) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
+## [0.18.1](https://github.com/noir-lang/acvm/compare/acir_field-v0.18.0...acir_field-v0.18.1) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
+## [0.18.0](https://github.com/noir-lang/acvm/compare/acir_field-v0.17.0...acir_field-v0.18.0) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acir_field:** Synchronize acvm versions
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/acir_field-v0.16.0...acir_field-v0.17.0) (2023-07-07)
 
 

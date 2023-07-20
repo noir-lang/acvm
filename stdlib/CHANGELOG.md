@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.19.0...acvm_stdlib-v0.19.1) (2023-07-17)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.19.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.2...acvm_stdlib-v0.19.0) (2023-07-15)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.1...acvm_stdlib-v0.18.2) (2023-07-12)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `Blake2s` black box function ([#424](https://github.com/noir-lang/acvm/issues/424)) ([982d940](https://github.com/noir-lang/acvm/commit/982d94087d46092ce7a5e94dbd7e732195f58e42))
+
+## [0.18.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.0...acvm_stdlib-v0.18.1) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
+## [0.18.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.17.0...acvm_stdlib-v0.18.0) (2023-07-12)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `SHA256` black box function ([#407](https://github.com/noir-lang/acvm/issues/407)) ([040369a](https://github.com/noir-lang/acvm/commit/040369adc8749fa5ec2edd255ff54c105c3140f5))
+
 ## [0.17.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.16.0...acvm_stdlib-v0.17.0) (2023-07-07)
 
 

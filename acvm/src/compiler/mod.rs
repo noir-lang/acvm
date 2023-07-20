@@ -15,8 +15,6 @@ mod transformers;
 use optimizers::{GeneralOptimizer, RangeOptimizer};
 use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 
-pub use optimizers::{CircuitSimplifier, SimplifyResult};
-
 #[derive(PartialEq, Eq, Debug, Error)]
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
@@ -28,7 +26,6 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-    simplifier: &CircuitSimplifier,
 ) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
@@ -40,7 +37,7 @@ pub fn compile(
 
     // Fallback transformer pass
     let (acir, opcode_label) =
-        FallbackTransformer::transform(acir, is_opcode_supported, simplifier, opcode_labels)?;
+        FallbackTransformer::transform(acir, is_opcode_supported, opcode_labels)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();

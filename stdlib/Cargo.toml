@@ -1,7 +1,7 @@
 [package]
 name = "acvm_stdlib"
 description = "The ACVM standard library."
-version = "0.17.0"
+version = "0.19.1"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,3 +17,4 @@ acir.workspace = true
 default = ["bn254"]
 bn254 = ["acir/bn254"]
 bls12_381 = ["acir/bls12_381"]
+testing = ["bn254"]

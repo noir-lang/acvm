@@ -8,5 +8,5 @@ pub mod native_types;
 
 pub use acir_field;
 pub use acir_field::FieldElement;
-pub use brillig_vm;
+pub use brillig;
 pub use circuit::black_box_functions::BlackBoxFunc;
