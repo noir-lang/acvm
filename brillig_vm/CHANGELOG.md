@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.19.1...brillig_vm-v0.20.0) (2023-07-20)
+
+
+### Features
+
+* **brillig:** Support integers which fit inside a `FieldElement` ([#403](https://github.com/noir-lang/acvm/issues/403)) ([f992412](https://github.com/noir-lang/acvm/commit/f992412617ade875fa26fe3a2cc3c06dbcad503b))
+
 ## [0.19.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.19.0...brillig_vm-v0.19.1) (2023-07-17)
 
 
