@@ -230,6 +230,19 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     Opcode::Brillig(brillig) => {
                         BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend)
                     }
+                    Opcode::MemoryInit { block_id, init } => {
+                        let solver = self.block_solvers.entry(*block_id).or_default();
+                        solver.init(init, &self.witness_map);
+                        Ok(OpcodeResolution::Solved)
+                    }
+                    Opcode::MemoryOp { block_id, op } => {
+                        let solver = self.block_solvers.entry(*block_id).or_default();
+                        let result = solver.solve_memory_op(op, &mut self.witness_map);
+                        match result {
+                            Ok(_) => Ok(OpcodeResolution::Solved),
+                            Err(err) => Err(err),
+                        }
+                    }
                 };
 
                 // If we have an unsatisfied constraint, the opcode label will be unresolved
