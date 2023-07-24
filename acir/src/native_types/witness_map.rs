@@ -1,4 +1,3 @@
-
 use std::{
     collections::{btree_map, BTreeMap},
     io::Read,
@@ -7,14 +6,14 @@ use std::{
 
 use acir_field::FieldElement;
 use flate2::bufread::GzDecoder;
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 use flate2::{bufread::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::native_types::Witness;
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -27,7 +26,7 @@ enum SerializationError {
     Deflate(#[from] std::io::Error),
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 #[derive(Debug, Error)]
 enum SerializationError {
     #[error(transparent)]
@@ -93,20 +92,20 @@ impl From<BTreeMap<Witness, FieldElement>> for WitnessMap {
     }
 }
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
         let buf = rmp_serde::to_vec(&val).map_err(|err| WitnessMapError(err.into()))?;
-        let mut deflater = DeflateEncoder::new(buf.as_slice(), Compression::best());
+        let mut deflater = flate2::write::DeflateEncoder::new(buf.as_slice(), Compression::best());
         let mut buf_c = Vec::new();
         deflater.read_to_end(&mut buf_c).map_err(|err| WitnessMapError(err.into()))?;
         Ok(buf_c)
     }
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
@@ -116,12 +115,12 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     }
 }
 
-#[cfg(feature="serialize-messagepack")]
+#[cfg(feature = "serialize-messagepack")]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        let mut deflater = DeflateDecoder::new(bytes);
+        let mut deflater = flate2::bufread::DeflateDecoder::new(bytes);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
         let witness_map =
@@ -130,7 +129,7 @@ impl TryFrom<&[u8]> for WitnessMap {
     }
 }
 
-#[cfg(not(feature="serialize-messagepack"))]
+#[cfg(not(feature = "serialize-messagepack"))]
 impl TryFrom<&[u8]> for WitnessMap {
     type Error = WitnessMapError;
 
@@ -139,7 +138,8 @@ impl TryFrom<&[u8]> for WitnessMap {
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
         let (witness_map, _len) =
-            bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard()).unwrap();
+            bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard())
+                .unwrap();
         Ok(Self(witness_map))
     }
 }

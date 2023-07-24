@@ -150,22 +150,14 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
     let pad = variables.new_variable();
 
     let brillig_opcode = Opcode::Brillig(Brillig {
-        inputs: vec![
-            BrilligInputs::Single(Expression {
-                mul_terms: vec![],
-                linear_combinations: vec![],
-                q_c: FieldElement::from(number as u128),
-            }),
-            BrilligInputs::Single(Expression::default()),
-        ],
+        inputs: vec![BrilligInputs::Single(Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![],
+            q_c: FieldElement::from(number as u128),
+        })],
         outputs: vec![BrilligOutputs::Simple(pad)],
         foreign_call_results: vec![],
-        bytecode: vec![BrilligOpcode::BinaryFieldOp {
-            op: BinaryFieldOp::Add,
-            lhs: RegisterIndex::from(0),
-            rhs: RegisterIndex::from(1),
-            destination: RegisterIndex::from(0),
-        }],
+        bytecode: vec![brillig::Opcode::Stop],
         predicate: None,
     });
     new_gates.push(brillig_opcode);
@@ -197,9 +189,9 @@ fn sha256_block(
         let (a3, extra_gates, updated_witness_counter) =
             w[i - 15].rightshift(3, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (a4, extra_gates, updated_witness_counter) = a1.xor(a2, updated_witness_counter);
+        let (a4, extra_gates, updated_witness_counter) = a1.xor(&a2, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (s0, extra_gates, updated_witness_counter) = a4.xor(a3, updated_witness_counter);
+        let (s0, extra_gates, updated_witness_counter) = a4.xor(&a3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
         // calculate s1 `w[i - 2].ror(17) ^ w[i - 2].ror(19) ^ (w[i - 2] >> 10)`
@@ -210,9 +202,9 @@ fn sha256_block(
         let (b3, extra_gates, updated_witness_counter) =
             w[i - 2].rightshift(10, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (b4, extra_gates, updated_witness_counter) = b1.xor(b2, updated_witness_counter);
+        let (b4, extra_gates, updated_witness_counter) = b1.xor(&b2, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (s1, extra_gates, updated_witness_counter) = b4.xor(b3, updated_witness_counter);
+        let (s1, extra_gates, updated_witness_counter) = b4.xor(&b3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
         // calculate w[i] `w[i - 16] + w[i - 7] + s0 + s1`
@@ -245,9 +237,9 @@ fn sha256_block(
         new_gates.extend(extra_gates);
         let (a3, extra_gates, updated_witness_counter) = e.ror(25, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (a4, extra_gates, updated_witness_counter) = a1.xor(a2, updated_witness_counter);
+        let (a4, extra_gates, updated_witness_counter) = a1.xor(&a2, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (S1, extra_gates, updated_witness_counter) = a4.xor(a3, updated_witness_counter);
+        let (S1, extra_gates, updated_witness_counter) = a4.xor(&a3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
         // calculate ch `(e & f) + (~e & g)`
@@ -278,9 +270,9 @@ fn sha256_block(
         new_gates.extend(extra_gates);
         let (d3, extra_gates, updated_witness_counter) = a.ror(22, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (d4, extra_gates, updated_witness_counter) = d1.xor(d2, updated_witness_counter);
+        let (d4, extra_gates, updated_witness_counter) = d1.xor(&d2, updated_witness_counter);
         new_gates.extend(extra_gates);
-        let (S0, extra_gates, updated_witness_counter) = d4.xor(d3, updated_witness_counter);
+        let (S0, extra_gates, updated_witness_counter) = d4.xor(&d3, updated_witness_counter);
         new_gates.extend(extra_gates);
 
         // calculate T0 `b & c`
