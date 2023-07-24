@@ -34,7 +34,7 @@ impl MemoryBlock {
             assert_eq!(
                 self.trace[i].operation,
                 Expression::one(),
-                "Block initialization require a write"
+                "Block initialization requires a write"
             );
             let index = self.trace[i]
                 .index

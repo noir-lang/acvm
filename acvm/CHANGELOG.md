@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acvm-v0.19.1...acvm-v0.20.0) (2023-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447))
+
+### Features
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447)) ([3261c7a](https://github.com/noir-lang/acvm/commit/3261c7a2fd4f3a300bc5f39ef4febccd8a853560))
+* **stdlib:** Add fallback implementation of `HashToField128Security` black box function ([#435](https://github.com/noir-lang/acvm/issues/435)) ([ed40f22](https://github.com/noir-lang/acvm/commit/ed40f228529e888d1960bfa70cb92b277e24b37f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.1 to 0.20.0
+
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm-v0.19.0...acvm-v0.19.1) (2023-07-17)
+
+
+### Bug Fixes
+
+* Remove panic when we divide 0/0 in quotient directive ([#437](https://github.com/noir-lang/acvm/issues/437)) ([9c8ff64](https://github.com/noir-lang/acvm/commit/9c8ff64ebf27a86787ae184e10ed9581041ec0ff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.0 to 0.19.1
+
 ## [0.19.0](https://github.com/noir-lang/acvm/compare/acvm-v0.18.2...acvm-v0.19.0) (2023-07-15)
 
 

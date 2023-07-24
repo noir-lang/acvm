@@ -1,8 +1,10 @@
 // Re-usable methods that backends can use to implement their PWG
 
+use std::collections::HashMap;
+
 use acir::{
     brillig::ForeignCallResult,
-    circuit::{Opcode, OpcodeLabel},
+    circuit::{opcodes::BlockId, Opcode, OpcodeLabel},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -108,6 +110,9 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     backend: B,
 
+    /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
+    block_solvers: HashMap<BlockId, BlockSolver>,
+
     /// A list of opcodes which are to be executed by the ACVM.
     opcodes: Vec<Opcode>,
     /// Index of the next opcode to be executed.
@@ -119,7 +124,14 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
     pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
-        ACVM { status, backend, opcodes, instruction_pointer: 0, witness_map: initial_witness }
+        ACVM {
+            status,
+            backend,
+            block_solvers: HashMap::default(),
+            opcodes,
+            instruction_pointer: 0,
+            witness_map: initial_witness,
+        }
     }
 
     /// Returns a reference to the current state of the ACVM's [`WitnessMap`].
@@ -213,8 +225,18 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
             }
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
-            Opcode::Block(block) | Opcode::ROM(block) | Opcode::RAM(block) => {
-                BlockSolver.solve(&mut self.witness_map, &block.trace)
+            Opcode::MemoryInit { block_id, init } => {
+                let solver = self.block_solvers.entry(*block_id).or_default();
+                solver.init(init, &self.witness_map);
+                Ok(OpcodeResolution::Solved)
+            }
+            Opcode::MemoryOp { block_id, op } => {
+                let solver = self.block_solvers.entry(*block_id).or_default();
+                let result = solver.solve_memory_op(op, &mut self.witness_map);
+                match result {
+                    Ok(_) => Ok(OpcodeResolution::Solved),
+                    Err(err) => Err(err),
+                }
             }
             Opcode::Brillig(brillig) => {
                 let resolution =
@@ -226,6 +248,9 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     }
                     res => res,
                 }
+            }
+            Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
+                panic!("Block, ROM and RAM opcodes are not supported by stepwise ACVM")
             }
         };
         match resolution {
