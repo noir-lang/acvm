@@ -110,7 +110,7 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
-        let buf = bincode::serde::encode_to_vec(&val, bincode::config::standard()).unwrap();
+        let buf = bincode::serde::encode_to_vec(val, bincode::config::standard()).unwrap();
         Ok(buf)
     }
 }
