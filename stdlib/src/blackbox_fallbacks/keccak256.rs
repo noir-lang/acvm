@@ -11,6 +11,7 @@ use acir::{
     FieldElement,
 };
 
+const STATE_NUM_BYTES: usize = 200;
 const BITS: usize = 256;
 const WORD_SIZE: usize = 8;
 const BLOCK_SIZE: usize = (1600 - BITS * 2) / WORD_SIZE;
@@ -56,10 +57,10 @@ pub fn keccak256(
     // Decompose the input field elements into bytes and collect the resulting witnesses.
     for (witness, num_bits) in inputs {
         let num_bytes = round_to_nearest_byte(num_bits);
-        let (extra_gates, inputs, updated_witness_counter) =
+        let (extra_gates, extra_inputs, updated_witness_counter) =
             byte_decomposition(witness, num_bytes, num_witness);
         new_gates.extend(extra_gates);
-        new_inputs.extend(inputs);
+        new_inputs.extend(extra_inputs);
         num_witness = updated_witness_counter;
     }
 
@@ -87,8 +88,8 @@ fn create_keccak_constraint(
     new_gates.extend(extra_gates);
 
     // prepare state
-    let mut state = Vec::new();
-    for _ in 0..200 {
+    let mut state = Vec::with_capacity(200);
+    for _ in 0..STATE_NUM_BYTES {
         let (zero, extra_gates, updated_witness_counter) = UInt8::load_constant(0, num_witness);
         new_gates.extend(extra_gates);
         state.push(zero);
@@ -139,7 +140,7 @@ fn keccakf(state: Vec<UInt8>, num_witness: u32) -> (Vec<UInt8>, Vec<Opcode>, u32
 
     // turn state back to UInt8
     let state_u64_witnesses: Vec<Witness> = state_u64.into_iter().map(|x| x.inner).collect();
-    let mut state_u8 = Vec::new();
+    let mut state_u8 = Vec::with_capacity(state_u64_witnesses.len());
     for state_u64_witness in state_u64_witnesses {
         let (extra_gates, mut u8s, updated_witness_counter) =
             byte_decomposition(Expression::from(state_u64_witness), 8, num_witness);
@@ -161,7 +162,7 @@ fn keccak_round(
     let mut new_gates = Vec::new();
 
     // theta
-    let mut array = Vec::new();
+    let mut array = Vec::with_capacity(5);
     for _ in 0..5 {
         let (zero, extra_gates, updated_witness_counter) = UInt64::load_constant(0, num_witness);
         array.push(zero);
