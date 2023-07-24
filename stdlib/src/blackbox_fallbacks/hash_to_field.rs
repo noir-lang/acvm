@@ -6,7 +6,7 @@ use super::{
 };
 use crate::helpers::VariableStore;
 use acir::{
-    brillig::{self, RegisterIndex},
+    brillig::{self, BrilligOpcode, RegisterIndex},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         Opcode,
@@ -104,7 +104,7 @@ fn field_addition(
         ],
         outputs: vec![BrilligOutputs::Simple(new_witness)],
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::BinaryFieldOp {
+        bytecode: vec![BrilligOpcode::BinaryFieldOp {
             op: brillig::BinaryFieldOp::Add,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -150,7 +150,7 @@ pub(crate) fn field_mul(
         ],
         outputs: vec![BrilligOutputs::Simple(new_witness)],
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::BinaryFieldOp {
+        bytecode: vec![BrilligOpcode::BinaryFieldOp {
             op: brillig::BinaryFieldOp::Mul,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),

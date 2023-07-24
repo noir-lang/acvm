@@ -653,14 +653,14 @@ impl UInt32 {
             outputs: vec![BrilligOutputs::Simple(new_witness)],
             foreign_call_results: vec![],
             bytecode: vec![
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Add,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),
                     rhs: RegisterIndex::from(2),
                     destination: RegisterIndex::from(0),
                 },
-                brillig::Opcode::BinaryIntOp {
+                BrilligOpcode::BinaryIntOp {
                     op: brillig::BinaryIntOp::Sub,
                     bit_size: 127,
                     lhs: RegisterIndex::from(0),

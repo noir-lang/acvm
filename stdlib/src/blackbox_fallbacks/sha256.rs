@@ -157,7 +157,7 @@ fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<O
         })],
         outputs: vec![BrilligOutputs::Simple(pad)],
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::Stop],
+        bytecode: vec![BrilligOpcode::Stop],
         predicate: None,
     });
     new_gates.push(brillig_opcode);
