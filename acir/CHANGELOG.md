@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acir-v0.19.1...acir-v0.20.0) (2023-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447))
+
+### Features
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447)) ([3261c7a](https://github.com/noir-lang/acvm/commit/3261c7a2fd4f3a300bc5f39ef4febccd8a853560))
+
 ## [0.19.1](https://github.com/noir-lang/acvm/compare/acir-v0.19.0...acir-v0.19.1) (2023-07-17)
 
 
