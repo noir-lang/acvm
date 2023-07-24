@@ -27,35 +27,53 @@ pub(crate) fn boolean_expr(expr: &Expression, variables: &mut VariableStore) -> 
     &mul_with_witness(expr, expr, variables) - expr
 }
 
-/// Returns an expression which represents a*b
+/// Returns an expression which represents `lhs * rhs`
+///
 /// If one has multiplicative term and the other is of degree one or more,
-/// the function creates intermediate variables accordingly
+/// the function creates [intermediate variables][`Witness`] accordingly.
+/// There are two cases where we can optimize the multiplication between two expressions:
+/// 1. If both expressions have at most a total degree of 1 in each term, then we can just multiply them
+/// as each term in the result will be degree-2.
+/// 2. If one expression is a constant, then we can just multiply the constant with the other expression
+///
+/// (1) is because an [`Expression`] can hold at most a degree-2 univariate polynomial
+/// which is what you get when you multiply two degree-1 univariate polynomials.
 pub(crate) fn mul_with_witness(
-    a: &Expression,
-    b: &Expression,
+    lhs: &Expression,
+    rhs: &Expression,
     variables: &mut VariableStore,
 ) -> Expression {
-    let a_arith;
-    let a_arith = if !a.mul_terms.is_empty() && !b.is_const() {
-        let a_witness = variables.new_variable();
-        a_arith = Expression::from(a_witness);
-        &a_arith
+    use std::borrow::Cow;
+    let lhs_is_linear = lhs.is_linear();
+    let rhs_is_linear = rhs.is_linear();
+
+    // Case 1: Both expressions have at most a total degree of 1 in each term
+    if lhs_is_linear && rhs_is_linear {
+        return (lhs * rhs)
+            .expect("one of the expressions is a constant and so this should not fail");
+    }
+
+    // Case 2: One or both of the sides needs to be reduced to a degree-1 univariate polynomial
+    let lhs_reduced = if lhs_is_linear {
+        Cow::Borrowed(lhs)
     } else {
-        a
+        Cow::Owned(variables.new_variable().into())
     };
-    let b_arith;
-    let b_arith = if !b.mul_terms.is_empty() && !a.is_const() {
-        if a == b {
-            a_arith
-        } else {
-            let b_witness = variables.new_variable();
-            b_arith = Expression::from(b_witness);
-            &b_arith
-        }
+
+    // If the lhs and rhs are the same, then we do not need to reduce
+    // rhs, we only need to square the lhs.
+    if lhs == rhs {
+        return (&*lhs_reduced * &*lhs_reduced)
+            .expect("Both expressions are reduced to be degree<=1");
+    };
+
+    let rhs_reduced = if rhs_is_linear {
+        Cow::Borrowed(rhs)
     } else {
-        b
+        Cow::Owned(variables.new_variable().into())
     };
-    (a_arith * b_arith).expect("Both expressions are reduced to be degree<=1")
+
+    (&*lhs_reduced * &*rhs_reduced).expect("Both expressions are reduced to be degree<=1")
 }
 
 // Generates opcodes and directives to bit decompose the input `gate`
