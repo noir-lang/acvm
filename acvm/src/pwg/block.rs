@@ -6,7 +6,7 @@ use acir::{
     FieldElement,
 };
 
-use super::{arithmetic::ArithmeticSolver, get_value, insert_value};
+use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_value};
 use super::{OpcodeResolution, OpcodeResolutionError};
 
 type MemoryIndex = u32;
@@ -30,10 +30,18 @@ impl BlockSolver {
     }
 
     /// Set the block_value from a MemoryInit opcode
-    pub(crate) fn init(&mut self, init: &[Witness], initial_witness: &WitnessMap) {
-        for (i, w) in init.iter().enumerate() {
-            self.write_memory_index(i as u32, initial_witness[w]);
+    pub(crate) fn init(
+        &mut self,
+        init: &[Witness],
+        initial_witness: &WitnessMap,
+    ) -> Result<(), OpcodeResolutionError> {
+        for (memory_index, witness) in init.iter().enumerate() {
+            self.write_memory_index(
+                memory_index as MemoryIndex,
+                *witness_to_value(initial_witness, *witness)?,
+            );
         }
+        Ok(())
     }
 
     // Helper function which tries to solve a Block opcode
