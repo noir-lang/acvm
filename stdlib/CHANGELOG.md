@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.19.1...acvm_stdlib-v0.20.0) (2023-07-20)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `HashToField128Security` black box function ([#435](https://github.com/noir-lang/acvm/issues/435)) ([ed40f22](https://github.com/noir-lang/acvm/commit/ed40f228529e888d1960bfa70cb92b277e24b37f))
+
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.19.0...acvm_stdlib-v0.19.1) (2023-07-17)
+
+
+### Miscellaneous Chores
+
+* **acvm_stdlib:** Synchronize acvm versions
+
 ## [0.19.0](https://github.com/noir-lang/acvm/compare/acvm_stdlib-v0.18.2...acvm_stdlib-v0.19.0) (2023-07-15)
 
 

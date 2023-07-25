@@ -58,7 +58,7 @@ fn solve_directives_internal(
                 None => FieldElement::one(),
             };
 
-            let (int_r, int_q) = if pred_value.is_zero() {
+            let (int_r, int_q) = if pred_value.is_zero() || int_b.is_zero() {
                 (BigUint::zero(), BigUint::zero())
             } else {
                 (&int_a % &int_b, &int_a / &int_b)
@@ -187,4 +187,32 @@ fn format_field_string(field: FieldElement) -> String {
         trimmed_field = "0".to_owned() + &trimmed_field
     }
     "0x".to_owned() + &trimmed_field
+}
+
+#[cfg(test)]
+mod tests {
+    use acir::{
+        circuit::directives::{Directive, QuotientDirective},
+        native_types::{Expression, Witness, WitnessMap},
+        FieldElement,
+    };
+
+    use super::solve_directives_internal;
+
+    #[test]
+    fn divisor_is_zero() {
+        let quotient_directive = QuotientDirective {
+            a: Expression::zero(),
+            b: Expression::zero(),
+            q: Witness(0),
+            r: Witness(0),
+            predicate: Some(Expression::one()),
+        };
+
+        let mut witness_map = WitnessMap::new();
+        witness_map.insert(Witness(0), FieldElement::zero());
+
+        solve_directives_internal(&mut witness_map, &Directive::Quotient(quotient_directive))
+            .expect("expected 0/0 to return 0");
+    }
 }

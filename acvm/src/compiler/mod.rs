@@ -1,5 +1,8 @@
 use acir::{
-    circuit::{brillig::BrilligOutputs, directives::Directive, Circuit, Opcode, OpcodeLabel},
+    circuit::{
+        brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
+        Opcode, OpcodeLabel,
+    },
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
@@ -19,6 +22,8 @@ use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
     UnsupportedBlackBox(BlackBoxFunc),
+    #[error("The opcode {0} is not supported by the backend and acvm does not have a fallback implementation")]
+    UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
@@ -178,6 +183,20 @@ pub fn compile(
                 new_opcode_labels.push(opcode_label[index]);
                 transformed_gates.push(opcode.clone());
             }
+            Opcode::MemoryInit { .. } => {
+                // `MemoryInit` does not write values to the `WitnessMap`
+                ()
+            }
+            Opcode::MemoryOp { op, .. } => {
+                for (_, w1, w2) in &op.value.mul_terms {
+                    transformer.mark_solvable(*w1);
+                    transformer.mark_solvable(*w2);
+                }
+                for (_, w) in &op.value.linear_combinations {
+                    transformer.mark_solvable(*w);
+                }
+            }
+
             Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
                 unimplemented!("Stepwise execution is not compatible with {}", opcode.name())
             }
