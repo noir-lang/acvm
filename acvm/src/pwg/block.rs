@@ -6,8 +6,8 @@ use acir::{
     FieldElement,
 };
 
-use super::{any_witness_from_expression, arithmetic::ArithmeticSolver, get_value, insert_value};
-use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use super::{arithmetic::ArithmeticSolver, get_value, insert_value};
+use super::{OpcodeResolution, OpcodeResolutionError};
 
 type MemoryIndex = u32;
 
@@ -21,18 +21,18 @@ pub(super) struct BlockSolver {
 }
 
 impl BlockSolver {
-    fn insert_value(&mut self, index: MemoryIndex, value: FieldElement) {
+    fn write_memory_index(&mut self, index: MemoryIndex, value: FieldElement) {
         self.block_value.insert(index, value);
     }
 
-    fn get_value(&self, index: MemoryIndex) -> Option<FieldElement> {
-        self.block_value.get(&index).copied()
+    fn read_memory_index(&self, index: MemoryIndex) -> FieldElement {
+        self.block_value.get(&index).copied().expect("Should not read uninitialized memory")
     }
 
     /// Set the block_value from a MemoryInit opcode
     pub(crate) fn init(&mut self, init: &[Witness], initial_witness: &WitnessMap) {
         for (i, w) in init.iter().enumerate() {
-            self.insert_value(i as u32, initial_witness[w]);
+            self.write_memory_index(i as u32, initial_witness[w]);
         }
     }
 
@@ -56,22 +56,10 @@ impl BlockSolver {
         op: &MemOp,
         initial_witness: &mut WitnessMap,
     ) -> Result<(), OpcodeResolutionError> {
-        let missing_assignment = |witness: Option<Witness>| {
-            OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                witness.unwrap().0,
-            ))
-        };
-
-        let op_expr = ArithmeticSolver::evaluate(&op.operation, initial_witness);
-        let operation = op_expr
-            .to_const()
-            .ok_or_else(|| missing_assignment(any_witness_from_expression(&op_expr)))?;
+        let operation = get_value(&op.index, initial_witness)?;
 
         // Find the memory index associated with this memory operation.
-        let index_expr = ArithmeticSolver::evaluate(&op.index, initial_witness);
-        let index = index_expr
-            .to_const()
-            .ok_or_else(|| missing_assignment(any_witness_from_expression(&index_expr)))?;
+        let index = get_value(&op.index, initial_witness)?;
         let memory_index = index.try_to_u64().unwrap() as MemoryIndex;
 
         // Calculate the value associated with this memory operation.
@@ -87,9 +75,7 @@ impl BlockSolver {
             // into this value.
             let value_read_witness = value.to_witness().expect("This should be a witness");
 
-            // TODO: change error message
-            let value_in_array =
-                self.get_value(memory_index).ok_or_else(|| missing_assignment(Some(Witness(0))))?;
+            let value_in_array = self.read_memory_index(memory_index)?;
 
             insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
@@ -101,7 +87,7 @@ impl BlockSolver {
 
             let value_to_write = get_value(&value_write, initial_witness).expect("Change");
 
-            self.insert_value(memory_index, value_to_write);
+            self.write_memory_index(memory_index, value_to_write);
             Ok(())
         }
     }
