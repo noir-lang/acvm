@@ -187,11 +187,11 @@ pub fn compile(
                 // `MemoryInit` does not write values to the `WitnessMap`
             }
             Opcode::MemoryOp { op, .. } => {
-                for (_, w1, w2) in &op.index.mul_terms {
+                for (_, w1, w2) in &op.value.mul_terms {
                     transformer.mark_solvable(*w1);
                     transformer.mark_solvable(*w2);
                 }
-                for (_, w) in &op.index.linear_combinations {
+                for (_, w) in &op.value.linear_combinations {
                     transformer.mark_solvable(*w);
                 }
             }
