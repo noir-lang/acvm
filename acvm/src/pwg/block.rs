@@ -6,11 +6,7 @@ use acir::{
     FieldElement,
 };
 
-use super::{
-    any_witness_from_expression,
-    arithmetic::{ArithmeticSolver, GateStatus},
-    get_value, insert_value,
-};
+use super::{any_witness_from_expression, arithmetic::ArithmeticSolver, get_value, insert_value};
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
 
 type MemoryIndex = u32;
@@ -95,7 +91,7 @@ impl BlockSolver {
             let value_in_array =
                 self.get_value(memory_index).ok_or_else(|| missing_assignment(Some(Witness(0))))?;
 
-            insert_value(&value_read_witness, value_in_array, initial_witness)?;
+            insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
             // arr[memory_index] = value_write
             //
@@ -106,8 +102,8 @@ impl BlockSolver {
             let value_to_write = get_value(&value_write, initial_witness).expect("Change");
 
             self.insert_value(memory_index, value_to_write);
+            Ok(())
         }
-        Ok(())
     }
 
     // Try to solve block operations from the trace
