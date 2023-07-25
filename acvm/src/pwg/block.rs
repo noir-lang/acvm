@@ -9,25 +9,27 @@ use acir::{
 use super::{
     any_witness_from_expression,
     arithmetic::{ArithmeticSolver, GateStatus},
-    insert_value,
+    get_value, insert_value,
 };
 use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+
+type MemoryIndex = u32;
 
 /// Maintains the state for solving Block opcode
 /// block_value is the value of the Block at the solved_operations step
 /// solved_operations is the number of solved elements in the block
 #[derive(Default)]
 pub(super) struct BlockSolver {
-    block_value: HashMap<u32, FieldElement>,
+    block_value: HashMap<MemoryIndex, FieldElement>,
     solved_operations: usize,
 }
 
 impl BlockSolver {
-    fn insert_value(&mut self, index: u32, value: FieldElement) {
+    fn insert_value(&mut self, index: MemoryIndex, value: FieldElement) {
         self.block_value.insert(index, value);
     }
 
-    fn get_value(&self, index: u32) -> Option<FieldElement> {
+    fn get_value(&self, index: MemoryIndex) -> Option<FieldElement> {
         self.block_value.get(&index).copied()
     }
 
@@ -68,38 +70,42 @@ impl BlockSolver {
         let operation = op_expr
             .to_const()
             .ok_or_else(|| missing_assignment(any_witness_from_expression(&op_expr)))?;
-        // `operation == 0` implies a read operation. (`operation == 1` implies write operation).
-        let is_read_operation = operation.is_zero();
 
         // Find the memory index associated with this memory operation.
         let index_expr = ArithmeticSolver::evaluate(&op.index, initial_witness);
         let index = index_expr
             .to_const()
             .ok_or_else(|| missing_assignment(any_witness_from_expression(&index_expr)))?;
-        let memory_index = index.try_to_u64().unwrap() as u32;
+        let memory_index = index.try_to_u64().unwrap() as MemoryIndex;
 
         // Calculate the value associated with this memory operation.
         let value = ArithmeticSolver::evaluate(&op.value, initial_witness);
 
-        if value.is_const() {
-            self.insert_value(memory_index, value.q_c);
-        } else if is_read_operation && value.is_linear() {
-            match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                GateStatus::GateSatisfied(sum) => {
-                    self.insert_value(memory_index, sum + value.q_c);
-                }
-                GateStatus::GateSolvable(sum, (coef, w)) => {
-                    let map_value =
-                        self.get_value(memory_index).ok_or_else(|| missing_assignment(Some(w)))?;
+        // `operation == 0` implies a read operation. (`operation == 1` implies write operation).
+        let is_read_operation = operation.is_zero();
 
-                    insert_value(&w, (map_value - sum - value.q_c) / coef, initial_witness)?;
-                }
-                GateStatus::GateUnsolvable => {
-                    return Err(missing_assignment(any_witness_from_expression(&value)))
-                }
-            }
+        if is_read_operation {
+            // value_read = arr[memory_index]
+            //
+            // This is the value that we want to read into; ie copy from the memory block
+            // into this value.
+            let value_read_witness = value.to_witness().expect("This should be a witness");
+
+            // TODO: change error message
+            let value_in_array =
+                self.get_value(memory_index).ok_or_else(|| missing_assignment(Some(Witness(0))))?;
+
+            insert_value(&value_read_witness, value_in_array, initial_witness)?;
         } else {
-            return Err(missing_assignment(any_witness_from_expression(&value)));
+            // arr[memory_index] = value_write
+            //
+            // This is the value that we want to write into; ie copy from value_write
+            // into the memory block.
+            let value_write = value;
+
+            let value_to_write = get_value(&value_write, initial_witness).expect("Change");
+
+            self.insert_value(memory_index, value_to_write);
         }
         Ok(())
     }
