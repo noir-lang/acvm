@@ -185,7 +185,6 @@ pub fn compile(
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
-                ()
             }
             Opcode::MemoryOp { op, .. } => {
                 for (_, w1, w2) in &op.value.mul_terms {
