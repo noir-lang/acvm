@@ -5,6 +5,7 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
+        opcodes::{BlockId, MemOp},
         Opcode, OpcodeLabel,
     },
     native_types::{Expression, Witness, WitnessMap},
@@ -623,4 +624,49 @@ fn unsatisfied_opcode_resolved_brillig() {
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
+}
+
+#[test]
+fn memory_operations() {
+    let initial_witness = WitnessMap::from(BTreeMap::from_iter([
+        (Witness(1), FieldElement::from(1u128)),
+        (Witness(2), FieldElement::from(2u128)),
+        (Witness(3), FieldElement::from(3u128)),
+        (Witness(4), FieldElement::from(4u128)),
+        (Witness(5), FieldElement::from(5u128)),
+        (Witness(6), FieldElement::from(4u128)),
+    ]));
+
+    let block_id = BlockId(0);
+
+    let init = Opcode::MemoryInit { block_id, init: (1..6).map(Witness).collect() };
+
+    let read_op = Opcode::MemoryOp {
+        block_id,
+        op: MemOp {
+            operation: Expression::zero(),
+            index: Witness(6).into(),
+            value: Witness(7).into(),
+        },
+    };
+
+    let expression = Opcode::Arithmetic(Expression {
+        mul_terms: Vec::new(),
+        linear_combinations: vec![
+            (FieldElement::one(), Witness(7)),
+            (-FieldElement::one(), Witness(8)),
+        ],
+        q_c: FieldElement::one(),
+    });
+
+    let opcodes = vec![init, read_op, expression];
+
+    println!("{opcodes:?}");
+
+    let mut acvm = ACVM::new(StubbedBackend, opcodes, initial_witness);
+    let solver_status = acvm.solve();
+    assert_eq!(solver_status, ACVMStatus::Solved);
+    let witness_map = acvm.finalize();
+
+    println!("{:?}", witness_map);
 }
