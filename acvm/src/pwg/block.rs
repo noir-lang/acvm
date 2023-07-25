@@ -75,7 +75,7 @@ impl BlockSolver {
             // into this value.
             let value_read_witness = value.to_witness().expect("This should be a witness");
 
-            let value_in_array = self.read_memory_index(memory_index)?;
+            let value_in_array = self.read_memory_index(memory_index);
 
             insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
