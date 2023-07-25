@@ -185,6 +185,8 @@ pub fn compile(
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
                 for (_, w1, w2) in &op.value.mul_terms {
@@ -194,6 +196,8 @@ pub fn compile(
                 for (_, w) in &op.value.linear_combinations {
                     transformer.mark_solvable(*w);
                 }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
             }
 
             Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
