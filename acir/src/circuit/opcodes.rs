@@ -194,7 +194,7 @@ impl std::fmt::Display for Opcode {
                 let is_read = op.operation.is_zero();
                 let is_write = op.operation == Expression::one();
                 if is_read {
-                    write!(f, "(id: {}, read at: {}) ", block_id.0, op.index)
+                    write!(f, "(id: {}, read at: {}, value: {}) ", block_id.0, op.index, op.value)
                 } else if is_write {
                     write!(f, "(id: {}, write {} at: {}) ", block_id.0, op.value, op.index)
                 } else {
