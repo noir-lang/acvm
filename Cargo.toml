@@ -17,7 +17,6 @@ brillig = { version = "0.20.0", path = "brillig", default-features = false }
 blackbox_solver = { package = "acvm_blackbox_solver", version = "0.20.0", path = "blackbox_solver", default-features = false }
 
 bincode = "1.3.3"
-rmp-serde = "1.1.0"
 
 num-bigint = "0.4"
 num-traits = "0.2"
