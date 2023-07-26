@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
 pub struct BlockId(pub u32);
 
-/// Operation on a block
-/// We can either write or read at a block index
+/// Operation on a block of memory
+/// We can either write or read at an index in memory
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct MemOp {
     /// Can be 0 (read) or 1 (write)
