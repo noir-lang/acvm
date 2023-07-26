@@ -64,7 +64,7 @@ impl BlockSolver {
         op: &MemOp,
         initial_witness: &mut WitnessMap,
     ) -> Result<(), OpcodeResolutionError> {
-        let operation = get_value(&op.index, initial_witness)?;
+        let operation = get_value(&op.operation, initial_witness)?;
 
         // Find the memory index associated with this memory operation.
         let index = get_value(&op.index, initial_witness)?;
@@ -77,9 +77,9 @@ impl BlockSolver {
         let is_read_operation = operation.is_zero();
 
         if is_read_operation {
-            // value_read = arr[memory_index]
+            // `value_read = arr[memory_index]`
             //
-            // This is the value that we want to read into; ie copy from the memory block
+            // This is the value that we want to read into; i.e. copy from the memory block
             // into this value.
             let value_read_witness = value.to_witness().expect("This should be a witness");
 
@@ -87,9 +87,9 @@ impl BlockSolver {
 
             insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
-            // arr[memory_index] = value_write
+            // `arr[memory_index] = value_write`
             //
-            // This is the value that we want to write into; ie copy from value_write
+            // This is the value that we want to write into; i.e. copy from `value_write`
             // into the memory block.
             let value_write = value;
 
@@ -126,47 +126,31 @@ impl BlockSolver {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use acir::{
         circuit::opcodes::MemOp,
-        native_types::{Expression, Witness, WitnessMap},
+        native_types::{Witness, WitnessMap},
         FieldElement,
     };
 
     use super::BlockSolver;
-    use crate::pwg::insert_value;
 
     #[test]
     fn test_solver() {
-        let mut index = FieldElement::zero();
-        let mut trace = vec![MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(1)),
-        }];
-        index += FieldElement::one();
-        trace.push(MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(2)),
-        });
-        index += FieldElement::one();
-        trace.push(MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(3)),
-        });
-        trace.push(MemOp {
-            operation: Expression::zero(),
-            index: Expression::one(),
-            value: Expression::from(Witness(4)),
-        });
-        let mut initial_witness = WitnessMap::new();
-        let mut value = FieldElement::zero();
-        insert_value(&Witness(1), value, &mut initial_witness).unwrap();
-        value = FieldElement::one();
-        insert_value(&Witness(2), value, &mut initial_witness).unwrap();
-        value = value + value;
-        insert_value(&Witness(3), value, &mut initial_witness).unwrap();
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(0u128).into(), Witness(1).into()),
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(2).into()),
+            MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
+        ];
+
         let mut block_solver = BlockSolver::default();
         block_solver.solve(&mut initial_witness, &trace).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
