@@ -6,8 +6,8 @@ use std::{
 
 use acir_field::FieldElement;
 use flate2::bufread::GzDecoder;
-#[cfg(feature = "serialize-messagepack")]
-use flate2::{bufread::DeflateDecoder, write::DeflateEncoder, Compression};
+use flate2::bufread::GzEncoder;
+use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -110,8 +110,11 @@ impl TryFrom<WitnessMap> for Vec<u8> {
     type Error = WitnessMapError;
 
     fn try_from(val: WitnessMap) -> Result<Self, Self::Error> {
-        let buf = bincode::serde::encode_to_vec(val, bincode::config::standard()).unwrap();
-        Ok(buf)
+        let buf = bincode::serialize(&val).unwrap();
+        let mut deflater = GzEncoder::new(buf.as_slice(), Compression::best());
+        let mut buf_c = Vec::new();
+        deflater.read_to_end(&mut buf_c).map_err(|err| WitnessMapError(err.into()))?;
+        Ok(buf_c)
     }
 }
 
@@ -137,9 +140,7 @@ impl TryFrom<&[u8]> for WitnessMap {
         let mut deflater = GzDecoder::new(bytes);
         let mut buf_d = Vec::new();
         deflater.read_to_end(&mut buf_d).map_err(|err| WitnessMapError(err.into()))?;
-        let (witness_map, _len) =
-            bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard())
-                .unwrap();
+        let witness_map = bincode::deserialize(buf_d.as_slice()).unwrap();
         Ok(Self(witness_map))
     }
 }

@@ -6,15 +6,10 @@ pub mod opcodes;
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
 
-#[cfg(feature = "serialize-messagepack")]
-use flate2::{read::DeflateDecoder, write::DeflateEncoder};
 use std::io::prelude::*;
 
-#[cfg(not(feature = "serialize-messagepack"))]
-use flate2::write::GzEncoder;
 use flate2::Compression;
 
-// use flate2::{read::DeflateDecoder, write::DeflateEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -166,9 +161,10 @@ impl Circuit {
 
     #[cfg(not(feature = "serialize-messagepack"))]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
-        let buf = bincode::serde::encode_to_vec(self, bincode::config::standard()).unwrap();
-        let mut encoder = GzEncoder::new(writer, Compression::default());
+        let buf = bincode::serialize(&self).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
         encoder.write_all(&buf).unwrap();
+        encoder.finish().unwrap();
         Ok(())
     }
 
@@ -177,9 +173,7 @@ impl Circuit {
         let mut gz_decoder = flate2::read::GzDecoder::new(reader);
         let mut buf_d = Vec::new();
         gz_decoder.read_to_end(&mut buf_d).unwrap();
-        let (circuit, _len): (Circuit, usize) =
-            bincode::serde::decode_from_slice(buf_d.as_slice(), bincode::config::standard())
-                .unwrap();
+        let circuit = bincode::deserialize(&buf_d).unwrap();
         Ok(circuit)
     }
 

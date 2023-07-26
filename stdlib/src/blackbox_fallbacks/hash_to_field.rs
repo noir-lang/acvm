@@ -6,7 +6,7 @@ use super::{
 };
 use crate::helpers::VariableStore;
 use acir::{
-    brillig::{self, BrilligOpcode, RegisterIndex},
+    brillig::{self, RegisterIndex},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         Opcode,
@@ -26,10 +26,10 @@ pub fn hash_to_field(
     // Decompose the input field elements into bytes and collect the resulting witnesses.
     for (witness, num_bits) in inputs {
         let num_bytes = round_to_nearest_byte(num_bits);
-        let (extra_gates, inputs, updated_witness_counter) =
+        let (extra_gates, extra_inputs, updated_witness_counter) =
             byte_decomposition(witness, num_bytes, num_witness);
         new_gates.extend(extra_gates);
-        new_inputs.extend(inputs);
+        new_inputs.extend(extra_inputs);
         num_witness = updated_witness_counter;
     }
 
@@ -104,7 +104,7 @@ fn field_addition(
         ],
         outputs: vec![BrilligOutputs::Simple(new_witness)],
         foreign_call_results: vec![],
-        bytecode: vec![BrilligOpcode::BinaryFieldOp {
+        bytecode: vec![brillig::Opcode::BinaryFieldOp {
             op: brillig::BinaryFieldOp::Add,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
@@ -150,7 +150,7 @@ pub(crate) fn field_mul(
         ],
         outputs: vec![BrilligOutputs::Simple(new_witness)],
         foreign_call_results: vec![],
-        bytecode: vec![BrilligOpcode::BinaryFieldOp {
+        bytecode: vec![brillig::Opcode::BinaryFieldOp {
             op: brillig::BinaryFieldOp::Mul,
             lhs: RegisterIndex::from(0),
             rhs: RegisterIndex::from(1),
