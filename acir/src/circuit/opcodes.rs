@@ -6,10 +6,10 @@ use crate::native_types::{Expression, Witness};
 use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
-mod block;
+mod memory_operation;
 
 pub use black_box_function_call::{BlackBoxFuncCall, FunctionInput};
-pub use block::{BlockId, MemOp, MemoryBlock};
+pub use memory_operation::{BlockId, MemOp};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
@@ -19,24 +19,8 @@ pub enum Opcode {
     /// Often used for exposing more efficient implementations of SNARK-unfriendly computations.  
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
-    /// Abstract read/write operations on a block of data. In particular;
-    /// - It does not require an initialization phase
-    /// - Operations do not need to be constant, they can be any expression which resolves to 0 or 1.
-    Block(MemoryBlock),
-    /// Same as Block, but it starts with an initialization phase and then have only read operation
-    /// - init: write operations with index from 0..MemoryBlock.len
-    /// - after MemoryBlock.len; all operations are read
-    ///
-    /// ROM can be more efficiently handled because we do not need to check for the operation value (which is always 0).
-    ROM(MemoryBlock),
-    /// Same as ROM, but can have read or write operations
-    /// - init = write operations with index 0..MemoryBlock.len
-    /// - after MemoryBlock.len, all operations are constant expressions (0 or 1)
-    // TODO(#319): Review this comment and generalize it to be useful for other backends.
-    // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
-    RAM(MemoryBlock),
     Brillig(Brillig),
-    /// Atomic operation on a memory block
+    /// Atomic operation on a block of memory
     MemoryOp {
         block_id: BlockId,
         op: MemOp,
@@ -70,9 +54,6 @@ impl Opcode {
             Opcode::Arithmetic(_) => "arithmetic",
             Opcode::Directive(directive) => directive.name(),
             Opcode::BlackBoxFuncCall(g) => g.name(),
-            Opcode::Block(_) => "block",
-            Opcode::RAM(_) => "ram",
-            Opcode::ROM(_) => "rom",
             Opcode::Brillig(_) => "brillig",
             Opcode::MemoryOp { .. } => "mem",
             Opcode::MemoryInit { .. } => "init memory block",
@@ -171,18 +152,6 @@ impl std::fmt::Display for Opcode {
                     witnesses.last().unwrap().witness_index()
                 ),
             },
-            Opcode::Block(block) => {
-                write!(f, "BLOCK ")?;
-                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
-            }
-            Opcode::ROM(block) => {
-                write!(f, "ROM ")?;
-                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
-            }
-            Opcode::RAM(block) => {
-                write!(f, "RAM ")?;
-                write!(f, "(id: {}, len: {}) ", block.id.0, block.trace.len())
-            }
             Opcode::Brillig(brillig) => {
                 write!(f, "BRILLIG: ")?;
                 writeln!(f, "inputs: {:?}", brillig.inputs)?;
