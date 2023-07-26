@@ -170,12 +170,12 @@ pub fn compile(
                     }
                     Directive::ToLeRadix { b, .. } => {
                         for witness in b {
-                            transformer.mark_solvable(*w);
+                            transformer.mark_solvable(*witness);
                         }
                     }
                     Directive::PermutationSort { bits, .. } => {
                         for witness in bits {
-                            transformer.mark_solvable(*w);
+                            transformer.mark_solvable(*witness);
                         }
                     }
                     Directive::Log(_) => (),
