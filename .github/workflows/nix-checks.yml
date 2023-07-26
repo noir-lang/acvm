@@ -1,4 +1,4 @@
-name: Nix
+name: Nix Barretenberg
 
 on: [push, pull_request]
 

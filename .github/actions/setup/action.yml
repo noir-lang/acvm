@@ -1,12 +1,9 @@
-name: Setup
+name: Yarn Cache and Install
+description: Installs dependencies and caches them
 
 runs:
   using: composite
   steps:
-    - name: Install node
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18.15
     - name: Cache
       uses: actions/cache@v3
       id: cache

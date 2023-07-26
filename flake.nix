@@ -99,7 +99,7 @@
         version = "0.0.0"; # x-release-please-version
 
         src = pkgs.lib.cleanSourceWith {
-          src = craneLib.path ./.;
+          src = craneLib.path ./acvm_js;
           filter = sourceFilter;
         };
 
@@ -122,7 +122,7 @@
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       cargoArtifacts = craneLib.buildDepsOnly wasmArgs;
 
-      wasm-bindgen-cli = pkgs.callPackage ./nix/wasm-bindgen-cli/default.nix {
+      wasm-bindgen-cli = pkgs.callPackage ./acvm_js/nix/wasm-bindgen-cli/default.nix {
         rustPlatform = pkgs.makeRustPlatform {
           rustc = rustToolchain;
           cargo = rustToolchain;
@@ -147,7 +147,7 @@
         COMMIT_SHORT = builtins.substring 0 7 GIT_COMMIT;
         VERSION_APPENDIX = if GIT_DIRTY == "true" then "-dirty" else "";
 
-        src = ./.; #craneLib.cleanCargoSource (craneLib.path ./.);
+        src = ./acvm_js; #craneLib.cleanCargoSource (craneLib.path ./.);
 
         nativeBuildInputs = with pkgs; [
           binaryen
