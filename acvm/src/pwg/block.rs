@@ -144,14 +144,16 @@ mod tests {
             (Witness(3), FieldElement::from(2u128)),
         ]));
 
+        let init = vec![Witness(1), Witness(2)];
+
         let trace = vec![
-            MemOp::write_to_mem_index(FieldElement::from(0u128).into(), Witness(1).into()),
-            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(2).into()),
             MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
             MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
         ];
 
         let mut block_solver = BlockSolver::default();
+        block_solver.init(&init, &initial_witness).unwrap();
+
         block_solver.solve(&mut initial_witness, &trace).unwrap();
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
     }
