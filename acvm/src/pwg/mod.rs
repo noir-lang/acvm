@@ -190,7 +190,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     ///
     /// The ACVM can then be restarted to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub fn resolve_pending_foreign_call(&mut self, foreign_call_result: ForeignCallResult) {
-        if matches!(self.status, ACVMStatus::RequiresForeignCall(_)) {
+        if !matches!(self.status, ACVMStatus::RequiresForeignCall(_)) {
             panic!("ACVM is not expecting a foreign call response as no call was made");
         }
 
