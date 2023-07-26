@@ -13,11 +13,11 @@ use acir::{
     FieldElement,
 };
 
-const INIT_CONSTANTS: [u128; 8] = [
+const INIT_CONSTANTS: [u32; 8] = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
 ];
 
-const ROUND_CONSTANTS: [u128; 64] = [
+const ROUND_CONSTANTS: [u32; 64] = [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
     0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -41,10 +41,10 @@ pub fn sha256(
     for (witness, num_bits) in inputs {
         let num_bytes = round_to_nearest_byte(num_bits);
         total_num_bytes += num_bytes;
-        let (extra_gates, inputs, updated_witness_counter) =
+        let (extra_gates, extra_inputs, updated_witness_counter) =
             byte_decomposition(witness, num_bytes, num_witness);
         new_gates.extend(extra_gates);
-        new_inputs.extend(inputs);
+        new_inputs.extend(extra_inputs);
         num_witness = updated_witness_counter;
     }
 
@@ -143,7 +143,7 @@ fn create_sha256_constraint(
     (result, num_witness, new_gates)
 }
 
-fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<Opcode>) {
+pub(crate) fn pad(number: u32, bit_size: u32, mut num_witness: u32) -> (u32, Witness, Vec<Opcode>) {
     let mut new_gates = Vec::new();
     let mut variables = VariableStore::new(&mut num_witness);
     let pad = variables.new_variable();

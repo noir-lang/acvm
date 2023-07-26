@@ -156,6 +156,20 @@ impl FallbackTransformer {
                     current_witness_idx,
                 )
             }
+            #[cfg(feature = "unstable-fallbacks")]
+            BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
+                let mut keccak_input = Vec::new();
+                for input in inputs.iter() {
+                    let witness_index = Expression::from(input.witness);
+                    let num_bits = input.num_bits;
+                    keccak_input.push((witness_index, num_bits));
+                }
+                stdlib::blackbox_fallbacks::keccak256(
+                    keccak_input,
+                    outputs.to_vec(),
+                    current_witness_idx,
+                )
+            }
             _ => {
                 return Err(CompileError::UnsupportedBlackBox(gc.get_black_box_func()));
             }
