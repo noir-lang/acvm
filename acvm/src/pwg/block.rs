@@ -71,6 +71,9 @@ impl BlockSolver {
         let memory_index = index.try_to_u64().unwrap() as MemoryIndex;
 
         // Calculate the value associated with this memory operation.
+        //
+        // In read operations, this corresponds to the witness index at which the value from memory will be written.
+        // In write operations, this corresponds to the expression which will be written to memory.
         let value = ArithmeticSolver::evaluate(&op.value, initial_witness);
 
         // `operation == 0` implies a read operation. (`operation == 1` implies write operation).
