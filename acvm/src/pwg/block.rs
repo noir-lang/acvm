@@ -93,7 +93,7 @@ impl BlockSolver {
             // into the memory block.
             let value_write = value;
 
-            let value_to_write = get_value(&value_write, initial_witness).expect("Change");
+            let value_to_write = get_value(&value_write, initial_witness)?;
 
             self.write_memory_index(memory_index, value_to_write);
             Ok(())
