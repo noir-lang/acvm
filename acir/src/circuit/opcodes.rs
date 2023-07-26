@@ -6,10 +6,10 @@ use crate::native_types::{Expression, Witness};
 use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
-mod block;
+mod memory_operation;
 
 pub use black_box_function_call::{BlackBoxFuncCall, FunctionInput};
-pub use block::{BlockId, MemOp, MemoryBlock};
+pub use memory_operation::{BlockId, MemOp, MemoryBlock};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {

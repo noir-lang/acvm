@@ -11,15 +11,13 @@ use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_va
 
 type MemoryIndex = u32;
 
-/// Maintains the state for solving Block opcode
-/// block_value is the value of the Block at the solved_operations step
-/// solved_operations is the number of solved elements in the block
+/// Maintains the state for solving [`MemoryInit`][`acir::circuit::Opcode::MemoryInit`] and [`MemoryOp`][`acir::circuit::Opcode::MemoryOp`] opcodes.
 #[derive(Default)]
-pub(super) struct BlockSolver {
+pub(super) struct MemoryOpSolver {
     block_value: HashMap<MemoryIndex, FieldElement>,
 }
 
-impl BlockSolver {
+impl MemoryOpSolver {
     fn write_memory_index(&mut self, index: MemoryIndex, value: FieldElement) {
         self.block_value.insert(index, value);
     }
@@ -100,7 +98,7 @@ mod tests {
         FieldElement,
     };
 
-    use super::BlockSolver;
+    use super::MemoryOpSolver;
 
     #[test]
     fn test_solver() {
@@ -117,7 +115,7 @@ mod tests {
             MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
         ];
 
-        let mut block_solver = BlockSolver::default();
+        let mut block_solver = MemoryOpSolver::default();
         block_solver.init(&init, &initial_witness).unwrap();
 
         for op in trace {

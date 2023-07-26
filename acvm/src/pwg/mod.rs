@@ -11,8 +11,8 @@ use acir::{
 use blackbox_solver::BlackBoxResolutionError;
 
 use self::{
-    arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
-    directives::solve_directives,
+    arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,
+    memory_op::MemoryOpSolver,
 };
 use crate::{BlackBoxFunctionSolver, Language};
 
@@ -26,7 +26,7 @@ mod brillig;
 mod directives;
 // black box functions
 mod blackbox;
-mod block;
+mod memory_op;
 
 pub use brillig::ForeignCallWaitInfo;
 
@@ -98,8 +98,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     backend: B,
 
-    /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
-    block_solvers: HashMap<BlockId, BlockSolver>,
+    /// Stores the solver for memory operations disambiguated by [block][`BlockId`].
+    block_solvers: HashMap<BlockId, MemoryOpSolver>,
 
     /// A list of opcodes which are to be executed by the ACVM.
     opcodes: Vec<Opcode>,
