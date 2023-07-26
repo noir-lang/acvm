@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acir-v0.19.1...acir-v0.20.0) (2023-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447))
+
+### Features
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447)) ([3261c7a](https://github.com/noir-lang/acvm/commit/3261c7a2fd4f3a300bc5f39ef4febccd8a853560))
+
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acir-v0.19.0...acir-v0.19.1) (2023-07-17)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
+## [0.19.0](https://github.com/noir-lang/acvm/compare/acir-v0.18.2...acir-v0.19.0) (2023-07-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436))
+
+### Features
+
+* move to bincode and GzEncoding for artifacts ([#436](https://github.com/noir-lang/acvm/issues/436)) ([4683240](https://github.com/noir-lang/acvm/commit/46832400a8bc20135a8a895ab9477b14449734d9))
+
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acir-v0.18.1...acir-v0.18.2) (2023-07-12)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
 ## [0.18.1](https://github.com/noir-lang/acvm/compare/acir-v0.18.0...acir-v0.18.1) (2023-07-12)
 
 

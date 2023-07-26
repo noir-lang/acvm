@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acvm-v0.19.1...acvm-v0.20.0) (2023-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447))
+
+### Features
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447)) ([3261c7a](https://github.com/noir-lang/acvm/commit/3261c7a2fd4f3a300bc5f39ef4febccd8a853560))
+* **stdlib:** Add fallback implementation of `HashToField128Security` black box function ([#435](https://github.com/noir-lang/acvm/issues/435)) ([ed40f22](https://github.com/noir-lang/acvm/commit/ed40f228529e888d1960bfa70cb92b277e24b37f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.1 to 0.20.0
+
+## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm-v0.19.0...acvm-v0.19.1) (2023-07-17)
+
+
+### Bug Fixes
+
+* Remove panic when we divide 0/0 in quotient directive ([#437](https://github.com/noir-lang/acvm/issues/437)) ([9c8ff64](https://github.com/noir-lang/acvm/commit/9c8ff64ebf27a86787ae184e10ed9581041ec0ff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.0 to 0.19.1
+
+## [0.19.0](https://github.com/noir-lang/acvm/compare/acvm-v0.18.2...acvm-v0.19.0) (2023-07-15)
+
+
+### Miscellaneous Chores
+
+* **acvm:** Synchronize acvm versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.18.2 to 0.19.0
+
+## [0.18.2](https://github.com/noir-lang/acvm/compare/acvm-v0.18.1...acvm-v0.18.2) (2023-07-12)
+
+
+### Features
+
+* **acvm:** reexport `blackbox_solver` crate from `acvm` ([#431](https://github.com/noir-lang/acvm/issues/431)) ([517e942](https://github.com/noir-lang/acvm/commit/517e942b732d7107f6e064c6791917d1508229b3))
+* **stdlib:** Add fallback implementation of `Blake2s` black box function ([#424](https://github.com/noir-lang/acvm/issues/424)) ([982d940](https://github.com/noir-lang/acvm/commit/982d94087d46092ce7a5e94dbd7e732195f58e42))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.18.1 to 0.18.2
+
 ## [0.18.1](https://github.com/noir-lang/acvm/compare/acvm-v0.18.0...acvm-v0.18.1) (2023-07-12)
 
 
