@@ -1,4 +1,4 @@
-use crate::native_types::Expression;
+use crate::native_types::{Expression, Witness};
 use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,19 @@ pub struct MemOp {
     pub operation: Expression,
     pub index: Expression,
     pub value: Expression,
+}
+
+impl MemOp {
+    /// Creates a `MemOp` which reads from memory at `index` and inserts the read value
+    /// into the [`WitnessMap`][crate::native_types::WitnessMap] at `witness`
+    pub fn read_at_mem_index(index: Expression, witness: Witness) -> Self {
+        MemOp { operation: Expression::zero(), index, value: witness.into() }
+    }
+
+    /// Creates a `MemOp` which writes the [`Expression`] `value` into memory at `index`.
+    pub fn write_to_mem_index(index: Expression, value: Expression) -> Self {
+        MemOp { operation: Expression::one(), index, value }
+    }
 }
 
 /// Represents operations on a block of length len of data
@@ -34,7 +47,7 @@ impl MemoryBlock {
             assert_eq!(
                 self.trace[i].operation,
                 Expression::one(),
-                "Block initialization require a write"
+                "Block initialization requires a write"
             );
             let index = self.trace[i]
                 .index

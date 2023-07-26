@@ -2,7 +2,7 @@ use super::{
     brillig::Brillig,
     directives::{Directive, LogInfo, QuotientDirective},
 };
-use crate::native_types::Expression;
+use crate::native_types::{Expression, Witness};
 use serde::{Deserialize, Serialize};
 
 mod black_box_function_call;
@@ -36,6 +36,30 @@ pub enum Opcode {
     // RAM is required for acvm-backend-barretenberg as dynamic memory implementation in Barretenberg requires an initialization phase and can only handle constant values for operations.
     RAM(MemoryBlock),
     Brillig(Brillig),
+    /// Atomic operation on a memory block
+    MemoryOp {
+        block_id: BlockId,
+        op: MemOp,
+    },
+    MemoryInit {
+        block_id: BlockId,
+        init: Vec<Witness>,
+    },
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum UnsupportedMemoryOpcode {
+    MemoryOp,
+    MemoryInit,
+}
+
+impl std::fmt::Display for UnsupportedMemoryOpcode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnsupportedMemoryOpcode::MemoryOp => write!(f, "MemoryOp"),
+            UnsupportedMemoryOpcode::MemoryInit => write!(f, "MemoryInit"),
+        }
+    }
 }
 
 impl Opcode {
@@ -50,6 +74,19 @@ impl Opcode {
             Opcode::RAM(_) => "ram",
             Opcode::ROM(_) => "rom",
             Opcode::Brillig(_) => "brillig",
+            Opcode::MemoryOp { .. } => "mem",
+            Opcode::MemoryInit { .. } => "init memory block",
+        }
+    }
+
+    pub fn unsupported_opcode(&self) -> UnsupportedMemoryOpcode {
+        match self {
+            Opcode::MemoryOp { .. } => UnsupportedMemoryOpcode::MemoryOp,
+            Opcode::MemoryInit { .. } => UnsupportedMemoryOpcode::MemoryInit,
+            Opcode::BlackBoxFuncCall(_) => {
+                unreachable!("Unsupported Blackbox function should not be reported here")
+            }
+            _ => unreachable!("Opcode is supported"),
         }
     }
 
@@ -151,6 +188,22 @@ impl std::fmt::Display for Opcode {
                 writeln!(f, "inputs: {:?}", brillig.inputs)?;
                 writeln!(f, "outputs: {:?}", brillig.outputs)?;
                 writeln!(f, "{:?}", brillig.bytecode)
+            }
+            Opcode::MemoryOp { block_id, op } => {
+                write!(f, "MEM ")?;
+                let is_read = op.operation.is_zero();
+                let is_write = op.operation == Expression::one();
+                if is_read {
+                    write!(f, "(id: {}, read at: {}, value: {}) ", block_id.0, op.index, op.value)
+                } else if is_write {
+                    write!(f, "(id: {}, write {} at: {}) ", block_id.0, op.value, op.index)
+                } else {
+                    write!(f, "(id: {}, op {} at: {}) ", block_id.0, op.operation, op.index)
+                }
+            }
+            Opcode::MemoryInit { block_id, init } => {
+                write!(f, "INIT ")?;
+                write!(f, "(id: {}, len: {}) ", block_id.0, init.len())
             }
         }
     }

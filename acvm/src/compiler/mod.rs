@@ -1,5 +1,8 @@
 use acir::{
-    circuit::{Circuit, Opcode, OpcodeLabel},
+    circuit::{
+        brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
+        Opcode, OpcodeLabel,
+    },
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
 };
@@ -19,6 +22,8 @@ use transformers::{CSatTransformer, FallbackTransformer, R1CSTransformer};
 pub enum CompileError {
     #[error("The blackbox function {0} is not supported by the backend and acvm does not have a fallback implementation")]
     UnsupportedBlackBox(BlackBoxFunc),
+    #[error("The opcode {0} is not supported by the backend and acvm does not have a fallback implementation")]
+    UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
@@ -55,12 +60,18 @@ pub fn compile(
     let range_optimizer = RangeOptimizer::new(acir);
     let (acir, opcode_label) = range_optimizer.replace_redundant_ranges(opcode_label);
 
-    let transformer = match &np_language {
+    let mut transformer = match &np_language {
         crate::Language::R1CS => {
             let transformer = R1CSTransformer::new(acir);
             return Ok((transformer.transform(), opcode_label));
         }
-        crate::Language::PLONKCSat { width } => CSatTransformer::new(*width),
+        crate::Language::PLONKCSat { width } => {
+            let mut csat = CSatTransformer::new(*width);
+            for value in acir.circuit_arguments() {
+                csat.mark_solvable(value);
+            }
+            csat
+        }
     };
 
     // TODO: the code below is only for CSAT transformer
@@ -99,26 +110,123 @@ pub fn compile(
                     new_gates.push(intermediate_gate);
                 }
                 new_gates.push(arith_expr);
-                new_gates.sort();
                 for gate in new_gates {
                     new_opcode_labels.push(opcode_label[index]);
                     transformed_gates.push(Opcode::Arithmetic(gate));
                 }
             }
-            other_gate => {
+            Opcode::BlackBoxFuncCall(func) => {
+                match func {
+                    acir::circuit::opcodes::BlackBoxFuncCall::AND { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::XOR { output, .. } => {
+                        transformer.mark_solvable(*output)
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::RANGE { .. } => (),
+                    acir::circuit::opcodes::BlackBoxFuncCall::SHA256 { outputs, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Keccak256 { outputs, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Keccak256VariableLength {
+                        outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::RecursiveAggregation {
+                        output_aggregation_object: outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Blake2s { outputs, .. } => {
+                        for witness in outputs {
+                            transformer.mark_solvable(*witness);
+                        }
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::FixedBaseScalarMul {
+                        outputs,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::Pedersen { outputs, .. } => {
+                        transformer.mark_solvable(outputs.0);
+                        transformer.mark_solvable(outputs.1)
+                    }
+                    acir::circuit::opcodes::BlackBoxFuncCall::HashToField128Security {
+                        output,
+                        ..
+                    }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256k1 { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::EcdsaSecp256r1 { output, .. }
+                    | acir::circuit::opcodes::BlackBoxFuncCall::SchnorrVerify { output, .. } => {
+                        transformer.mark_solvable(*output)
+                    }
+                }
+
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(other_gate.clone())
+                transformed_gates.push(opcode.clone());
+            }
+            Opcode::Directive(directive) => {
+                match directive {
+                    Directive::Invert { result, .. } => {
+                        transformer.mark_solvable(*result);
+                    }
+                    Directive::Quotient(quotient_directive) => {
+                        transformer.mark_solvable(quotient_directive.q);
+                        transformer.mark_solvable(quotient_directive.r);
+                    }
+                    Directive::ToLeRadix { b, .. } => {
+                        for witness in b {
+                            transformer.mark_solvable(*witness);
+                        }
+                    }
+                    Directive::PermutationSort { bits, .. } => {
+                        for witness in bits {
+                            transformer.mark_solvable(*witness);
+                        }
+                    }
+                    Directive::Log(_) => (),
+                }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
+            }
+            Opcode::MemoryInit { .. } => {
+                // `MemoryInit` does not write values to the `WitnessMap`
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
+            }
+            Opcode::MemoryOp { op, .. } => {
+                for (_, witness1, witness2) in &op.value.mul_terms {
+                    transformer.mark_solvable(*witness1);
+                    transformer.mark_solvable(*witness2);
+                }
+                for (_, witness) in &op.value.linear_combinations {
+                    transformer.mark_solvable(*witness);
+                }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
+            }
+
+            Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
+                unimplemented!("Stepwise execution is not compatible with {}", opcode.name())
+            }
+            Opcode::Brillig(brillig) => {
+                for output in &brillig.outputs {
+                    match output {
+                        BrilligOutputs::Simple(w) => transformer.mark_solvable(*w),
+                        BrilligOutputs::Array(v) => {
+                            for witness in v {
+                                transformer.mark_solvable(*witness);
+                            }
+                        }
+                    }
+                }
+                new_opcode_labels.push(opcode_label[index]);
+                transformed_gates.push(opcode.clone());
             }
         }
     }
 
     let current_witness_index = next_witness_index - 1;
-
     Ok((
         Circuit {
             current_witness_index,
             opcodes: transformed_gates,
             // The optimizer does not add new public inputs
+            private_parameters: acir.private_parameters,
             public_parameters: acir.public_parameters,
             return_values: acir.return_values,
         },

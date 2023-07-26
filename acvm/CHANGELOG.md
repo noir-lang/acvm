@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.20.1](https://github.com/noir-lang/acvm/compare/acvm-v0.20.0...acvm-v0.20.1) (2023-07-26)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `Keccak256` black box function ([#445](https://github.com/noir-lang/acvm/issues/445)) ([f7ebb03](https://github.com/noir-lang/acvm/commit/f7ebb03653c971f119700ff8126d9eb5ff01be0f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.20.0 to 0.20.1
+
+## [0.20.0](https://github.com/noir-lang/acvm/compare/acvm-v0.19.1...acvm-v0.20.0) (2023-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447))
+
+### Features
+
+* atomic memory opcodes ([#447](https://github.com/noir-lang/acvm/issues/447)) ([3261c7a](https://github.com/noir-lang/acvm/commit/3261c7a2fd4f3a300bc5f39ef4febccd8a853560))
+* **stdlib:** Add fallback implementation of `HashToField128Security` black box function ([#435](https://github.com/noir-lang/acvm/issues/435)) ([ed40f22](https://github.com/noir-lang/acvm/commit/ed40f228529e888d1960bfa70cb92b277e24b37f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.19.1 to 0.20.0
+
 ## [0.19.1](https://github.com/noir-lang/acvm/compare/acvm-v0.19.0...acvm-v0.19.1) (2023-07-17)
 
 

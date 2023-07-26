@@ -6,147 +6,123 @@ use acir::{
     FieldElement,
 };
 
-use super::{
-    arithmetic::{ArithmeticSolver, GateStatus},
-    insert_value,
-};
-use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use super::OpcodeResolutionError;
+use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_value};
+
+type MemoryIndex = u32;
 
 /// Maintains the state for solving Block opcode
 /// block_value is the value of the Block at the solved_operations step
 /// solved_operations is the number of solved elements in the block
 #[derive(Default)]
 pub(super) struct BlockSolver {
-    block_value: HashMap<u32, FieldElement>,
-    solved_operations: usize,
+    block_value: HashMap<MemoryIndex, FieldElement>,
 }
 
 impl BlockSolver {
-    fn insert_value(&mut self, index: u32, value: FieldElement) {
+    fn write_memory_index(&mut self, index: MemoryIndex, value: FieldElement) {
         self.block_value.insert(index, value);
     }
 
-    fn get_value(&self, index: u32) -> Option<FieldElement> {
-        self.block_value.get(&index).copied()
+    fn read_memory_index(&self, index: MemoryIndex) -> FieldElement {
+        self.block_value.get(&index).copied().expect("Should not read uninitialized memory")
     }
 
-    // Helper function which tries to solve a Block opcode
-    // As long as operations are resolved, we update/read from the block_value
-    // We stop when an operation cannot be resolved
-    fn solve_helper(
+    /// Set the block_value from a MemoryInit opcode
+    pub(crate) fn init(
         &mut self,
-        initial_witness: &mut WitnessMap,
-        trace: &[MemOp],
+        init: &[Witness],
+        initial_witness: &WitnessMap,
     ) -> Result<(), OpcodeResolutionError> {
-        let missing_assignment = |witness: Option<Witness>| {
-            OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                witness.unwrap().0,
-            ))
-        };
-
-        for block_op in trace.iter().skip(self.solved_operations) {
-            let op_expr = ArithmeticSolver::evaluate(&block_op.operation, initial_witness);
-            let operation = op_expr.to_const().ok_or_else(|| {
-                missing_assignment(ArithmeticSolver::any_witness_from_expression(&op_expr))
-            })?;
-            let index_expr = ArithmeticSolver::evaluate(&block_op.index, initial_witness);
-            let index = index_expr.to_const().ok_or_else(|| {
-                missing_assignment(ArithmeticSolver::any_witness_from_expression(&index_expr))
-            })?;
-            let index = index.try_to_u64().unwrap() as u32;
-            let value = ArithmeticSolver::evaluate(&block_op.value, initial_witness);
-            let value_witness = ArithmeticSolver::any_witness_from_expression(&value);
-            if value.is_const() {
-                self.insert_value(index, value.q_c);
-            } else if operation.is_zero() && value.is_linear() {
-                match ArithmeticSolver::solve_fan_in_term(&value, initial_witness) {
-                    GateStatus::GateUnsolvable => return Err(missing_assignment(value_witness)),
-                    GateStatus::GateSolvable(sum, (coef, w)) => {
-                        let map_value =
-                            self.get_value(index).ok_or_else(|| missing_assignment(Some(w)))?;
-                        insert_value(&w, (map_value - sum - value.q_c) / coef, initial_witness)?;
-                    }
-                    GateStatus::GateSatisfied(sum) => {
-                        self.insert_value(index, sum + value.q_c);
-                    }
-                }
-            } else {
-                return Err(missing_assignment(value_witness));
-            }
-            self.solved_operations += 1;
+        for (memory_index, witness) in init.iter().enumerate() {
+            self.write_memory_index(
+                memory_index as MemoryIndex,
+                *witness_to_value(initial_witness, *witness)?,
+            );
         }
         Ok(())
     }
 
-    // Try to solve block operations from the trace
-    // The function calls solve_helper() for solving the opcode
-    // and converts its result into GateResolution
-    pub(crate) fn solve(
+    pub(crate) fn solve_memory_op(
         &mut self,
+        op: &MemOp,
         initial_witness: &mut WitnessMap,
-        trace: &[MemOp],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let initial_solved_operations = self.solved_operations;
+    ) -> Result<(), OpcodeResolutionError> {
+        let operation = get_value(&op.operation, initial_witness)?;
 
-        match self.solve_helper(initial_witness, trace) {
-            Ok(()) => Ok(OpcodeResolution::Solved),
-            Err(OpcodeResolutionError::OpcodeNotSolvable(err)) => {
-                if self.solved_operations > initial_solved_operations {
-                    Ok(OpcodeResolution::InProgress)
-                } else {
-                    Ok(OpcodeResolution::Stalled(err))
-                }
-            }
-            Err(err) => Err(err),
+        // Find the memory index associated with this memory operation.
+        let index = get_value(&op.index, initial_witness)?;
+        let memory_index = index.try_to_u64().unwrap() as MemoryIndex;
+
+        // Calculate the value associated with this memory operation.
+        //
+        // In read operations, this corresponds to the witness index at which the value from memory will be written.
+        // In write operations, this corresponds to the expression which will be written to memory.
+        let value = ArithmeticSolver::evaluate(&op.value, initial_witness);
+
+        // `operation == 0` implies a read operation. (`operation == 1` implies write operation).
+        let is_read_operation = operation.is_zero();
+
+        if is_read_operation {
+            // `value_read = arr[memory_index]`
+            //
+            // This is the value that we want to read into; i.e. copy from the memory block
+            // into this value.
+            let value_read_witness = value.to_witness().expect(
+                "Memory must be read into a specified witness index, encountered an Expression",
+            );
+
+            let value_in_array = self.read_memory_index(memory_index);
+
+            insert_value(&value_read_witness, value_in_array, initial_witness)
+        } else {
+            // `arr[memory_index] = value_write`
+            //
+            // This is the value that we want to write into; i.e. copy from `value_write`
+            // into the memory block.
+            let value_write = value;
+
+            let value_to_write = get_value(&value_write, initial_witness)?;
+
+            self.write_memory_index(memory_index, value_to_write);
+            Ok(())
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use acir::{
         circuit::opcodes::MemOp,
-        native_types::{Expression, Witness, WitnessMap},
+        native_types::{Witness, WitnessMap},
         FieldElement,
     };
 
     use super::BlockSolver;
-    use crate::pwg::insert_value;
 
     #[test]
     fn test_solver() {
-        let mut index = FieldElement::zero();
-        let mut trace = vec![MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(1)),
-        }];
-        index += FieldElement::one();
-        trace.push(MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(2)),
-        });
-        index += FieldElement::one();
-        trace.push(MemOp {
-            operation: Expression::one(),
-            index: Expression::from_field(index),
-            value: Expression::from(Witness(3)),
-        });
-        trace.push(MemOp {
-            operation: Expression::zero(),
-            index: Expression::one(),
-            value: Expression::from(Witness(4)),
-        });
-        let mut initial_witness = WitnessMap::new();
-        let mut value = FieldElement::zero();
-        insert_value(&Witness(1), value, &mut initial_witness).unwrap();
-        value = FieldElement::one();
-        insert_value(&Witness(2), value, &mut initial_witness).unwrap();
-        value = value + value;
-        insert_value(&Witness(3), value, &mut initial_witness).unwrap();
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let init = vec![Witness(1), Witness(2)];
+
+        let trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
+        ];
+
         let mut block_solver = BlockSolver::default();
-        block_solver.solve(&mut initial_witness, &trace).unwrap();
+        block_solver.init(&init, &initial_witness).unwrap();
+
+        for op in trace {
+            block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
+        }
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
     }
 }
