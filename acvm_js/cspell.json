@@ -1,0 +1,43 @@
+{
+    "version": "0.2",
+    "words": [
+        // In code
+        //
+        "blackbox",
+        "bindir",
+        "brillig",
+        "cout",
+        "jsdoc",
+        "keccak",
+        "merkle",
+        "nargo",
+        "pedersen",
+        "prehashed",
+        "pubkey",
+        "schnorr",
+        "rustc",
+        "secp",
+        "vecmap",
+        // Wasm
+        //
+        "bbmalloc",
+        "bbfree",
+        "ESUCCESS",
+        "fdstat",
+        "getrandom",
+        "jsvalue",
+        "logstr",
+        "plookup",
+        "wasi",
+        "wasmer",
+        // Dependencies
+        //
+        "acir",
+        "acvm",
+        "barretenberg",
+        "bindgen",
+        "gloo",
+        "noirc",
+        "thiserror"
+    ]
+}

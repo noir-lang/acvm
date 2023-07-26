@@ -1,0 +1,86 @@
+name: Test
+
+on: [push, pull_request]
+
+# This will cancel previous runs when a branch or PR is updated
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-acvm-js:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-22.11
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: cachix/cachix-action@v12
+        with:
+          name: barretenberg
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Build acvm-js
+        run: |
+          nix build .#
+
+      - name: Dereference symlink
+        run: echo "UPLOAD_PATH=$(readlink -f result)" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: acvm-js
+          path: ${{ env.UPLOAD_PATH }}
+          retention-days: 3
+
+  test-node:
+    needs: [build-acvm-js]
+    name: Node.js Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: acvm-js
+          path: ./result
+
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+
+      - name: Run node tests
+        run: yarn test
+
+  test-browser:
+    needs: [build-acvm-js]
+    name: Browser Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: acvm-js
+          path: ./result
+
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+
+      - name: Install playwright deps
+        run: |
+          npx playwright install
+          npx playwright install-deps
+
+      - name: Run browser tests
+        run: yarn test:browser
