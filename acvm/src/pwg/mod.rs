@@ -142,7 +142,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
         if self.status != ACVMStatus::Solved {
-            panic!("ACVM is not ready to be finalized");
+            panic!("ACVM execution is not complete");
         }
         self.witness_map
     }
@@ -186,7 +186,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         // We want to inject the foreign call result into the brillig opcode which initiated the call.
         let opcode = &mut self.opcodes[self.instruction_pointer];
         let Opcode::Brillig(brillig) = opcode else {
-            unreachable!("ACVM can only enter `ACVMStatus::RequiresForeignCall` state on a Brillig opcode");
+            unreachable!("ACVM can only enter `RequiresForeignCall` state on a Brillig opcode");
         };
         brillig.foreign_call_results.push(foreign_call_result);
 
