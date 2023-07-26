@@ -6,7 +6,7 @@ macro_rules! impl_uint {
         $size:expr
     ) => {
         use acir::{
-            brillig::{self, RegisterIndex},
+            brillig::{self, BrilligOpcode, RegisterIndex},
             circuit::{
                 brillig::{Brillig, BrilligInputs, BrilligOutputs},
                 directives::QuotientDirective,
@@ -56,7 +56,7 @@ macro_rules! impl_uint {
                     })],
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::Stop],
+                    bytecode: vec![BrilligOpcode::Stop],
                     predicate: None,
                 });
                 new_gates.push(brillig_opcode);
@@ -82,7 +82,7 @@ macro_rules! impl_uint {
                     })],
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::Stop],
+                    bytecode: vec![BrilligOpcode::Stop],
                     predicate: None,
                 });
                 new_gates.push(brillig_opcode);
@@ -230,7 +230,7 @@ macro_rules! impl_uint {
                     ],
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::BinaryIntOp {
+                    bytecode: vec![BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Add,
                         bit_size: 127,
                         lhs: RegisterIndex::from(0),
@@ -289,14 +289,14 @@ macro_rules! impl_uint {
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
                     bytecode: vec![
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Add,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),
                             rhs: RegisterIndex::from(2),
                             destination: RegisterIndex::from(0),
                         },
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Sub,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),
@@ -363,14 +363,14 @@ macro_rules! impl_uint {
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
                     bytecode: vec![
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Sub,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),
                             rhs: RegisterIndex::from(1),
                             destination: RegisterIndex::from(0),
                         },
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Sub,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),
@@ -419,7 +419,7 @@ macro_rules! impl_uint {
                     ],
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::BinaryFieldOp {
+                    bytecode: vec![BrilligOpcode::BinaryFieldOp {
                         op: brillig::BinaryFieldOp::Mul,
                         lhs: RegisterIndex::from(0),
                         rhs: RegisterIndex::from(1),
@@ -517,7 +517,7 @@ macro_rules! impl_uint {
                     ],
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
-                    bytecode: vec![brillig::Opcode::BinaryIntOp {
+                    bytecode: vec![BrilligOpcode::BinaryIntOp {
                         op: brillig::BinaryIntOp::Sub,
                         bit_size: self.width,
                         lhs: RegisterIndex::from(1),
@@ -572,14 +572,14 @@ macro_rules! impl_uint {
                     outputs: vec![BrilligOutputs::Simple(new_witness)],
                     foreign_call_results: vec![],
                     bytecode: vec![
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Add,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),
                             rhs: RegisterIndex::from(2),
                             destination: RegisterIndex::from(0),
                         },
-                        brillig::Opcode::BinaryIntOp {
+                        BrilligOpcode::BinaryIntOp {
                             op: brillig::BinaryIntOp::Sub,
                             bit_size: 127,
                             lhs: RegisterIndex::from(0),

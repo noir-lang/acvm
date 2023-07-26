@@ -4,7 +4,6 @@ use super::utils::{byte_decomposition, round_to_nearest_byte};
 use crate::helpers::VariableStore;
 use acir::brillig::BrilligOpcode;
 use acir::{
-    brillig,
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         opcodes::{BlackBoxFuncCall, FunctionInput},

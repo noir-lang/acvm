@@ -44,13 +44,6 @@ impl BlockSolver {
         Ok(())
     }
 
-    /// Set the block_value from a MemoryInit opcode
-    pub(crate) fn init(&mut self, init: &[Witness], initial_witness: &WitnessMap) {
-        for (i, w) in init.iter().enumerate() {
-            self.insert_value(i as u32, initial_witness[w]);
-        }
-    }
-
     // Helper function which tries to solve a Block opcode
     // As long as operations are resolved, we update/read from the block_value
     // We stop when an operation cannot be resolved
