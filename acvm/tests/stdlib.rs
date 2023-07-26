@@ -281,8 +281,12 @@ macro_rules! test_hashes {
                 }
 
                 // compile circuit
-                let circuit = Circuit {current_witness_index: witness_assignments.len() as u32 + 32,
-                    opcodes, public_parameters: PublicInputs(BTreeSet::new()), return_values: PublicInputs(BTreeSet::new()) };
+                let circuit = Circuit {
+                    current_witness_index: witness_assignments.len() as u32 + 32,
+                    opcodes,
+                    private_parameters: BTreeSet::new(), // This is not correct but is unused in this test.
+                    public_parameters: PublicInputs(BTreeSet::new()),
+                    return_values: PublicInputs(BTreeSet::new()) };
                 let circuit = compile(circuit, Language::PLONKCSat{ width: 3 }, $opcode_support).unwrap().0;
 
                 // solve witnesses
@@ -334,8 +338,13 @@ proptest! {
         opcodes.push(Opcode::Arithmetic(output_constraint));
 
         // compile circuit
-        let circuit = Circuit {current_witness_index: witness_assignments.len() as u32 + 1,
-            opcodes, public_parameters: PublicInputs(BTreeSet::new()), return_values: PublicInputs(BTreeSet::new()) };
+        let circuit = Circuit {
+            current_witness_index: witness_assignments.len() as u32 + 1,
+            opcodes,
+            private_parameters: BTreeSet::new(), // This is not correct but is unused in this test.
+            public_parameters: PublicInputs(BTreeSet::new()),
+            return_values: PublicInputs(BTreeSet::new())
+        };
         let circuit = compile(circuit, Language::PLONKCSat{ width: 3 }, does_not_support_hash_to_field).unwrap().0;
 
         // solve witnesses
