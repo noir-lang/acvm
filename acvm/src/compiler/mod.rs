@@ -169,12 +169,12 @@ pub fn compile(
                         transformer.mark_solvable(quotient_directive.r);
                     }
                     Directive::ToLeRadix { b, .. } => {
-                        for w in b {
+                        for witness in b {
                             transformer.mark_solvable(*w);
                         }
                     }
                     Directive::PermutationSort { bits, .. } => {
-                        for w in bits {
+                        for witness in bits {
                             transformer.mark_solvable(*w);
                         }
                     }
@@ -189,12 +189,12 @@ pub fn compile(
                 transformed_gates.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
-                for (_, w1, w2) in &op.value.mul_terms {
-                    transformer.mark_solvable(*w1);
-                    transformer.mark_solvable(*w2);
+                for (_, witness1, witness2) in &op.value.mul_terms {
+                    transformer.mark_solvable(*witness1);
+                    transformer.mark_solvable(*witness2);
                 }
-                for (_, w) in &op.value.linear_combinations {
-                    transformer.mark_solvable(*w);
+                for (_, witness) in &op.value.linear_combinations {
+                    transformer.mark_solvable(*witness);
                 }
                 new_opcode_labels.push(opcode_label[index]);
                 transformed_gates.push(opcode.clone());
@@ -208,8 +208,8 @@ pub fn compile(
                     match output {
                         BrilligOutputs::Simple(w) => transformer.mark_solvable(*w),
                         BrilligOutputs::Array(v) => {
-                            for w in v {
-                                transformer.mark_solvable(*w);
+                            for witness in v {
+                                transformer.mark_solvable(*witness);
                             }
                         }
                     }
