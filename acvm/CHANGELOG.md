@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.21.0](https://github.com/noir-lang/acvm/compare/acvm-v0.20.1...acvm-v0.21.0) (2023-07-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Remove `Block`, `RAM` and `ROM` opcodes ([#457](https://github.com/noir-lang/acvm/issues/457))
+* **acvm:** Remove `OpcodeResolution` enum ([#400](https://github.com/noir-lang/acvm/issues/400))
+* **acvm:** Support stepwise execution of ACIR ([#399](https://github.com/noir-lang/acvm/issues/399))
+
+### Features
+
+* **acvm:** Remove `OpcodeResolution` enum ([#400](https://github.com/noir-lang/acvm/issues/400)) ([d0ce48c](https://github.com/noir-lang/acvm/commit/d0ce48c506619a5560412ef6693bfa11036b501e))
+* **acvm:** Support stepwise execution of ACIR ([#399](https://github.com/noir-lang/acvm/issues/399)) ([6a03950](https://github.com/noir-lang/acvm/commit/6a0395021779a2711353c2fe2948e09b5b538fc0))
+
+
+### Miscellaneous Chores
+
+* **acir:** Remove `Block`, `RAM` and `ROM` opcodes ([#457](https://github.com/noir-lang/acvm/issues/457)) ([8dd220a](https://github.com/noir-lang/acvm/commit/8dd220ae127baf6cc5a31d8ab7ffdeeb161f6109))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.20.1 to 0.21.0
+
 ## [0.20.1](https://github.com/noir-lang/acvm/compare/acvm-v0.20.0...acvm-v0.20.1) (2023-07-26)
 
 
