@@ -20,6 +20,8 @@ pub struct Circuit {
     pub current_witness_index: u32,
     pub opcodes: Vec<Opcode>,
 
+    /// The set of private inputs to the circuit.
+    pub private_parameters: BTreeSet<Witness>,
     // ACIR distinguishes between the public inputs which are provided externally or calculated within the circuit and returned.
     // The elements of these sets may not be mutually exclusive, i.e. a parameter may be returned from the circuit.
     // All public inputs (parameters and return values) must be provided to the verifier at verification time.
@@ -41,6 +43,11 @@ pub enum OpcodeLabel {
 impl Circuit {
     pub fn num_vars(&self) -> u32 {
         self.current_witness_index + 1
+    }
+
+    /// Returns all witnesses which are required to execute the circuit successfully.
+    pub fn circuit_arguments(&self) -> BTreeSet<Witness> {
+        self.private_parameters.union(&self.public_parameters.0).cloned().collect()
     }
 
     /// Returns all public inputs. This includes those provided as parameters to the circuit and those
@@ -178,6 +185,7 @@ mod tests {
         let circuit = Circuit {
             current_witness_index: 5,
             opcodes: vec![and_opcode(), range_opcode(), directive_opcode()],
+            private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
         };
@@ -206,6 +214,7 @@ mod tests {
                 range_opcode(),
                 and_opcode(),
             ],
+            private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
         };

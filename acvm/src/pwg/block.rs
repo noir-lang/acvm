@@ -6,8 +6,8 @@ use acir::{
     FieldElement,
 };
 
+use super::OpcodeResolutionError;
 use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_value};
-use super::{OpcodeResolution, OpcodeResolutionError};
 
 type MemoryIndex = u32;
 
@@ -17,7 +17,6 @@ type MemoryIndex = u32;
 #[derive(Default)]
 pub(super) struct BlockSolver {
     block_value: HashMap<MemoryIndex, FieldElement>,
-    solved_operations: usize,
 }
 
 impl BlockSolver {
@@ -40,21 +39,6 @@ impl BlockSolver {
                 memory_index as MemoryIndex,
                 *witness_to_value(initial_witness, *witness)?,
             );
-        }
-        Ok(())
-    }
-
-    // Helper function which tries to solve a Block opcode
-    // As long as operations are resolved, we update/read from the block_value
-    // We stop when an operation cannot be resolved
-    fn solve_helper(
-        &mut self,
-        initial_witness: &mut WitnessMap,
-        trace: &[MemOp],
-    ) -> Result<(), OpcodeResolutionError> {
-        for block_op in trace.iter().skip(self.solved_operations) {
-            self.solve_memory_op(block_op, initial_witness)?;
-            self.solved_operations += 1;
         }
         Ok(())
     }
@@ -104,29 +88,6 @@ impl BlockSolver {
             Ok(())
         }
     }
-
-    // Try to solve block operations from the trace
-    // The function calls solve_helper() for solving the opcode
-    // and converts its result into GateResolution
-    pub(crate) fn solve(
-        &mut self,
-        initial_witness: &mut WitnessMap,
-        trace: &[MemOp],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let initial_solved_operations = self.solved_operations;
-
-        match self.solve_helper(initial_witness, trace) {
-            Ok(()) => Ok(OpcodeResolution::Solved),
-            Err(OpcodeResolutionError::OpcodeNotSolvable(err)) => {
-                if self.solved_operations > initial_solved_operations {
-                    Ok(OpcodeResolution::InProgress)
-                } else {
-                    Ok(OpcodeResolution::Stalled(err))
-                }
-            }
-            Err(err) => Err(err),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -159,7 +120,9 @@ mod tests {
         let mut block_solver = BlockSolver::default();
         block_solver.init(&init, &initial_witness).unwrap();
 
-        block_solver.solve(&mut initial_witness, &trace).unwrap();
+        for op in trace {
+            block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
+        }
         assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
     }
 }
