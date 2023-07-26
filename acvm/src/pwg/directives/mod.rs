@@ -11,7 +11,7 @@ use acir::{
 use num_bigint::BigUint;
 use num_traits::Zero;
 
-use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
+use crate::OpcodeResolutionError;
 
 use super::{get_value, insert_value, witness_to_value};
 
@@ -26,24 +26,12 @@ mod sorting;
 pub(super) fn solve_directives(
     initial_witness: &mut WitnessMap,
     directive: &Directive,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
-    match solve_directives_internal(initial_witness, directive) {
-        Ok(_) => Ok(OpcodeResolution::Solved),
-        Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
-            Ok(OpcodeResolution::Stalled(unsolved))
-        }
-        Err(err) => Err(err),
-    }
-}
-
-fn solve_directives_internal(
-    initial_witness: &mut WitnessMap,
-    directive: &Directive,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
         Directive::Invert { x, result } => {
             let val = witness_to_value(initial_witness, *x)?;
-            insert_value(result, val.inverse(), initial_witness)
+            insert_value(result, val.inverse(), initial_witness)?;
+            Ok(())
         }
         Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
@@ -197,7 +185,7 @@ mod tests {
         FieldElement,
     };
 
-    use super::solve_directives_internal;
+    use super::solve_directives;
 
     #[test]
     fn divisor_is_zero() {
@@ -212,7 +200,7 @@ mod tests {
         let mut witness_map = WitnessMap::new();
         witness_map.insert(Witness(0), FieldElement::zero());
 
-        solve_directives_internal(&mut witness_map, &Directive::Quotient(quotient_directive))
+        solve_directives(&mut witness_map, &Directive::Quotient(quotient_directive))
             .expect("expected 0/0 to return 0");
     }
 }

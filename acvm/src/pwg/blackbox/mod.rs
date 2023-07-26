@@ -4,7 +4,7 @@ use acir::{
 };
 use blackbox_solver::{blake2s, keccak256, sha256};
 
-use super::{OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use super::{OpcodeNotSolvable, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;
 
 mod fixed_base_scalar_mul;
@@ -50,14 +50,14 @@ pub(crate) fn solve(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
     bb_func: &BlackBoxFuncCall,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let inputs = bb_func.get_inputs_vec();
     if !contains_all_inputs(initial_witness, &inputs) {
         let unassigned_witness = first_missing_assignment(initial_witness, &inputs)
             .expect("Some assignments must be missing because it does not contains all inputs");
-        return Ok(OpcodeResolution::Stalled(OpcodeNotSolvable::MissingAssignment(
-            unassigned_witness.0,
-        )));
+        return Err(OpcodeResolutionError::OpcodeNotSolvable(
+            OpcodeNotSolvable::MissingAssignment(unassigned_witness.0),
+        ));
     }
 
     match bb_func {
@@ -150,6 +150,6 @@ pub(crate) fn solve(
         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
             fixed_base_scalar_mul(backend, initial_witness, *input, *outputs)
         }
-        BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(OpcodeResolution::Solved),
+        BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(()),
     }
 }

@@ -7,7 +7,7 @@ use acir::{
 use blackbox_solver::BlackBoxFunctionSolver;
 use brillig_vm::{Registers, VMStatus, VM};
 
-use crate::{pwg::OpcodeNotSolvable, OpcodeResolution, OpcodeResolutionError};
+use crate::{pwg::OpcodeNotSolvable, OpcodeResolutionError};
 
 use super::{get_value, insert_value};
 
@@ -18,24 +18,18 @@ impl BrilligSolver {
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
         bb_solver: &B,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<Option<ForeignCallWaitInfo>, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
         let pred_value = match &brillig.predicate {
             Some(pred) => get_value(pred, initial_witness),
             None => Ok(FieldElement::one()),
-        };
-        let pred_value = match pred_value {
-            Ok(pred_value) => pred_value,
-            Err(OpcodeResolutionError::OpcodeNotSolvable(unsolved)) => {
-                return Ok(OpcodeResolution::Stalled(unsolved))
-            }
-            Err(err) => return Err(err),
-        };
+        }?;
 
         // A zero predicate indicates the oracle should be skipped, and its outputs zeroed.
         if pred_value.is_zero() {
-            return Self::zero_out_brillig_outputs(initial_witness, brillig);
+            Self::zero_out_brillig_outputs(initial_witness, brillig)?;
+            return Ok(None);
         }
 
         // Set input values
@@ -50,7 +44,7 @@ impl BrilligSolver {
                 BrilligInputs::Single(expr) => match get_value(expr, initial_witness) {
                     Ok(value) => input_register_values.push(value.into()),
                     Err(_) => {
-                        return Ok(OpcodeResolution::Stalled(
+                        return Err(OpcodeResolutionError::OpcodeNotSolvable(
                             OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
                         ))
                     }
@@ -62,7 +56,7 @@ impl BrilligSolver {
                         match get_value(expr, initial_witness) {
                             Ok(value) => input_memory.push(value.into()),
                             Err(_) => {
-                                return Ok(OpcodeResolution::Stalled(
+                                return Err(OpcodeResolutionError::OpcodeNotSolvable(
                                     OpcodeNotSolvable::ExpressionHasTooManyUnknowns(expr.clone()),
                                 ))
                             }
@@ -93,7 +87,7 @@ impl BrilligSolver {
         // It may be finished, in-progress, failed, or may be waiting for results of a foreign call.
         // Return the "resolution" to the caller who may choose to make subsequent calls
         // (when it gets foreign call results for example).
-        let result = match vm_status {
+        match vm_status {
             VMStatus::Finished => {
                 for (i, output) in brillig.outputs.iter().enumerate() {
                     let register_value = vm.get_registers().get(RegisterIndex::from(i));
@@ -110,25 +104,23 @@ impl BrilligSolver {
                         }
                     }
                 }
-                OpcodeResolution::Solved
+                Ok(None)
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
             VMStatus::Failure { message } => {
-                return Err(OpcodeResolutionError::BrilligFunctionFailed(message))
+                Err(OpcodeResolutionError::BrilligFunctionFailed(message))
             }
             VMStatus::ForeignCallWait { function, inputs } => {
-                OpcodeResolution::InProgressBrillig(ForeignCallWaitInfo { function, inputs })
+                Ok(Some(ForeignCallWaitInfo { function, inputs }))
             }
-        };
-
-        Ok(result)
+        }
     }
 
     /// Assigns the zero value to all outputs of the given [`Brillig`] bytecode.
     fn zero_out_brillig_outputs(
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    ) -> Result<(), OpcodeResolutionError> {
         for output in &brillig.outputs {
             match output {
                 BrilligOutputs::Simple(witness) => {
@@ -141,7 +133,7 @@ impl BrilligSolver {
                 }
             }
         }
-        Ok(OpcodeResolution::Solved)
+        Ok(())
     }
 }
 
