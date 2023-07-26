@@ -320,7 +320,6 @@ proptest! {
             input_witnesses.push(function_input);
             witness_assignments.insert(Witness(counter), FieldElement::from(inp_v as u128));
         }
-        let correct_result_of_hash_to_field = FieldElement::from_be_bytes_reduce(&output);
 
         counter += 1;
         let correct_result_witnesses: Witness = Witness(counter);
