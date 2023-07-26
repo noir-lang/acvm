@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.21.0](https://github.com/noir-lang/acvm/compare/acir-v0.20.1...acir-v0.21.0) (2023-07-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Remove `Block`, `RAM` and `ROM` opcodes ([#457](https://github.com/noir-lang/acvm/issues/457))
+* **acvm:** Support stepwise execution of ACIR ([#399](https://github.com/noir-lang/acvm/issues/399))
+
+### Features
+
+* **acvm:** Support stepwise execution of ACIR ([#399](https://github.com/noir-lang/acvm/issues/399)) ([6a03950](https://github.com/noir-lang/acvm/commit/6a0395021779a2711353c2fe2948e09b5b538fc0))
+
+
+### Miscellaneous Chores
+
+* **acir:** Remove `Block`, `RAM` and `ROM` opcodes ([#457](https://github.com/noir-lang/acvm/issues/457)) ([8dd220a](https://github.com/noir-lang/acvm/commit/8dd220ae127baf6cc5a31d8ab7ffdeeb161f6109))
+
 ## [0.20.1](https://github.com/noir-lang/acvm/compare/acir-v0.20.0...acir-v0.20.1) (2023-07-26)
 
 

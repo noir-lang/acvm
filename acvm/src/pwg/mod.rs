@@ -11,8 +11,8 @@ use acir::{
 use blackbox_solver::BlackBoxResolutionError;
 
 use self::{
-    arithmetic::ArithmeticSolver, block::BlockSolver, brillig::BrilligSolver,
-    directives::solve_directives,
+    arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,
+    memory_op::MemoryOpSolver,
 };
 use crate::{BlackBoxFunctionSolver, Language};
 
@@ -26,7 +26,7 @@ mod brillig;
 mod directives;
 // black box functions
 mod blackbox;
-mod block;
+mod memory_op;
 
 pub use brillig::ForeignCallWaitInfo;
 
@@ -50,16 +50,15 @@ pub enum ACVMStatus {
     RequiresForeignCall(ForeignCallWaitInfo),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum OpcodeResolution {
-    /// The opcode is resolved
-    Solved,
-    /// The opcode is not solvable
-    Stalled(OpcodeNotSolvable),
-    /// The opcode is not solvable but could resolved some witness
-    InProgress,
-    /// The brillig oracle opcode is not solved but could be resolved given some values
-    InProgressBrillig(brillig::ForeignCallWaitInfo),
+impl std::fmt::Display for ACVMStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ACVMStatus::Solved => write!(f, "Solved"),
+            ACVMStatus::InProgress => write!(f, "In progress"),
+            ACVMStatus::Failure(_) => write!(f, "Execution failure"),
+            ACVMStatus::RequiresForeignCall(_) => write!(f, "Waiting on foreign call"),
+        }
+    }
 }
 
 // This enum represents the different cases in which an
@@ -110,8 +109,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     backend: B,
 
-    /// Stores the solver for each [block][`Opcode::Block`] opcode. This persists their internal state to prevent recomputation.
-    block_solvers: HashMap<BlockId, BlockSolver>,
+    /// Stores the solver for memory operations acting on blocks of memory disambiguated by [block][`BlockId`].
+    block_solvers: HashMap<BlockId, MemoryOpSolver>,
 
     /// A list of opcodes which are to be executed by the ACVM.
     opcodes: Vec<Opcode>,
@@ -154,7 +153,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
         if self.status != ACVMStatus::Solved {
-            panic!("ACVM is not ready to be finalized");
+            panic!("ACVM execution is not complete: ({})", self.status);
         }
         self.witness_map
     }
@@ -191,16 +190,19 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     ///
     /// The ACVM can then be restarted to solve the remaining Brillig VM process as well as the remaining ACIR opcodes.
     pub fn resolve_pending_foreign_call(&mut self, foreign_call_result: ForeignCallResult) {
-        let opcode = &mut self.opcodes[self.instruction_pointer];
-        if let Opcode::Brillig(brillig) = opcode {
-            // Overwrite the brillig opcode with a new one with the foreign call response.
-            brillig.foreign_call_results.push(foreign_call_result);
-
-            // Now that the foreign call has been resolved then we can resume execution.
-            self.status(ACVMStatus::InProgress);
-        } else {
-            panic!("Brillig resolution for non brillig opcode");
+        if !matches!(self.status, ACVMStatus::RequiresForeignCall(_)) {
+            panic!("ACVM is not expecting a foreign call response as no call was made");
         }
+
+        // We want to inject the foreign call result into the brillig opcode which initiated the call.
+        let opcode = &mut self.opcodes[self.instruction_pointer];
+        let Opcode::Brillig(brillig) = opcode else {
+            unreachable!("ACVM can only enter `RequiresForeignCall` state on a Brillig opcode");
+        };
+        brillig.foreign_call_results.push(foreign_call_result);
+
+        // Now that the foreign call has been resolved then we can resume execution.
+        self.status(ACVMStatus::InProgress);
     }
 
     /// Executes the ACVM's circuit until execution halts.
@@ -227,44 +229,27 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
             Opcode::MemoryInit { block_id, init } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                solver.init(init, &self.witness_map).map(|_| OpcodeResolution::Solved)
+                solver.init(init, &self.witness_map)
             }
             Opcode::MemoryOp { block_id, op } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                solver.solve_memory_op(op, &mut self.witness_map).map(|_| OpcodeResolution::Solved)
+                solver.solve_memory_op(op, &mut self.witness_map)
             }
             Opcode::Brillig(brillig) => {
-                let resolution =
-                    BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend);
-
-                match resolution {
-                    Ok(OpcodeResolution::InProgressBrillig(foreign_call)) => {
-                        return self.wait_for_foreign_call(foreign_call)
-                    }
-                    res => res,
+                match BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend) {
+                    Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
+                    res => res.map(|_| ()),
                 }
-            }
-            Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
-                panic!("Block, ROM and RAM opcodes are not supported by stepwise ACVM")
             }
         };
         match resolution {
-            Ok(OpcodeResolution::Solved) => {
+            Ok(()) => {
                 self.instruction_pointer += 1;
                 if self.instruction_pointer == self.opcodes.len() {
                     self.status(ACVMStatus::Solved)
                 } else {
                     self.status(ACVMStatus::InProgress)
                 }
-            }
-            Ok(OpcodeResolution::InProgress) => {
-                unreachable!("Opcodes_and_labels should be immediately solvable");
-            }
-            Ok(OpcodeResolution::InProgressBrillig(_)) => {
-                unreachable!("Handled above")
-            }
-            Ok(OpcodeResolution::Stalled(not_solvable)) => {
-                self.fail(OpcodeResolutionError::OpcodeNotSolvable(not_solvable))
             }
             Err(mut error) => {
                 let opcode_label =
@@ -376,8 +361,8 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
-    fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(opcode, Opcode::Block(_))
+    fn plonk_is_supported(_opcode: &Opcode) -> bool {
+        true
     }
 
     match language {

@@ -1,5 +1,5 @@
 use crate::pwg::{insert_value, witness_to_value};
-use crate::{pwg::OpcodeResolution, OpcodeResolutionError};
+use crate::OpcodeResolutionError;
 use acir::{
     circuit::opcodes::FunctionInput,
     native_types::{Witness, WitnessMap},
@@ -13,7 +13,7 @@ pub(super) fn and(
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     assert_eq!(
         lhs.num_bits, rhs.num_bits,
         "number of bits specified for each input must be the same"
@@ -30,7 +30,7 @@ pub(super) fn xor(
     lhs: &FunctionInput,
     rhs: &FunctionInput,
     output: &Witness,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     assert_eq!(
         lhs.num_bits, rhs.num_bits,
         "number of bits specified for each input must be the same"
@@ -47,11 +47,10 @@ fn solve_logic_gate(
     b: &Witness,
     result: Witness,
     logic_op: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
-) -> Result<OpcodeResolution, OpcodeResolutionError> {
+) -> Result<(), OpcodeResolutionError> {
     let w_l_value = witness_to_value(initial_witness, *a)?;
     let w_r_value = witness_to_value(initial_witness, *b)?;
     let assignment = logic_op(w_l_value, w_r_value);
 
-    insert_value(&result, assignment, initial_witness)?;
-    Ok(OpcodeResolution::Solved)
+    insert_value(&result, assignment, initial_witness)
 }
