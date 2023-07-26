@@ -9,7 +9,7 @@ mod black_box_function_call;
 mod memory_operation;
 
 pub use black_box_function_call::{BlackBoxFuncCall, FunctionInput};
-pub use memory_operation::{BlockId, MemOp, MemoryBlock};
+pub use memory_operation::{BlockId, MemOp};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Opcode {
