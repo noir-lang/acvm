@@ -98,7 +98,7 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
 
     backend: B,
 
-    /// Stores the solver for memory operations disambiguated by [block][`BlockId`].
+    /// Stores the solver for memory operations acting on blocks of memory disambiguated by [block][`BlockId`].
     block_solvers: HashMap<BlockId, MemoryOpSolver>,
 
     /// A list of opcodes which are to be executed by the ACVM.

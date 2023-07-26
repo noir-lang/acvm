@@ -20,7 +20,7 @@ pub enum Opcode {
     BlackBoxFuncCall(BlackBoxFuncCall),
     Directive(Directive),
     Brillig(Brillig),
-    /// Atomic operation on a memory block
+    /// Atomic operation on a block of memory
     MemoryOp {
         block_id: BlockId,
         op: MemOp,

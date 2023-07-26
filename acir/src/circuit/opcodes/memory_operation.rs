@@ -1,5 +1,4 @@
 use crate::native_types::{Expression, Witness};
-use acir_field::FieldElement;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Hash, Copy, Default)]
