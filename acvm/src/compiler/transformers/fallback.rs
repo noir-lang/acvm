@@ -21,12 +21,7 @@ impl FallbackTransformer {
 
         for (idx, opcode) in acir.opcodes.into_iter().enumerate() {
             match &opcode {
-                Opcode::Arithmetic(_)
-                | Opcode::Directive(_)
-                | Opcode::Brillig(_)
-                | Opcode::Block(_)
-                | Opcode::ROM(_)
-                | Opcode::RAM(_) => {
+                Opcode::Arithmetic(_) | Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // directive, arithmetic expression or blocks are handled by acvm
                     new_opcode_labels.push(opcode_labels[idx]);
                     acir_supported_opcodes.push(opcode);
