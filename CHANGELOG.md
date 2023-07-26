@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1](https://github.com/noir-lang/acvm/compare/root-v0.20.0...root-v0.20.1) (2023-07-26)
+
+
+### Features
+
+* add optimisations to fallback black box functions on booleans ([#446](https://github.com/noir-lang/acvm/issues/446)) ([2cfb2a8](https://github.com/noir-lang/acvm/commit/2cfb2a8cf911a81eedbd9da13ab2c616abd67f83))
+* **stdlib:** Add fallback implementation of `Keccak256` black box function ([#445](https://github.com/noir-lang/acvm/issues/445)) ([f7ebb03](https://github.com/noir-lang/acvm/commit/f7ebb03653c971f119700ff8126d9eb5ff01be0f))
+
 ## [0.20.0](https://github.com/noir-lang/acvm/compare/root-v0.19.1...root-v0.20.0) (2023-07-20)
 
 

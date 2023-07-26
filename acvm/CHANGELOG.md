@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.1](https://github.com/noir-lang/acvm/compare/acvm-v0.20.0...acvm-v0.20.1) (2023-07-26)
+
+
+### Features
+
+* **stdlib:** Add fallback implementation of `Keccak256` black box function ([#445](https://github.com/noir-lang/acvm/issues/445)) ([f7ebb03](https://github.com/noir-lang/acvm/commit/f7ebb03653c971f119700ff8126d9eb5ff01be0f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.20.0 to 0.20.1
+
 ## [0.20.0](https://github.com/noir-lang/acvm/compare/acvm-v0.19.1...acvm-v0.20.0) (2023-07-20)
 
 
