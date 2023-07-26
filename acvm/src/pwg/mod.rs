@@ -50,6 +50,17 @@ pub enum ACVMStatus {
     RequiresForeignCall(ForeignCallWaitInfo),
 }
 
+impl std::fmt::Display for ACVMStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ACVMStatus::Solved => write!(f, "Solved"),
+            ACVMStatus::InProgress => write!(f, "In progress"),
+            ACVMStatus::Failure(_) => write!(f, "Execution failure"),
+            ACVMStatus::RequiresForeignCall(_) => write!(f, "Waiting on foreign call"),
+        }
+    }
+}
+
 // This enum represents the different cases in which an
 // opcode can be unsolvable.
 // The most common being that one of its input has not been
@@ -142,7 +153,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
     /// Finalize the ACVM execution, returning the resulting [`WitnessMap`].
     pub fn finalize(self) -> WitnessMap {
         if self.status != ACVMStatus::Solved {
-            panic!("ACVM execution is not complete");
+            panic!("ACVM execution is not complete: ({})", self.status);
         }
         self.witness_map
     }
