@@ -24,7 +24,7 @@ indexmap = "1.7.0"
 async-trait = "0.1"
 
 [features]
-default = ["bn254", "testing"]
+default = ["bn254"]
 bn254 = [
     "acir/bn254",
     "stdlib/bn254",
