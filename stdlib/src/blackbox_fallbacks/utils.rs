@@ -23,6 +23,59 @@ pub(crate) fn round_to_nearest_byte(num_bits: u32) -> u32 {
     round_to_nearest_mul_8(num_bits) / 8
 }
 
+pub(crate) fn boolean_expr(expr: &Expression, variables: &mut VariableStore) -> Expression {
+    &mul_with_witness(expr, expr, variables) - expr
+}
+
+/// Returns an expression which represents `lhs * rhs`
+///
+/// If one has multiplicative term and the other is of degree one or more,
+/// the function creates [intermediate variables][`Witness`] accordingly.
+/// There are two cases where we can optimize the multiplication between two expressions:
+/// 1. If both expressions have at most a total degree of 1 in each term, then we can just multiply them
+/// as each term in the result will be degree-2.
+/// 2. If one expression is a constant, then we can just multiply the constant with the other expression
+///
+/// (1) is because an [`Expression`] can hold at most a degree-2 univariate polynomial
+/// which is what you get when you multiply two degree-1 univariate polynomials.
+pub(crate) fn mul_with_witness(
+    lhs: &Expression,
+    rhs: &Expression,
+    variables: &mut VariableStore,
+) -> Expression {
+    use std::borrow::Cow;
+    let lhs_is_linear = lhs.is_linear();
+    let rhs_is_linear = rhs.is_linear();
+
+    // Case 1: Both expressions have at most a total degree of 1 in each term
+    if lhs_is_linear && rhs_is_linear {
+        return (lhs * rhs)
+            .expect("one of the expressions is a constant and so this should not fail");
+    }
+
+    // Case 2: One or both of the sides needs to be reduced to a degree-1 univariate polynomial
+    let lhs_reduced = if lhs_is_linear {
+        Cow::Borrowed(lhs)
+    } else {
+        Cow::Owned(variables.new_variable().into())
+    };
+
+    // If the lhs and rhs are the same, then we do not need to reduce
+    // rhs, we only need to square the lhs.
+    if lhs == rhs {
+        return (&*lhs_reduced * &*lhs_reduced)
+            .expect("Both expressions are reduced to be degree<=1");
+    };
+
+    let rhs_reduced = if rhs_is_linear {
+        Cow::Borrowed(rhs)
+    } else {
+        Cow::Owned(variables.new_variable().into())
+    };
+
+    (&*lhs_reduced * &*rhs_reduced).expect("Both expressions are reduced to be degree<=1")
+}
+
 // Generates opcodes and directives to bit decompose the input `gate`
 // Returns the bits and the updated witness counter
 // TODO:Ideally, we return the updated witness counter, or we require the input
@@ -57,9 +110,7 @@ pub(crate) fn bit_decomposition(
     let two = FieldElement::from(2_i128);
     for &bit in &bit_vector {
         // Bit constraint to ensure each bit is a zero or one; bit^2 - bit = 0
-        let mut expr = Expression::default();
-        expr.push_multiplication_term(FieldElement::one(), bit, bit);
-        expr.push_addition_term(-FieldElement::one(), bit);
+        let expr = boolean_expr(&bit.into(), &mut variables);
         binary_exprs.push(Opcode::Arithmetic(expr));
 
         // Constraint to ensure that the bits are constrained to be a bit decomposition

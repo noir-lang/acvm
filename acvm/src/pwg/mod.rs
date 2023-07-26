@@ -215,20 +215,16 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
             Opcode::MemoryInit { block_id, init } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                solver.init(init, &self.witness_map);
-                Ok(())
+                solver.init(init, &self.witness_map)
             }
             Opcode::MemoryOp { block_id, op } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
                 solver.solve_memory_op(op, &mut self.witness_map)
             }
             Opcode::Brillig(brillig) => {
-                let result = BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend);
-
-                if let Ok(Some(foreign_call)) = result {
-                    return self.wait_for_foreign_call(foreign_call);
-                } else {
-                    result.map(|_| ())
+                match BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend) {
+                    Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
+                    res => res.map(|_| ()),
                 }
             }
             Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
@@ -291,11 +287,9 @@ pub fn get_value(
     let expr = ArithmeticSolver::evaluate(expr, initial_witness);
     match expr.to_const() {
         Some(value) => Ok(value),
-        None => {
-            Err(OpcodeResolutionError::OpcodeNotSolvable(OpcodeNotSolvable::MissingAssignment(
-                ArithmeticSolver::any_witness_from_expression(&expr).unwrap().0,
-            )))
-        }
+        None => Err(OpcodeResolutionError::OpcodeNotSolvable(
+            OpcodeNotSolvable::MissingAssignment(any_witness_from_expression(&expr).unwrap().0),
+        )),
     }
 }
 
@@ -322,6 +316,21 @@ pub fn insert_value(
     }
 
     Ok(())
+}
+
+// Returns one witness belonging to an expression, in no relevant order
+// Returns None if the expression is const
+// The function is used during partial witness generation to report unsolved witness
+fn any_witness_from_expression(expr: &Expression) -> Option<Witness> {
+    if expr.linear_combinations.is_empty() {
+        if expr.mul_terms.is_empty() {
+            None
+        } else {
+            Some(expr.mul_terms[0].1)
+        }
+    } else {
+        Some(expr.linear_combinations[0].1)
+    }
 }
 
 #[deprecated(

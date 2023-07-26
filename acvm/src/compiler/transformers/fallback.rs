@@ -67,6 +67,7 @@ impl FallbackTransformer {
             Circuit {
                 current_witness_index: witness_idx,
                 opcodes: acir_supported_opcodes,
+                private_parameters: acir.private_parameters,
                 public_parameters: acir.public_parameters,
                 return_values: acir.return_values,
             },
@@ -152,6 +153,20 @@ impl FallbackTransformer {
                 stdlib::blackbox_fallbacks::hash_to_field(
                     blake2s_input,
                     *output,
+                    current_witness_idx,
+                )
+            }
+            #[cfg(feature = "unstable-fallbacks")]
+            BlackBoxFuncCall::Keccak256 { inputs, outputs } => {
+                let mut keccak_input = Vec::new();
+                for input in inputs.iter() {
+                    let witness_index = Expression::from(input.witness);
+                    let num_bits = input.num_bits;
+                    keccak_input.push((witness_index, num_bits));
+                }
+                stdlib::blackbox_fallbacks::keccak256(
+                    keccak_input,
+                    outputs.to_vec(),
                     current_witness_idx,
                 )
             }
