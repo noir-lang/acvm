@@ -81,7 +81,9 @@ impl BlockSolver {
             //
             // This is the value that we want to read into; i.e. copy from the memory block
             // into this value.
-            let value_read_witness = value.to_witness().expect("This should be a witness");
+            let value_read_witness = value.to_witness().expect(
+                "Memory must be read into a specified witness index, encountered an Expression",
+            );
 
             let value_in_array = self.read_memory_index(memory_index);
 
