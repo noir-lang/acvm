@@ -227,9 +227,6 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     res => res.map(|_| ()),
                 }
             }
-            Opcode::Block(_) | Opcode::ROM(_) | Opcode::RAM(_) => {
-                panic!("Block, ROM and RAM opcodes are not supported by stepwise ACVM")
-            }
         };
         match resolution {
             Ok(()) => {
@@ -350,8 +347,8 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
     // The ones which are not supported, the acvm compiler will
     // attempt to transform into supported gates. If these are also not available
     // then a compiler error will be emitted.
-    fn plonk_is_supported(opcode: &Opcode) -> bool {
-        !matches!(opcode, Opcode::Block(_))
+    fn plonk_is_supported(_: &Opcode) -> bool {
+        true
     }
 
     match language {
