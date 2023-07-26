@@ -661,12 +661,10 @@ fn memory_operations() {
 
     let opcodes = vec![init, read_op, expression];
 
-    println!("{opcodes:?}");
-
     let mut acvm = ACVM::new(StubbedBackend, opcodes, initial_witness);
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved);
     let witness_map = acvm.finalize();
 
-    println!("{:?}", witness_map);
+    assert_eq!(witness_map[&Witness(8)], FieldElement::from(6u128));
 }
