@@ -2,11 +2,11 @@
 name = "acvm_js"
 description = "Typescript wrapper around the ACVM allowing execution of ACIR code"
 version = "0.0.0" # x-release-please-version
-authors = ["The Noir Team <team@noir-lang.org>"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/noir-lang/acvm_js"
-edition = "2021"
-rust-version = "1.66"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,7 +14,7 @@ rust-version = "1.66"
 crate-type = ["cdylib"]
 
 [dependencies]
-acvm = "0.21.0"
+acvm = { version = "0.21.0", path = "../acvm", default-features = false }
 wasm-bindgen = { version = "0.2.86", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.36"
 serde = { version = "1.0.136", features = ["derive"] }
@@ -42,7 +42,8 @@ pkg-config = "0.3"
 [dev-dependencies]
 wasm-bindgen-test = "0.3.36"
 
-[profile.dev]
-# This is required to be able to run `cargo test` due to the `locals exceeds maximum` error.
-# See https://ritik-mishra.medium.com/resolving-the-wasm-pack-error-locals-exceed-maximum-ec3a9d96685b
-opt-level = 1
+[features]
+default = ["bn254"]
+bn254 = ["acvm/bn254"]
+bls12_381 = ["acvm/bls12_381"]
+

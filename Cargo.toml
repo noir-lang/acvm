@@ -1,7 +1,6 @@
 [workspace]
 
-members = ["acir_field", "acir", "acvm", "stdlib", "brillig", "brillig_vm", "blackbox_solver"]
-exclude = ["acvm_js"]
+members = ["acir_field", "acir", "acvm", "acvm_js", "stdlib", "brillig", "brillig_vm", "blackbox_solver"]
 
 [workspace.package]
 authors = ["The Noir Team <team@noir-lang.org>"]
@@ -26,3 +25,8 @@ thiserror = "1.0.21"
 
 
 serde = { version = "1.0.136", features = ["derive"] }
+
+[profile.dev]
+# This is required to be able to run `cargo test` in acvm_js due to the `locals exceeds maximum` error.
+# See https://ritik-mishra.medium.com/resolving-the-wasm-pack-error-locals-exceed-maximum-ec3a9d96685b
+opt-level = 1
