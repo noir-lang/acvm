@@ -18,12 +18,3 @@ result
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-
-# Nargo output
-*.proof
-*.acir
-*.acir.sha256
-*.tr
-*.pk
-*.vk
-**/Verifier.toml
