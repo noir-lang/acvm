@@ -10,13 +10,14 @@
 // let circuit = Circuit {
 //     current_witness_index: 4,
 //     opcodes: vec![pedersen],
+//     private_parameters: BTreeSet::from([Witness(1)]),
 //     public_parameters: PublicInputs::default(),
 //     return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(3)])),
 // };
 export const bytecode = Uint8Array.from([
-  31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 136, 129, 9, 0, 48, 8, 195, 50, 39,
-  254, 127, 177, 168, 40, 8, 6, 74, 219, 40, 240, 104, 170, 237, 124, 159, 45,
-  153, 207, 34, 199, 7, 17, 37, 243, 208, 72, 0, 0, 0,
+  31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 138, 65, 10, 0, 64, 8, 2, 103, 183,
+  232, 255, 47, 142, 138, 58, 68, 130, 168, 140, 10, 60, 90, 149, 118, 182, 79,
+  255, 105, 57, 140, 197, 246, 39, 0, 246, 174, 71, 87, 84, 0, 0, 0,
 ]);
 
 export const initialWitnessMap = new Map([

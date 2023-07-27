@@ -3,7 +3,7 @@ import { executeCircuit, WitnessMap, ForeignCallHandler } from "../../result/";
 
 it("successfully executes circuit and extracts return value", async () => {
   const { bytecode, initialWitnessMap, resultWitness, expectedResult } =
-    await import("../shared/noir_program");
+    await import("../shared/equality_check");
 
   const solvedWitness: WitnessMap = await executeCircuit(
     bytecode,

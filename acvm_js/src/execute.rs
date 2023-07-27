@@ -90,12 +90,10 @@ pub async fn execute_circuit(
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
             ACVMStatus::Failure(error) => return Err(error.to_string().into()),
-            ACVMStatus::RequiresForeignCall => {
-                while let Some(foreign_call) = acvm.get_pending_foreign_call() {
-                    let result = resolve_brillig(&foreign_call_handler, foreign_call).await?;
+            ACVMStatus::RequiresForeignCall(foreign_call) => {
+                let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
 
-                    acvm.resolve_pending_foreign_call(result);
-                }
+                acvm.resolve_pending_foreign_call(result);
             }
         }
     }
