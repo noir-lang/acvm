@@ -32,7 +32,12 @@
           "type": "toml",
           "path": "Cargo.toml",
           "jsonpath": "$.workspace.dependencies.blackbox_solver.version"
-        }
+        },
+        {
+          "type": "json",
+          "path": "acvm_js/package.json",
+          "jsonpath": "$.version"
+        }        
       ]
     },
     "acir": {

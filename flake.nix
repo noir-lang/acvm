@@ -72,6 +72,10 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
+      crateACVMJSDefinitions = craneLib.crateNameFromCargoToml {
+        cargoToml = ./acvm_js/Cargo.toml;
+      };
+
       sharedEnvironment = {
         # Barretenberg fails if tests are run on multiple threads, so we set the test thread
         # count to 1 throughout the entire project
@@ -95,15 +99,16 @@
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
       commonArgs = {
-        pname = "acvm_js";
-        version = "0.0.0"; # x-release-please-version
-
+        
         src = pkgs.lib.cleanSourceWith {
-          src = craneLib.path ./acvm_js;
+          src = craneLib.path {
+            path = ./.;
+            # name = "acvm_js";
+          };
           filter = sourceFilter;
         };
 
-        cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        # cargoClippyExtraArgs = "--package acvm_js --all-targets -- -D warnings";
         # cargoTestExtraArgs = "--workspace";
 
         # We don't want to run checks or tests when just building the project
@@ -111,16 +116,22 @@
       };
 
       # Combine the environment and other configuration needed for crane to build with the wasm feature
-      wasmArgs = wasmEnvironment // commonArgs // {
+      acvmjsWasmArgs = wasmEnvironment // commonArgs // {
 
-        cargoExtraArgs = "--target=wasm32-unknown-unknown";
+        inherit (crateACVMJSDefinitions) pname version;
+        
+        cargoExtraArgs = "--package acvm_js --target=wasm32-unknown-unknown";
+
+        cargoVendorDir = craneLib.vendorCargoDeps {
+          src = ./.;
+        };
 
         buildInputs = [ ];
 
       };
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
-      cargoArtifacts = craneLib.buildDepsOnly wasmArgs;
+      cargoArtifacts = craneLib.buildDepsOnly acvmjsWasmArgs;
 
       wasm-bindgen-cli = pkgs.callPackage ./acvm_js/nix/wasm-bindgen-cli/default.nix {
         rustPlatform = pkgs.makeRustPlatform {
@@ -128,26 +139,30 @@
           cargo = rustToolchain;
         };
       };
+
     in
     rec {
       checks = {
-        cargo-clippy = craneLib.cargoClippy (wasmArgs // {
-          inherit cargoArtifacts;
+        cargo-clippy = craneLib.cargoClippy (acvmjsWasmArgs // {
+          inherit cargoArtifacts
+  ;
           inherit GIT_COMMIT GIT_DIRTY;
 
           doCheck = true;
         });
       };
 
-      packages.default = craneLib.mkCargoDerivation (wasmArgs // rec {
+      packages.default = craneLib.mkCargoDerivation (acvmjsWasmArgs // rec {
+
         inherit cargoArtifacts;
+        
         inherit GIT_COMMIT;
         inherit GIT_DIRTY;
 
         COMMIT_SHORT = builtins.substring 0 7 GIT_COMMIT;
         VERSION_APPENDIX = if GIT_DIRTY == "true" then "-dirty" else "";
 
-        src = ./acvm_js; #craneLib.cleanCargoSource (craneLib.path ./.);
+        src = ./.; #craneLib.cleanCargoSource (craneLib.path ./.);
 
         nativeBuildInputs = with pkgs; [
           binaryen
@@ -159,11 +174,11 @@
         ];
 
         buildPhaseCargoCommand = ''
-          bash ./buildPhaseCargoCommand.sh
+          bash ./acvm_js/buildPhaseCargoCommand.sh
         '';
 
         installPhase = ''
-          bash ./installPhase.sh        
+          bash ./acvm_js/installPhase.sh        
         '';
 
       });

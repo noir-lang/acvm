@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ fromJSON(needs.release-please.outputs.release-pr).headBranchName }}
-          token: ${{ secrets.ACVM_SIMULATOR_RELEASES_TOKEN }}
+          token: ${{ secrets.ACVM_JS_RELEASES_TOKEN }}
 
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@1.66.0
@@ -74,6 +74,6 @@ jobs:
         with:
           workflow: update.yml
           repo: noir-lang/acvm-js-wasm
-          token: ${{ secrets.ACVM_SIMULATOR_RELEASES_TOKEN }}
+          token: ${{ secrets.ACVM_JS_RELEASES_TOKEN }}
           inputs: '{ "acvm-js-ref": "${{ needs.release-please.outputs.tag-name }}" }'
                   
