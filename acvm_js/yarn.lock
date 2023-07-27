@@ -370,6 +370,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noir-lang/acvm_js@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@noir-lang/acvm_js@workspace:."
+  dependencies:
+    "@esm-bundle/chai": ^4.3.4-fix.0
+    "@typescript-eslint/eslint-plugin": ^5.59.5
+    "@typescript-eslint/parser": ^5.59.5
+    "@web/dev-server-esbuild": ^0.3.6
+    "@web/test-runner": ^0.15.3
+    "@web/test-runner-playwright": ^0.10.0
+    chai: ^4.3.7
+    eslint: ^8.40.0
+    eslint-plugin-prettier: ^4.2.1
+    mocha: ^10.2.0
+    prettier: ^2.8.8
+    ts-node: ^10.9.1
+    typescript: ^5.0.4
+  languageName: unknown
+  linkType: soft
+
 "@npmcli/fs@npm:^2.1.0":
   version: 2.1.2
   resolution: "@npmcli/fs@npm:2.1.2"
@@ -1257,26 +1277,6 @@ __metadata:
   checksum: f790b99a1bf63ef160c967e23c46feea7787e531292bb827126334612c234ed489a0dc2c7ba33156416f0ffa8d25bf2b0fdb7f35c2ba60eb3e960572bece4001
   languageName: node
   linkType: hard
-
-"acvm_js@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "acvm_js@workspace:."
-  dependencies:
-    "@esm-bundle/chai": ^4.3.4-fix.0
-    "@typescript-eslint/eslint-plugin": ^5.59.5
-    "@typescript-eslint/parser": ^5.59.5
-    "@web/dev-server-esbuild": ^0.3.6
-    "@web/test-runner": ^0.15.3
-    "@web/test-runner-playwright": ^0.10.0
-    chai: ^4.3.7
-    eslint: ^8.40.0
-    eslint-plugin-prettier: ^4.2.1
-    mocha: ^10.2.0
-    prettier: ^2.8.8
-    ts-node: ^10.9.1
-    typescript: ^5.0.4
-  languageName: unknown
-  linkType: soft
 
 "agent-base@npm:6, agent-base@npm:^6.0.2":
   version: 6.0.2
