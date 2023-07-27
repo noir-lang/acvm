@@ -1,3 +1,14 @@
+//! This integration test defines a set of circuits which are used in order to test the acvm_js package.
+//!
+//! The acvm_js test suite contains serialized [circuits][`Circuit`] which must be kept in sync with the format
+//! outputted from the [ACIR crate][acir].
+//! Breaking changes to the serialization format then require refreshing acvm_js's test suite.
+//! This file contains Rust definitions of these circuits and outputs the updated serialized format.
+//!
+//! These tests also check this circuit serialization against an expected value, erroring if the serialization changes.
+//! Generally in this situation we just need to refresh the `expected_serialization` variables to match the
+//! actual output, **HOWEVER** note that this results in a breaking change to the ACIR format.
+
 use std::collections::BTreeSet;
 
 use acir::{
