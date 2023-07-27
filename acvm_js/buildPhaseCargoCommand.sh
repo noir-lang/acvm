@@ -21,7 +21,7 @@ if [ -d ./pkg/ ]; then
     rm -rf ./pkg/
 fi
 
-WASM_BINARY=./target/wasm32-unknown-unknown/release/${pname}.wasm
+WASM_BINARY=../target/wasm32-unknown-unknown/release/${pname}.wasm
 
 NODE_DIR=./pkg/nodejs/
 BROWSER_DIR=./pkg/web/

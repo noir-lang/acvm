@@ -3,4 +3,5 @@
 .vscode
 Cargo.lock
 result
+outputs/
 .direnv
