@@ -1,4 +1,3 @@
-
 // See `pedersen_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 138, 65, 10, 0, 64, 8, 2, 103, 183,

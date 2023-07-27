@@ -1,4 +1,3 @@
-
 // See `schnorr_verify_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 77, 210, 233, 50, 66, 1, 24, 199, 225, 99,

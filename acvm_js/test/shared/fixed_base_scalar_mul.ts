@@ -1,4 +1,3 @@
-
 // See `fixed_base_scalar_mul_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 138, 201, 9, 0, 0, 8, 195, 234, 241,
