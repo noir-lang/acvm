@@ -18,6 +18,9 @@ jobs:
 
       - name: Install dependencies
         uses: ./.github/actions/setup
+        with:
+          working-directory: ./acvm_js
 
       - name: Run eslint
+        working-directory: ./acvm_js
         run: yarn lint

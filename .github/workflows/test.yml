@@ -29,7 +29,7 @@ jobs:
           nix build .#
 
       - name: Dereference symlink
-        run: echo "UPLOAD_PATH=$(readlink -f result)" >> $GITHUB_ENV
+        run: echo "UPLOAD_PATH=$(readlink -f acvm_js/result)" >> $GITHUB_ENV
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -51,12 +51,15 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-js
-          path: ./result
+          path: ./acvm_js/result
 
       - name: Set up test environment
         uses: ./.github/actions/setup
+        with:
+          working-directory: ./acvm_js
 
       - name: Run node tests
+        working-directory: ./acvm_js
         run: yarn test
 
   test-browser:
@@ -72,15 +75,19 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-js
-          path: ./result
+          path: ./acvm_js/result
 
       - name: Set up test environment
         uses: ./.github/actions/setup
+        with:
+          working-directory: ./acvm_js
 
       - name: Install playwright deps
+        working-directory: ./acvm_js
         run: |
           npx playwright install
           npx playwright install-deps
 
       - name: Run browser tests
+        working-directory: ./acvm_js
         run: yarn test:browser
