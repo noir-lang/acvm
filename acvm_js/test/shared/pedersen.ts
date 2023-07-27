@@ -1,19 +1,5 @@
-// let pedersen = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::Pedersen {
-//     inputs: vec![FunctionInput {
-//         witness: Witness(1),
-//         num_bits: FieldElement::max_num_bits(),
-//     }],
-//     outputs: (Witness(2), Witness(3)),
-//     domain_separator: 0,
-// });
 
-// let circuit = Circuit {
-//     current_witness_index: 4,
-//     opcodes: vec![pedersen],
-//     private_parameters: BTreeSet::from([Witness(1)]),
-//     public_parameters: PublicInputs::default(),
-//     return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(3)])),
-// };
+// See `pedersen_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 138, 65, 10, 0, 64, 8, 2, 103, 183,
   232, 255, 47, 142, 138, 58, 68, 130, 168, 140, 10, 60, 90, 149, 118, 182, 79,

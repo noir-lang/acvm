@@ -1,78 +1,7 @@
 import { WitnessMap } from "../../result/";
 
-// let fe_0 = FieldElement::zero();
-// let fe_1 = FieldElement::one();
-// let a = Witness(1);
-// let b = Witness(2);
-// let c = Witness(3);
 
-// let a_times_2 = Witness(4);
-// let b_times_3 = Witness(5);
-// let c_times_4 = Witness(6);
-// let a_plus_b_plus_c = Witness(7);
-// let a_plus_b_plus_c_times_2 = Witness(8);
-
-// let brillig_data = Brillig {
-//     inputs: vec![
-//         // Input Register 0
-//         BrilligInputs::Array(vec![
-//             Expression {
-//                 mul_terms: vec![],
-//                 linear_combinations: vec![(fe_1, a)],
-//                 q_c: fe_0,
-//             },
-//             Expression {
-//                 mul_terms: vec![],
-//                 linear_combinations: vec![(fe_1, b)],
-//                 q_c: fe_0,
-//             },
-//             Expression {
-//                 mul_terms: vec![],
-//                 linear_combinations: vec![(fe_1, c)],
-//                 q_c: fe_0,
-//             },
-//         ]),
-//         // Input Register 1
-//         BrilligInputs::Single(Expression {
-//             mul_terms: vec![],
-//             linear_combinations: vec![(fe_1, a), (fe_1, b), (fe_1, c)],
-//             q_c: fe_0,
-//         }),
-//     ],
-//     // This tells the BrilligSolver which witnesses its output registers correspond to
-//     outputs: vec![
-//         BrilligOutputs::Array(vec![a_times_2, b_times_3, c_times_4]), // Output Register 0
-//         BrilligOutputs::Simple(a_plus_b_plus_c),                      // Output Register 1
-//         BrilligOutputs::Simple(a_plus_b_plus_c_times_2),              // Output Register 2
-//     ],
-//     // stack of foreign call/oracle resolutions, starts empty
-//     foreign_call_results: vec![],
-//     bytecode: vec![
-//         // Oracles are named 'foreign calls' in brillig
-//         brillig::Opcode::ForeignCall {
-//             function: "complex".into(),
-//             inputs: vec![
-//                 RegisterOrMemory::HeapArray(HeapArray { pointer: 0.into(), size: 3 }),
-//                 RegisterOrMemory::RegisterIndex(RegisterIndex::from(1)),
-//             ],
-//             destinations: vec![
-//                 RegisterOrMemory::HeapArray(HeapArray { pointer: 0.into(), size: 3 }),
-//                 RegisterOrMemory::RegisterIndex(RegisterIndex::from(1)),
-//                 RegisterOrMemory::RegisterIndex(RegisterIndex::from(2)),
-//             ],
-//         },
-//     ],
-//     predicate: None,
-// };
-
-// let opcodes = vec![Opcode::Brillig(brillig_data)];
-// let circuit = Circuit {
-//     current_witness_index: 8,
-//     opcodes,
-//     public_parameters: PublicInputs::default(),
-//     return_values: PublicInputs::default(),
-// };
-
+// See `complex_brillig_foreign_call` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 213, 83, 219, 10, 128, 48, 8, 245, 210,
   101, 159, 179, 254, 160, 127, 137, 222, 138, 122, 236, 243, 91, 228, 64, 44,

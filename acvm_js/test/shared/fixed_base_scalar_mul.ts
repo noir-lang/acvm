@@ -1,14 +1,5 @@
-// let fixed_base_scalar_mul = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::FixedBaseScalarMul {
-//     input: FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() },
-//     outputs: (Witness(2), Witness(3)),
-// });
 
-// let circuit = Circuit {
-//     current_witness_index: 4,
-//     opcodes: vec![fixed_base_scalar_mul],
-//     public_parameters: PublicInputs::default(),
-//     return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(3)])),
-// };
+// See `fixed_base_scalar_mul_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 93, 138, 201, 9, 0, 0, 8, 195, 234, 241,
   114, 255, 121, 69, 69, 5, 49, 16, 242, 104, 21, 0, 161, 169, 218, 212, 83, 78,

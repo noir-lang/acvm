@@ -1,28 +1,5 @@
-// let public_key_x = FunctionInput { witness: Witness(1), num_bits: FieldElement:: max_num_bits() };
-// let public_key_y = FunctionInput { witness: Witness(2), num_bits: FieldElement:: max_num_bits() };
-// let signature =
-//   (3..(3 + 64)).map(| i | FunctionInput { witness: Witness(i), num_bits: 8 }).collect();
-// let message = ((3 + 64)..(3 + 64 + 10))
-//   .map(| i | FunctionInput { witness: Witness(i), num_bits: 8 })
-//   .collect();
-// let output = Witness(3 + 64 + 10);
-// let last_input = output.witness_index() - 1;
 
-// let schnorr = Opcode:: BlackBoxFuncCall(BlackBoxFuncCall:: SchnorrVerify {
-//   public_key_x,
-//   public_key_y,
-//   signature,
-//   message,
-//   output,
-// });
-
-// let circuit = Circuit {
-//   current_witness_index: 100,
-//   opcodes: vec![schnorr],
-//   private_parameters: BTreeSet::from_iter((1..=last_input).map(Witness)),
-//   public_parameters: PublicInputs::default(),
-//   return_values: PublicInputs(BTreeSet::from_iter(vec![output])),
-// };
+// See `schnorr_verify_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 77, 210, 233, 50, 66, 1, 24, 199, 225, 99,
   223, 247, 125, 15, 73, 146, 36, 73, 146, 36, 73, 194, 93, 184, 255, 75, 48,

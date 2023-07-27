@@ -1,22 +1,6 @@
 import { WitnessMap } from "../../result/web/acvm_js";
 
-// let addition = Opcode::Arithmetic(Expression {
-//   mul_terms: Vec::new(),
-//   linear_combinations: vec![
-//       (FieldElement::one(), Witness(1)),
-//       (FieldElement::one(), Witness(2)),
-//       (-FieldElement::one(), Witness(3)),
-//   ],
-//   q_c: FieldElement::zero(),
-// });
-
-// let circuit = Circuit {
-//   current_witness_index: 4,
-//   opcodes: vec![addition],
-//   private_parameters: BTreeSet::from([Witness(1), Witness(2)]),
-//   public_parameters: PublicInputs::default(),
-//   return_values: PublicInputs([Witness(3)].into()),
-// };
+// See `addition_circuit` integration test in `acir/tests/test_program_serialization.rs`.
 export const bytecode = Uint8Array.from([
   31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 173, 144, 187, 13, 192, 32, 12, 68, 249,
   100, 32, 27, 219, 96, 119, 89, 37, 40, 176, 255, 8, 81, 36, 23, 72, 41, 195,
