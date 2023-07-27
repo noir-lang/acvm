@@ -2,3 +2,5 @@
 .DS_Store
 .vscode
 Cargo.lock
+result
+.direnv
