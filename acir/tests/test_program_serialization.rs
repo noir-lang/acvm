@@ -103,6 +103,61 @@ fn pedersen_circuit() {
 }
 
 #[test]
+fn schnorr_verify_circuit() {
+    let public_key_x =
+        FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() };
+    let public_key_y =
+        FunctionInput { witness: Witness(2), num_bits: FieldElement::max_num_bits() };
+    let signature =
+        (3..(3 + 64)).map(|i| FunctionInput { witness: Witness(i), num_bits: 8 }).collect();
+    let message = ((3 + 64)..(3 + 64 + 10))
+        .map(|i| FunctionInput { witness: Witness(i), num_bits: 8 })
+        .collect();
+    let output = Witness(3 + 64 + 10);
+    let last_input = output.witness_index() - 1;
+
+    let schnorr = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::SchnorrVerify {
+        public_key_x,
+        public_key_y,
+        signature,
+        message,
+        output,
+    });
+
+    let circuit = Circuit {
+        current_witness_index: 100,
+        opcodes: vec![schnorr],
+        private_parameters: BTreeSet::from_iter((1..=last_input).map(Witness)),
+        public_parameters: PublicInputs::default(),
+        return_values: PublicInputs(BTreeSet::from([output])),
+    };
+
+    let mut bytes = Vec::new();
+    circuit.write(&mut bytes).unwrap();
+
+    let expected_serialization: Vec<u8> = vec![
+        31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 77, 210, 233, 50, 66, 1, 24, 199, 225, 99, 223, 247,
+        125, 15, 73, 146, 36, 73, 146, 36, 73, 194, 93, 184, 255, 75, 48, 122, 167, 167, 25, 103,
+        230, 204, 83, 211, 151, 230, 253, 255, 126, 146, 36, 25, 73, 6, 79, 56, 193, 223, 254, 59,
+        202, 166, 223, 199, 250, 239, 116, 255, 29, 231, 4, 39, 57, 197, 225, 59, 195, 89, 206,
+        113, 158, 11, 92, 228, 18, 151, 185, 194, 85, 174, 113, 157, 27, 220, 228, 22, 183, 185,
+        195, 93, 238, 113, 159, 7, 60, 228, 17, 83, 60, 230, 9, 79, 153, 230, 25, 51, 60, 103, 150,
+        23, 204, 241, 146, 121, 94, 177, 192, 107, 22, 121, 195, 18, 111, 89, 230, 29, 43, 188,
+        103, 149, 15, 172, 241, 145, 117, 62, 177, 193, 103, 54, 249, 194, 214, 191, 29, 227, 121,
+        245, 189, 205, 55, 118, 248, 206, 46, 63, 216, 227, 39, 191, 248, 237, 115, 60, 209, 94,
+        116, 23, 173, 69, 103, 209, 88, 244, 53, 108, 107, 198, 255, 136, 150, 162, 163, 104, 40,
+        250, 137, 118, 162, 155, 104, 38, 122, 137, 86, 162, 147, 104, 36, 250, 136, 54, 162, 139,
+        104, 34, 122, 136, 22, 162, 131, 104, 32, 246, 143, 237, 83, 201, 96, 243, 216, 59, 182,
+        78, 219, 56, 99, 219, 172, 77, 115, 182, 204, 219, 176, 96, 187, 162, 205, 74, 182, 42,
+        219, 168, 98, 155, 170, 77, 106, 182, 168, 219, 160, 225, 246, 77, 55, 111, 185, 113, 219,
+        109, 59, 110, 218, 117, 203, 158, 27, 14, 111, 54, 188, 91, 226, 150, 127, 214, 93, 14,
+        165, 212, 3, 0, 0,
+    ];
+
+    assert_eq!(bytes, expected_serialization)
+}
+
+#[test]
 fn simple_brillig_foreign_call() {
     let fe_0 = FieldElement::zero();
     let fe_1 = FieldElement::one();
