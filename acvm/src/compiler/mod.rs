@@ -161,9 +161,6 @@ pub fn compile(
             }
             Opcode::Directive(directive) => {
                 match directive {
-                    Directive::Invert { result, .. } => {
-                        transformer.mark_solvable(*result);
-                    }
                     Directive::Quotient(quotient_directive) => {
                         transformer.mark_solvable(quotient_directive.q);
                         transformer.mark_solvable(quotient_directive.r);
@@ -178,7 +175,6 @@ pub fn compile(
                             transformer.mark_solvable(*witness);
                         }
                     }
-                    Directive::Log(_) => (),
                 }
                 new_opcode_labels.push(opcode_label[index]);
                 transformed_gates.push(opcode.clone());
