@@ -114,6 +114,7 @@ pub enum BlackBoxFuncCall {
 }
 
 impl BlackBoxFuncCall {
+    #[deprecated = "BlackBoxFuncCall::dummy() is unnecessary and will be removed in ACVM 0.24.0"]
     pub fn dummy(bb_func: BlackBoxFunc) -> Self {
         match bb_func {
             BlackBoxFunc::AND => BlackBoxFuncCall::AND {
