@@ -1,7 +1,6 @@
 [workspace]
 
 members = ["acir_field", "acir", "acvm", "acvm_js", "stdlib", "brillig", "brillig_vm", "blackbox_solver"]
-# exclude = ["acvm_js"]
 
 [workspace.package]
 authors = ["The Noir Team <team@noir-lang.org>"]

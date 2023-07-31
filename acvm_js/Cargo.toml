@@ -13,7 +13,7 @@ repository.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
-[dependencies]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
 acvm = { version = "0.21.0", path = "../acvm", default-features = false }
 wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4.36"
@@ -33,6 +33,7 @@ rust-embed = { version = "6.6.0", features = [
     "interpolate-folder-path",
     "include-exclude",
 ] }
+
 wasmer = { version = "3.3", default-features = false, features = [ "js-default" ] }
 
 [build-dependencies]
