@@ -99,7 +99,7 @@
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
       commonArgs = {
-        
+
         src = pkgs.lib.cleanSourceWith {
           src = craneLib.path {
             path = ./.;
@@ -155,7 +155,7 @@
       packages.default = craneLib.mkCargoDerivation (acvmjsWasmArgs // rec {
 
         inherit cargoArtifacts;
-        
+
         inherit GIT_COMMIT;
         inherit GIT_DIRTY;
 
