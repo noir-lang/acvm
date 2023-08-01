@@ -20,7 +20,7 @@ fn main() -> Result<(), String> {
                 Ok(())
             } else {
                 let current_dir = std::env::current_dir().unwrap();
-                let bin_path = current_dir.join("result").join("bin");                
+                let bin_path = current_dir.join("result").join("bin");
                 let wasm_path = bin_path.join(BB_WASM);
                 let bin_path_string = bin_path.to_string_lossy();
                 if wasm_path.exists() && wasm_path.is_file() {
@@ -28,7 +28,7 @@ fn main() -> Result<(), String> {
                     println!("cargo:rustc-env={BARRETENBERG_BIN_DIR}={bin_path_string}");
                     Ok(())
                 } else {
-                    Err(format!("Unable to locate barretenberg.wasm - Please set the BARRETENBERG_BIN_DIR env var to the directory where it exists, or ensure it's located at {bin_path_string}", ).into())
+                    Err(format!("Unable to locate barretenberg.wasm - Please set the BARRETENBERG_BIN_DIR env var to the directory where it exists, or ensure it's located at {bin_path_string}", ))
                 }
             }
         }
