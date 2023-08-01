@@ -3,14 +3,40 @@ name: Rust
 on: [push, pull_request]
 
 jobs:
+  barretenberg-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cachix/install-nix-action@v22
+        with:
+          nix_path: nixpkgs=channel:nixos-22.11
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: cachix/cachix-action@v12
+        with:
+          name: barretenberg
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        
+      # barretenberg#wasm32 is needed by acvm_js crate so we need to build it first 
+      # and ensure it's in $workspace_root/acvm_js/result/bin
+      # so acvm_js build.rs script can pick it up
+      - name: Run `nix build bb`
+        working-directory: ./acvm_js
+        run: |
+          nix build -L "github:AztecProtocol/barretenberg?rev=65e651d04c6092cb5ca079cd9e12ed9b5846fa3a#wasm32"
+
   check_n_test:
+    needs: barretenberg-job
     name: cargo check & test
     uses: noir-lang/.github/.github/workflows/rust-test.yml@main
 
   clippy:
+    needs: barretenberg-job
     name: cargo clippy
     uses: noir-lang/.github/.github/workflows/rust-clippy.yml@main
 
   format:
+    needs: barretenberg-job
     name: cargo fmt
     uses: noir-lang/.github/.github/workflows/rust-format.yml@main
