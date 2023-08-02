@@ -131,7 +131,7 @@ mod tests {
         let init = vec![Witness(1), Witness(2)];
 
         let trace = vec![
-            MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
             MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
         ];
 
@@ -141,6 +141,6 @@ mod tests {
         for op in trace {
             block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
         }
-        assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
+        assert_eq!(initial_witness[&Witness(4)], FieldElement::from(2u128));
     }
 }
