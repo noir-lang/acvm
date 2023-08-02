@@ -36,15 +36,11 @@ impl MemoryOpSolver {
     }
 
     fn read_memory_index(&self, index: MemoryIndex) -> Result<FieldElement, OpcodeResolutionError> {
-        if let Some(value) = self.block_value.get(&index).copied() {
-            Ok(value)
-        } else {
-            Err(OpcodeResolutionError::IndexOutOfBounds {
-                opcode_label: OpcodeLabel::Unresolved,
-                index,
-                array_size: self.block_len,
-            })
-        }
+        self.block_value.get(&index).copied().ok_or(OpcodeResolutionError::IndexOutOfBounds {
+            opcode_label: OpcodeLabel::Unresolved,
+            index,
+            array_size: self.block_len,
+        })
     }
 
     /// Set the block_value from a MemoryInit opcode
@@ -142,5 +138,37 @@ mod tests {
             block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
         }
         assert_eq!(initial_witness[&Witness(4)], FieldElement::from(2u128));
+    }
+
+    #[test]
+    fn test_index_out_of_bounds() {
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let init = vec![Witness(1), Witness(2)];
+
+        let invalid_trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::from(2u128).into(), Witness(4)),
+        ];
+        let mut block_solver = MemoryOpSolver::default();
+        block_solver.init(&init, &initial_witness).unwrap();
+        let mut err = None;
+        for op in invalid_trace {
+            if err.is_none() {
+                err = block_solver.solve_memory_op(&op, &mut initial_witness).err();
+            }
+        }
+        assert!(matches!(
+            err,
+            Some(crate::pwg::OpcodeResolutionError::IndexOutOfBounds {
+                opcode_label: _,
+                index: 2,
+                array_size: 2
+            })
+        ));
     }
 }
