@@ -85,6 +85,8 @@ pub enum OpcodeResolutionError {
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("could not satisfy all constraints")]
     UnsatisfiedConstrain { opcode_label: OpcodeLabel },
+    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
+    IndexOutOfBounds { opcode_label: OpcodeLabel, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("failed to solve brillig function, reason: {0}")]
@@ -255,10 +257,13 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 let opcode_label =
                     OpcodeLabel::Resolved(self.instruction_pointer.try_into().unwrap());
                 match &mut error {
-                    // If we have an unsatisfied constraint, the opcode label will be unresolved
+                    // If we have an index out of bounds or an unsatisfied constraint, the opcode label will be unresolved
                     // because the solvers do not have knowledge of this information.
                     // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
-                    OpcodeResolutionError::UnsatisfiedConstrain { opcode_label: opcode_index } => {
+                    OpcodeResolutionError::IndexOutOfBounds {
+                        opcode_label: opcode_index, ..
+                    }
+                    | OpcodeResolutionError::UnsatisfiedConstrain { opcode_label: opcode_index } => {
                         *opcode_index = opcode_label;
                     }
                     // If a brillig function has failed, we return an unsatisfied constraint error
