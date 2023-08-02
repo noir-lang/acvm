@@ -33,36 +33,6 @@ jobs:
           ref: master
           inputs: '{ "acvm-ref": "${{ needs.release-please.outputs.tag-name }}" }'
 
-  update-lockfile:
-    name: Update lockfile
-    needs: [release-please]
-    if: ${{ needs.release-please.outputs.release-pr }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout release branch
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ fromJSON(needs.release-please.outputs.release-pr).headBranchName }}
-          token: ${{ secrets.ACVM_JS_RELEASES_TOKEN }}
-
-      - name: Setup toolchain
-        uses: dtolnay/rust-toolchain@1.66.0
-
-      - name: Update lockfile
-        run: |
-          cargo update --workspace
-
-      - name: Configure git
-        run: |
-          git config user.name tomafrench
-          git config user.email tomfrench@aztecprotocol.com
-
-      - name: Commit updates
-        run: |
-          git add Cargo.lock
-          git commit -m 'chore: Update lockfile'
-          git push
-
   dispatch-acvm-js-wasm:
     name: Dispatch to acvm-js-wasm
     needs: [release-please]
