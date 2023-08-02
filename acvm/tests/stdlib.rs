@@ -313,7 +313,7 @@ proptest! {
 
         // prepare test data
         let mut counter = 0;
-        let output = hash_to_field_128_security(&input_values.clone()).unwrap();
+        let output = hash_to_field_128_security(&input_values).unwrap();
         for inp_v in input_values {
             counter += 1;
             let function_input = FunctionInput { witness: Witness(counter), num_bits: 8 };
