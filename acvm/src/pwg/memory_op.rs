@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use acir::{
-    circuit::opcodes::MemOp,
+    circuit::{opcodes::MemOp, OpcodeLabel},
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
@@ -15,15 +15,36 @@ type MemoryIndex = u32;
 #[derive(Default)]
 pub(super) struct MemoryOpSolver {
     block_value: HashMap<MemoryIndex, FieldElement>,
+    block_len: u32,
 }
 
 impl MemoryOpSolver {
-    fn write_memory_index(&mut self, index: MemoryIndex, value: FieldElement) {
+    fn write_memory_index(
+        &mut self,
+        index: MemoryIndex,
+        value: FieldElement,
+    ) -> Result<(), OpcodeResolutionError> {
+        if index >= self.block_len {
+            return Err(OpcodeResolutionError::IndexOutOfBounds {
+                opcode_label: OpcodeLabel::Unresolved,
+                index,
+                array_size: self.block_len,
+            });
+        }
         self.block_value.insert(index, value);
+        Ok(())
     }
 
-    fn read_memory_index(&self, index: MemoryIndex) -> FieldElement {
-        self.block_value.get(&index).copied().expect("Should not read uninitialized memory")
+    fn read_memory_index(&self, index: MemoryIndex) -> Result<FieldElement, OpcodeResolutionError> {
+        if let Some(value) = self.block_value.get(&index).copied() {
+            Ok(value)
+        } else {
+            Err(OpcodeResolutionError::IndexOutOfBounds {
+                opcode_label: OpcodeLabel::Unresolved,
+                index,
+                array_size: self.block_len,
+            })
+        }
     }
 
     /// Set the block_value from a MemoryInit opcode
@@ -32,11 +53,12 @@ impl MemoryOpSolver {
         init: &[Witness],
         initial_witness: &WitnessMap,
     ) -> Result<(), OpcodeResolutionError> {
+        self.block_len = init.len() as u32;
         for (memory_index, witness) in init.iter().enumerate() {
             self.write_memory_index(
                 memory_index as MemoryIndex,
                 *witness_to_value(initial_witness, *witness)?,
-            );
+            )?;
         }
         Ok(())
     }
@@ -70,8 +92,7 @@ impl MemoryOpSolver {
                 "Memory must be read into a specified witness index, encountered an Expression",
             );
 
-            let value_in_array = self.read_memory_index(memory_index);
-
+            let value_in_array = self.read_memory_index(memory_index)?;
             insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
             // `arr[memory_index] = value_write`
@@ -82,8 +103,7 @@ impl MemoryOpSolver {
 
             let value_to_write = get_value(&value_write, initial_witness)?;
 
-            self.write_memory_index(memory_index, value_to_write);
-            Ok(())
+            self.write_memory_index(memory_index, value_to_write)
         }
     }
 }
