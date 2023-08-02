@@ -76,13 +76,18 @@
         cargoToml = ./acvm_js/Cargo.toml;
       };
 
+      crateACVMDefinitions = craneLib.crateNameFromCargoToml {
+        cargoToml = ./acvm/Cargo.toml;
+      };
+
+
       sharedEnvironment = {
         # Barretenberg fails if tests are run on multiple threads, so we set the test thread
         # count to 1 throughout the entire project
         #
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
-        RUST_TEST_THREADS = "1";
+        # RUST_TEST_THREADS = "1";
         BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
@@ -99,17 +104,16 @@
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
       commonArgs = {
-
+        inherit (crateACVMDefinitions) pname version;
         src = pkgs.lib.cleanSourceWith {
           src = craneLib.path {
             path = ./.;
-            # name = "acvm_js";
           };
           filter = sourceFilter;
         };
 
-        # cargoClippyExtraArgs = "--package acvm_js --all-targets -- -D warnings";
-        # cargoTestExtraArgs = "--workspace";
+        cargoClippyExtraArgs = "--package acvm_js --all-targets -- -D warnings";
+        cargoTestExtraArgs = "--workspace";
 
         # We don't want to run checks or tests when just building the project
         doCheck = false;
@@ -131,7 +135,7 @@
       };
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
-      cargoArtifacts = craneLib.buildDepsOnly acvmjsWasmArgs;
+      cargo-artifacts = craneLib.buildDepsOnly commonArgs;
 
       wasm-bindgen-cli = pkgs.callPackage ./acvm_js/nix/wasm-bindgen-cli/default.nix {
         rustPlatform = pkgs.makeRustPlatform {
@@ -143,45 +147,63 @@
     in
     rec {
       checks = {
-        cargo-clippy = craneLib.cargoClippy (acvmjsWasmArgs // {
-          inherit cargoArtifacts
-  ;
+
+        cargo-clippy = craneLib.cargoClippy (commonArgs // sharedEnvironment // {
           inherit GIT_COMMIT GIT_DIRTY;
 
+          cargoArtifacts = cargo-artifacts;
           doCheck = true;
         });
+
+        cargo-test = craneLib.cargoTest (commonArgs // sharedEnvironment // {
+          inherit GIT_COMMIT GIT_DIRTY;
+
+          cargoArtifacts = cargo-artifacts;
+          doCheck = true;
+        });
+
+        cargo-fmt = craneLib.cargoFmt (commonArgs // sharedEnvironment // {
+          inherit GIT_COMMIT GIT_DIRTY;
+
+          cargoArtifacts = cargo-artifacts;
+          doCheck = true;
+        });
+
       };
 
-      packages.default = craneLib.mkCargoDerivation (acvmjsWasmArgs // rec {
+      packages = {
+        default = craneLib.mkCargoDerivation (acvmjsWasmArgs // rec {
 
-        inherit cargoArtifacts;
+          cargoArtifacts = cargo-artifacts;
 
-        inherit GIT_COMMIT;
-        inherit GIT_DIRTY;
+          inherit GIT_COMMIT;
+          inherit GIT_DIRTY;
 
-        COMMIT_SHORT = builtins.substring 0 7 GIT_COMMIT;
-        VERSION_APPENDIX = if GIT_DIRTY == "true" then "-dirty" else "";
+          COMMIT_SHORT = builtins.substring 0 7 GIT_COMMIT;
+          VERSION_APPENDIX = if GIT_DIRTY == "true" then "-dirty" else "";
 
-        src = ./.; #craneLib.cleanCargoSource (craneLib.path ./.);
+          src = ./.; #craneLib.cleanCargoSource (craneLib.path ./.);
 
-        nativeBuildInputs = with pkgs; [
-          binaryen
-          which
-          git
-          jq
-          rustToolchain
-          wasm-bindgen-cli
-        ];
+          nativeBuildInputs = with pkgs; [
+            binaryen
+            which
+            git
+            jq
+            rustToolchain
+            wasm-bindgen-cli
+          ];
 
-        buildPhaseCargoCommand = ''
-          bash ./acvm_js/buildPhaseCargoCommand.sh
-        '';
+          buildPhaseCargoCommand = ''
+            bash ./acvm_js/buildPhaseCargoCommand.sh
+          '';
 
-        installPhase = ''
-          bash ./acvm_js/installPhase.sh        
-        '';
+          installPhase = ''
+            bash ./acvm_js/installPhase.sh        
+          '';
 
-      });
+        });
+        inherit cargo-artifacts;
+      };
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
