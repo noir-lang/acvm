@@ -110,7 +110,8 @@ it("successfully processes complex brillig foreign call opcodes", async () => {
 });
 
 it("successfully executes a Pedersen opcode", async function () {
-  this.timeout(10000);
+  // Unsure why this was limited to 10s vs global setting of 40s
+  // this.timeout(10000);
   const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/pedersen"
   );
