@@ -1,4 +1,3 @@
-#![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
 cfg_if::cfg_if! {

@@ -1,4 +1,3 @@
-#![warn(unused_crate_dependencies)]
 #![warn(unreachable_pub)]
 
 //! This crate provides the implementation of BlackBox functions of ACIR and Brillig.
