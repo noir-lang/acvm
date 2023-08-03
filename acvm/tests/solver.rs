@@ -371,7 +371,7 @@ fn oracle_dependent_execution() {
     let opcodes = vec![
         Opcode::Arithmetic(equality_check),
         Opcode::Brillig(brillig_data),
-        Opcode::Arithmetic(inverse_equality_check.clone()),
+        Opcode::Arithmetic(inverse_equality_check),
     ];
 
     let witness_assignments =
