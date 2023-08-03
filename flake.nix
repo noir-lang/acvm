@@ -193,6 +193,8 @@
             wasm-bindgen-cli
           ];
 
+          CARGO_TARGET_DIR = "./target";
+
           buildPhaseCargoCommand = ''
             bash ./acvm_js/buildPhaseCargoCommand.sh
           '';

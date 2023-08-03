@@ -16,16 +16,18 @@ function run_if_available {
   fi
 }
 
+export self_path=$(dirname "$(readlink -f "$0")")
+
 # Clear out the existing build artifacts as these aren't automatically removed by wasm-pack.
 if [ -d ./pkg/ ]; then
-    rm -rf ./pkg/
+    rm -rf $self_path/pkg/
 fi
 
 TARGET=wasm32-unknown-unknown
-WASM_BINARY=$PWD/target/$TARGET/release/${pname}.wasm
+WASM_BINARY=$CARGO_TARGET_DIR/$TARGET/release/${pname}.wasm
 
-NODE_DIR=$PWD/pkg/nodejs/
-BROWSER_DIR=$PWD/pkg/web/
+NODE_DIR=$self_path/pkg/nodejs/
+BROWSER_DIR=$self_path/pkg/web/
 NODE_WASM=${NODE_DIR}/${pname}_bg.wasm
 BROWSER_WASM=${BROWSER_DIR}/${pname}_bg.wasm
 

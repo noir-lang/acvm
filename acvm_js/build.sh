@@ -28,19 +28,21 @@ require_command cargo
 require_command wasm-bindgen
 check_installed wasm-opt
 
-export pname=$(toml2json < Cargo.toml | jq -r .package.name)
+self_path=$(dirname "$(readlink -f "$0")")
+export pname=$(toml2json < $self_path/Cargo.toml | jq -r .package.name)
+export CARGO_TARGET_DIR=$self_path/target
 
-rm -rf ./outputs >/dev/null 2>&1
-rm -rf ./result >/dev/null 2>&1
+rm -rf $self_path/outputs >/dev/null 2>&1
+rm -rf $self_path/result >/dev/null 2>&1
 
 if [ -v out ]; then
   echo "Will install package to $out (defined outside installPhase.sh script)"
 else
-  out="./outputs/out"
+  out="$self_path/outputs/out"
   echo "Will install package to $out"
 fi
 
-run_or_fail ./buildPhaseCargoCommand.sh
-run_or_fail ./installPhase.sh
+run_or_fail $self_path/buildPhaseCargoCommand.sh
+run_or_fail $self_path/installPhase.sh
 
-ln -s $out ./result
+ln -s $out $self_path/result
