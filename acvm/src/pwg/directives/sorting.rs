@@ -246,6 +246,7 @@ pub(super) fn route(inputs: Vec<FieldElement>, outputs: Vec<FieldElement>) -> Ve
 #[cfg(test)]
 mod tests {
     // Silence `unused_crate_dependencies` warning
+    use paste as _;
     use proptest as _;
 
     use super::route;

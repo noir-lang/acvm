@@ -502,8 +502,7 @@ fn stepwise_reduction_test() {
     let got_optimized_gate_a =
         optimizer.transform(gate_a, &mut intermediate_variables, &mut num_witness);
 
-    let witnesses: Vec<Witness> =
-        got_optimized_gate_a.linear_combinations.iter().map(|(_, w)| *w).collect();
     // Since b is not known, it cannot be put inside intermediate gates, so it must belong to the transformed gate.
-    assert!(witnesses.contains(&b));
+    let contains_b = got_optimized_gate_a.linear_combinations.iter().any(|(_, w)| *w == b);
+    assert!(contains_b);
 }
