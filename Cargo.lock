@@ -68,6 +68,7 @@ version = "0.21.0"
 dependencies = [
  "acvm",
  "build-data",
+ "cfg-if",
  "console_error_panic_hook",
  "const-str",
  "getrandom",
