@@ -49,6 +49,9 @@
     "acvm": {
       "component": "acvm"
     },
+    "acvm_js": {
+      "component": "acvm_js"
+    },
     "brillig": {
       "component": "brillig"
     },
