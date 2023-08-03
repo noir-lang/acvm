@@ -4,7 +4,7 @@ import initACVM, {
   WitnessMap,
   initLogLevel,
   ForeignCallHandler,
-} from "../../result/";
+} from "../../../result/";
 
 beforeEach(async () => {
   await initACVM();

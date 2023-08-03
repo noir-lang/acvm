@@ -51,7 +51,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-js
-          path: ./acvm_js/result
+          path: ./result
 
       - name: Set up test environment
         uses: ./.github/actions/setup
@@ -75,7 +75,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: acvm-js
-          path: ./acvm_js/result
+          path: ./result
 
       - name: Set up test environment
         uses: ./.github/actions/setup
