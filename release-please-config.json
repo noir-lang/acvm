@@ -37,7 +37,7 @@
           "type": "json",
           "path": "acvm_js/package.json",
           "jsonpath": "$.version"
-        }        
+        }
       ]
     },
     "acir": {
@@ -78,6 +78,7 @@
         "acir",
         "acir_field",
         "acvm",
+        "acvm_js",
         "brillig",
         "brillig_vm",
         "acvm_stdlib",
