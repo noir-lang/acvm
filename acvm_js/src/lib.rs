@@ -8,6 +8,7 @@
 cfg_if::cfg_if! {
     if #[cfg(target_arch = "wasm32")] {
         mod barretenberg;
+        mod black_box_solvers;
         mod build_info;
         mod compression;
         mod execute;
@@ -17,6 +18,7 @@ cfg_if::cfg_if! {
         mod public_witness;
 
         pub use build_info::build_info;
+        pub use black_box_solvers::{and, xor, blake2s256, sha256, keccak256, hash_to_field_128_security, ecdsa_secp256k1_verify, ecdsa_secp256r1_verify};
         pub use compression::{compress_witness, decompress_witness};
         pub use execute::execute_circuit;
         pub use js_witness_map::JsWitnessMap;
