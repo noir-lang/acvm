@@ -38,6 +38,7 @@ pub trait Backend:
     + CommonReferenceString
     + Default
     + Debug
+    + Sync
 {
 }
 
