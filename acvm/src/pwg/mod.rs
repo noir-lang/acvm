@@ -1,6 +1,6 @@
 // Re-usable methods that backends can use to implement their PWG
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use acir::{
     brillig::ForeignCallResult,
@@ -90,8 +90,8 @@ pub enum OpcodeResolutionError {
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("Cannot satisfy constraint {opcode_location:?}")]
-    UnsatisfiedConstrain { opcode_location: ErrorLocation },
+    #[error("Cannot satisfy constraint with message {assert_message:?} at {opcode_location:?}")]
+    UnsatisfiedConstrain { opcode_location: ErrorLocation, assert_message: Option<String> },
     #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
     IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
@@ -127,10 +127,17 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     instruction_pointer: usize,
 
     witness_map: WitnessMap,
+
+    assert_messages: BTreeMap<OpcodeLocation, String>,
 }
 
 impl<B: BlackBoxFunctionSolver> ACVM<B> {
-    pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+    pub fn new(
+        backend: B,
+        opcodes: Vec<Opcode>,
+        initial_witness: WitnessMap,
+        assert_messages: BTreeMap<OpcodeLocation, String>,
+    ) -> Self {
         let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
         ACVM {
             status,
@@ -139,6 +146,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
             opcodes,
             instruction_pointer: 0,
             witness_map: initial_witness,
+            assert_messages,
         }
     }
 
@@ -268,13 +276,18 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                     OpcodeResolutionError::IndexOutOfBounds {
                         opcode_location: opcode_index,
                         ..
-                    }
-                    | OpcodeResolutionError::UnsatisfiedConstrain {
-                        opcode_location: opcode_index,
                     } => {
                         *opcode_index = ErrorLocation::Resolved(OpcodeLocation::Acir(
                             self.instruction_pointer(),
                         ));
+                    }
+                    OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: opcode_index,
+                        assert_message: assertion_message,
+                    } => {
+                        let opcode_location = OpcodeLocation::Acir(self.instruction_pointer());
+                        *assertion_message = self.assert_messages.get(&opcode_location).cloned();
+                        *opcode_index = ErrorLocation::Resolved(opcode_location);
                     }
                     // If a brillig function has failed, we return an unsatisfied constraint error
                     // We intentionally ignore the brillig failure message, as there is no way to
@@ -283,11 +296,13 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         _,
                         brillig_instruction_pointer,
                     ) => {
+                        let opcode_location = OpcodeLocation::Brillig(
+                            self.instruction_pointer(),
+                            *brillig_instruction_pointer,
+                        );
                         error = OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig(
-                                self.instruction_pointer(),
-                                *brillig_instruction_pointer,
-                            )),
+                            opcode_location: ErrorLocation::Resolved(opcode_location),
+                            assert_message: self.assert_messages.get(&opcode_location).cloned(),
                         }
                     }
                     // All other errors are thrown normally.
@@ -346,6 +361,7 @@ pub fn insert_value(
     if old_value != value_to_insert {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
             opcode_location: ErrorLocation::Unresolved,
+            assert_message: None,
         });
     }
 

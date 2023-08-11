@@ -60,13 +60,7 @@ impl FallbackTransformer {
         }
 
         Ok((
-            Circuit {
-                current_witness_index: witness_idx,
-                opcodes: acir_supported_opcodes,
-                private_parameters: acir.private_parameters,
-                public_parameters: acir.public_parameters,
-                return_values: acir.return_values,
-            },
+            Circuit { current_witness_index: witness_idx, opcodes: acir_supported_opcodes, ..acir },
             new_opcode_positions,
         ))
     }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use acir::{
     circuit::{
@@ -28,22 +28,39 @@ pub enum CompileError {
     UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
+fn apply_transformation_map_to_assert_messages(
+    transformation_map: &HashMap<OpcodeLocation, OpcodeLocation>,
+    assert_messages: BTreeMap<OpcodeLocation, String>,
+) -> BTreeMap<OpcodeLocation, String> {
+    assert_messages.into_iter().fold(
+        BTreeMap::new(),
+        |mut assert_messages, (opcode_location, message)| {
+            let new_opcode_location = transformation_map.get(&opcode_location);
+            if let Some(new_opcode_location) = new_opcode_location {
+                assert_messages.insert(*new_opcode_location, message);
+            } else {
+                assert_messages.insert(opcode_location, message);
+            }
+            assert_messages
+        },
+    )
+}
+
 fn create_acir_transformation_map(
-    acir: &Circuit,
-    acir_opcode_positions: Vec<usize>,
+    transformed_bytecode: &[Opcode],
+    new_acir_opcode_positions: &[usize],
 ) -> HashMap<OpcodeLocation, OpcodeLocation> {
     let mut transformation_map = HashMap::new();
 
-    for (original_index, new_index) in acir_opcode_positions.into_iter().enumerate() {
-        if original_index != new_index {
+    for (original_index, new_index) in new_acir_opcode_positions.iter().enumerate() {
+        if original_index != *new_index {
             transformation_map
-                .insert(OpcodeLocation::Acir(original_index), OpcodeLocation::Acir(new_index));
-            let opcode = &acir.opcodes[new_index];
-            if let Opcode::Brillig(brillig) = opcode {
+                .insert(OpcodeLocation::Acir(original_index), OpcodeLocation::Acir(*new_index));
+            if let Opcode::Brillig(brillig) = &transformed_bytecode[*new_index] {
                 for (brillig_opcode_index, _) in brillig.bytecode.iter().enumerate() {
                     transformation_map.insert(
                         OpcodeLocation::Brillig(original_index, brillig_opcode_index),
-                        OpcodeLocation::Brillig(new_index, brillig_opcode_index),
+                        OpcodeLocation::Brillig(*new_index, brillig_opcode_index),
                     );
                 }
             }
@@ -85,12 +102,17 @@ pub fn compile(
 
     // Range optimization pass
     let range_optimizer = RangeOptimizer::new(acir);
-    let (acir, acir_opcode_positions) =
+    let (mut acir, acir_opcode_positions) =
         range_optimizer.replace_redundant_ranges(acir_opcode_positions);
 
     let mut transformer = match &np_language {
         crate::Language::R1CS => {
-            let transformation_map = create_acir_transformation_map(&acir, acir_opcode_positions);
+            let transformation_map =
+                create_acir_transformation_map(&acir.opcodes, &acir_opcode_positions);
+            acir.assert_messages = apply_transformation_map_to_assert_messages(
+                &transformation_map,
+                acir.assert_messages,
+            );
             let transformer = R1CSTransformer::new(acir);
             return Ok((transformer.transform(), transformation_map));
         }
@@ -247,6 +269,9 @@ pub fn compile(
 
     let current_witness_index = next_witness_index - 1;
 
+    let transformation_map =
+        create_acir_transformation_map(&transformed_gates, &new_acir_opcode_positions);
+
     let acir = Circuit {
         current_witness_index,
         opcodes: transformed_gates,
@@ -254,9 +279,11 @@ pub fn compile(
         private_parameters: acir.private_parameters,
         public_parameters: acir.public_parameters,
         return_values: acir.return_values,
+        assert_messages: apply_transformation_map_to_assert_messages(
+            &transformation_map,
+            acir.assert_messages,
+        ),
     };
-
-    let transformation_map = create_acir_transformation_map(&acir, new_acir_opcode_positions);
 
     Ok((acir, transformation_map))
 }
