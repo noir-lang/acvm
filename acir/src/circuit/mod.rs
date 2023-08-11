@@ -30,6 +30,8 @@ pub struct Circuit {
     /// The set of public inputs calculated within the circuit.
     pub return_values: PublicInputs,
     /// Maps opcode locations to failed assertion messages.
+    /// These messages are embedded in the circuit to provide useful feedback to users
+    /// when a constraint in the circuit is not satisfied.
     pub assert_messages: BTreeMap<OpcodeLocation, String>,
 }
 
