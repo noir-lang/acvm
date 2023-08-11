@@ -31,13 +31,12 @@ pub struct Circuit {
     pub return_values: PublicInputs,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-/// Opcodes are given labels so that callers can
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// Opcodes are locatable so that callers can
 /// map opcodes to debug information related to their context.
-pub enum OpcodeLabel {
-    #[default]
-    Unresolved,
-    Resolved(u64),
+pub enum OpcodeLocation {
+    Acir(usize),
+    Brillig(usize, usize),
 }
 
 impl Circuit {
@@ -91,11 +90,6 @@ impl Circuit {
         gz_decoder.read_to_end(&mut buf_d).unwrap();
         let circuit = bincode::deserialize(&buf_d).unwrap();
         Ok(circuit)
-    }
-
-    /// Initial list of labels attached to opcodes.
-    pub fn initial_opcode_labels(&self) -> Vec<OpcodeLabel> {
-        (0..self.opcodes.len()).map(|label| OpcodeLabel::Resolved(label as u64)).collect()
     }
 }
 

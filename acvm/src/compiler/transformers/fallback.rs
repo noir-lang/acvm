@@ -1,6 +1,6 @@
 use super::super::CompileError;
 use acir::{
-    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode, OpcodeLabel},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Expression,
 };
 
@@ -13,17 +13,17 @@ impl FallbackTransformer {
     pub(crate) fn transform(
         acir: Circuit,
         is_supported: impl Fn(&Opcode) -> bool,
-        opcode_labels: Vec<OpcodeLabel>,
-    ) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
+        opcode_positions: Vec<usize>,
+    ) -> Result<(Circuit, Vec<usize>), CompileError> {
         let mut acir_supported_opcodes = Vec::with_capacity(acir.opcodes.len());
-        let mut new_opcode_labels = Vec::with_capacity(opcode_labels.len());
+        let mut new_opcode_positions = Vec::with_capacity(opcode_positions.len());
         let mut witness_idx = acir.current_witness_index + 1;
 
         for (idx, opcode) in acir.opcodes.into_iter().enumerate() {
             match &opcode {
                 Opcode::Arithmetic(_) | Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // directive, arithmetic expression or blocks are handled by acvm
-                    new_opcode_labels.push(opcode_labels[idx]);
+                    new_opcode_positions.push(opcode_positions[idx]);
                     acir_supported_opcodes.push(opcode);
                     continue;
                 }
@@ -33,7 +33,7 @@ impl FallbackTransformer {
                             opcode.unsupported_opcode(),
                         ));
                     }
-                    new_opcode_labels.push(opcode_labels[idx]);
+                    new_opcode_positions.push(opcode_positions[idx]);
                     acir_supported_opcodes.push(opcode);
                 }
                 Opcode::BlackBoxFuncCall(bb_func_call) => {
@@ -41,7 +41,7 @@ impl FallbackTransformer {
                     // supported by the backend. If it is supported, then we can simply
                     // collect the opcode
                     if is_supported(&opcode) {
-                        new_opcode_labels.push(opcode_labels[idx]);
+                        new_opcode_positions.push(opcode_positions[idx]);
                         acir_supported_opcodes.push(opcode);
                         continue;
                     } else {
@@ -51,7 +51,8 @@ impl FallbackTransformer {
                         let (updated_witness_index, opcodes_fallback) =
                             Self::opcode_fallback(bb_func_call, witness_idx)?;
                         witness_idx = updated_witness_index;
-                        new_opcode_labels.extend(vec![opcode_labels[idx]; opcodes_fallback.len()]);
+                        new_opcode_positions
+                            .extend(vec![opcode_positions[idx]; opcodes_fallback.len()]);
                         acir_supported_opcodes.extend(opcodes_fallback);
                     }
                 }
@@ -66,7 +67,7 @@ impl FallbackTransformer {
                 public_parameters: acir.public_parameters,
                 return_values: acir.return_values,
             },
-            new_opcode_labels,
+            new_opcode_positions,
         ))
     }
 

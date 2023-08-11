@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use acir::{
     circuit::{
         brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
-        Opcode, OpcodeLabel,
+        Opcode, OpcodeLocation,
     },
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
@@ -26,23 +28,48 @@ pub enum CompileError {
     UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
+fn create_acir_transformation_map(
+    acir: &Circuit,
+    acir_opcode_positions: Vec<usize>,
+) -> HashMap<OpcodeLocation, OpcodeLocation> {
+    let mut transformation_map = HashMap::new();
+
+    for (original_index, new_index) in acir_opcode_positions.into_iter().enumerate() {
+        if original_index != new_index {
+            transformation_map
+                .insert(OpcodeLocation::Acir(original_index), OpcodeLocation::Acir(new_index));
+            let opcode = &acir.opcodes[new_index];
+            if let Opcode::Brillig(brillig) = opcode {
+                for (brillig_opcode_index, _) in brillig.bytecode.iter().enumerate() {
+                    transformation_map.insert(
+                        OpcodeLocation::Brillig(original_index, brillig_opcode_index),
+                        OpcodeLocation::Brillig(new_index, brillig_opcode_index),
+                    );
+                }
+            }
+        }
+    }
+
+    transformation_map
+}
+
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
+) -> Result<(Circuit, HashMap<OpcodeLocation, OpcodeLocation>), CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
-    // Track original opcode label throughout the transformation passes of the compilation
-    // by applying the modifications done to the circuit opcodes and also to the opcode_label (delete and insert)
-    let opcode_labels: Vec<OpcodeLabel> = acir.initial_opcode_labels();
+    // Track original acir opcode positions throughout the transformation passes of the compilation
+    // by applying the modifications done to the circuit opcodes and also to the opcode_positions (delete and insert)
+    let acir_opcode_positions = acir.opcodes.iter().enumerate().map(|(i, _)| i).collect();
 
     // Fallback transformer pass
-    let (acir, opcode_label) =
-        FallbackTransformer::transform(acir, is_opcode_supported, opcode_labels)?;
+    let (acir, acir_opcode_positions) =
+        FallbackTransformer::transform(acir, is_opcode_supported, acir_opcode_positions)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();
@@ -58,12 +85,14 @@ pub fn compile(
 
     // Range optimization pass
     let range_optimizer = RangeOptimizer::new(acir);
-    let (acir, opcode_label) = range_optimizer.replace_redundant_ranges(opcode_label);
+    let (acir, acir_opcode_positions) =
+        range_optimizer.replace_redundant_ranges(acir_opcode_positions);
 
     let mut transformer = match &np_language {
         crate::Language::R1CS => {
+            let transformation_map = create_acir_transformation_map(&acir, acir_opcode_positions);
             let transformer = R1CSTransformer::new(acir);
-            return Ok((transformer.transform(), opcode_label));
+            return Ok((transformer.transform(), transformation_map));
         }
         crate::Language::PLONKCSat { width } => {
             let mut csat = CSatTransformer::new(*width);
@@ -78,7 +107,7 @@ pub fn compile(
     // TODO it may be possible to refactor it in a way that we do not need to return early from the r1cs
     // TODO or at the very least, we could put all of it inside of CSatOptimizer pass
 
-    let mut new_opcode_labels = Vec::with_capacity(opcode_label.len());
+    let mut new_acir_opcode_positions: Vec<usize> = Vec::with_capacity(acir_opcode_positions.len());
     // Optimize the arithmetic gates by reducing them into the correct width and
     // creating intermediate variables when necessary
     let mut transformed_gates = Vec::new();
@@ -111,7 +140,7 @@ pub fn compile(
                 }
                 new_gates.push(arith_expr);
                 for gate in new_gates {
-                    new_opcode_labels.push(opcode_label[index]);
+                    new_acir_opcode_positions.push(acir_opcode_positions[index]);
                     transformed_gates.push(Opcode::Arithmetic(gate));
                 }
             }
@@ -156,7 +185,7 @@ pub fn compile(
                     }
                 }
 
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
             }
             Opcode::Directive(directive) => {
@@ -180,12 +209,12 @@ pub fn compile(
                     }
                     Directive::Log(_) => (),
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
@@ -196,7 +225,7 @@ pub fn compile(
                 for (_, witness) in &op.value.linear_combinations {
                     transformer.mark_solvable(*witness);
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
             }
             Opcode::Brillig(brillig) => {
@@ -210,22 +239,24 @@ pub fn compile(
                         }
                     }
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
             }
         }
     }
 
     let current_witness_index = next_witness_index - 1;
-    Ok((
-        Circuit {
-            current_witness_index,
-            opcodes: transformed_gates,
-            // The optimizer does not add new public inputs
-            private_parameters: acir.private_parameters,
-            public_parameters: acir.public_parameters,
-            return_values: acir.return_values,
-        },
-        new_opcode_labels,
-    ))
+
+    let acir = Circuit {
+        current_witness_index,
+        opcodes: transformed_gates,
+        // The optimizer does not add new public inputs
+        private_parameters: acir.private_parameters,
+        public_parameters: acir.public_parameters,
+        return_values: acir.return_values,
+    };
+
+    let transformation_map = create_acir_transformation_map(&acir, new_acir_opcode_positions);
+
+    Ok((acir, transformation_map))
 }

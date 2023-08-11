@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use acir::{
     brillig::ForeignCallResult,
-    circuit::{opcodes::BlockId, Opcode, OpcodeLabel},
+    circuit::{opcodes::BlockId, Opcode, OpcodeLocation},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -77,20 +77,27 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum ErrorLocation {
+    #[default]
+    Unresolved,
+    Resolved(OpcodeLocation),
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("Cannot satisfy constraint {opcode_label:?}")]
-    UnsatisfiedConstrain { opcode_label: OpcodeLabel },
+    #[error("Cannot satisfy constraint {opcode_location:?}")]
+    UnsatisfiedConstrain { opcode_location: ErrorLocation },
     #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
-    IndexOutOfBounds { opcode_label: OpcodeLabel, index: u32, array_size: u32 },
+    IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
-    #[error("failed to solve brillig function, reason: {0}")]
-    BrilligFunctionFailed(String),
+    #[error("failed to solve brillig function, reason: {0} at index {1}")]
+    BrilligFunctionFailed(String, usize),
 }
 
 impl From<BlackBoxResolutionError> for OpcodeResolutionError {
@@ -254,23 +261,34 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 }
             }
             Err(mut error) => {
-                let opcode_label =
-                    OpcodeLabel::Resolved(self.instruction_pointer.try_into().unwrap());
                 match &mut error {
                     // If we have an index out of bounds or an unsatisfied constraint, the opcode label will be unresolved
                     // because the solvers do not have knowledge of this information.
                     // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
                     OpcodeResolutionError::IndexOutOfBounds {
-                        opcode_label: opcode_index, ..
+                        opcode_location: opcode_index,
+                        ..
                     }
-                    | OpcodeResolutionError::UnsatisfiedConstrain { opcode_label: opcode_index } => {
-                        *opcode_index = opcode_label;
+                    | OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: opcode_index,
+                    } => {
+                        *opcode_index = ErrorLocation::Resolved(OpcodeLocation::Acir(
+                            self.instruction_pointer(),
+                        ));
                     }
                     // If a brillig function has failed, we return an unsatisfied constraint error
                     // We intentionally ignore the brillig failure message, as there is no way to
                     // propagate this to the caller.
-                    OpcodeResolutionError::BrilligFunctionFailed(_) => {
-                        error = OpcodeResolutionError::UnsatisfiedConstrain { opcode_label }
+                    OpcodeResolutionError::BrilligFunctionFailed(
+                        _,
+                        brillig_instruction_pointer,
+                    ) => {
+                        error = OpcodeResolutionError::UnsatisfiedConstrain {
+                            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig(
+                                self.instruction_pointer(),
+                                *brillig_instruction_pointer,
+                            )),
+                        }
                     }
                     // All other errors are thrown normally.
                     _ => (),
@@ -327,7 +345,7 @@ pub fn insert_value(
 
     if old_value != value_to_insert {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Unresolved,
+            opcode_location: ErrorLocation::Unresolved,
         });
     }
 

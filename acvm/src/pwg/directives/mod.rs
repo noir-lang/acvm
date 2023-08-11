@@ -1,10 +1,7 @@
 use std::cmp::Ordering;
 
 use acir::{
-    circuit::{
-        directives::{Directive, LogInfo, QuotientDirective},
-        OpcodeLabel,
-    },
+    circuit::directives::{Directive, LogInfo, QuotientDirective},
     native_types::WitnessMap,
     FieldElement,
 };
@@ -13,7 +10,7 @@ use num_traits::Zero;
 
 use crate::OpcodeResolutionError;
 
-use super::{get_value, insert_value, witness_to_value};
+use super::{get_value, insert_value, witness_to_value, ErrorLocation};
 
 mod sorting;
 
@@ -74,7 +71,7 @@ pub(super) fn solve_directives(
 
             if b.len() < decomposed_integer.len() {
                 return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                    opcode_label: OpcodeLabel::Unresolved,
+                    opcode_location: ErrorLocation::Unresolved,
                 });
             }
 

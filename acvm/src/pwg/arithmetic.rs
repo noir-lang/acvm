@@ -1,10 +1,9 @@
 use acir::{
-    circuit::OpcodeLabel,
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
-use super::{insert_value, OpcodeNotSolvable, OpcodeResolutionError};
+use super::{insert_value, ErrorLocation, OpcodeNotSolvable, OpcodeResolutionError};
 
 /// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
 /// and create the other witness variables
@@ -48,7 +47,7 @@ impl ArithmeticSolver {
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                                opcode_label: OpcodeLabel::Unresolved,
+                                opcode_location: ErrorLocation::Unresolved,
                             })
                         } else {
                             Ok(())
@@ -75,7 +74,7 @@ impl ArithmeticSolver {
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_label: OpcodeLabel::Unresolved,
+                            opcode_location: ErrorLocation::Unresolved,
                         })
                     } else {
                         Ok(())
@@ -92,7 +91,7 @@ impl ArithmeticSolver {
                 // There is nothing to solve
                 if !(a + b + gate.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                        opcode_label: OpcodeLabel::Unresolved,
+                        opcode_location: ErrorLocation::Unresolved,
                     })
                 } else {
                     Ok(())
@@ -109,7 +108,7 @@ impl ArithmeticSolver {
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_label: OpcodeLabel::Unresolved,
+                            opcode_location: ErrorLocation::Unresolved,
                         })
                     } else {
                         Ok(())
