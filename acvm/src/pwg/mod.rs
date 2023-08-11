@@ -83,7 +83,7 @@ pub enum OpcodeResolutionError {
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("could not satisfy all constraints")]
+    #[error("Cannot satisfy constraint {opcode_label:?}")]
     UnsatisfiedConstrain { opcode_label: OpcodeLabel },
     #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
     IndexOutOfBounds { opcode_label: OpcodeLabel, index: u32, array_size: u32 },
