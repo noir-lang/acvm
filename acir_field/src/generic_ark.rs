@@ -374,9 +374,9 @@ impl<F: PrimeField> Mul for FieldElement<F> {
 }
 impl<F: PrimeField> Div for FieldElement<F> {
     type Output = FieldElement<F>;
-    #[allow(clippy::suspicious_arithmetic_impl)]
-    fn div(self, rhs: FieldElement<F>) -> Self::Output {
-        self * rhs.inverse()
+    fn div(mut self, rhs: FieldElement<F>) -> Self::Output {
+        self.0.div_assign(&rhs.0);
+        FieldElement(self.0)
     }
 }
 impl<F: PrimeField> Add for FieldElement<F> {
