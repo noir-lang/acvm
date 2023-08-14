@@ -1,4 +1,4 @@
-use acvm::FieldElement;
+use acir::FieldElement;
 
 use super::{Assignments, Barretenberg, Error, FIELD_BYTES};
 
