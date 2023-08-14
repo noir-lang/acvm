@@ -306,7 +306,7 @@ async fn instance_load() -> (Instance, Memory, Store) {
     use js_sys::WebAssembly::{self};
     use wasmer::AsJs;
 
-    let (memory, store, imports) = init_memory_and_state();
+    let (memory, mut store, custom_imports) = init_memory_and_state();
 
     let wasm_binary = Wasm::get("barretenberg.wasm").unwrap().data;
 
