@@ -8,8 +8,8 @@ fn main() -> Result<(), String> {
             Ok(())
         }
         Err(_) => {
-            if let Ok(bin_dir) = pkg_config::get_variable("barretenberg", "bindir") {
-                println!("cargo:rustc-env={BARRETENBERG_BIN_DIR}={bin_dir}");
+            if let Ok(bindir) = pkg_config::get_variable("barretenberg", "bindir") {
+                println!("cargo:rustc-env={BARRETENBERG_BIN_DIR}={bindir}");
                 Ok(())
             } else {
                 let current_dir = std::env::current_dir().unwrap();
