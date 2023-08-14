@@ -7,7 +7,7 @@ use crate::native_types::Witness;
 pub use opcodes::Opcode;
 use thiserror::Error;
 
-use std::{io::prelude::*, str::FromStr};
+use std::{io::prelude::*, num::ParseIntError, str::FromStr};
 
 use flate2::Compression;
 
@@ -61,24 +61,28 @@ impl FromStr for OpcodeLocation {
     type Err = OpcodeLocationFromStrError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<_> = s.split('.').collect();
-        match parts.len() {
-            1 => {
-                let index = parts[0].parse().map_err(|_| {
-                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
-                })?;
-                Ok(OpcodeLocation::Acir(index))
-            }
-            2 => {
-                let acir_index = parts[0].parse().map_err(|_| {
-                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
-                })?;
-                let brillig_index = parts[1].parse().map_err(|_| {
-                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
-                })?;
-                Ok(OpcodeLocation::Brillig { acir_index, brillig_index })
-            }
-            _ => Err(OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())),
+
+        if parts.is_empty() || parts.len() > 2 {
+            return Err(OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()));
         }
+
+        fn parse_components(parts: Vec<&str>) -> Result<OpcodeLocation, ParseIntError> {
+            match parts.len() {
+                1 => {
+                    let index = parts[0].parse()?;
+                    Ok(OpcodeLocation::Acir(index))
+                }
+                2 => {
+                    let acir_index = parts[0].parse()?;
+                    let brillig_index = parts[1].parse()?;
+                    Ok(OpcodeLocation::Brillig { acir_index, brillig_index })
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        parse_components(parts)
+            .map_err(|_| OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()))
     }
 }
 
