@@ -5,8 +5,9 @@ pub mod opcodes;
 
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
+use thiserror::Error;
 
-use std::io::prelude::*;
+use std::{io::prelude::*, str::FromStr};
 
 use flate2::Compression;
 
@@ -31,12 +32,54 @@ pub struct Circuit {
     pub return_values: PublicInputs,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// Opcodes are locatable so that callers can
 /// map opcodes to debug information related to their context.
 pub enum OpcodeLocation {
     Acir(usize),
-    Brillig(usize, usize),
+    Brillig { acir_index: usize, brillig_index: usize },
+}
+
+impl std::fmt::Display for OpcodeLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpcodeLocation::Acir(index) => write!(f, "{index}"),
+            OpcodeLocation::Brillig { acir_index, brillig_index } => {
+                write!(f, "{acir_index}.{brillig_index}")
+            }
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum OpcodeLocationFromStrError {
+    #[error("Invalid opcode location string: {0}")]
+    InvalidOpcodeLocationString(String),
+}
+
+impl FromStr for OpcodeLocation {
+    type Err = OpcodeLocationFromStrError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split('.').collect();
+        match parts.len() {
+            1 => {
+                let index = parts[0].parse().map_err(|_| {
+                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
+                })?;
+                Ok(OpcodeLocation::Acir(index))
+            }
+            2 => {
+                let acir_index = parts[0].parse().map_err(|_| {
+                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
+                })?;
+                let brillig_index = parts[1].parse().map_err(|_| {
+                    OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())
+                })?;
+                Ok(OpcodeLocation::Brillig { acir_index, brillig_index })
+            }
+            _ => Err(OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string())),
+        }
+    }
 }
 
 impl Circuit {

@@ -42,8 +42,14 @@ fn create_acir_transformation_map(
             if let Opcode::Brillig(brillig) = opcode {
                 for (brillig_opcode_index, _) in brillig.bytecode.iter().enumerate() {
                     transformation_map.insert(
-                        OpcodeLocation::Brillig(original_index, brillig_opcode_index),
-                        OpcodeLocation::Brillig(new_index, brillig_opcode_index),
+                        OpcodeLocation::Brillig {
+                            acir_index: original_index,
+                            brillig_index: brillig_opcode_index,
+                        },
+                        OpcodeLocation::Brillig {
+                            acir_index: new_index,
+                            brillig_index: brillig_opcode_index,
+                        },
                     );
                 }
             }

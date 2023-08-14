@@ -284,10 +284,10 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         brillig_instruction_pointer,
                     ) => {
                         error = OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig(
-                                self.instruction_pointer(),
-                                *brillig_instruction_pointer,
-                            )),
+                            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
+                                acir_index: self.instruction_pointer(),
+                                brillig_index: *brillig_instruction_pointer,
+                            }),
                         }
                     }
                     // All other errors are thrown normally.

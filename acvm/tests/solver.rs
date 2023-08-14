@@ -620,7 +620,10 @@ fn unsatisfied_opcode_resolved_brillig() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig(0, 2))
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
+                acir_index: 0,
+                brillig_index: 2
+            })
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
