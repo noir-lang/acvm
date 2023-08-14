@@ -15,9 +15,24 @@ pub struct BarretenbergSolver {
 
 #[allow(deprecated)]
 impl BarretenbergSolver {
+    #[cfg(target_arch = "wasm32")]
     pub async fn initialize() -> BarretenbergSolver {
-        let blackbox_vendor = Barretenberg::new().await;
+        let blackbox_vendor = Barretenberg::initialize().await;
         BarretenbergSolver { blackbox_vendor }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn new() -> BarretenbergSolver {
+        let blackbox_vendor = Barretenberg::new();
+        BarretenbergSolver { blackbox_vendor }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(deprecated)]
+impl Default for BarretenbergSolver {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

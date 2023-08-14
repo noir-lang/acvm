@@ -61,8 +61,8 @@ pub(crate) struct Barretenberg {
 use std::cell::RefCell;
 
 use wasmer::{
-    imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Store, Value,
-    WasmPtr,
+    imports, Function, FunctionEnv, FunctionEnvMut, Imports, Instance, Memory, MemoryType, Store,
+    Value, WasmPtr,
 };
 
 /// The number of bytes necessary to represent a pointer to memory inside the wasm.
@@ -84,6 +84,13 @@ pub(super) const WASM_SCRATCH_BYTES: usize = 1024;
 struct Wasm;
 
 impl Barretenberg {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn new() -> Barretenberg {
+        let (instance, memory, store) = instance_load();
+        Barretenberg { memory, instance, store: RefCell::new(store) }
+    }
+
+    #[cfg(target_arch = "wasm32")]
     pub(crate) async fn new() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
         Barretenberg { memory, instance, store: RefCell::new(store) }
@@ -242,7 +249,7 @@ impl Barretenberg {
     // }
 }
 
-async fn instance_load() -> (Instance, Memory, Store) {
+fn init_memory_and_state() -> (Memory, Store, Imports) {
     let mut store = Store::default();
 
     let mem_type = MemoryType::new(23, None, false);
@@ -280,37 +287,43 @@ async fn instance_load() -> (Instance, Memory, Store) {
         },
     };
 
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        use wasmer::Module;
+    (memory, store, custom_imports)
+}
 
-        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
+#[cfg(not(target_arch = "wasm32"))]
+fn instance_load() -> (Instance, Memory, Store) {
+    use wasmer::Module;
 
-        (Instance::new(&mut store, &module, &custom_imports).unwrap(), memory, store)
-    }
+    let (memory, mut store, custom_imports) = init_memory_and_state();
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        use js_sys::WebAssembly::{self};
-        use wasmer::AsJs;
+    let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
 
-        let wasm_binary = Wasm::get("barretenberg.wasm").unwrap().data;
+    (Instance::new(&mut store, &module, &custom_imports).unwrap(), memory, store)
+}
 
-        let js_bytes = unsafe { js_sys::Uint8Array::view(&wasm_binary) };
-        let js_module_promise = WebAssembly::compile(&js_bytes);
-        let js_module: js_sys::WebAssembly::Module =
-            wasm_bindgen_futures::JsFuture::from(js_module_promise).await.unwrap().into();
+#[cfg(target_arch = "wasm32")]
+async fn instance_load() -> (Instance, Memory, Store) {
+    use js_sys::WebAssembly::{self};
+    use wasmer::AsJs;
 
-        let js_instance_promise =
-            WebAssembly::instantiate_module(&js_module, &custom_imports.as_jsvalue(&store).into());
-        let js_instance = wasm_bindgen_futures::JsFuture::from(js_instance_promise).await.unwrap();
-        let module: wasmer::Module = (js_module, wasm_binary).into();
-        let instance: wasmer::Instance = Instance::from_jsvalue(&mut store, &module, &js_instance)
-            .map_err(|_| "Error while creating BlackBox Functions vendor instance")
-            .unwrap();
+    let (memory, store, imports) = init_memory_and_state();
 
-        (instance, memory, store)
-    }
+    let wasm_binary = Wasm::get("barretenberg.wasm").unwrap().data;
+
+    let js_bytes = unsafe { js_sys::Uint8Array::view(&wasm_binary) };
+    let js_module_promise = WebAssembly::compile(&js_bytes);
+    let js_module: js_sys::WebAssembly::Module =
+        wasm_bindgen_futures::JsFuture::from(js_module_promise).await.unwrap().into();
+
+    let js_instance_promise =
+        WebAssembly::instantiate_module(&js_module, &custom_imports.as_jsvalue(&store).into());
+    let js_instance = wasm_bindgen_futures::JsFuture::from(js_instance_promise).await.unwrap();
+    let module: wasmer::Module = (js_module, wasm_binary).into();
+    let instance: wasmer::Instance = Instance::from_jsvalue(&mut store, &module, &js_instance)
+        .map_err(|_| "Error while creating BlackBox Functions vendor instance")
+        .unwrap();
+
+    (instance, memory, store)
 }
 
 fn logstr(mut env: FunctionEnvMut<Memory>, ptr: i32) {
