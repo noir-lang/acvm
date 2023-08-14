@@ -88,12 +88,12 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         # RUST_TEST_THREADS = "1";
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        BLACK_BOX_SOLVER_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
       wasmEnvironment = sharedEnvironment // {
         # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        BLACK_BOX_SOLVER_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
       sourceFilter = path: type:
@@ -123,7 +123,7 @@
       acvmjsWasmArgs = wasmEnvironment // commonArgs // {
 
         inherit (crateACVMJSDefinitions) pname version;
-        
+
         cargoExtraArgs = "--package acvm_js --target=wasm32-unknown-unknown";
 
         cargoVendorDir = craneLib.vendorCargoDeps {

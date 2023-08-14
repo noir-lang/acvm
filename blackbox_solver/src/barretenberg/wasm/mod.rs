@@ -79,7 +79,7 @@ pub(super) const WASM_SCRATCH_BYTES: usize = 1024;
 
 /// Embed the Barretenberg WASM file
 #[derive(rust_embed::RustEmbed)]
-#[folder = "$BARRETENBERG_BIN_DIR"]
+#[folder = "$BLACK_BOX_SOLVER_BIN_DIR"]
 #[include = "barretenberg.wasm"]
 struct Wasm;
 
