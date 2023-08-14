@@ -88,13 +88,10 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         # RUST_TEST_THREADS = "1";
-        BLACK_BOX_SOLVER_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
-      wasmEnvironment = sharedEnvironment // {
-        # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BLACK_BOX_SOLVER_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
-      };
+      wasmEnvironment = sharedEnvironment // { };
 
       sourceFilter = path: type:
         (craneLib.filterCargoSources path type);
