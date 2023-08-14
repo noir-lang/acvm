@@ -34,7 +34,7 @@ fn create_acir_transformation_map(
 ) -> HashMap<OpcodeLocation, OpcodeLocation> {
     let mut transformation_map = HashMap::new();
 
-    for (original_index, new_index) in acir_opcode_positions.into_iter().enumerate() {
+    for (new_index, original_index) in acir_opcode_positions.into_iter().enumerate() {
         if original_index != new_index {
             transformation_map
                 .insert(OpcodeLocation::Acir(original_index), OpcodeLocation::Acir(new_index));
