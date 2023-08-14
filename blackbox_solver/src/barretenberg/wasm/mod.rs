@@ -91,7 +91,7 @@ impl Barretenberg {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub(crate) async fn new() -> Barretenberg {
+    pub(crate) async fn initialize() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
         Barretenberg { memory, instance, store: RefCell::new(store) }
     }
