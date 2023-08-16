@@ -12,12 +12,21 @@ use crate::{
     JsWitnessMap,
 };
 
-struct SimulatedBackend {
+use wasm_bindgen::prelude::*;
+
+
+#[wasm_bindgen]
+pub struct SimulatedBackend {
     blackbox_vendor: Barretenberg,
 }
 
+#[wasm_bindgen(js_name = "newSimulatedBackend")]
+pub async fn new_simulated_backend() -> SimulatedBackend {
+    SimulatedBackend::new().await
+}
+
 impl SimulatedBackend {
-    async fn initialize() -> SimulatedBackend {
+    pub async fn new() -> SimulatedBackend {
         let blackbox_vendor = Barretenberg::new().await;
         SimulatedBackend { blackbox_vendor }
     }
@@ -71,18 +80,31 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
 /// @returns {WitnessMap} The solved witness calculated by executing the circuit on the provided inputs.
 #[wasm_bindgen(js_name = executeCircuit, skip_jsdoc)]
 pub async fn execute_circuit(
+    //backend_ptr: *const SimulatedBackend,
+    backend: SimulatedBackend,
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
 ) -> Result<JsWitnessMap, js_sys::JsString> {
+
+    log::warn!("EXECUTE_CIRCUIT: START");
     console_error_panic_hook::set_once();
+    log::warn!("EXECUTE_CIRCUIT: Reading circuit");
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
+    log::warn!("EXECUTE_CIRCUIT: Done reading circuit");
 
-    let backend = SimulatedBackend::initialize().await;
+    //let backend = unsafe { &*backend_ptr }.clone();
+    //let backend = unsafe { *backend_ptr };
+
+    log::warn!("EXECUTE_CIRCUIT: Initializing ACVM");
     let mut acvm = ACVM::new(backend, circuit.opcodes, initial_witness.into());
+    log::warn!("EXECUTE_CIRCUIT: Done initializing ACVM");
 
+    log::warn!("EXECUTE_CIRCUIT: Looping...");
     loop {
+        log::warn!("EXECUTE_CIRCUIT: acvm.solve()");
         let solver_status = acvm.solve();
+        log::warn!("EXECUTE_CIRCUIT: matching results of acvm.solve()");
 
         match solver_status {
             ACVMStatus::Solved => break,
@@ -91,13 +113,18 @@ pub async fn execute_circuit(
             }
             ACVMStatus::Failure(error) => return Err(error.to_string().into()),
             ACVMStatus::RequiresForeignCall(foreign_call) => {
+                log::warn!("EXECUTE_CIRCUIT: RequiresForeignCall->resolve_brillig()");
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
+                log::warn!("EXECUTE_CIRCUIT: RequiresForeignCall->resolve_pending_foreign_call()");
 
                 acvm.resolve_pending_foreign_call(result);
             }
         }
+        log::warn!("EXECUTE_CIRCUIT: done matching");
     }
+    log::warn!("EXECUTE_CIRCUIT: done loop");
 
     let witness_map = acvm.finalize();
+    log::warn!("EXECUTE_CIRCUIT: done finalizing");
     Ok(witness_map.into())
 }
