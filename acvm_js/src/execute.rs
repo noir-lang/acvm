@@ -12,6 +12,7 @@ use crate::{
     JsWitnessMap,
 };
 
+#[wasm_bindgen]
 struct SimulatedBackend {
     blackbox_vendor: Barretenberg,
 }
@@ -21,6 +22,11 @@ impl SimulatedBackend {
         let blackbox_vendor = Barretenberg::new().await;
         SimulatedBackend { blackbox_vendor }
     }
+}
+
+#[wasm_bindgen(js_name = "new_backend")]
+pub async fn new_backend() -> SimulatedBackend {
+    SimulatedBackend::initialize().await
 }
 
 impl BlackBoxFunctionSolver for SimulatedBackend {
@@ -71,6 +77,7 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
 /// @returns {WitnessMap} The solved witness calculated by executing the circuit on the provided inputs.
 #[wasm_bindgen(js_name = executeCircuit, skip_jsdoc)]
 pub async fn execute_circuit(
+    backend: &SimulatedBackend,
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
@@ -78,7 +85,6 @@ pub async fn execute_circuit(
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
-    let backend = SimulatedBackend::initialize().await;
     let mut acvm = ACVM::new(backend, circuit.opcodes, initial_witness.into());
 
     loop {

@@ -106,10 +106,10 @@ impl From<BlackBoxResolutionError> for OpcodeResolutionError {
     }
 }
 
-pub struct ACVM<B: BlackBoxFunctionSolver> {
+pub struct ACVM<'backend, B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
-    backend: B,
+    backend: &'backend B,
 
     /// Stores the solver for memory operations acting on blocks of memory disambiguated by [block][`BlockId`].
     block_solvers: HashMap<BlockId, MemoryOpSolver>,
@@ -122,8 +122,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     witness_map: WitnessMap,
 }
 
-impl<B: BlackBoxFunctionSolver> ACVM<B> {
-    pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
+    pub fn new(backend: &'backend B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
         ACVM {
             status,
@@ -226,7 +226,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolution = match opcode {
             Opcode::Arithmetic(expr) => ArithmeticSolver::solve(&mut self.witness_map, expr),
             Opcode::BlackBoxFuncCall(bb_func) => {
-                blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
+                blackbox::solve(self.backend, &mut self.witness_map, bb_func)
             }
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
             Opcode::MemoryInit { block_id, init } => {
@@ -238,7 +238,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 solver.solve_memory_op(op, &mut self.witness_map)
             }
             Opcode::Brillig(brillig) => {
-                match BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend) {
+                match BrilligSolver::solve(&mut self.witness_map, brillig, self.backend) {
                     Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
                     res => res.map(|_| ()),
                 }
