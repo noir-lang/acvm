@@ -28,6 +28,7 @@ pub enum CompileError {
 
 /// This module moves and decomposes acir opcodes. The transformation map allows consumers of this module to map
 /// metadata they had about the opcodes to the new opcode structure generated after the transformation.
+#[derive(Debug)]
 pub struct AcirTransformationMap {
     /// This is a vector of pointers to the old acir opcodes. The index of the vector is the new opcode index.
     /// The value of the vector is the old opcode index pointed.
