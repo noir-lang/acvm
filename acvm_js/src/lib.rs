@@ -18,7 +18,7 @@ cfg_if::cfg_if! {
 
         pub use build_info::build_info;
         pub use compression::{compress_witness, decompress_witness};
-        pub use execute::execute_circuit;
+        pub use execute::{execute_circuit, new_backend};
         pub use js_witness_map::JsWitnessMap;
         pub use logging::{init_log_level, LogLevel};
         pub use public_witness::{get_public_parameters_witness, get_public_witness, get_return_witness};

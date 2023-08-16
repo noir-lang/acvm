@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[wasm_bindgen]
-struct SimulatedBackend {
+pub struct SimulatedBackend {
     blackbox_vendor: Barretenberg,
 }
 
@@ -24,7 +24,7 @@ impl SimulatedBackend {
     }
 }
 
-#[wasm_bindgen(js_name = "new_backend")]
+#[wasm_bindgen(js_name = "createBackend")]
 pub async fn new_backend() -> SimulatedBackend {
     SimulatedBackend::initialize().await
 }
