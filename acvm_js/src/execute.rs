@@ -25,7 +25,7 @@ impl SimulatedBackend {
 }
 
 #[wasm_bindgen(js_name = "createBackend")]
-pub async fn new_backend() -> SimulatedBackend {
+pub async fn create_backend() -> SimulatedBackend {
     SimulatedBackend::initialize().await
 }
 
