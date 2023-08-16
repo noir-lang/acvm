@@ -77,6 +77,8 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
+/// Allows to point to a specific opcode as cause in errors.
+/// Some errors don't have a specific opcode associated with them, or are created without one and added later.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum ErrorLocation {
     #[default]

@@ -57,6 +57,8 @@ pub enum OpcodeLocationFromStrError {
     InvalidOpcodeLocationString(String),
 }
 
+/// The implementation of display and FromStr allows serializing and deserializing a OpcodeLocation to a string.
+/// This is useful when used as key in a map that has to be serialized to JSON/TOML, for example when mapping an opcode to its metadata.
 impl FromStr for OpcodeLocation {
     type Err = OpcodeLocationFromStrError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

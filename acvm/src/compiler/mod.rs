@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use acir::{
     circuit::{
         brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
@@ -28,33 +26,51 @@ pub enum CompileError {
     UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
-fn create_acir_transformation_map(
-    acir: &Circuit,
+/// This module moves and decomposes acir opcodes. The transformation map allows consumers of this module to map
+/// metadata they had about the opcodes to the new opcode structure generated after the transformation.
+pub struct AcirTransformationMap {
+    /// This is a vector of pointers to the old acir opcodes. The index of the vector is the new opcode index.
+    /// The value of the vector is the old opcode index pointed.
     acir_opcode_positions: Vec<usize>,
-) -> HashMap<OpcodeLocation, OpcodeLocation> {
-    let mut transformation_map = HashMap::new();
+}
 
-    for (new_index, original_index) in acir_opcode_positions.into_iter().enumerate() {
-        transformation_map
-            .insert(OpcodeLocation::Acir(new_index), OpcodeLocation::Acir(original_index));
-        let opcode = &acir.opcodes[new_index];
-        if let Opcode::Brillig(brillig) = opcode {
-            for (brillig_opcode_index, _) in brillig.bytecode.iter().enumerate() {
-                transformation_map.insert(
-                    OpcodeLocation::Brillig {
-                        acir_index: new_index,
-                        brillig_index: brillig_opcode_index,
-                    },
-                    OpcodeLocation::Brillig {
-                        acir_index: original_index,
-                        brillig_index: brillig_opcode_index,
-                    },
+impl AcirTransformationMap {
+    pub fn new_locations(&self, old_location: OpcodeLocation) -> Vec<OpcodeLocation> {
+        let old_acir_index = match old_location {
+            OpcodeLocation::Acir(index) => index,
+            OpcodeLocation::Brillig { acir_index, .. } => acir_index,
+        };
+
+        let new_opcode_indexes: Vec<usize> = self
+            .acir_opcode_positions
+            .iter()
+            .enumerate()
+            .filter_map(
+                |(new_index, &old_index)| {
+                    if old_index == old_acir_index {
+                        Some(new_index)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .collect();
+
+        match old_location {
+            OpcodeLocation::Acir(_) => new_opcode_indexes
+                .iter()
+                .map(|&new_index| OpcodeLocation::Acir(new_index))
+                .collect(),
+            OpcodeLocation::Brillig { brillig_index, .. } => {
+                assert!(
+                    new_opcode_indexes.len() == 1,
+                    "The transformation must not decompose or remove brillig opcodes"
                 );
+
+                vec![OpcodeLocation::Brillig { acir_index: new_opcode_indexes[0], brillig_index }]
             }
         }
     }
-
-    transformation_map
 }
 
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
@@ -62,7 +78,7 @@ pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-) -> Result<(Circuit, HashMap<OpcodeLocation, OpcodeLocation>), CompileError> {
+) -> Result<(Circuit, AcirTransformationMap), CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
@@ -94,7 +110,7 @@ pub fn compile(
 
     let mut transformer = match &np_language {
         crate::Language::R1CS => {
-            let transformation_map = create_acir_transformation_map(&acir, acir_opcode_positions);
+            let transformation_map = AcirTransformationMap { acir_opcode_positions };
             let transformer = R1CSTransformer::new(acir);
             return Ok((transformer.transform(), transformation_map));
         }
@@ -260,7 +276,8 @@ pub fn compile(
         return_values: acir.return_values,
     };
 
-    let transformation_map = create_acir_transformation_map(&acir, new_acir_opcode_positions);
+    let transformation_map =
+        AcirTransformationMap { acir_opcode_positions: new_acir_opcode_positions };
 
     Ok((acir, transformation_map))
 }
