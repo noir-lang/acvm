@@ -6,14 +6,14 @@ use acir::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
         opcodes::{BlockId, MemOp},
-        Opcode, OpcodeLabel,
+        Opcode, OpcodeLocation,
     },
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
 use acvm::{
-    pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
+    pwg::{ACVMStatus, ErrorLocation, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
 use blackbox_solver::BlackBoxResolutionError;
@@ -538,7 +538,7 @@ fn unsatisfied_opcode_resolved() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0))
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
@@ -620,7 +620,10 @@ fn unsatisfied_opcode_resolved_brillig() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
+                acir_index: 0,
+                brillig_index: 2
+            })
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
