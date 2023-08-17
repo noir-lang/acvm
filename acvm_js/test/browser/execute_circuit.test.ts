@@ -1,19 +1,18 @@
 import { expect } from "@esm-bundle/chai";
 import initACVM, {
-  createBackend,
+  createBlackBoxSolver,
   executeCircuit,
-  SimulatedBackend,
+  executeCircuitWithBlackBoxSolver,
+  WasmBlackBoxFunctionSolver,
   WitnessMap,
   initLogLevel,
   ForeignCallHandler,
 } from "../../../result/";
 
-let backend: SimulatedBackend;
-
 beforeEach(async () => {
   await initACVM();
+
   initLogLevel("INFO");
-  backend = await createBackend();
 });
 
 it("successfully executes circuit and extracts return value", async () => {
@@ -21,7 +20,6 @@ it("successfully executes circuit and extracts return value", async () => {
     await import("../shared/addition");
 
   const solvedWitness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     () => {
@@ -63,7 +61,6 @@ it("successfully processes simple brillig foreign call opcodes", async () => {
   };
 
   const solved_witness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     foreignCallHandler
@@ -103,7 +100,6 @@ it("successfully processes complex brillig foreign call opcodes", async () => {
   };
 
   const solved_witness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     foreignCallHandler
@@ -124,7 +120,6 @@ it("successfully executes a Pedersen opcode", async function () {
   );
 
   const solvedWitness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     () => {
@@ -141,7 +136,6 @@ it("successfully executes a FixedBaseScalarMul opcode", async () => {
   );
 
   const solvedWitness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     () => {
@@ -158,7 +152,6 @@ it("successfully executes a SchnorrVerify opcode", async () => {
   );
 
   const solvedWitness: WitnessMap = await executeCircuit(
-    backend,
     bytecode,
     initialWitnessMap,
     () => {
@@ -173,12 +166,14 @@ it("successfully executes two circuits with same backend", async function () {
   // chose pedersen op here because it is the one with slow initialization
   // that led to the decision to pull backend initialization into a separate
   // function/wasmbind
+  const solver: WasmBlackBoxFunctionSolver = await createBlackBoxSolver();
+
   const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/pedersen"
   );
 
-  const solvedWitness0: WitnessMap = await executeCircuit(
-    backend,
+  const solvedWitness0: WitnessMap = await executeCircuitWithBlackBoxSolver(
+    solver,
     bytecode,
     initialWitnessMap,
     () => {
@@ -188,8 +183,8 @@ it("successfully executes two circuits with same backend", async function () {
 
   expect(solvedWitness0).to.be.deep.eq(expectedWitnessMap);
 
-  const solvedWitness1: WitnessMap = await executeCircuit(
-    backend,
+  const solvedWitness1: WitnessMap = await executeCircuitWithBlackBoxSolver(
+    solver,
     bytecode,
     initialWitnessMap,
     () => {

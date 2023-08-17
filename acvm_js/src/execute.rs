@@ -13,23 +13,23 @@ use crate::{
 };
 
 #[wasm_bindgen]
-pub struct SimulatedBackend {
+pub struct WasmBlackBoxFunctionSolver {
     blackbox_vendor: Barretenberg,
 }
 
-impl SimulatedBackend {
-    async fn initialize() -> SimulatedBackend {
+impl WasmBlackBoxFunctionSolver {
+    async fn initialize() -> WasmBlackBoxFunctionSolver {
         let blackbox_vendor = Barretenberg::new().await;
-        SimulatedBackend { blackbox_vendor }
+        WasmBlackBoxFunctionSolver { blackbox_vendor }
     }
 }
 
-#[wasm_bindgen(js_name = "createBackend")]
-pub async fn create_backend() -> SimulatedBackend {
-    SimulatedBackend::initialize().await
+#[wasm_bindgen(js_name = "createBlackBoxSolver")]
+pub async fn create_black_box_solver() -> WasmBlackBoxFunctionSolver {
+    WasmBlackBoxFunctionSolver::initialize().await
 }
 
-impl BlackBoxFunctionSolver for SimulatedBackend {
+impl BlackBoxFunctionSolver for WasmBlackBoxFunctionSolver {
     fn schnorr_verify(
         &self,
         public_key_x: &FieldElement,
@@ -77,7 +77,37 @@ impl BlackBoxFunctionSolver for SimulatedBackend {
 /// @returns {WitnessMap} The solved witness calculated by executing the circuit on the provided inputs.
 #[wasm_bindgen(js_name = executeCircuit, skip_jsdoc)]
 pub async fn execute_circuit(
-    backend: &SimulatedBackend,
+    circuit: Vec<u8>,
+    initial_witness: JsWitnessMap,
+    foreign_call_handler: ForeignCallHandler,
+) -> Result<JsWitnessMap, js_sys::JsString> {
+    console_error_panic_hook::set_once();
+
+    let solver = WasmBlackBoxFunctionSolver::initialize().await;
+
+    let execution_result = execute_circuit_with_black_box_solver(
+        &solver,
+        circuit,
+        initial_witness,
+        foreign_call_handler,
+    )
+    .await;
+    match execution_result {
+        Ok(witness_map) => Ok(witness_map),
+        Err(err) => Err(err),
+    }
+}
+
+/// Executes an ACIR circuit to generate the solved witness from the initial witness.
+///
+/// @param {&WasmBlackBoxFunctionSolver} solver - A black box solver.
+/// @param {Uint8Array} circuit - A serialized representation of an ACIR circuit
+/// @param {WitnessMap} initial_witness - The initial witness map defining all of the inputs to `circuit`..
+/// @param {ForeignCallHandler} foreign_call_handler - A callback to process any foreign calls from the circuit.
+/// @returns {WitnessMap} The solved witness calculated by executing the circuit on the provided inputs.
+#[wasm_bindgen(js_name = executeCircuitWithBlackBoxSolver, skip_jsdoc)]
+pub async fn execute_circuit_with_black_box_solver(
+    solver: &WasmBlackBoxFunctionSolver,
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
@@ -85,7 +115,7 @@ pub async fn execute_circuit(
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
-    let mut acvm = ACVM::new(backend, circuit.opcodes, initial_witness.into());
+    let mut acvm = ACVM::new(solver, circuit.opcodes, initial_witness.into());
 
     loop {
         let solver_status = acvm.solve();
