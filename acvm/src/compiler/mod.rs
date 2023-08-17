@@ -1,7 +1,7 @@
 use acir::{
     circuit::{
         brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
-        Opcode, OpcodeLabel,
+        Opcode, OpcodeLocation,
     },
     native_types::{Expression, Witness},
     BlackBoxFunc, FieldElement,
@@ -26,23 +26,71 @@ pub enum CompileError {
     UnsupportedMemoryOpcode(UnsupportedMemoryOpcode),
 }
 
+/// This module moves and decomposes acir opcodes. The transformation map allows consumers of this module to map
+/// metadata they had about the opcodes to the new opcode structure generated after the transformation.
+#[derive(Debug)]
+pub struct AcirTransformationMap {
+    /// This is a vector of pointers to the old acir opcodes. The index of the vector is the new opcode index.
+    /// The value of the vector is the old opcode index pointed.
+    acir_opcode_positions: Vec<usize>,
+}
+
+impl AcirTransformationMap {
+    pub fn new_locations(&self, old_location: OpcodeLocation) -> Vec<OpcodeLocation> {
+        let old_acir_index = match old_location {
+            OpcodeLocation::Acir(index) => index,
+            OpcodeLocation::Brillig { acir_index, .. } => acir_index,
+        };
+
+        let new_opcode_indexes: Vec<usize> = self
+            .acir_opcode_positions
+            .iter()
+            .enumerate()
+            .filter_map(
+                |(new_index, &old_index)| {
+                    if old_index == old_acir_index {
+                        Some(new_index)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .collect();
+
+        match old_location {
+            OpcodeLocation::Acir(_) => new_opcode_indexes
+                .iter()
+                .map(|&new_index| OpcodeLocation::Acir(new_index))
+                .collect(),
+            OpcodeLocation::Brillig { brillig_index, .. } => {
+                assert!(
+                    new_opcode_indexes.len() == 1,
+                    "The transformation must not decompose or remove brillig opcodes"
+                );
+
+                vec![OpcodeLocation::Brillig { acir_index: new_opcode_indexes[0], brillig_index }]
+            }
+        }
+    }
+}
+
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
     np_language: Language,
     is_opcode_supported: impl Fn(&Opcode) -> bool,
-) -> Result<(Circuit, Vec<OpcodeLabel>), CompileError> {
+) -> Result<(Circuit, AcirTransformationMap), CompileError> {
     // Instantiate the optimizer.
     // Currently the optimizer and reducer are one in the same
     // for CSAT
 
-    // Track original opcode label throughout the transformation passes of the compilation
-    // by applying the modifications done to the circuit opcodes and also to the opcode_label (delete and insert)
-    let opcode_labels: Vec<OpcodeLabel> = acir.initial_opcode_labels();
+    // Track original acir opcode positions throughout the transformation passes of the compilation
+    // by applying the modifications done to the circuit opcodes and also to the opcode_positions (delete and insert)
+    let acir_opcode_positions = acir.opcodes.iter().enumerate().map(|(i, _)| i).collect();
 
     // Fallback transformer pass
-    let (acir, opcode_label) =
-        FallbackTransformer::transform(acir, is_opcode_supported, opcode_labels)?;
+    let (acir, acir_opcode_positions) =
+        FallbackTransformer::transform(acir, is_opcode_supported, acir_opcode_positions)?;
 
     // General optimizer pass
     let mut opcodes: Vec<Opcode> = Vec::new();
@@ -58,12 +106,14 @@ pub fn compile(
 
     // Range optimization pass
     let range_optimizer = RangeOptimizer::new(acir);
-    let (acir, opcode_label) = range_optimizer.replace_redundant_ranges(opcode_label);
+    let (acir, acir_opcode_positions) =
+        range_optimizer.replace_redundant_ranges(acir_opcode_positions);
 
     let mut transformer = match &np_language {
         crate::Language::R1CS => {
+            let transformation_map = AcirTransformationMap { acir_opcode_positions };
             let transformer = R1CSTransformer::new(acir);
-            return Ok((transformer.transform(), opcode_label));
+            return Ok((transformer.transform(), transformation_map));
         }
         crate::Language::PLONKCSat { width } => {
             let mut csat = CSatTransformer::new(*width);
@@ -78,8 +128,8 @@ pub fn compile(
     // TODO it may be possible to refactor it in a way that we do not need to return early from the r1cs
     // TODO or at the very least, we could put all of it inside of CSatOptimizer pass
 
-    let mut new_opcode_labels = Vec::with_capacity(opcode_label.len());
-    // Optimize the arithmetic opcodes by reducing them into the correct width and
+    let mut new_acir_opcode_positions: Vec<usize> = Vec::with_capacity(acir_opcode_positions.len());
+    // Optimize the arithmetic gates by reducing them into the correct width and
     // creating intermediate variables when necessary
     let mut transformed_opcodes = Vec::new();
 
@@ -111,8 +161,8 @@ pub fn compile(
                 }
                 new_opcodes.push(arith_expr);
                 for opcode in new_opcodes {
-                    new_opcode_labels.push(opcode_label[index]);
-                    transformed_opcodes.push(Opcode::Arithmetic(opcode));
+                    new_acir_opcode_positions.push(acir_opcode_positions[index]);
+                    transformed_opcodes.push(Opcode::Arithmetic(opcode))
                 }
             }
             Opcode::BlackBoxFuncCall(func) => {
@@ -156,7 +206,7 @@ pub fn compile(
                     }
                 }
 
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_opcodes.push(opcode.clone());
             }
             Opcode::Directive(directive) => {
@@ -180,12 +230,12 @@ pub fn compile(
                     }
                     Directive::Log(_) => (),
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
@@ -196,7 +246,7 @@ pub fn compile(
                 for (_, witness) in &op.value.linear_combinations {
                     transformer.mark_solvable(*witness);
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_opcodes.push(opcode.clone());
             }
             Opcode::Brillig(brillig) => {
@@ -210,22 +260,25 @@ pub fn compile(
                         }
                     }
                 }
-                new_opcode_labels.push(opcode_label[index]);
+                new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_opcodes.push(opcode.clone());
             }
         }
     }
 
     let current_witness_index = next_witness_index - 1;
-    Ok((
-        Circuit {
-            current_witness_index,
-            opcodes: transformed_opcodes,
-            // The optimizer does not add new public inputs
-            private_parameters: acir.private_parameters,
-            public_parameters: acir.public_parameters,
-            return_values: acir.return_values,
-        },
-        new_opcode_labels,
-    ))
+
+    let acir = Circuit {
+        current_witness_index,
+        opcodes: transformed_opcodes,
+        // The optimizer does not add new public inputs
+        private_parameters: acir.private_parameters,
+        public_parameters: acir.public_parameters,
+        return_values: acir.return_values,
+    };
+
+    let transformation_map =
+        AcirTransformationMap { acir_opcode_positions: new_acir_opcode_positions };
+
+    Ok((acir, transformation_map))
 }

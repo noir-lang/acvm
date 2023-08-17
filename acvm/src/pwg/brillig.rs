@@ -108,7 +108,7 @@ impl BrilligSolver {
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
             VMStatus::Failure { message } => {
-                Err(OpcodeResolutionError::BrilligFunctionFailed(message))
+                Err(OpcodeResolutionError::BrilligFunctionFailed(message, vm.program_counter()))
             }
             VMStatus::ForeignCallWait { function, inputs } => {
                 Ok(Some(ForeignCallWaitInfo { function, inputs }))
