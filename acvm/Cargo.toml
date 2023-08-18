@@ -24,7 +24,7 @@ indexmap = "1.7.0"
 async-trait = "0.1"
 
 [features]
-default = ["bn254", "testing"]
+default = ["bn254", "testing", "wasm"]
 bn254 = [
     "acir/bn254",
     "stdlib/bn254",
@@ -39,6 +39,8 @@ bls12_381 = [
 ]
 testing = ["stdlib/testing", "unstable-fallbacks"]
 unstable-fallbacks = []
+native = ["blackbox_solver/native", "brillig_vm/native"]
+wasm = ["blackbox_solver/wasm", "brillig_vm/wasm"]
 
 [dev-dependencies]
 rand = "0.8.5"
