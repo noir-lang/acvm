@@ -1,6 +1,9 @@
 import { expect } from "chai";
 import {
+  createBlackBoxSolver,
   executeCircuit,
+  executeCircuitWithBlackBoxSolver,
+  WasmBlackBoxFunctionSolver,
   WitnessMap,
   ForeignCallHandler,
 } from "../../../result/";
@@ -49,6 +52,7 @@ it("successfully processes simple brillig foreign call opcodes", async () => {
 
     return oracleResponse;
   };
+
   const solved_witness: WitnessMap = await executeCircuit(
     bytecode,
     initialWitnessMap,
@@ -87,6 +91,7 @@ it("successfully processes complex brillig foreign call opcodes", async () => {
 
     return oracleResponse;
   };
+
   const solved_witness: WitnessMap = await executeCircuit(
     bytecode,
     initialWitnessMap,
@@ -149,4 +154,38 @@ it("successfully executes a SchnorrVerify opcode", async () => {
   );
 
   expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
+});
+
+it("successfully executes two circuits with same backend", async function () {
+  this.timeout(10000);
+
+  // chose pedersen op here because it is the one with slow initialization
+  // that led to the decision to pull backend initialization into a separate
+  // function/wasmbind
+  const solver: WasmBlackBoxFunctionSolver = await createBlackBoxSolver();
+
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
+    "../shared/pedersen"
+  );
+
+  const solvedWitness0 = await executeCircuitWithBlackBoxSolver(
+    solver,
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  const solvedWitness1 = await executeCircuitWithBlackBoxSolver(
+    solver,
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  expect(solvedWitness0).to.be.deep.eq(expectedWitnessMap);
+  expect(solvedWitness1).to.be.deep.eq(expectedWitnessMap);
 });
