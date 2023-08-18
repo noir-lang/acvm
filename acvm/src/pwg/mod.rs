@@ -86,15 +86,26 @@ pub enum ErrorLocation {
     Resolved(OpcodeLocation),
 }
 
+impl std::fmt::Display for ErrorLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorLocation::Unresolved => write!(f, "unresolved"),
+            ErrorLocation::Resolved(location) => {
+                write!(f, "{location}")
+            }
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
     #[error("cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("Cannot satisfy constraint {opcode_location:?}")]
+    #[error("Cannot satisfy constraint {opcode_location}")]
     UnsatisfiedConstrain { opcode_location: ErrorLocation },
-    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
+    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?} at {opcode_location}")]
     IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
