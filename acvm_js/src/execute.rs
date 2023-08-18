@@ -85,17 +85,8 @@ pub async fn execute_circuit(
 
     let solver = WasmBlackBoxFunctionSolver::initialize().await;
 
-    let execution_result = execute_circuit_with_black_box_solver(
-        &solver,
-        circuit,
-        initial_witness,
-        foreign_call_handler,
-    )
-    .await;
-    match execution_result {
-        Ok(witness_map) => Ok(witness_map),
-        Err(err) => Err(err),
-    }
+    execute_circuit_with_black_box_solver(&solver, circuit, initial_witness, foreign_call_handler)
+        .await
 }
 
 /// Executes an ACIR circuit to generate the solved witness from the initial witness.
