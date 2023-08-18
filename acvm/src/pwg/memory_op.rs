@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use acir::{
-    circuit::{opcodes::MemOp, OpcodeLabel},
+    circuit::opcodes::MemOp,
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
 
-use super::OpcodeResolutionError;
 use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_value};
+use super::{ErrorLocation, OpcodeResolutionError};
 
 type MemoryIndex = u32;
 
@@ -26,7 +26,7 @@ impl MemoryOpSolver {
     ) -> Result<(), OpcodeResolutionError> {
         if index >= self.block_len {
             return Err(OpcodeResolutionError::IndexOutOfBounds {
-                opcode_label: OpcodeLabel::Unresolved,
+                opcode_location: ErrorLocation::Unresolved,
                 index,
                 array_size: self.block_len,
             });
@@ -37,7 +37,7 @@ impl MemoryOpSolver {
 
     fn read_memory_index(&self, index: MemoryIndex) -> Result<FieldElement, OpcodeResolutionError> {
         self.block_value.get(&index).copied().ok_or(OpcodeResolutionError::IndexOutOfBounds {
-            opcode_label: OpcodeLabel::Unresolved,
+            opcode_location: ErrorLocation::Unresolved,
             index,
             array_size: self.block_len,
         })
@@ -165,7 +165,7 @@ mod tests {
         assert!(matches!(
             err,
             Some(crate::pwg::OpcodeResolutionError::IndexOutOfBounds {
-                opcode_label: _,
+                opcode_location: _,
                 index: 2,
                 array_size: 2
             })

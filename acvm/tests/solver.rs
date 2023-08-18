@@ -6,14 +6,14 @@ use acir::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
         opcodes::{BlockId, MemOp},
-        Opcode, OpcodeLabel,
+        Opcode, OpcodeLocation,
     },
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
 use acvm::{
-    pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
+    pwg::{ACVMStatus, ErrorLocation, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
 use blackbox_solver::BlackBoxResolutionError;
@@ -127,7 +127,7 @@ fn inversion_brillig_oracle_equivalence() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
 
@@ -256,7 +256,7 @@ fn double_inversion_brillig_oracle() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
@@ -377,7 +377,7 @@ fn oracle_dependent_execution() {
     let witness_assignments =
         BTreeMap::from([(w_x, FieldElement::from(2u128)), (w_y, FieldElement::from(2u128))]).into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
@@ -499,7 +499,7 @@ fn brillig_oracle_predicate() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
@@ -533,12 +533,12 @@ fn unsatisfied_opcode_resolved() {
     values.insert(d, FieldElement::from(2_i128));
 
     let opcodes = vec![Opcode::Arithmetic(gate_a)];
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0))
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
@@ -615,12 +615,15 @@ fn unsatisfied_opcode_resolved_brillig() {
 
     let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
+                acir_index: 0,
+                brillig_index: 2
+            })
         }),
         "The first gate is not satisfiable, expected an error indicating this"
     );
@@ -655,7 +658,7 @@ fn memory_operations() {
 
     let opcodes = vec![init, read_op, expression];
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, initial_witness);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, initial_witness);
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved);
     let witness_map = acvm.finalize();
