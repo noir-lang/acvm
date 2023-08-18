@@ -157,17 +157,27 @@ it("successfully executes a SchnorrVerify opcode", async () => {
 });
 
 it("successfully executes two circuits with same backend", async function () {
+  this.timeout(10000);
+
   // chose pedersen op here because it is the one with slow initialization
   // that led to the decision to pull backend initialization into a separate
   // function/wasmbind
   const solver: WasmBlackBoxFunctionSolver = await createBlackBoxSolver();
 
-  this.timeout(10000);
   const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
     "../shared/pedersen"
   );
 
-  const solvedWitness0: WitnessMap = await executeCircuitWithBlackBoxSolver(
+  const solvedWitness0 = await executeCircuitWithBlackBoxSolver(
+    solver,
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  const solvedWitness1 = await executeCircuitWithBlackBoxSolver(
     solver,
     bytecode,
     initialWitnessMap,
@@ -177,14 +187,5 @@ it("successfully executes two circuits with same backend", async function () {
   );
 
   expect(solvedWitness0).to.be.deep.eq(expectedWitnessMap);
-
-  const solvedWitness1: WitnessMap = await executeCircuitWithBlackBoxSolver(
-    solver,
-    bytecode,
-    initialWitnessMap,
-    () => {
-      throw Error("unexpected oracle");
-    }
-  );
   expect(solvedWitness1).to.be.deep.eq(expectedWitnessMap);
 });
