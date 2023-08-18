@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.22.0](https://github.com/noir-lang/acvm/compare/acir-v0.21.0...acir-v0.22.0) (2023-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493))
+
+### Features
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493)) ([27a5a93](https://github.com/noir-lang/acvm/commit/27a5a935849f8904e10056b08089f532a06962b8))
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/acir-v0.20.1...acir-v0.21.0) (2023-07-26)
 
 
