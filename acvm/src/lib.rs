@@ -32,12 +32,7 @@ pub enum Language {
 }
 
 pub trait Backend:
-    SmartContract
-    + ProofSystemCompiler
-    + BlackBoxFunctionSolver
-    + CommonReferenceString
-    + Default
-    + Debug
+    SmartContract + ProofSystemCompiler + CommonReferenceString + Default + Debug
 {
 }
 
