@@ -1,6 +1,6 @@
 use super::{
     brillig::Brillig,
-    directives::{Directive, LogInfo, QuotientDirective},
+    directives::{Directive, QuotientDirective},
 };
 use crate::native_types::{Expression, Witness};
 use serde::{Deserialize, Serialize};
@@ -143,15 +143,6 @@ impl std::fmt::Display for Opcode {
                     bits.last().unwrap().witness_index(),
                 )
             }
-            Opcode::Directive(Directive::Log(info)) => match info {
-                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
-                LogInfo::WitnessOutput(witnesses) => write!(
-                    f,
-                    "Log: _{}..._{}",
-                    witnesses.first().unwrap().witness_index(),
-                    witnesses.last().unwrap().witness_index()
-                ),
-            },
             Opcode::Brillig(brillig) => {
                 write!(f, "BRILLIG: ")?;
                 writeln!(f, "inputs: {:?}", brillig.inputs)?;

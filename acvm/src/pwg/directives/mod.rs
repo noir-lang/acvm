@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use acir::{
-    circuit::directives::{Directive, LogInfo, QuotientDirective},
+    circuit::directives::{Directive, QuotientDirective},
     native_types::WitnessMap,
     FieldElement,
 };
@@ -123,55 +123,7 @@ pub(super) fn solve_directives(
             }
             Ok(())
         }
-        Directive::Log(info) => {
-            let witnesses = match info {
-                LogInfo::FinalizedOutput(output_string) => {
-                    println!("{output_string}");
-                    return Ok(());
-                }
-                LogInfo::WitnessOutput(witnesses) => witnesses,
-            };
-
-            if witnesses.len() == 1 {
-                let witness = &witnesses[0];
-                let log_value = witness_to_value(initial_witness, *witness)?;
-                println!("{}", format_field_string(*log_value));
-                return Ok(());
-            }
-
-            // If multiple witnesses are to be fetched for a log directive,
-            // it assumed that an array is meant to be printed to standard output
-            //
-            // Collect all field element values corresponding to the given witness indices
-            // and convert them to hex strings.
-            let mut elements_as_hex = Vec::with_capacity(witnesses.len());
-            for witness in witnesses {
-                let element = witness_to_value(initial_witness, *witness)?;
-                elements_as_hex.push(format_field_string(*element));
-            }
-
-            // Join all of the hex strings using a comma
-            let comma_separated_elements = elements_as_hex.join(", ");
-
-            let output_witnesses_string = "[".to_owned() + &comma_separated_elements + "]";
-
-            println!("{output_witnesses_string}");
-
-            Ok(())
-        }
     }
-}
-
-/// This trims any leading zeroes.
-/// A singular '0' will be prepended as well if the trimmed string has an odd length.
-/// A hex string's length needs to be even to decode into bytes, as two digits correspond to
-/// one byte.
-fn format_field_string(field: FieldElement) -> String {
-    let mut trimmed_field = field.to_hex().trim_start_matches('0').to_owned();
-    if trimmed_field.len() % 2 != 0 {
-        trimmed_field = "0".to_owned() + &trimmed_field
-    }
-    "0x".to_owned() + &trimmed_field
 }
 
 #[cfg(test)]

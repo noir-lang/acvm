@@ -228,7 +228,6 @@ pub fn compile(
                             transformer.mark_solvable(*witness);
                         }
                     }
-                    Directive::Log(_) => (),
                 }
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
                 transformed_gates.push(opcode.clone());
