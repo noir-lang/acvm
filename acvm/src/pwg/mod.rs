@@ -364,7 +364,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
 
     // PLONK supports most of the opcodes by default
     // The ones which are not supported, the acvm compiler will
-    // attempt to transform into supported gates. If these are also not available
+    // attempt to transform into supported opcodes. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(_opcode: &Opcode) -> bool {
         true

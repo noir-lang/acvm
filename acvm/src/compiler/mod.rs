@@ -51,7 +51,7 @@ pub fn compile(
             Opcode::Arithmetic(arith_expr) => {
                 opcodes.push(Opcode::Arithmetic(GeneralOptimizer::optimize(arith_expr)))
             }
-            other_gate => opcodes.push(other_gate),
+            other_opcode => opcodes.push(other_opcode),
         };
     }
     let acir = Circuit { opcodes, ..acir };
@@ -79,9 +79,9 @@ pub fn compile(
     // TODO or at the very least, we could put all of it inside of CSatOptimizer pass
 
     let mut new_opcode_labels = Vec::with_capacity(opcode_label.len());
-    // Optimize the arithmetic gates by reducing them into the correct width and
+    // Optimize the arithmetic opcodes by reducing them into the correct width and
     // creating intermediate variables when necessary
-    let mut transformed_gates = Vec::new();
+    let mut transformed_opcodes = Vec::new();
 
     let mut next_witness_index = acir.current_witness_index + 1;
     // maps a normalized expression to the intermediate variable which represents the expression, along with its 'norm'
@@ -100,19 +100,19 @@ pub fn compile(
 
                 // Update next_witness counter
                 next_witness_index += (intermediate_variables.len() - len) as u32;
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 for (g, (norm, w)) in intermediate_variables.iter().skip(len) {
                     // de-normalize
-                    let mut intermediate_gate = g * *norm;
-                    // constrain the intermediate gate to the intermediate variable
-                    intermediate_gate.linear_combinations.push((-FieldElement::one(), *w));
-                    intermediate_gate.sort();
-                    new_gates.push(intermediate_gate);
+                    let mut intermediate_opcode = g * *norm;
+                    // constrain the intermediate opcode to the intermediate variable
+                    intermediate_opcode.linear_combinations.push((-FieldElement::one(), *w));
+                    intermediate_opcode.sort();
+                    new_opcodes.push(intermediate_opcode);
                 }
-                new_gates.push(arith_expr);
-                for gate in new_gates {
+                new_opcodes.push(arith_expr);
+                for opcode in new_opcodes {
                     new_opcode_labels.push(opcode_label[index]);
-                    transformed_gates.push(Opcode::Arithmetic(gate));
+                    transformed_opcodes.push(Opcode::Arithmetic(opcode));
                 }
             }
             Opcode::BlackBoxFuncCall(func) => {
@@ -157,7 +157,7 @@ pub fn compile(
                 }
 
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::Directive(directive) => {
                 match directive {
@@ -181,12 +181,12 @@ pub fn compile(
                     Directive::Log(_) => (),
                 }
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
                 for (_, witness1, witness2) in &op.value.mul_terms {
@@ -197,7 +197,7 @@ pub fn compile(
                     transformer.mark_solvable(*witness);
                 }
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::Brillig(brillig) => {
                 for output in &brillig.outputs {
@@ -211,7 +211,7 @@ pub fn compile(
                     }
                 }
                 new_opcode_labels.push(opcode_label[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
         }
     }
@@ -220,7 +220,7 @@ pub fn compile(
     Ok((
         Circuit {
             current_witness_index,
-            opcodes: transformed_gates,
+            opcodes: transformed_opcodes,
             // The optimizer does not add new public inputs
             private_parameters: acir.private_parameters,
             public_parameters: acir.public_parameters,

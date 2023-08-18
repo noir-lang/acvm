@@ -6,15 +6,15 @@ use acir::{
 
 use super::{insert_value, OpcodeNotSolvable, OpcodeResolutionError};
 
-/// An Arithmetic solver will take a Circuit's arithmetic gates with witness assignments
+/// An Arithmetic solver will take a Circuit's arithmetic opcodes with witness assignments
 /// and create the other witness variables
 pub(super) struct ArithmeticSolver;
 
 #[allow(clippy::enum_variant_names)]
-pub(super) enum GateStatus {
-    GateSatisfied(FieldElement),
-    GateSolvable(FieldElement, (FieldElement, Witness)),
-    GateUnsolvable,
+pub(super) enum OpcodeStatus {
+    OpcodeSatisfied(FieldElement),
+    OpcodeSolvable(FieldElement, (FieldElement, Witness)),
+    OpcodeUnsolvable,
 }
 
 pub(crate) enum MulTerm {
@@ -27,24 +27,24 @@ impl ArithmeticSolver {
     /// Derives the rest of the witness based on the initial low level variables
     pub(super) fn solve(
         initial_witness: &mut WitnessMap,
-        gate: &Expression,
+        opcode: &Expression,
     ) -> Result<(), OpcodeResolutionError> {
-        let gate = &ArithmeticSolver::evaluate(gate, initial_witness);
+        let opcode = &ArithmeticSolver::evaluate(opcode, initial_witness);
         // Evaluate multiplication term
-        let mul_result = ArithmeticSolver::solve_mul_term(gate, initial_witness);
+        let mul_result = ArithmeticSolver::solve_mul_term(opcode, initial_witness);
         // Evaluate the fan-in terms
-        let gate_status = ArithmeticSolver::solve_fan_in_term(gate, initial_witness);
+        let opcode_status = ArithmeticSolver::solve_fan_in_term(opcode, initial_witness);
 
-        match (mul_result, gate_status) {
-            (MulTerm::TooManyUnknowns, _) | (_, GateStatus::GateUnsolvable) => {
+        match (mul_result, opcode_status) {
+            (MulTerm::TooManyUnknowns, _) | (_, OpcodeStatus::OpcodeUnsolvable) => {
                 Err(OpcodeResolutionError::OpcodeNotSolvable(
-                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
+                    OpcodeNotSolvable::ExpressionHasTooManyUnknowns(opcode.clone()),
                 ))
             }
-            (MulTerm::OneUnknown(q, w1), GateStatus::GateSolvable(a, (b, w2))) => {
+            (MulTerm::OneUnknown(q, w1), OpcodeStatus::OpcodeSolvable(a, (b, w2))) => {
                 if w1 == w2 {
                     // We have one unknown so we can solve the equation
-                    let total_sum = a + gate.q_c;
+                    let total_sum = a + opcode.q_c;
                     if (q + b).is_zero() {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain {
@@ -62,16 +62,16 @@ impl ArithmeticSolver {
                 } else {
                     // TODO: can we be more specific with this error?
                     Err(OpcodeResolutionError::OpcodeNotSolvable(
-                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(gate.clone()),
+                        OpcodeNotSolvable::ExpressionHasTooManyUnknowns(opcode.clone()),
                     ))
                 }
             }
-            (MulTerm::OneUnknown(partial_prod, unknown_var), GateStatus::GateSatisfied(sum)) => {
+            (MulTerm::OneUnknown(partial_prod, unknown_var), OpcodeStatus::OpcodeSatisfied(sum)) => {
                 // We have one unknown in the mul term and the fan-in terms are solved.
                 // Hence the equation is solvable, since there is a single unknown
                 // The equation is: partial_prod * unknown_var + sum + qC = 0
 
-                let total_sum = sum + gate.q_c;
+                let total_sum = sum + opcode.q_c;
                 if partial_prod.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
@@ -87,10 +87,10 @@ impl ArithmeticSolver {
                     Ok(())
                 }
             }
-            (MulTerm::Solved(a), GateStatus::GateSatisfied(b)) => {
+            (MulTerm::Solved(a), OpcodeStatus::OpcodeSatisfied(b)) => {
                 // All the variables in the MulTerm are solved and the Fan-in is also solved
                 // There is nothing to solve
-                if !(a + b + gate.q_c).is_zero() {
+                if !(a + b + opcode.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain {
                         opcode_label: OpcodeLabel::Unresolved,
                     })
@@ -100,12 +100,12 @@ impl ArithmeticSolver {
             }
             (
                 MulTerm::Solved(total_prod),
-                GateStatus::GateSolvable(partial_sum, (coeff, unknown_var)),
+                OpcodeStatus::OpcodeSolvable(partial_sum, (coeff, unknown_var)),
             ) => {
                 // The variables in the MulTerm are solved nad there is one unknown in the Fan-in
                 // Hence the equation is solvable, since we have one unknown
                 // The equation is total_prod + partial_sum + coeff * unknown_var + q_C = 0
-                let total_sum = total_prod + partial_sum + gate.q_c;
+                let total_sum = total_prod + partial_sum + opcode.q_c;
                 if coeff.is_zero() {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
@@ -124,20 +124,20 @@ impl ArithmeticSolver {
         }
     }
 
-    /// Returns the evaluation of the multiplication term in the arithmetic gate
+    /// Returns the evaluation of the multiplication term in the arithmetic opcode
     /// If the witness values are not known, then the function returns a None
-    /// XXX: Do we need to account for the case where 5xy + 6x = 0 ? We do not know y, but it can be solved given x . But I believe x can be solved with another gate
-    /// XXX: What about making a mul gate = a constant 5xy + 7 = 0 ? This is the same as the above.
-    fn solve_mul_term(arith_gate: &Expression, witness_assignments: &WitnessMap) -> MulTerm {
+    /// XXX: Do we need to account for the case where 5xy + 6x = 0 ? We do not know y, but it can be solved given x . But I believe x can be solved with another opcode
+    /// XXX: What about making a mul opcode = a constant 5xy + 7 = 0 ? This is the same as the above.
+    fn solve_mul_term(arith_opcode: &Expression, witness_assignments: &WitnessMap) -> MulTerm {
         // First note that the mul term can only contain one/zero term
         // We are assuming it has been optimized.
-        match arith_gate.mul_terms.len() {
+        match arith_opcode.mul_terms.len() {
             0 => MulTerm::Solved(FieldElement::zero()),
             1 => ArithmeticSolver::solve_mul_term_helper(
-                &arith_gate.mul_terms[0],
+                &arith_opcode.mul_terms[0],
                 witness_assignments,
             ),
-            _ => panic!("Mul term in the arithmetic gate must contain either zero or one term"),
+            _ => panic!("Mul term in the arithmetic opcode must contain either zero or one term"),
         }
     }
 
@@ -172,9 +172,9 @@ impl ArithmeticSolver {
     /// Returns None, if there is more than one unknown variable
     /// We cannot assign
     pub(super) fn solve_fan_in_term(
-        arith_gate: &Expression,
+        arith_opcode: &Expression,
         witness_assignments: &WitnessMap,
-    ) -> GateStatus {
+    ) -> OpcodeStatus {
         // This is assuming that the fan-in is more than 0
 
         // This is the variable that we want to assign the value to
@@ -183,7 +183,7 @@ impl ArithmeticSolver {
         // This is the sum of all of the known variables
         let mut result = FieldElement::zero();
 
-        for term in arith_gate.linear_combinations.iter() {
+        for term in arith_opcode.linear_combinations.iter() {
             let value = ArithmeticSolver::solve_fan_in_term_helper(term, witness_assignments);
             match value {
                 Some(a) => result += a,
@@ -195,18 +195,18 @@ impl ArithmeticSolver {
 
             // If we have more than 1 unknown, then we cannot solve this equation
             if num_unknowns > 1 {
-                return GateStatus::GateUnsolvable;
+                return OpcodeStatus::OpcodeUnsolvable;
             }
         }
 
         if num_unknowns == 0 {
-            return GateStatus::GateSatisfied(result);
+            return OpcodeStatus::OpcodeSatisfied(result);
         }
 
-        GateStatus::GateSolvable(result, unknown_variable)
+        OpcodeStatus::OpcodeSolvable(result, unknown_variable)
     }
 
-    // Partially evaluate the gate using the known witnesses
+    // Partially evaluate the opcode using the known witnesses
     pub(super) fn evaluate(expr: &Expression, initial_witness: &WitnessMap) -> Expression {
         let mut result = Expression::default();
         for &(c, w1, w2) in &expr.mul_terms {
@@ -245,7 +245,7 @@ fn arithmetic_smoke_test() {
     let d = Witness(3);
 
     // a = b + c + d;
-    let gate_a = Expression {
+    let opcode_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -257,7 +257,7 @@ fn arithmetic_smoke_test() {
     };
 
     let e = Witness(4);
-    let gate_b = Expression {
+    let opcode_b = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), e),
@@ -272,8 +272,8 @@ fn arithmetic_smoke_test() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(1_i128));
 
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_a), Ok(()));
-    assert_eq!(ArithmeticSolver::solve(&mut values, &gate_b), Ok(()));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &opcode_a), Ok(()));
+    assert_eq!(ArithmeticSolver::solve(&mut values, &opcode_b), Ok(()));
 
     assert_eq!(values.get(&a).unwrap(), &FieldElement::from(4_i128));
 }

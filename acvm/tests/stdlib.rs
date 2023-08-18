@@ -72,9 +72,9 @@ macro_rules! test_uint_inner {
                 let w = Witness(1);
                 let result = x.rotate_left(y);
                 let uint = $uint::new(w);
-                let (w, extra_gates, _) = uint.rol(y, 2);
+                let (w, extra_opcodes, _) = uint.rol(y, 2);
                 let witness_assignments = BTreeMap::from([(Witness(1), fe)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
@@ -87,9 +87,9 @@ macro_rules! test_uint_inner {
                 let w = Witness(1);
                 let result = x.rotate_right(y);
                 let uint = $uint::new(w);
-                let (w, extra_gates, _) = uint.ror(y, 2);
+                let (w, extra_opcodes, _) = uint.ror(y, 2);
                 let witness_assignments = BTreeMap::from([(Witness(1), fe)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
@@ -107,9 +107,9 @@ macro_rules! test_uint_inner {
                 let r = x.rem_euclid(y);
                 let u32_1 = $uint::new(w1);
                 let u32_2 = $uint::new(w2);
-                let (q_w, r_w, extra_gates, _) = $uint::euclidean_division(&u32_1, &u32_2, 3);
+                let (q_w, r_w, extra_opcodes, _) = $uint::euclidean_division(&u32_1, &u32_2, 3);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs),(Witness(2), rhs)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&q_w.get_inner()).unwrap(), &FieldElement::from(q as u128));
@@ -129,13 +129,13 @@ macro_rules! test_uint_inner {
                 let u32_1 = $uint::new(w1);
                 let u32_2 = $uint::new(w2);
                 let u32_3 = $uint::new(w3);
-                let mut gates = Vec::new();
-                let (w, extra_gates, num_witness) = u32_1.add(&u32_2, 4);
-                gates.extend(extra_gates);
-                let (w2, extra_gates, _) = w.add(&u32_3, num_witness);
-                gates.extend(extra_gates);
+                let mut opcodes = Vec::new();
+                let (w, extra_opcodes, num_witness) = u32_1.add(&u32_2, 4);
+                opcodes.extend(extra_opcodes);
+                let (w2, extra_opcodes, _) = w.add(&u32_3, num_witness);
+                opcodes.extend(extra_opcodes);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w2.get_inner()).unwrap(), &result);
@@ -154,13 +154,13 @@ macro_rules! test_uint_inner {
                 let u32_1 = $uint::new(w1);
                 let u32_2 = $uint::new(w2);
                 let u32_3 = $uint::new(w3);
-                let mut gates = Vec::new();
-                let (w, extra_gates, num_witness) = u32_1.sub(&u32_2, 4);
-                gates.extend(extra_gates);
-                let (w2, extra_gates, _) = w.sub(&u32_3, num_witness);
-                gates.extend(extra_gates);
+                let mut opcodes = Vec::new();
+                let (w, extra_opcodes, num_witness) = u32_1.sub(&u32_2, 4);
+                opcodes.extend(extra_opcodes);
+                let (w2, extra_opcodes, _) = w.sub(&u32_3, num_witness);
+                opcodes.extend(extra_opcodes);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs), (Witness(3), rhs_z)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
                         let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w2.get_inner()).unwrap(), &result);
@@ -173,9 +173,9 @@ macro_rules! test_uint_inner {
                 let w1 = Witness(1);
                 let result = x.overflowing_shl(y).0;
                 let u32_1 = $uint::new(w1);
-                let (w, extra_gates, _) = u32_1.leftshift(y, 2);
+                let (w, extra_opcodes, _) = u32_1.leftshift(y, 2);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
@@ -188,9 +188,9 @@ macro_rules! test_uint_inner {
                 let w1 = Witness(1);
                 let result = x.overflowing_shr(y).0;
                 let u32_1 = $uint::new(w1);
-                let (w, extra_gates, _) = u32_1.rightshift(y, 2);
+                let (w, extra_opcodes, _) = u32_1.rightshift(y, 2);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
@@ -206,9 +206,9 @@ macro_rules! test_uint_inner {
                 let result = x < y;
                 let u32_1 = $uint::new(w1);
                 let u32_2 = $uint::new(w2);
-                let (w, extra_gates, _) = u32_1.less_than_comparison(&u32_2, 3);
+                let (w, extra_opcodes, _) = u32_1.less_than_comparison(&u32_2, 3);
                 let witness_assignments = BTreeMap::from([(Witness(1), lhs), (Witness(2), rhs)]).into();
-                let mut acvm = ACVM::new(StubbedBackend, extra_gates, witness_assignments);
+                let mut acvm = ACVM::new(StubbedBackend, extra_opcodes, witness_assignments);
                 let solver_status = acvm.solve();
 
                 prop_assert_eq!(acvm.witness_map().get(&w.get_inner()).unwrap(), &FieldElement::from(result as u128));
