@@ -162,7 +162,7 @@ pub fn compile(
                 new_opcodes.push(arith_expr);
                 for opcode in new_opcodes {
                     new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                    transformed_opcodes.push(Opcode::Arithmetic(opcode))
+                    transformed_opcodes.push(Opcode::Arithmetic(opcode));
                 }
             }
             Opcode::BlackBoxFuncCall(func) => {
