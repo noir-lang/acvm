@@ -5,8 +5,9 @@ pub mod opcodes;
 
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
+use thiserror::Error;
 
-use std::{collections::BTreeMap, io::prelude::*};
+use std::{collections::BTreeMap, io::prelude::*, num::ParseIntError, str::FromStr};
 
 use flate2::Compression;
 
@@ -40,7 +41,55 @@ pub struct Circuit {
 /// map opcodes to debug information related to their context.
 pub enum OpcodeLocation {
     Acir(usize),
-    Brillig(usize, usize),
+    Brillig { acir_index: usize, brillig_index: usize },
+}
+
+impl std::fmt::Display for OpcodeLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpcodeLocation::Acir(index) => write!(f, "{index}"),
+            OpcodeLocation::Brillig { acir_index, brillig_index } => {
+                write!(f, "{acir_index}.{brillig_index}")
+            }
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum OpcodeLocationFromStrError {
+    #[error("Invalid opcode location string: {0}")]
+    InvalidOpcodeLocationString(String),
+}
+
+/// The implementation of display and FromStr allows serializing and deserializing a OpcodeLocation to a string.
+/// This is useful when used as key in a map that has to be serialized to JSON/TOML, for example when mapping an opcode to its metadata.
+impl FromStr for OpcodeLocation {
+    type Err = OpcodeLocationFromStrError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split('.').collect();
+
+        if parts.is_empty() || parts.len() > 2 {
+            return Err(OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()));
+        }
+
+        fn parse_components(parts: Vec<&str>) -> Result<OpcodeLocation, ParseIntError> {
+            match parts.len() {
+                1 => {
+                    let index = parts[0].parse()?;
+                    Ok(OpcodeLocation::Acir(index))
+                }
+                2 => {
+                    let acir_index = parts[0].parse()?;
+                    let brillig_index = parts[1].parse()?;
+                    Ok(OpcodeLocation::Brillig { acir_index, brillig_index })
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        parse_components(parts)
+            .map_err(|_| OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()))
+    }
 }
 
 impl Circuit {

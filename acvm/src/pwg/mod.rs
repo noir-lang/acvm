@@ -77,11 +77,24 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
+/// Allows to point to a specific opcode as cause in errors.
+/// Some errors don't have a specific opcode associated with them, or are created without one and added later.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum ErrorLocation {
     #[default]
     Unresolved,
     Resolved(OpcodeLocation),
+}
+
+impl std::fmt::Display for ErrorLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorLocation::Unresolved => write!(f, "unresolved"),
+            ErrorLocation::Resolved(location) => {
+                write!(f, "{location}")
+            }
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
@@ -90,9 +103,9 @@ pub enum OpcodeResolutionError {
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("Cannot satisfy constraint with message {assert_message:?} at {opcode_location:?}")]
+    #[error("Cannot satisfy constraint with message {assert_message:?} at {opcode_location}")]
     UnsatisfiedConstrain { opcode_location: ErrorLocation, assert_message: Option<String> },
-    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
+    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?} at {opcode_location}")]
     IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
@@ -113,10 +126,10 @@ impl From<BlackBoxResolutionError> for OpcodeResolutionError {
     }
 }
 
-pub struct ACVM<B: BlackBoxFunctionSolver> {
+pub struct ACVM<'backend, B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
-    backend: B,
+    backend: &'backend B,
 
     /// Stores the solver for memory operations acting on blocks of memory disambiguated by [block][`BlockId`].
     block_solvers: HashMap<BlockId, MemoryOpSolver>,
@@ -131,9 +144,9 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     assert_messages: BTreeMap<OpcodeLocation, String>,
 }
 
-impl<B: BlackBoxFunctionSolver> ACVM<B> {
+impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
     pub fn new(
-        backend: B,
+        backend: &'backend B,
         opcodes: Vec<Opcode>,
         initial_witness: WitnessMap,
         assert_messages: BTreeMap<OpcodeLocation, String>,
@@ -241,7 +254,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolution = match opcode {
             Opcode::Arithmetic(expr) => ArithmeticSolver::solve(&mut self.witness_map, expr),
             Opcode::BlackBoxFuncCall(bb_func) => {
-                blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
+                blackbox::solve(self.backend, &mut self.witness_map, bb_func)
             }
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
             Opcode::MemoryInit { block_id, init } => {
@@ -253,7 +266,7 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 solver.solve_memory_op(op, &mut self.witness_map)
             }
             Opcode::Brillig(brillig) => {
-                match BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend) {
+                match BrilligSolver::solve(&mut self.witness_map, brillig, self.backend) {
                     Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
                     res => res.map(|_| ()),
                 }
@@ -296,10 +309,10 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                         _,
                         brillig_instruction_pointer,
                     ) => {
-                        let opcode_location = OpcodeLocation::Brillig(
-                            self.instruction_pointer(),
-                            *brillig_instruction_pointer,
-                        );
+                        let opcode_location = OpcodeLocation::Brillig {
+                            acir_index: self.instruction_pointer(),
+                            brillig_index: *brillig_instruction_pointer,
+                        };
                         error = OpcodeResolutionError::UnsatisfiedConstrain {
                             opcode_location: ErrorLocation::Resolved(opcode_location),
                             assert_message: self.assert_messages.get(&opcode_location).cloned(),
