@@ -625,24 +625,3 @@ they support a particular black box function
 ## [0.2.1] - 2022-12-23
 
 - Removed ToBits and ToBytes opcode
-
-### Changed(Issue #28)
-
-- Renamed gate -> opcode variables in optimize and remove_zero_coefficients functions of [general.rs](acvm/src/compiler/optimizers/general.rs) file
-- Renamed `full_gate_scan_optimization` -> `full_opcode_scan_optimization` and `partial_gate_scan_optimization` -> `partial_opcode_scan_optimization` functions of [csat.rs](acvm/src/compiler/transformers/csat.rs) file
-- Renamed all variables related to gates in [csat.rs](acvm/src/compiler/transformers/csat.rs) file
-- Changed comments in [csat.rs](acvm/src/compiler/transformers/csat.rs) file to fit the new naming of opcode
-- Renamed all variables related to gates in [mod.rs](acvm/src/compiler/mod.rs) file
-- Renamed GateStatus -> OpcodeStatus in [arithmetic.rs](acvm/src/pwg/arithmetic.rs) file
-- Renamed all variables related to gates in [arithmetic.rs](acvm/src/pwg/arithmetic.rs) file
-- Renamed all variables related to gates in test files: [solver.rs](acvm/tests/solver.rs) and [stdlib.rs](acvm/tests/stdlib.rs) files
-- Renamed `solve_logic_gate` -> `solve_logic_opcode` function in [logic.rs](acvm/src/pwg/blackbox/logic.rs) file
-- Renamed all variables related to gates in [blake2s.rs](stdlib/src/blackbox_fallbacks/blake2s.rs) file
-- Renamed all variables related to gates in [hash_to_field.rs](stdlib/src/blackbox_fallbacks/hash_to_field.rs) file
-- Renamed all variables related to gates in [keccak256.rs](stdlib/src/blackbox_fallbacks/keccak256.rs) file
-- Renamed all variables related to gates in [logic_fallbacks.rs](stdlib/src/blackbox_fallbacks/logic_fallbacks.rs) file
-- Renamed all variables related to gates in [sha256.rs](stdlib/src/blackbox_fallbacks/sha256.rs) file
-- Renamed all variables related to gates in [uint.rs](stdlib/src/blackbox_fallbacks/uint.rs) file
-- Renamed all variables related to gates in [uint32.rs](stdlib/src/blackbox_fallbacks/uint32.rs) file
-- Renamed all variables related to gates in [uint64.rs](stdlib/src/blackbox_fallbacks/uint64.rs) file
-- Renamed all variables related to gates in [utils.rs](stdlib/src/blackbox_fallbacks/utils.rs) file
