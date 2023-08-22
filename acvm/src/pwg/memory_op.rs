@@ -133,7 +133,7 @@ mod tests {
 
     use acir::{
         circuit::opcodes::MemOp,
-        native_types::{Witness, WitnessMap},
+        native_types::{Expression, Witness, WitnessMap},
         FieldElement,
     };
 
@@ -185,6 +185,7 @@ mod tests {
                 err = block_solver.solve_memory_op(&op, &mut initial_witness, &None).err();
             }
         }
+
         assert!(matches!(
             err,
             Some(crate::pwg::OpcodeResolutionError::IndexOutOfBounds {
@@ -193,5 +194,34 @@ mod tests {
                 array_size: 2
             })
         ));
+    }
+
+    #[test]
+    fn test_predicate_on_read() {
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let init = vec![Witness(1), Witness(2)];
+
+        let invalid_trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::from(2u128).into(), Witness(4)),
+        ];
+        let mut block_solver = MemoryOpSolver::default();
+        block_solver.init(&init, &initial_witness).unwrap();
+        let mut err = None;
+        for op in invalid_trace {
+            if err.is_none() {
+                err = block_solver
+                    .solve_memory_op(&op, &mut initial_witness, &Some(Expression::zero()))
+                    .err();
+            }
+        }
+
+        assert_eq!(err, None);
+        assert_eq!(initial_witness[&Witness(4)], FieldElement::from(0u128));
     }
 }
