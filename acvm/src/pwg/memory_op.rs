@@ -51,7 +51,6 @@ impl MemoryOpSolver {
     ) -> Result<(), OpcodeResolutionError> {
         self.block_len = init.len() as u32;
         for (memory_index, witness) in init.iter().enumerate() {
-            dbg!(memory_index);
             self.write_memory_index(
                 memory_index as MemoryIndex,
                 *witness_to_value(initial_witness, *witness)?,
@@ -116,9 +115,7 @@ impl MemoryOpSolver {
             if pred_value.is_zero() {
                 // We only want to write to already initialized memory.
                 // If a memory block is uninitialized `self.block_len` will be zero.
-                dbg!(self.block_len);
                 for i in 0..self.block_len {
-                    dbg!("got here");
                     self.write_memory_index(i, FieldElement::zero())?;
                 }
                 return Ok(());
@@ -226,6 +223,7 @@ mod tests {
 
         // Should have no index out of bounds error where predicate is zero
         assert_eq!(err, None);
+        // The result of a read under a zero predicate should be zero
         assert_eq!(initial_witness[&Witness(4)], FieldElement::from(0u128));
     }
 
@@ -241,7 +239,8 @@ mod tests {
 
         let invalid_trace = vec![
             MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
-            MemOp::read_at_mem_index(FieldElement::from(1u128).into(), Witness(4).into()),
+            MemOp::read_at_mem_index(FieldElement::from(0u128).into(), Witness(4).into()),
+            MemOp::read_at_mem_index(FieldElement::from(1u128).into(), Witness(5).into()),
         ];
         let mut block_solver = MemoryOpSolver::default();
         block_solver.init(&init, &initial_witness).unwrap();
@@ -256,5 +255,8 @@ mod tests {
 
         // Should have no index out of bounds error where predicate is zero
         assert_eq!(err, None);
+        // The memory under a zero predicate should be zeroed out
+        assert_eq!(initial_witness[&Witness(4)], FieldElement::from(0u128));
+        assert_eq!(initial_witness[&Witness(5)], FieldElement::from(0u128));
     }
 }
