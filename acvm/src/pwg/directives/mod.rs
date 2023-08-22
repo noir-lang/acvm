@@ -72,7 +72,6 @@ pub(super) fn solve_directives(
             if b.len() < decomposed_integer.len() {
                 return Err(OpcodeResolutionError::UnsatisfiedConstrain {
                     opcode_location: ErrorLocation::Unresolved,
-                    assert_message: None,
                 });
             }
 

@@ -12,7 +12,6 @@ pub(super) fn solve_range_opcode(
     if w_value.num_bits() > input.num_bits {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
             opcode_location: ErrorLocation::Unresolved,
-            assert_message: None,
         });
     }
     Ok(())

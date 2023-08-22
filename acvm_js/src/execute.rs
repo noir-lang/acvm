@@ -1,6 +1,6 @@
 use acvm::{
     acir::{circuit::Circuit, BlackBoxFunc},
-    pwg::{ACVMStatus, ACVM},
+    pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver, BlackBoxResolutionError, FieldElement,
 };
 
@@ -106,8 +106,7 @@ pub async fn execute_circuit_with_black_box_solver(
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
-    let mut acvm =
-        ACVM::new(solver, circuit.opcodes, initial_witness.into(), circuit.assert_messages);
+    let mut acvm = ACVM::new(solver, circuit.opcodes, initial_witness.into());
 
     loop {
         let solver_status = acvm.solve();
@@ -117,7 +116,25 @@ pub async fn execute_circuit_with_black_box_solver(
             ACVMStatus::InProgress => {
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
-            ACVMStatus::Failure(error) => return Err(error.to_string().into()),
+            ACVMStatus::Failure(error) => {
+                let assert_message = match &error {
+                    OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                    }
+                    | OpcodeResolutionError::IndexOutOfBounds {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                        ..
+                    } => circuit.assert_messages.get(opcode_location).cloned(),
+                    _ => None,
+                };
+
+                let error_string = match assert_message {
+                    Some(assert_message) => format!("{}: {}", error, assert_message),
+                    None => error.to_string(),
+                };
+
+                return Err(error_string.into());
+            }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
 

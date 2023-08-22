@@ -48,7 +48,6 @@ impl ArithmeticSolver {
                         if !total_sum.is_zero() {
                             Err(OpcodeResolutionError::UnsatisfiedConstrain {
                                 opcode_location: ErrorLocation::Unresolved,
-                                assert_message: None,
                             })
                         } else {
                             Ok(())
@@ -76,7 +75,6 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
                             opcode_location: ErrorLocation::Unresolved,
-                            assert_message: None,
                         })
                     } else {
                         Ok(())
@@ -94,7 +92,6 @@ impl ArithmeticSolver {
                 if !(a + b + gate.q_c).is_zero() {
                     Err(OpcodeResolutionError::UnsatisfiedConstrain {
                         opcode_location: ErrorLocation::Unresolved,
-                        assert_message: None,
                     })
                 } else {
                     Ok(())
@@ -112,7 +109,6 @@ impl ArithmeticSolver {
                     if !total_sum.is_zero() {
                         Err(OpcodeResolutionError::UnsatisfiedConstrain {
                             opcode_location: ErrorLocation::Unresolved,
-                            assert_message: None,
                         })
                     } else {
                         Ok(())
