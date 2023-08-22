@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use acir::{
     circuit::opcodes::MemOp,
-    native_types::{Witness, WitnessMap, Expression},
+    native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
@@ -95,13 +95,14 @@ impl MemoryOpSolver {
                 "Memory must be read into a specified witness index, encountered an Expression",
             );
 
-            // A zero predicate indicates that we should just insert zero into the witness for the value we are reading
-            if pred_value.is_zero() {
-                insert_value(&value_read_witness, FieldElement::zero(), initial_witness)
+            // A zero predicate indicates that we should skip the read operation
+            // and zero out the operation's output.
+            let value_in_array = if pred_value.is_zero() {
+                FieldElement::zero()
             } else {
-                let value_in_array = self.read_memory_index(memory_index)?;
-                insert_value(&value_read_witness, value_in_array, initial_witness)
-            }
+                self.read_memory_index(memory_index)?
+            };
+            insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
             // `arr[memory_index] = value_write`
             //
@@ -109,17 +110,19 @@ impl MemoryOpSolver {
             // into the memory block.
             let value_write = value;
 
-            // A zero predicate indicates that we will zero out the array we are writing into
+            // A zero predicate indicates that we should skip the write operation and zero out
+            // the memory it touches.
             if pred_value.is_zero() {
+                // We only want to write to already initialized memory.
+                // If a memory block is uninitialized `self.block_len` will be zero .
                 for i in 0..self.block_len {
                     self.write_memory_index(i, FieldElement::zero())?;
                 }
-                return Ok(())
+                return Ok(());
             } else {
-                let value_to_write = get_value(&value_write, initial_witness)?;  
+                let value_to_write = get_value(&value_write, initial_witness)?;
                 self.write_memory_index(memory_index, value_to_write)
             }
-            
         }
     }
 }

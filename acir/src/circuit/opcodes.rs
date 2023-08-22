@@ -160,12 +160,12 @@ impl std::fmt::Display for Opcode {
                 writeln!(f, "outputs: {:?}", brillig.outputs)?;
                 writeln!(f, "{:?}", brillig.bytecode)
             }
-            Opcode::MemoryOp { block_id, op, predicate} => {
+            Opcode::MemoryOp { block_id, op, predicate } => {
                 write!(f, "MEM ")?;
                 if let Some(pred) = predicate {
                     writeln!(f, "PREDICATE = {pred}")?;
                 }
-                
+
                 let is_read = op.operation.is_zero();
                 let is_write = op.operation == Expression::one();
                 if is_read {
