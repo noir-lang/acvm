@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use acir::{
     circuit::opcodes::MemOp,
-    native_types::{Witness, WitnessMap},
+    native_types::{Witness, WitnessMap, Expression},
     FieldElement,
 };
 
@@ -63,6 +63,7 @@ impl MemoryOpSolver {
         &mut self,
         op: &MemOp,
         initial_witness: &mut WitnessMap,
+        predicate: &Option<Expression>,
     ) -> Result<(), OpcodeResolutionError> {
         let operation = get_value(&op.operation, initial_witness)?;
 
@@ -79,6 +80,12 @@ impl MemoryOpSolver {
         // `operation == 0` implies a read operation. (`operation == 1` implies write operation).
         let is_read_operation = operation.is_zero();
 
+        // If the predicate is `None`, then we simply return the value 1
+        let pred_value = match predicate {
+            Some(pred) => get_value(pred, initial_witness),
+            None => Ok(FieldElement::one()),
+        }?;
+
         if is_read_operation {
             // `value_read = arr[memory_index]`
             //
@@ -88,8 +95,13 @@ impl MemoryOpSolver {
                 "Memory must be read into a specified witness index, encountered an Expression",
             );
 
-            let value_in_array = self.read_memory_index(memory_index)?;
-            insert_value(&value_read_witness, value_in_array, initial_witness)
+            // A zero predicate indicates that we should just insert zero into the witness for the value we are reading
+            if pred_value.is_zero() {
+                insert_value(&value_read_witness, FieldElement::zero(), initial_witness)
+            } else {
+                let value_in_array = self.read_memory_index(memory_index)?;
+                insert_value(&value_read_witness, value_in_array, initial_witness)
+            }
         } else {
             // `arr[memory_index] = value_write`
             //
@@ -97,9 +109,17 @@ impl MemoryOpSolver {
             // into the memory block.
             let value_write = value;
 
-            let value_to_write = get_value(&value_write, initial_witness)?;
-
-            self.write_memory_index(memory_index, value_to_write)
+            // A zero predicate indicates that we will zero out the array we are writing into
+            if pred_value.is_zero() {
+                for i in 0..self.block_len {
+                    self.write_memory_index(i, FieldElement::zero())?;
+                }
+                return Ok(())
+            } else {
+                let value_to_write = get_value(&value_write, initial_witness)?;  
+                self.write_memory_index(memory_index, value_to_write)
+            }
+            
         }
     }
 }
@@ -135,7 +155,7 @@ mod tests {
         block_solver.init(&init, &initial_witness).unwrap();
 
         for op in trace {
-            block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
+            block_solver.solve_memory_op(&op, &mut initial_witness, &None).unwrap();
         }
         assert_eq!(initial_witness[&Witness(4)], FieldElement::from(2u128));
     }
@@ -159,7 +179,7 @@ mod tests {
         let mut err = None;
         for op in invalid_trace {
             if err.is_none() {
-                err = block_solver.solve_memory_op(&op, &mut initial_witness).err();
+                err = block_solver.solve_memory_op(&op, &mut initial_witness, &None).err();
             }
         }
         assert!(matches!(

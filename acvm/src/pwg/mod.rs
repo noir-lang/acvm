@@ -253,9 +253,9 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
                 let solver = self.block_solvers.entry(*block_id).or_default();
                 solver.init(init, &self.witness_map)
             }
-            Opcode::MemoryOp { block_id, op } => {
+            Opcode::MemoryOp { block_id, op, predicate } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                solver.solve_memory_op(op, &mut self.witness_map)
+                solver.solve_memory_op(op, &mut self.witness_map, predicate)
             }
             Opcode::Brillig(brillig) => {
                 match BrilligSolver::solve(&mut self.witness_map, brillig, self.backend) {
