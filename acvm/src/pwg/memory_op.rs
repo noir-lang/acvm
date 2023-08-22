@@ -51,6 +51,7 @@ impl MemoryOpSolver {
     ) -> Result<(), OpcodeResolutionError> {
         self.block_len = init.len() as u32;
         for (memory_index, witness) in init.iter().enumerate() {
+            dbg!(memory_index);
             self.write_memory_index(
                 memory_index as MemoryIndex,
                 *witness_to_value(initial_witness, *witness)?,
@@ -114,8 +115,10 @@ impl MemoryOpSolver {
             // the memory it touches.
             if pred_value.is_zero() {
                 // We only want to write to already initialized memory.
-                // If a memory block is uninitialized `self.block_len` will be zero .
+                // If a memory block is uninitialized `self.block_len` will be zero.
+                dbg!(self.block_len);
                 for i in 0..self.block_len {
+                    dbg!("got here");
                     self.write_memory_index(i, FieldElement::zero())?;
                 }
                 return Ok(());
@@ -221,7 +224,37 @@ mod tests {
             }
         }
 
+        // Should have no index out of bounds error where predicate is zero
         assert_eq!(err, None);
         assert_eq!(initial_witness[&Witness(4)], FieldElement::from(0u128));
+    }
+
+    #[test]
+    fn test_predicate_on_write() {
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let init = vec![Witness(1), Witness(2)];
+
+        let invalid_trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::from(1u128).into(), Witness(4).into()),
+        ];
+        let mut block_solver = MemoryOpSolver::default();
+        block_solver.init(&init, &initial_witness).unwrap();
+        let mut err = None;
+        for op in invalid_trace {
+            if err.is_none() {
+                err = block_solver
+                    .solve_memory_op(&op, &mut initial_witness, &Some(Expression::zero()))
+                    .err();
+            }
+        }
+
+        // Should have no index out of bounds error where predicate is zero
+        assert_eq!(err, None);
     }
 }
