@@ -214,7 +214,8 @@ fn keccak_round(
         array[..5].copy_from_slice(&a[y..(5 + y)]);
 
         for x in 0..5 {
-            let (a_ele, extra_opcodes, updated_witness_counter) = array[(x + 1) % 5].not(num_witness);
+            let (a_ele, extra_opcodes, updated_witness_counter) =
+                array[(x + 1) % 5].not(num_witness);
             new_opcodes.extend(extra_opcodes);
             let (b_ele, extra_opcodes, updated_witness_counter) =
                 a_ele.and(&array[(x + 2) % 5], updated_witness_counter);
