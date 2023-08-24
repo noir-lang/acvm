@@ -183,7 +183,8 @@ fn sha256_block(
         // calculate s0 `w[i - 15].ror(7) ^ w[i - 15].ror(18) ^ (w[i - 15] >> 3)`
         let (a1, extra_opcodes, updated_witness_counter) = w[i - 15].ror(7, num_witness);
         new_opcodes.extend(extra_opcodes);
-        let (a2, extra_opcodes, updated_witness_counter) = w[i - 15].ror(18, updated_witness_counter);
+        let (a2, extra_opcodes, updated_witness_counter) =
+            w[i - 15].ror(18, updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
         let (a3, extra_opcodes, updated_witness_counter) =
             w[i - 15].rightshift(3, updated_witness_counter);
@@ -194,9 +195,11 @@ fn sha256_block(
         new_opcodes.extend(extra_opcodes);
 
         // calculate s1 `w[i - 2].ror(17) ^ w[i - 2].ror(19) ^ (w[i - 2] >> 10)`
-        let (b1, extra_opcodes, updated_witness_counter) = w[i - 2].ror(17, updated_witness_counter);
+        let (b1, extra_opcodes, updated_witness_counter) =
+            w[i - 2].ror(17, updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
-        let (b2, extra_opcodes, updated_witness_counter) = w[i - 2].ror(19, updated_witness_counter);
+        let (b2, extra_opcodes, updated_witness_counter) =
+            w[i - 2].ror(19, updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
         let (b3, extra_opcodes, updated_witness_counter) =
             w[i - 2].rightshift(10, updated_witness_counter);
@@ -259,7 +262,8 @@ fn sha256_block(
         let (c3, extra_opcodes, updated_witness_counter) =
             c2.add(&round_constants[i], updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
-        let (temp1, extra_opcodes, updated_witness_counter) = c3.add(&w[i], updated_witness_counter);
+        let (temp1, extra_opcodes, updated_witness_counter) =
+            c3.add(&w[i], updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
 
         // calculate S0 `a.ror(2) ^ a.ror(13) ^ a.ror(22)`
@@ -297,7 +301,8 @@ fn sha256_block(
         h = g;
         g = f;
         f = e;
-        let (new_e, extra_opcodes, updated_witness_counter) = d.add(&temp1, updated_witness_counter);
+        let (new_e, extra_opcodes, updated_witness_counter) =
+            d.add(&temp1, updated_witness_counter);
         new_opcodes.extend(extra_opcodes);
         d = c;
         c = b;

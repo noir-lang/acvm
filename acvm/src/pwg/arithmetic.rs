@@ -65,7 +65,10 @@ impl ArithmeticSolver {
                     ))
                 }
             }
-            (MulTerm::OneUnknown(partial_prod, unknown_var), OpcodeStatus::OpcodeSatisfied(sum)) => {
+            (
+                MulTerm::OneUnknown(partial_prod, unknown_var),
+                OpcodeStatus::OpcodeSatisfied(sum),
+            ) => {
                 // We have one unknown in the mul term and the fan-in terms are solved.
                 // Hence the equation is solvable, since there is a single unknown
                 // The equation is: partial_prod * unknown_var + sum + qC = 0
