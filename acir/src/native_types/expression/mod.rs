@@ -8,7 +8,7 @@ mod ordering;
 
 // In the addition polynomial
 // We can have arbitrary fan-in/out, so we need more than wL,wR and wO
-// When looking at the arithmetic gate for the quotient polynomial in standard plonk
+// When looking at the arithmetic opcode for the quotient polynomial in standard plonk
 // You can think of it as fan-in 2 and fan out-1 , or you can think of it as fan-in 1 and fan-out 2
 //
 // In the multiplication polynomial
@@ -16,7 +16,7 @@ mod ordering;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub struct Expression {
     // To avoid having to create intermediate variables pre-optimization
-    // We collect all of the multiplication terms in the arithmetic gate
+    // We collect all of the multiplication terms in the arithmetic opcode
     // A multiplication term if of the form q_M * wL * wR
     // Hence this vector represents the following sum: q_M1 * wL1 * wR1 + q_M2 * wL2 * wR2 + .. +
     pub mul_terms: Vec<(FieldElement, Witness, Witness)>,
@@ -171,7 +171,7 @@ impl Expression {
         None
     }
 
-    /// Sorts gate in a deterministic order
+    /// Sorts opcode in a deterministic order
     /// XXX: We can probably make this more efficient by sorting on each phase. We only care if it is deterministic
     pub fn sort(&mut self) {
         self.mul_terms.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
@@ -180,21 +180,21 @@ impl Expression {
 
     /// Checks if this polynomial can fit into one arithmetic identity
     pub fn fits_in_one_identity(&self, width: usize) -> bool {
-        // A Polynomial with more than one mul term cannot fit into one gate
+        // A Polynomial with more than one mul term cannot fit into one opcode
         if self.mul_terms.len() > 1 {
             return false;
         };
-        // A Polynomial with more terms than fan-in cannot fit within a single gate
+        // A Polynomial with more terms than fan-in cannot fit within a single opcode
         if self.linear_combinations.len() > width {
             return false;
         }
 
-        // A polynomial with no mul term and a fan-in that fits inside of the width can fit into a single gate
+        // A polynomial with no mul term and a fan-in that fits inside of the width can fit into a single opcode
         if self.mul_terms.is_empty() {
             return true;
         }
 
-        // A polynomial with width-2 fan-in terms and a single non-zero mul term can fit into one gate
+        // A polynomial with width-2 fan-in terms and a single non-zero mul term can fit into one opcode
         // Example: Axy + Dz . Notice, that the mul term places a constraint on the first two terms, but not the last term
         // XXX: This would change if our arithmetic polynomial equation was changed to Axyz for example, but for now it is not.
         if self.linear_combinations.len() <= (width - 2) {
@@ -202,7 +202,7 @@ impl Expression {
         }
 
         // We now know that we have a single mul term. We also know that the mul term must match up with two other terms
-        // A polynomial whose mul terms are non zero which do not match up with two terms in the fan-in cannot fit into one gate
+        // A polynomial whose mul terms are non zero which do not match up with two terms in the fan-in cannot fit into one opcode
         // An example of this is: Axy + Bx + Cy + ...
         // Notice how the bivariate monomial xy has two univariate monomials with their respective coefficients
         // XXX: note that if x or y is zero, then we could apply a further optimization, but this would be done in another algorithm.
