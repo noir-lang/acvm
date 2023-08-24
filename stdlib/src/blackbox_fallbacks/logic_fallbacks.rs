@@ -15,7 +15,8 @@ pub fn range(opcode: Expression, bit_size: u32, mut num_witness: u32) -> (u32, V
         return (variables.finalize(), vec![bit_constraint]);
     }
 
-    let (new_opcodes, _, updated_witness_counter) = bit_decomposition(opcode, bit_size, num_witness);
+    let (new_opcodes, _, updated_witness_counter) =
+        bit_decomposition(opcode, bit_size, num_witness);
     (updated_witness_counter, new_opcodes)
 }
 

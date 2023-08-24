@@ -154,7 +154,8 @@ macro_rules! impl_uint {
                 let (right_shift, extra_opcodes, num_witness) =
                     self.rightshift(self.width - rotation, num_witness);
                 new_opcodes.extend(extra_opcodes);
-                let (left_shift, extra_opcodes, num_witness) = self.leftshift(rotation, num_witness);
+                let (left_shift, extra_opcodes, num_witness) =
+                    self.leftshift(rotation, num_witness);
                 new_opcodes.extend(extra_opcodes);
                 let (result, extra_opcodes, num_witness) = left_shift.or(&right_shift, num_witness);
                 new_opcodes.extend(extra_opcodes);
@@ -249,7 +250,8 @@ macro_rules! impl_uint {
                 new_opcodes.push(Opcode::Arithmetic(add_expr));
 
                 // mod 2^width to get final result as the remainder
-                let (two_pow_width, extra_opcodes, num_witness) = self.get_max_plus_one(num_witness);
+                let (two_pow_width, extra_opcodes, num_witness) =
+                    self.get_max_plus_one(num_witness);
                 new_opcodes.extend(extra_opcodes);
                 let (_, add_mod, extra_opcodes, num_witness) = $name::euclidean_division(
                     &$name::new(new_witness),
@@ -317,7 +319,8 @@ macro_rules! impl_uint {
                 new_opcodes.push(Opcode::Arithmetic(sub_constraint));
 
                 // mod 2^width to get final result as the remainder
-                let (two_pow_width, extra_opcodes, num_witness) = self.get_max_plus_one(num_witness);
+                let (two_pow_width, extra_opcodes, num_witness) =
+                    self.get_max_plus_one(num_witness);
                 new_opcodes.extend(extra_opcodes);
                 let (_, sub_mod, extra_opcodes, num_witness) = $name::euclidean_division(
                     &$name::new(new_witness),

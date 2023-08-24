@@ -104,7 +104,8 @@ pub(crate) fn create_blake2s_constraint(
     // pad final block
     let mut final_block = input.get(offset..).unwrap().to_vec();
     for _ in 0..BLAKE2S_BLOCKBYTES_USIZE - final_block.len() {
-        let (pad, extra_opcodes, updated_witness_counter) = UInt32::load_constant(0_u32, num_witness);
+        let (pad, extra_opcodes, updated_witness_counter) =
+            UInt32::load_constant(0_u32, num_witness);
         new_opcodes.extend(extra_opcodes);
         final_block.push(pad.inner);
         num_witness = updated_witness_counter;
