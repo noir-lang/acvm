@@ -353,9 +353,32 @@ impl<F: PrimeField> FieldElement<F> {
     pub fn xor(&self, rhs: &FieldElement<F>, num_bits: u32) -> FieldElement<F> {
         self.and_xor(rhs, num_bits, true)
     }
+
+    /// Returns the result of module(%) operation
+    /// The dividend is changed to the result of the division
+    pub fn division_with_reminder(&mut self, rhs: &FieldElement<F>) -> FieldElement<F> {
+        if rhs.is_zero() {
+            return *rhs;
+        }
+        if rhs.is_one() {
+            return crate::generic_ark::FieldElement::<F>::from(0 as i128);
+        }
+        let mut res = self.clone();
+        let mut div = 0;
+        let minus_number = self.clone().neg();
+        if minus_number.to_string().len() < self.to_string().len() {
+            res = minus_number;
+        }
+        while res >= *rhs {
+            div += 1;
+            res -= *rhs;
+        }
+        *self = crate::generic_ark::FieldElement::<F>::from(div as i128);
+        res
+    }
 }
 
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign, Rem};
 
 impl<F: PrimeField> Neg for FieldElement<F> {
     type Output = FieldElement<F>;
@@ -405,6 +428,27 @@ impl<F: PrimeField> SubAssign for FieldElement<F> {
     }
 }
 
+impl<F: PrimeField> Rem for FieldElement<F> {
+    type Output = FieldElement<F>;
+    fn rem(self, rhs: FieldElement<F>) -> Self::Output {
+        if rhs.is_zero() {
+            return rhs;
+        }
+        if rhs.is_one() {
+            return crate::generic_ark::FieldElement::<F>::from(0 as i128);
+        }
+        let mut res = self;
+        let minus_number = self.neg();
+        if minus_number.to_string().len() < self.to_string().len() {
+            res = minus_number;
+        }
+        while res >= rhs {
+            res -= rhs;
+        }
+        res
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -440,6 +484,40 @@ mod tests {
     fn max_num_bits_smoke() {
         let max_num_bits_bn254 = crate::generic_ark::FieldElement::<ark_bn254::Fr>::max_num_bits();
         assert_eq!(max_num_bits_bn254, 254)
+    }
+
+    #[test]
+    fn division_with_reminder_smoke() {
+        let mut dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(3 as i128);
+        let result = dividend.division_with_reminder(&divisor);
+
+        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128));
+
+        assert_eq!(dividend, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(333 as i128));
+
+        let mut dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
+        let result = dividend.division_with_reminder(&divisor);
+
+        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+
+        assert_eq!(dividend, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128));
+    }
+
+    #[test]
+    fn rem_smoke() {
+        let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(3 as i128);
+        let result = dividend % divisor;
+
+        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128));
+
+        let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
+        let result = dividend % divisor;
+
+        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
     }
 }
 
