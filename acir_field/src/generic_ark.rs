@@ -488,7 +488,7 @@ impl<F: PrimeField> Rem for FieldElement<F> {
         }
         match (is_self_neg, is_rhs_neg) {
             (false, false) => abs_self,
-            _ => abs_self.neg()
+            _ => abs_self.neg(),
         }
     }
 }
@@ -545,7 +545,7 @@ mod tests {
             assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(142 as i128));
         }
 
-        #[test] 
+        #[test]
         fn one_divisor() {
             //test for a case when the divisor is 1: 1000 % 1 = 0
             let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
