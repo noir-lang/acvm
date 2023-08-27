@@ -361,24 +361,51 @@ impl<F: PrimeField> FieldElement<F> {
             return *rhs;
         }
         if rhs.is_one() {
-            return crate::generic_ark::FieldElement::<F>::from(0 as i128);
+            return FieldElement::zero();
         }
-        let mut res = self.clone();
+
         let mut div = 0;
-        let minus_number = self.clone().neg();
-        if minus_number.to_string().len() < self.to_string().len() {
-            res = minus_number;
-        }
-        while res >= *rhs {
+        let (is_self_neg, mut abs_self) = {
+            let minus_number = self.clone().neg();
+
+            let is_neg = *self >= minus_number;
+            let res = if is_neg { minus_number } else { self.clone() };
+
+            (is_neg, res)
+        };
+
+        let (is_rhs_neg, abs_rhs) = {
+            let minus_number = rhs.clone().neg();
+
+            let is_neg = *rhs >= minus_number;
+            let res = if is_neg { minus_number } else { rhs.clone() };
+
+            (is_neg, res)
+        };
+
+        while abs_self >= abs_rhs {
             div += 1;
-            res -= *rhs;
+            abs_self -= abs_rhs;
         }
-        *self = crate::generic_ark::FieldElement::<F>::from(div as i128);
-        res
+        match (is_self_neg, is_rhs_neg) {
+            (true, true) => {
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self.neg()
+            }
+            (true, false) | (false, true) => {
+                div = div.neg();
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self.neg()
+            }
+            (false, false) => {
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self
+            }
+        }
     }
 }
 
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign, Rem};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign};
 
 impl<F: PrimeField> Neg for FieldElement<F> {
     type Output = FieldElement<F>;
@@ -435,17 +462,34 @@ impl<F: PrimeField> Rem for FieldElement<F> {
             return rhs;
         }
         if rhs.is_one() {
-            return crate::generic_ark::FieldElement::<F>::from(0 as i128);
+            return FieldElement::zero();
         }
-        let mut res = self;
-        let minus_number = self.neg();
-        if minus_number.to_string().len() < self.to_string().len() {
-            res = minus_number;
+
+        let (is_self_neg, mut abs_self) = {
+            let minus_number = self.clone().neg();
+
+            let is_neg = self >= minus_number;
+            let res = if is_neg { minus_number } else { self.clone() };
+
+            (is_neg, res)
+        };
+
+        let (is_rhs_neg, abs_rhs) = {
+            let minus_number = rhs.clone().neg();
+
+            let is_neg = rhs >= minus_number;
+            let res = if is_neg { minus_number } else { rhs.clone() };
+
+            (is_neg, res)
+        };
+
+        while abs_self >= abs_rhs {
+            abs_self -= abs_rhs;
         }
-        while res >= rhs {
-            res -= rhs;
+        match (is_self_neg, is_rhs_neg) {
+            (false, false) => abs_self,
+            _ => abs_self.neg()
         }
-        res
     }
 }
 
@@ -486,38 +530,83 @@ mod tests {
         assert_eq!(max_num_bits_bn254, 254)
     }
 
-    #[test]
-    fn division_with_reminder_smoke() {
-        let mut dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(3 as i128);
-        let result = dividend.division_with_reminder(&divisor);
+    mod division_with_reminder {
+        use crate::generic_ark::FieldElement;
 
-        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128));
+        #[test]
+        fn simple_case() {
+            //test for a simple case: 1000 % 3 = 1
+            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(7 as i128);
+            let result = dividend.division_with_reminder(&divisor);
 
-        assert_eq!(dividend, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(333 as i128));
+            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(6 as i128));
 
-        let mut dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
-        let result = dividend.division_with_reminder(&divisor);
+            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(142 as i128));
+        }
 
-        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+        #[test] 
+        fn one_divisor() {
+            //test for a case when the divisor is 1: 1000 % 1 = 0
+            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(1 as i128);
+            let result = dividend.division_with_reminder(&divisor);
 
-        assert_eq!(dividend, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128));
-    }
+            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(0 as i128));
 
-    #[test]
-    fn rem_smoke() {
-        let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(3 as i128);
-        let result = dividend % divisor;
+            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(1000 as i128));
+        }
 
-        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128));
+        #[test]
+        fn zero_divisor() {
+            //test for a case when the divisor is 0: 1000 % 0 = 0
+            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(0 as i128);
+            let result = dividend.division_with_reminder(&divisor);
 
-        let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-        let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
-        let result = dividend % divisor;
+            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(0 as i128));
 
-        assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(1000 as i128));
+        }
+
+        #[test]
+        fn negative_dividend() {
+            //test for a case when the dividend is -1: -1 % 2 = -1
+            let mut dividend = FieldElement::<ark_bn254::Fr>::from(-1 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(2 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(-1 as i128));
+
+            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(0 as i128));
+        }
+
+        #[test]
+        fn negative_dividend_and_divisor() {
+            //test for a simple case when the dividend is negative: -1000 % -3 = -1
+            let mut dividend = FieldElement::<ark_bn254::Fr>::from(-1000 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(-3 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(-1 as i128));
+
+            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(333 as i128));
+        }
+
+        #[test]
+        fn rem_smoke() {
+            let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+            let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(7 as i128);
+            let result = dividend % divisor;
+
+            assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(6 as i128));
+
+            let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
+            let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
+            let result = dividend % divisor;
+
+            assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+        }
     }
 }
 
