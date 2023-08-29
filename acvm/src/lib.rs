@@ -31,41 +31,7 @@ pub enum Language {
     PLONKCSat { width: usize },
 }
 
-pub trait Backend:
-    SmartContract + ProofSystemCompiler + CommonReferenceString + Default + Debug
-{
-}
-
-// Unfortunately, Rust doesn't natively allow async functions in traits yet.
-// So we need to annotate our trait with this macro and backends need to attach the macro to their `impl`.
-//
-// For more details, see https://docs.rs/async-trait/latest/async_trait/
-// and https://smallcultfollowing.com/babysteps/blog/2019/10/26/async-fn-in-traits-are-hard/
-#[async_trait(?Send)]
-pub trait CommonReferenceString {
-    /// The Error type returned by failed function calls in the CommonReferenceString trait.
-    type Error: std::error::Error; // fully-qualified named because thiserror is `use`d at the top of the crate
-
-    /// Provides the common reference string that is needed by other traits
-    async fn generate_common_reference_string(
-        &self,
-        circuit: &Circuit,
-    ) -> Result<Vec<u8>, Self::Error>;
-
-    /// Updates a cached common reference string within the context of a circuit
-    ///
-    /// This function will be called if the common reference string has been cached previously
-    /// and the backend can update it if necessary. This may happen if the common reference string
-    /// contains fewer than the number of points needed by the circuit, or fails any other checks the backend
-    /// must perform.
-    ///
-    /// If the common reference string doesn't need any updates, implementors can return the value passed.
-    async fn update_common_reference_string(
-        &self,
-        common_reference_string: Vec<u8>,
-        circuit: &Circuit,
-    ) -> Result<Vec<u8>, Self::Error>;
-}
+pub trait Backend: SmartContract + ProofSystemCompiler + Default + Debug {}
 
 pub trait SmartContract {
     /// The Error type returned by failed function calls in the SmartContract trait.
