@@ -243,10 +243,6 @@ impl Barretenberg {
         Ok(ptr.into())
     }
 
-    // pub(super) fn free(&self, pointer: WASMValue) -> Result<(), Error> {
-    //     self.call("bbfree", &pointer)?;
-    //     Ok(())
-    // }
 }
 
 fn init_memory_and_state() -> (Memory, Store, Imports) {
