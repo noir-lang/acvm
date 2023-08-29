@@ -242,7 +242,6 @@ impl Barretenberg {
         self.transfer_to_heap(bytes, u32_bytes as usize);
         Ok(ptr.into())
     }
-
 }
 
 fn init_memory_and_state() -> (Memory, Store, Imports) {
