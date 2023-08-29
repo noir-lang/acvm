@@ -12,9 +12,6 @@ pub use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use core::fmt::Debug;
 use pwg::OpcodeResolutionError;
 
-// We re-export async-trait so consumers can attach it to their impl
-pub use async_trait::async_trait;
-
 // re-export acir
 pub use acir;
 pub use acir::FieldElement;
