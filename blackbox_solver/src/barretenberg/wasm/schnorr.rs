@@ -1,4 +1,4 @@
-use super::{wasm::WASM_SCRATCH_BYTES, Barretenberg, Error, FIELD_BYTES};
+use super::{Barretenberg, Error, FIELD_BYTES, WASM_SCRATCH_BYTES};
 
 pub(crate) trait SchnorrSig {
     fn construct_signature(
