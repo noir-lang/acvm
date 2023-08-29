@@ -7,7 +7,7 @@ impl UInt64 {
         witnesses: &[Witness],
         mut num_witness: u32,
     ) -> (Vec<UInt64>, Vec<Opcode>, u32) {
-        let mut new_gates = Vec::new();
+        let mut new_opcodes = Vec::new();
         let mut variables = VariableStore::new(&mut num_witness);
         let mut uint = Vec::new();
 
@@ -21,10 +21,10 @@ impl UInt64 {
                 expr.push_addition_term(-scaling_factor, witnesses[i * 8 + j]);
             }
 
-            new_gates.push(Opcode::Arithmetic(expr));
+            new_opcodes.push(Opcode::Arithmetic(expr));
         }
         let num_witness = variables.finalize();
 
-        (uint, new_gates, num_witness)
+        (uint, new_opcodes, num_witness)
     }
 }

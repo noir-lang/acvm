@@ -515,7 +515,7 @@ fn unsatisfied_opcode_resolved() {
     let d = Witness(3);
 
     // a = b + c + d;
-    let gate_a = Expression {
+    let opcode_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -532,7 +532,7 @@ fn unsatisfied_opcode_resolved() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(2_i128));
 
-    let opcodes = vec![Opcode::Arithmetic(gate_a)];
+    let opcodes = vec![Opcode::Arithmetic(opcode_a)];
     let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
     assert_eq!(
@@ -540,7 +540,7 @@ fn unsatisfied_opcode_resolved() {
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
             opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0))
         }),
-        "The first gate is not satisfiable, expected an error indicating this"
+        "The first opcode is not satisfiable, expected an error indicating this"
     );
 }
 
@@ -593,7 +593,7 @@ fn unsatisfied_opcode_resolved_brillig() {
         foreign_call_results: vec![],
     });
 
-    let gate_a = Expression {
+    let opcode_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -613,7 +613,7 @@ fn unsatisfied_opcode_resolved_brillig() {
     values.insert(w_y, FieldElement::from(1_i128));
     values.insert(w_result, FieldElement::from(0_i128));
 
-    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
+    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(opcode_a)];
 
     let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
@@ -625,7 +625,7 @@ fn unsatisfied_opcode_resolved_brillig() {
                 brillig_index: 2
             })
         }),
-        "The first gate is not satisfiable, expected an error indicating this"
+        "The first opcode is not satisfiable, expected an error indicating this"
     );
 }
 

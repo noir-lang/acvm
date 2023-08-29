@@ -44,7 +44,7 @@ macro_rules! impl_uint {
                 &self,
                 mut num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -59,10 +59,10 @@ macro_rules! impl_uint {
                     bytecode: vec![brillig::Opcode::Stop],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Load a constant into the circuit
@@ -70,7 +70,7 @@ macro_rules! impl_uint {
                 constant: $type,
                 mut num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -85,10 +85,10 @@ macro_rules! impl_uint {
                     bytecode: vec![brillig::Opcode::Stop],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Returns the quotient and remainder such that lhs = rhs * quotient + remainder
@@ -98,7 +98,7 @@ macro_rules! impl_uint {
                 rhs: &$name,
                 mut num_witness: u32,
             ) -> ($name, $name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let q_witness = variables.new_variable();
                 let r_witness = variables.new_variable();
@@ -113,7 +113,7 @@ macro_rules! impl_uint {
                         predicate: None,
                     }),
                 );
-                new_gates.push(quotient_opcode);
+                new_opcodes.push(quotient_opcode);
 
                 // make sure r and q are in 32 bit range
                 let r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
@@ -122,18 +122,18 @@ macro_rules! impl_uint {
                 let q_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
                     input: FunctionInput { witness: q_witness, num_bits: lhs.width },
                 });
-                new_gates.push(r_range_opcode);
-                new_gates.push(q_range_opcode);
+                new_opcodes.push(r_range_opcode);
+                new_opcodes.push(q_range_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain r < rhs
-                let (rhs_sub_r, extra_gates, num_witness) =
+                let (rhs_sub_r, extra_opcodes, num_witness) =
                     rhs.sub_no_overflow(&$name::new(r_witness), num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
                 let rhs_sub_r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
                     input: FunctionInput { witness: rhs_sub_r.inner, num_bits: lhs.width },
                 });
-                new_gates.push(rhs_sub_r_range_opcode);
+                new_opcodes.push(rhs_sub_r_range_opcode);
 
                 // constrain lhs = rhs * quotient + remainder
                 let rhs_expr = Expression::from(rhs.inner);
@@ -141,76 +141,77 @@ macro_rules! impl_uint {
                 let rhs_constraint = &rhs_expr * &Expression::from(q_witness);
                 let rhs_constraint = &rhs_constraint.unwrap() + &Expression::from(r_witness);
                 let div_euclidean = &lhs_constraint - &rhs_constraint;
-                new_gates.push(Opcode::Arithmetic(div_euclidean));
+                new_opcodes.push(Opcode::Arithmetic(div_euclidean));
 
-                ($name::new(q_witness), $name::new(r_witness), new_gates, num_witness)
+                ($name::new(q_witness), $name::new(r_witness), new_opcodes, num_witness)
             }
 
             /// Rotate left `rotation` bits. `(x << rotation) | (x >> (width - rotation))`
             // This should be the same as `u32.rotate_left(rotation)` in rust stdlib
             pub fn rol(&self, rotation: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let rotation = rotation % self.width;
-                let mut new_gates = Vec::new();
-                let (right_shift, extra_gates, num_witness) =
+                let mut new_opcodes = Vec::new();
+                let (right_shift, extra_opcodes, num_witness) =
                     self.rightshift(self.width - rotation, num_witness);
-                new_gates.extend(extra_gates);
-                let (left_shift, extra_gates, num_witness) = self.leftshift(rotation, num_witness);
-                new_gates.extend(extra_gates);
-                let (result, extra_gates, num_witness) = left_shift.or(&right_shift, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
+                let (left_shift, extra_opcodes, num_witness) =
+                    self.leftshift(rotation, num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (result, extra_opcodes, num_witness) = left_shift.or(&right_shift, num_witness);
+                new_opcodes.extend(extra_opcodes);
 
-                (result, new_gates, num_witness)
+                (result, new_opcodes, num_witness)
             }
 
             /// Rotate right `rotation` bits. `(x >> rotation) | (x << (width - rotation))`
             // This should be the same as `u32.rotate_right(rotation)` in rust stdlib
             pub fn ror(&self, rotation: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let rotation = rotation % self.width;
-                let mut new_gates = Vec::new();
-                let (left_shift, extra_gates, num_witness) =
+                let mut new_opcodes = Vec::new();
+                let (left_shift, extra_opcodes, num_witness) =
                     self.leftshift(self.width - rotation, num_witness);
-                new_gates.extend(extra_gates);
-                let (right_shift, extra_gates, num_witness) =
+                new_opcodes.extend(extra_opcodes);
+                let (right_shift, extra_opcodes, num_witness) =
                     self.rightshift(rotation, num_witness);
-                new_gates.extend(extra_gates);
-                let (result, extra_gates, num_witness) = left_shift.or(&right_shift, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
+                let (result, extra_opcodes, num_witness) = left_shift.or(&right_shift, num_witness);
+                new_opcodes.extend(extra_opcodes);
 
-                (result, new_gates, num_witness)
+                (result, new_opcodes, num_witness)
             }
 
             /// left shift by `bits`
             pub fn leftshift(&self, bits: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let bits = bits % self.width;
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let two: $type = 2;
-                let (two_pow_rhs, extra_gates, num_witness) =
+                let (two_pow_rhs, extra_opcodes, num_witness) =
                     $name::load_constant(two.pow(bits), num_witness);
-                new_gates.extend(extra_gates);
-                let (left_shift, extra_gates, num_witness) = self.mul(&two_pow_rhs, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
+                let (left_shift, extra_opcodes, num_witness) = self.mul(&two_pow_rhs, num_witness);
+                new_opcodes.extend(extra_opcodes);
 
-                (left_shift, new_gates, num_witness)
+                (left_shift, new_opcodes, num_witness)
             }
 
             /// right shift by `bits`
             pub fn rightshift(&self, bits: u32, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
                 let bits = bits % self.width;
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let two: $type = 2;
-                let (two_pow_rhs, extra_gates, num_witness) =
+                let (two_pow_rhs, extra_opcodes, num_witness) =
                     $name::load_constant(two.pow(bits), num_witness);
-                new_gates.extend(extra_gates);
-                let (right_shift, _, extra_gates, num_witness) =
+                new_opcodes.extend(extra_opcodes);
+                let (right_shift, _, extra_opcodes, num_witness) =
                     $name::euclidean_division(self, &two_pow_rhs, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
 
-                (right_shift, new_gates, num_witness)
+                (right_shift, new_opcodes, num_witness)
             }
 
             /// Caculate and constrain `self` + `rhs`
             pub fn add(&self, rhs: &$name, mut num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -239,31 +240,32 @@ macro_rules! impl_uint {
                     }],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain addition
                 let mut add_expr = Expression::from(new_witness);
                 add_expr.push_addition_term(-FieldElement::one(), self.inner);
                 add_expr.push_addition_term(-FieldElement::one(), rhs.inner);
-                new_gates.push(Opcode::Arithmetic(add_expr));
+                new_opcodes.push(Opcode::Arithmetic(add_expr));
 
                 // mod 2^width to get final result as the remainder
-                let (two_pow_width, extra_gates, num_witness) = self.get_max_plus_one(num_witness);
-                new_gates.extend(extra_gates);
-                let (_, add_mod, extra_gates, num_witness) = $name::euclidean_division(
+                let (two_pow_width, extra_opcodes, num_witness) =
+                    self.get_max_plus_one(num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (_, add_mod, extra_opcodes, num_witness) = $name::euclidean_division(
                     &$name::new(new_witness),
                     &two_pow_width,
                     num_witness,
                 );
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
 
-                (add_mod, new_gates, num_witness)
+                (add_mod, new_opcodes, num_witness)
             }
 
             /// Caculate and constrain `self` - `rhs`
             pub fn sub(&self, rhs: &$name, mut num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -306,7 +308,7 @@ macro_rules! impl_uint {
                     ],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain subtraction
@@ -314,19 +316,20 @@ macro_rules! impl_uint {
                 sub_constraint.push_addition_term(-FieldElement::one(), new_witness);
                 sub_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
                 sub_constraint.q_c = FieldElement::from(1_u128 << self.width);
-                new_gates.push(Opcode::Arithmetic(sub_constraint));
+                new_opcodes.push(Opcode::Arithmetic(sub_constraint));
 
                 // mod 2^width to get final result as the remainder
-                let (two_pow_width, extra_gates, num_witness) = self.get_max_plus_one(num_witness);
-                new_gates.extend(extra_gates);
-                let (_, sub_mod, extra_gates, num_witness) = $name::euclidean_division(
+                let (two_pow_width, extra_opcodes, num_witness) =
+                    self.get_max_plus_one(num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (_, sub_mod, extra_opcodes, num_witness) = $name::euclidean_division(
                     &$name::new(new_witness),
                     &two_pow_width,
                     num_witness,
                 );
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
 
-                (sub_mod, new_gates, num_witness)
+                (sub_mod, new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` - `rhs` - 1 without allowing overflow
@@ -337,7 +340,7 @@ macro_rules! impl_uint {
                 rhs: &$name,
                 mut num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -380,7 +383,7 @@ macro_rules! impl_uint {
                     ],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain subtraction
@@ -388,9 +391,9 @@ macro_rules! impl_uint {
                 sub_constraint.push_addition_term(-FieldElement::one(), new_witness);
                 sub_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
                 sub_constraint.q_c = -FieldElement::one();
-                new_gates.push(Opcode::Arithmetic(sub_constraint));
+                new_opcodes.push(Opcode::Arithmetic(sub_constraint));
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` * `rhs`
@@ -399,7 +402,7 @@ macro_rules! impl_uint {
                 rhs: &$name,
                 mut num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -427,7 +430,7 @@ macro_rules! impl_uint {
                     }],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain mul
@@ -437,21 +440,21 @@ macro_rules! impl_uint {
                     self.inner,
                     rhs.inner,
                 );
-                new_gates.push(Opcode::Arithmetic(mul_constraint));
+                new_opcodes.push(Opcode::Arithmetic(mul_constraint));
 
                 // mod 2^width to get final result as the remainder
-                let (two_pow_rhs, extra_gates, num_witness) = self.get_max_plus_one(num_witness);
-                new_gates.extend(extra_gates);
-                let (_, mul_mod, extra_gates, num_witness) =
+                let (two_pow_rhs, extra_opcodes, num_witness) = self.get_max_plus_one(num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (_, mul_mod, extra_opcodes, num_witness) =
                     $name::euclidean_division(&$name::new(new_witness), &two_pow_rhs, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
 
-                (mul_mod, new_gates, num_witness)
+                (mul_mod, new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` and `rhs`
             pub fn and(&self, rhs: &$name, mut num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
                 let num_witness = variables.finalize();
@@ -460,14 +463,14 @@ macro_rules! impl_uint {
                     rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
                     output: new_witness,
                 });
-                new_gates.push(and_opcode);
+                new_opcodes.push(and_opcode);
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` xor `rhs`
             pub fn xor(&self, rhs: &$name, mut num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
                 let num_witness = variables.finalize();
@@ -476,29 +479,29 @@ macro_rules! impl_uint {
                     rhs: FunctionInput { witness: rhs.inner, num_bits: self.width },
                     output: new_witness,
                 });
-                new_gates.push(xor_opcode);
+                new_opcodes.push(xor_opcode);
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` or `rhs`
             pub fn or(&self, rhs: &$name, num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
 
                 // a | b = (a & b) + (a ^ b)
-                let (a_and_b, extra_gates, num_witness) = self.and(rhs, num_witness);
-                new_gates.extend(extra_gates);
-                let (a_xor_b, extra_gates, num_witness) = self.xor(rhs, num_witness);
-                new_gates.extend(extra_gates);
-                let (or, extra_gates, num_witness) = a_and_b.add(&a_xor_b, num_witness);
-                new_gates.extend(extra_gates);
+                let (a_and_b, extra_opcodes, num_witness) = self.and(rhs, num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (a_xor_b, extra_opcodes, num_witness) = self.xor(rhs, num_witness);
+                new_opcodes.extend(extra_opcodes);
+                let (or, extra_opcodes, num_witness) = a_and_b.add(&a_xor_b, num_witness);
+                new_opcodes.extend(extra_opcodes);
 
-                (or, new_gates, num_witness)
+                (or, new_opcodes, num_witness)
             }
 
             /// Calculate and constrain not `self`
             pub(crate) fn not(&self, mut num_witness: u32) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
 
@@ -526,15 +529,15 @@ macro_rules! impl_uint {
                     }],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 let mut not_constraint = Expression::from(new_witness);
                 not_constraint.push_addition_term(FieldElement::one(), self.inner);
                 not_constraint.q_c = -FieldElement::from((1_u128 << self.width) - 1);
-                new_gates.push(Opcode::Arithmetic(not_constraint));
+                new_opcodes.push(Opcode::Arithmetic(not_constraint));
 
-                ($name::new(new_witness), new_gates, num_witness)
+                ($name::new(new_witness), new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` >= `rhs`
@@ -544,7 +547,7 @@ macro_rules! impl_uint {
                 rhs: &$name,
                 mut num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 let mut variables = VariableStore::new(&mut num_witness);
                 let new_witness = variables.new_variable();
                 let q_witness = variables.new_variable();
@@ -589,7 +592,7 @@ macro_rules! impl_uint {
                     ],
                     predicate: None,
                 });
-                new_gates.push(brillig_opcode);
+                new_opcodes.push(brillig_opcode);
                 let num_witness = variables.finalize();
 
                 // constrain subtraction
@@ -597,10 +600,10 @@ macro_rules! impl_uint {
                 sub_constraint.push_addition_term(-FieldElement::one(), new_witness);
                 sub_constraint.push_addition_term(-FieldElement::one(), rhs.inner);
                 sub_constraint.q_c = FieldElement::from(1_u128 << self.width);
-                new_gates.push(Opcode::Arithmetic(sub_constraint));
+                new_opcodes.push(Opcode::Arithmetic(sub_constraint));
 
-                let (two_pow_rhs, extra_gates, num_witness) = self.get_max_plus_one(num_witness);
-                new_gates.extend(extra_gates);
+                let (two_pow_rhs, extra_opcodes, num_witness) = self.get_max_plus_one(num_witness);
+                new_opcodes.extend(extra_opcodes);
 
                 // constraint 2^{max_bits} + a - b = q * 2^{max_bits} + r
                 // q = 1 if a == b
@@ -615,7 +618,7 @@ macro_rules! impl_uint {
                         predicate: None,
                     }),
                 );
-                new_gates.push(quotient_opcode);
+                new_opcodes.push(quotient_opcode);
 
                 // make sure r in 32 bit range and q is 1 bit
                 let r_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
@@ -624,10 +627,10 @@ macro_rules! impl_uint {
                 let q_range_opcode = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::RANGE {
                     input: FunctionInput { witness: q_witness, num_bits: 1 },
                 });
-                new_gates.push(r_range_opcode);
-                new_gates.push(q_range_opcode);
+                new_opcodes.push(r_range_opcode);
+                new_opcodes.push(q_range_opcode);
 
-                ($name::new(q_witness), new_gates, num_witness)
+                ($name::new(q_witness), new_opcodes, num_witness)
             }
 
             /// Calculate and constrain `self` < `rhs`
@@ -636,17 +639,17 @@ macro_rules! impl_uint {
                 rhs: &$name,
                 num_witness: u32,
             ) -> ($name, Vec<Opcode>, u32) {
-                let mut new_gates = Vec::new();
-                let (mut comparison, extra_gates, num_witness) =
+                let mut new_opcodes = Vec::new();
+                let (mut comparison, extra_opcodes, num_witness) =
                     self.more_than_eq_comparison(rhs, num_witness);
-                new_gates.extend(extra_gates);
+                new_opcodes.extend(extra_opcodes);
                 comparison.width = 1;
 
                 // `self` < `rhs` == not `self` >= `rhs`
-                let (less_than, extra_gates, num_witness) = comparison.not(num_witness);
-                new_gates.extend(extra_gates);
+                let (less_than, extra_opcodes, num_witness) = comparison.not(num_witness);
+                new_opcodes.extend(extra_opcodes);
 
-                (less_than, new_gates, num_witness)
+                (less_than, new_opcodes, num_witness)
             }
         }
     };
