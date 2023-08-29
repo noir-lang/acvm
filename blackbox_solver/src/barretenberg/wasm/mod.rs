@@ -80,7 +80,7 @@ pub(super) const WASM_SCRATCH_BYTES: usize = 1024;
 /// Embed the Barretenberg WASM file
 #[derive(rust_embed::RustEmbed)]
 #[folder = "$BARRETENBERG_BIN_DIR"]
-#[include = "barretenberg.wasm"]
+#[include = "acvm_backend.wasm"]
 struct Wasm;
 
 impl Barretenberg {
@@ -252,7 +252,7 @@ impl Barretenberg {
 fn init_memory_and_state() -> (Memory, Store, Imports) {
     let mut store = Store::default();
 
-    let mem_type = MemoryType::new(23, None, false);
+    let mem_type = MemoryType::new(18, Some(65536), false);
     let memory = Memory::new(&mut store, mem_type).unwrap();
 
     let function_env = FunctionEnv::new(&mut store, memory.clone());
@@ -263,27 +263,15 @@ fn init_memory_and_state() -> (Memory, Store, Imports) {
                 &function_env,
                 logstr,
             ),
-            "set_data" => Function::new_typed(&mut store, set_data),
-            "get_data" => Function::new_typed(&mut store, get_data),
-            "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
-            "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
             "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
-            "fd_read" => Function::new_typed(&mut store, fd_read),
-            "fd_close" => Function::new_typed(&mut store, fd_close),
             "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
-            "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
             "random_get" => Function::new_typed_with_env(
                 &mut store,
                 &function_env,
                 random_get
             ),
-            "fd_seek" => Function::new_typed(&mut store, fd_seek),
-            "fd_write" => Function::new_typed(&mut store, fd_write),
-            "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
-            "environ_get" => Function::new_typed(&mut store, environ_get),
-            "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
         },
     };
 
@@ -296,7 +284,7 @@ fn instance_load() -> (Instance, Memory, Store) {
 
     let (memory, mut store, custom_imports) = init_memory_and_state();
 
-    let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
+    let module = Module::new(&store, Wasm::get("acvm_backend.wasm").unwrap().data).unwrap();
 
     (Instance::new(&mut store, &module, &custom_imports).unwrap(), memory, store)
 }
@@ -308,7 +296,7 @@ async fn instance_load() -> (Instance, Memory, Store) {
 
     let (memory, mut store, custom_imports) = init_memory_and_state();
 
-    let wasm_binary = Wasm::get("barretenberg.wasm").unwrap().data;
+    let wasm_binary = Wasm::get("acvm_backend.wasm").unwrap().data;
 
     let js_bytes = unsafe { js_sys::Uint8Array::view(&wasm_binary) };
     let js_module_promise = WebAssembly::compile(&js_bytes);
@@ -361,54 +349,6 @@ fn random_get(mut env: FunctionEnvMut<Memory>, buf_ptr: i32, buf_len: i32) -> i3
     }
 }
 
-fn clock_time_get(_: i32, _: i64, _: i32) -> i32 {
-    unimplemented!("proc_exit: clock_time_get is not implemented")
-}
-
 fn proc_exit(_: i32) {
     unimplemented!("proc_exit is not implemented")
-}
-
-fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
-    unimplemented!("fd_write is not implemented")
-}
-
-fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
-    unimplemented!("fd_seek is not implemented")
-}
-
-fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
-    unimplemented!("fd_read is not implemented")
-}
-
-fn fd_fdstat_get(_: i32, _: i32) -> i32 {
-    unimplemented!("fd_fdstat_get is not implemented")
-}
-
-fn fd_close(_: i32) -> i32 {
-    unimplemented!("fd_close is not implemented")
-}
-
-fn environ_sizes_get(_: i32, _: i32) -> i32 {
-    unimplemented!("environ_sizes_get is not implemented")
-}
-
-fn environ_get(_: i32, _: i32) -> i32 {
-    unimplemented!("environ_get is not implemented")
-}
-
-fn set_data(_: i32, _: i32, _: i32) {
-    unimplemented!("set_data is not implemented")
-}
-
-fn get_data(_: i32, _: i32) -> i32 {
-    unimplemented!("get_data is not implemented")
-}
-
-fn env_load_verifier_crs() -> i32 {
-    unimplemented!("env_load_verifier_crs is not implemented")
-}
-
-fn env_load_prover_crs(_: i32) -> i32 {
-    unimplemented!("env_load_prover_crs is not implemented")
 }

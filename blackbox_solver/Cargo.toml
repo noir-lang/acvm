@@ -53,6 +53,8 @@ wasmer = "3.3"
 
 [build-dependencies]
 pkg-config = "0.3"
+tar = "~0.4.15"
+flate2 = "~1.0.1"
 
 [features]
 default = ["bn254"]

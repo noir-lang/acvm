@@ -36,26 +36,16 @@
         rust-overlay.follows = "rust-overlay";
       };
     };
-    barretenberg = {
-      url = "github:AztecProtocol/barretenberg";
-      # All of these inputs (a.k.a. dependencies) need to align with inputs we
-      # use so they use the `inputs.*.follows` syntax to reference our inputs
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
   };
 
   outputs =
-    { self, nixpkgs, crane, flake-utils, rust-overlay, barretenberg, ... }: #, barretenberg
+    { self, nixpkgs, crane, flake-utils, rust-overlay, ... }: #, barretenberg
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
           rust-overlay.overlays.default
-          barretenberg.overlays.default
         ];
       };
 
@@ -88,7 +78,10 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         # RUST_TEST_THREADS = "1";
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        BARRETENBERG_ARCHIVE = builtins.fetchurl {
+          url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.5/acvm_backend.wasm.tar.gz";
+          sha256 = "sha256:0z24yhvxc0dr13xj7y4xs9p42lzxwpazrmsrdpcgynfajkk6vqy4";
+        };
       };
 
       wasmEnvironment = sharedEnvironment // { };
