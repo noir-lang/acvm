@@ -110,8 +110,7 @@ impl MemoryOpSolver {
             // into the memory block.
             let value_write = value;
 
-            // A zero predicate indicates that we should skip the write operation and zero out
-            // the memory it touches.
+            // A zero predicate indicates that we should skip the write operation.
             if pred_value.is_zero() {
                 // We only want to write to already initialized memory.
                 // Do nothing if the predicate is zero.
