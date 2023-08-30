@@ -12,6 +12,7 @@
         "Barretenberg",
         "bindgen",
         "bivariate",
+        "barretenberg",
         "Brillig",
         "canonicalize",
         "callstack",
@@ -44,12 +45,14 @@
         "Msgpack",
         // Dependencies
         //
+        "bindir",
         "bufread",
         "flate",
         "indexmap",
         "thiserror",
         "typenum",
         "jmpif",
-        "jmpifnot"
+        "jmpifnot",
+        "rustc"
     ]
 }

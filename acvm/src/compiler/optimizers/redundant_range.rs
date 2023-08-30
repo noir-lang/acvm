@@ -109,9 +109,7 @@ impl RangeOptimizer {
             Circuit {
                 current_witness_index: self.circuit.current_witness_index,
                 opcodes: optimized_opcodes,
-                private_parameters: self.circuit.private_parameters,
-                public_parameters: self.circuit.public_parameters,
-                return_values: self.circuit.return_values,
+                ..self.circuit
             },
             new_order_list,
         )
@@ -137,7 +135,7 @@ fn extract_range_opcode(opcode: &Opcode) -> Option<(Witness, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use crate::compiler::optimizers::redundant_range::{extract_range_opcode, RangeOptimizer};
     use acir::{
@@ -166,6 +164,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs::default(),
             return_values: PublicInputs::default(),
+            assert_messages: BTreeMap::new(),
         }
     }
 

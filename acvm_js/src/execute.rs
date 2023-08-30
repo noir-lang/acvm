@@ -1,72 +1,31 @@
+#[allow(deprecated)]
 use acvm::{
-    acir::{circuit::Circuit, BlackBoxFunc},
-    pwg::{ACVMStatus, ACVM},
-    BlackBoxFunctionSolver, BlackBoxResolutionError, FieldElement,
+    acir::circuit::Circuit,
+    blackbox_solver::BarretenbergSolver,
+    pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    barretenberg::{pedersen::Pedersen, scalar_mul::ScalarMul, schnorr::SchnorrSig, Barretenberg},
     foreign_call::{resolve_brillig, ForeignCallHandler},
     JsWitnessMap,
 };
 
 #[wasm_bindgen]
-pub struct WasmBlackBoxFunctionSolver {
-    blackbox_vendor: Barretenberg,
-}
+#[allow(deprecated)]
+pub struct WasmBlackBoxFunctionSolver(BarretenbergSolver);
 
 impl WasmBlackBoxFunctionSolver {
     async fn initialize() -> WasmBlackBoxFunctionSolver {
-        let blackbox_vendor = Barretenberg::new().await;
-        WasmBlackBoxFunctionSolver { blackbox_vendor }
+        #[allow(deprecated)]
+        WasmBlackBoxFunctionSolver(BarretenbergSolver::initialize().await)
     }
 }
 
 #[wasm_bindgen(js_name = "createBlackBoxSolver")]
 pub async fn create_black_box_solver() -> WasmBlackBoxFunctionSolver {
     WasmBlackBoxFunctionSolver::initialize().await
-}
-
-impl BlackBoxFunctionSolver for WasmBlackBoxFunctionSolver {
-    fn schnorr_verify(
-        &self,
-        public_key_x: &FieldElement,
-        public_key_y: &FieldElement,
-        signature: &[u8],
-        message: &[u8],
-    ) -> Result<bool, BlackBoxResolutionError> {
-        let pub_key_bytes: Vec<u8> =
-            public_key_x.to_be_bytes().iter().copied().chain(public_key_y.to_be_bytes()).collect();
-
-        let pub_key: [u8; 64] = pub_key_bytes.try_into().unwrap();
-        let sig_s: [u8; 32] = signature[0..32].try_into().unwrap();
-        let sig_e: [u8; 32] = signature[32..64].try_into().unwrap();
-
-        self.blackbox_vendor.verify_signature(pub_key, sig_s, sig_e, message).map_err(|err| {
-            BlackBoxResolutionError::Failed(BlackBoxFunc::SchnorrVerify, err.to_string())
-        })
-    }
-
-    fn pedersen(
-        &self,
-        inputs: &[FieldElement],
-        domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
-        self.blackbox_vendor
-            .encrypt(inputs.to_vec(), domain_separator)
-            .map_err(|err| BlackBoxResolutionError::Failed(BlackBoxFunc::Pedersen, err.to_string()))
-    }
-
-    fn fixed_base_scalar_mul(
-        &self,
-        input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
-        self.blackbox_vendor.fixed_base(input).map_err(|err| {
-            BlackBoxResolutionError::Failed(BlackBoxFunc::FixedBaseScalarMul, err.to_string())
-        })
-    }
 }
 
 /// Executes an ACIR circuit to generate the solved witness from the initial witness.
@@ -106,7 +65,7 @@ pub async fn execute_circuit_with_black_box_solver(
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
-    let mut acvm = ACVM::new(solver, circuit.opcodes, initial_witness.into());
+    let mut acvm = ACVM::new(&solver.0, circuit.opcodes, initial_witness.into());
 
     loop {
         let solver_status = acvm.solve();
@@ -116,7 +75,25 @@ pub async fn execute_circuit_with_black_box_solver(
             ACVMStatus::InProgress => {
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
-            ACVMStatus::Failure(error) => return Err(error.to_string().into()),
+            ACVMStatus::Failure(error) => {
+                let assert_message = match &error {
+                    OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                    }
+                    | OpcodeResolutionError::IndexOutOfBounds {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                        ..
+                    } => circuit.assert_messages.get(opcode_location).cloned(),
+                    _ => None,
+                };
+
+                let error_string = match assert_message {
+                    Some(assert_message) => format!("{}: {}", error, assert_message),
+                    None => error.to_string(),
+                };
+
+                return Err(error_string.into());
+            }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
 

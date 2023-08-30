@@ -18,7 +18,7 @@ pub(super) fn and(
         lhs.num_bits, rhs.num_bits,
         "number of bits specified for each input must be the same"
     );
-    solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, *output, |left, right| {
+    solve_logic_opcode(initial_witness, &lhs.witness, &rhs.witness, *output, |left, right| {
         left.and(right, lhs.num_bits)
     })
 }
@@ -35,13 +35,13 @@ pub(super) fn xor(
         lhs.num_bits, rhs.num_bits,
         "number of bits specified for each input must be the same"
     );
-    solve_logic_gate(initial_witness, &lhs.witness, &rhs.witness, *output, |left, right| {
+    solve_logic_opcode(initial_witness, &lhs.witness, &rhs.witness, *output, |left, right| {
         left.xor(right, lhs.num_bits)
     })
 }
 
 /// Derives the rest of the witness based on the initial low level variables
-fn solve_logic_gate(
+fn solve_logic_opcode(
     initial_witness: &mut WitnessMap,
     a: &Witness,
     b: &Witness,
