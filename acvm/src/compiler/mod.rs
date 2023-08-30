@@ -36,41 +36,25 @@ pub struct AcirTransformationMap {
 }
 
 impl AcirTransformationMap {
-    pub fn new_locations(&self, old_location: OpcodeLocation) -> Vec<OpcodeLocation> {
+    pub fn new_locations(
+        &self,
+        old_location: OpcodeLocation,
+    ) -> impl Iterator<Item = OpcodeLocation> + '_ {
         let old_acir_index = match old_location {
             OpcodeLocation::Acir(index) => index,
             OpcodeLocation::Brillig { acir_index, .. } => acir_index,
         };
 
-        let new_opcode_indexes: Vec<usize> = self
-            .acir_opcode_positions
+        self.acir_opcode_positions
             .iter()
             .enumerate()
-            .filter_map(
-                |(new_index, &old_index)| {
-                    if old_index == old_acir_index {
-                        Some(new_index)
-                    } else {
-                        None
-                    }
-                },
-            )
-            .collect();
-
-        match old_location {
-            OpcodeLocation::Acir(_) => new_opcode_indexes
-                .iter()
-                .map(|&new_index| OpcodeLocation::Acir(new_index))
-                .collect(),
-            OpcodeLocation::Brillig { brillig_index, .. } => {
-                assert!(
-                    new_opcode_indexes.len() == 1,
-                    "The transformation must not decompose or remove brillig opcodes"
-                );
-
-                vec![OpcodeLocation::Brillig { acir_index: new_opcode_indexes[0], brillig_index }]
-            }
-        }
+            .filter(move |(_, &old_index)| old_index == old_acir_index)
+            .map(move |(new_index, _)| match old_location {
+                OpcodeLocation::Acir(_) => OpcodeLocation::Acir(new_index),
+                OpcodeLocation::Brillig { brillig_index, .. } => {
+                    OpcodeLocation::Brillig { acir_index: new_index, brillig_index }
+                }
+            })
     }
 }
 
