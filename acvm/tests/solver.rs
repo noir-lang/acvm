@@ -538,7 +538,7 @@ fn unsatisfied_opcode_resolved() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0))
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0)),
         }),
         "The first opcode is not satisfiable, expected an error indicating this"
     );
@@ -623,7 +623,7 @@ fn unsatisfied_opcode_resolved_brillig() {
             opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
                 acir_index: 0,
                 brillig_index: 2
-            })
+            }),
         }),
         "The first opcode is not satisfiable, expected an error indicating this"
     );

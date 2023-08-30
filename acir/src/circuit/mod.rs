@@ -7,7 +7,7 @@ use crate::native_types::Witness;
 pub use opcodes::Opcode;
 use thiserror::Error;
 
-use std::{io::prelude::*, num::ParseIntError, str::FromStr};
+use std::{collections::BTreeMap, io::prelude::*, num::ParseIntError, str::FromStr};
 
 use flate2::Compression;
 
@@ -30,6 +30,10 @@ pub struct Circuit {
     pub public_parameters: PublicInputs,
     /// The set of public inputs calculated within the circuit.
     pub return_values: PublicInputs,
+    /// Maps opcode locations to failed assertion messages.
+    /// These messages are embedded in the circuit to provide useful feedback to users
+    /// when a constraint in the circuit is not satisfied.
+    pub assert_messages: BTreeMap<OpcodeLocation, String>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -195,7 +199,7 @@ impl PublicInputs {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use super::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
@@ -231,6 +235,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
+            assert_messages: BTreeMap::new(),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -260,6 +265,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            assert_messages: BTreeMap::new(),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();

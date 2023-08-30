@@ -4,7 +4,7 @@ use crate::solver::StubbedBackend;
 use acir::{
     circuit::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
-        Circuit, Opcode, PublicInputs,
+        Circuit, Opcode,
     },
     native_types::{Expression, Witness},
     FieldElement,
@@ -285,8 +285,8 @@ macro_rules! test_hashes {
                     current_witness_index: witness_assignments.len() as u32 + 32,
                     opcodes,
                     private_parameters: BTreeSet::new(), // This is not correct but is unused in this test.
-                    public_parameters: PublicInputs(BTreeSet::new()),
-                    return_values: PublicInputs(BTreeSet::new()) };
+                    ..Circuit::default()
+                 };
                 let circuit = compile(circuit, Language::PLONKCSat{ width: 3 }, $opcode_support).unwrap().0;
 
                 // solve witnesses
@@ -341,8 +341,7 @@ proptest! {
             current_witness_index: witness_assignments.len() as u32 + 1,
             opcodes,
             private_parameters: BTreeSet::new(), // This is not correct but is unused in this test.
-            public_parameters: PublicInputs(BTreeSet::new()),
-            return_values: PublicInputs(BTreeSet::new())
+            ..Circuit::default()
         };
         let circuit = compile(circuit, Language::PLONKCSat{ width: 3 }, does_not_support_hash_to_field).unwrap().0;
 
