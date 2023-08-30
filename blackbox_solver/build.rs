@@ -4,16 +4,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use base64ct::{Base64, Encoding};
-use flate2::read::GzDecoder;
-use sha2::Sha256;
-use tar::Archive;
-
 const BARRETENBERG_ARCHIVE: &str = "BARRETENBERG_ARCHIVE";
 const BARRETENBERG_BIN_DIR: &str = "BARRETENBERG_BIN_DIR";
 
-const BARRETENBERG_ARCHIVE_FALLBACK: &str = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.5/acvm_backend.wasm.tar.gz";
-const ARCHIVE_SHA256: &str = "0z24yhvxc0dr13xj7y4xs9p42lzxwpazrmsrdpcgynfajkk6vqy4";
+const BARRETENBERG_ARCHIVE_FALLBACK: &str = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/acvm_backend.wasm.tar.gz";
+const ARCHIVE_SHA256: &str = "1xpycikqlvsjcryi3hkbc4mwmmdz7zshw6f76vyf1qssq53asyfx";
 
 fn unpack_wasm(archive_path: &Path, target_dir: &Path) -> Result<(), String> {
     if archive_path.exists() && archive_path.is_file() {
@@ -27,6 +22,9 @@ fn unpack_wasm(archive_path: &Path, target_dir: &Path) -> Result<(), String> {
 }
 
 fn unpack_archive<T: Read>(archive: T, target_dir: &Path) {
+    use flate2::read::GzDecoder;
+    use tar::Archive;
+
     let gz_decoder = GzDecoder::new(archive);
     let mut archive = Archive::new(gz_decoder);
 
@@ -35,7 +33,8 @@ fn unpack_archive<T: Read>(archive: T, target_dir: &Path) {
 
 /// Try to download the specified URL into a buffer which is returned.
 fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
-    use sha2::Digest;
+    use base64ct::{Base64, Encoding};
+    use sha2::{Digest, Sha256};
 
     let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
 
