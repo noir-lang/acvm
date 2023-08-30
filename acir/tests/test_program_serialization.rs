@@ -15,7 +15,7 @@ use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
         directives::Directive,
-        opcodes::{BlackBoxFuncCall, FunctionInput},
+        opcodes::{BlackBoxFuncCall, BlockId, FunctionInput, MemOp},
         Circuit, Opcode, PublicInputs,
     },
     native_types::{Expression, Witness},
@@ -336,6 +336,43 @@ fn complex_brillig_foreign_call() {
         157, 31, 63, 236, 79, 147, 172, 77, 214, 73, 220, 139, 15, 106, 214, 168, 114, 249, 126,
         218, 214, 125, 153, 15, 54, 37, 90, 26, 155, 39, 227, 95, 223, 232, 230, 4, 247, 157, 215,
         56, 1, 153, 86, 63, 138, 44, 4, 0, 0,
+    ];
+
+    assert_eq!(bytes, expected_serialization)
+}
+
+#[test]
+fn memory_op_circuit() {
+    let init = vec![Witness(1), Witness(2)];
+
+    let memory_init = Opcode::MemoryInit { block_id: BlockId(0), init };
+    let write = Opcode::MemoryOp {
+        block_id: BlockId(0),
+        op: MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
+        predicate: None,
+    };
+    let read = Opcode::MemoryOp {
+        block_id: BlockId(0),
+        op: MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
+        predicate: None,
+    };
+
+    let circuit = Circuit {
+        current_witness_index: 5,
+        opcodes: vec![memory_init, write, read],
+        private_parameters: BTreeSet::from([Witness(1), Witness(2), Witness(3)]),
+        return_values: PublicInputs([Witness(4)].into()),
+        ..Circuit::default()
+    };
+    let mut bytes = Vec::new();
+    circuit.write(&mut bytes).unwrap();
+
+    let expected_serialization: Vec<u8> = vec![
+        31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 213, 146, 49, 14, 0, 32, 8, 3, 139, 192, 127, 240, 7,
+        254, 255, 85, 198, 136, 9, 131, 155, 48, 216, 165, 76, 77, 57, 80, 0, 140, 45, 117, 111,
+        238, 228, 179, 224, 174, 225, 110, 111, 234, 213, 185, 148, 156, 203, 121, 89, 86, 13, 215,
+        126, 131, 43, 153, 187, 115, 40, 185, 62, 153, 3, 136, 83, 60, 30, 96, 2, 12, 235, 225,
+        124, 14, 3, 0, 0,
     ];
 
     assert_eq!(bytes, expected_serialization)

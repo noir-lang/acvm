@@ -644,8 +644,11 @@ fn memory_operations() {
 
     let init = Opcode::MemoryInit { block_id, init: (1..6).map(Witness).collect() };
 
-    let read_op =
-        Opcode::MemoryOp { block_id, op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)) };
+    let read_op = Opcode::MemoryOp {
+        block_id,
+        op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)),
+        predicate: None,
+    };
 
     let expression = Opcode::Arithmetic(Expression {
         mul_terms: Vec::new(),
