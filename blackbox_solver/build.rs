@@ -37,11 +37,6 @@ fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
     let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
 
     let bytes = response.bytes().unwrap();
-
-    // let digest = Sha256::digest(bytes.clone());
-    // let base64_digest = Base64::encode_string(&digest);
-    // assert_eq!(base64_digest, ARCHIVE_SHA256);
-
     Ok(Cursor::new(bytes.to_vec()))
 }
 
