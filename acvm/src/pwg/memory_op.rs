@@ -157,6 +157,7 @@ mod tests {
         for op in trace {
             block_solver.solve_memory_op(&op, &mut initial_witness, &None).unwrap();
         }
+
         assert_eq!(initial_witness[&Witness(4)], FieldElement::from(2u128));
     }
 
