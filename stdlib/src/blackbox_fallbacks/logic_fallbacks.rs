@@ -8,15 +8,16 @@ use acir::{
 };
 
 // Range constraint
-pub fn range(gate: Expression, bit_size: u32, mut num_witness: u32) -> (u32, Vec<Opcode>) {
+pub fn range(opcode: Expression, bit_size: u32, mut num_witness: u32) -> (u32, Vec<Opcode>) {
     if bit_size == 1 {
         let mut variables = VariableStore::new(&mut num_witness);
-        let bit_constraint = Opcode::Arithmetic(boolean_expr(&gate, &mut variables));
+        let bit_constraint = Opcode::Arithmetic(boolean_expr(&opcode, &mut variables));
         return (variables.finalize(), vec![bit_constraint]);
     }
 
-    let (new_gates, _, updated_witness_counter) = bit_decomposition(gate, bit_size, num_witness);
-    (updated_witness_counter, new_gates)
+    let (new_opcodes, _, updated_witness_counter) =
+        bit_decomposition(opcode, bit_size, num_witness);
+    (updated_witness_counter, new_opcodes)
 }
 
 /// Returns a set of opcodes which constrain `a & b == result`
@@ -39,10 +40,10 @@ pub fn and(
     }
     // Decompose the operands into bits
     //
-    let (extra_gates_a, a_bits, updated_witness_counter) =
+    let (extra_opcodes_a, a_bits, updated_witness_counter) =
         bit_decomposition(a, bit_size, num_witness);
 
-    let (extra_gates_b, b_bits, updated_witness_counter) =
+    let (extra_opcodes_b, b_bits, updated_witness_counter) =
         bit_decomposition(b, bit_size, updated_witness_counter);
 
     assert_eq!(a_bits.len(), b_bits.len());
@@ -64,12 +65,12 @@ pub fn and(
 
     and_expr.sort();
 
-    let mut new_gates = Vec::new();
-    new_gates.extend(extra_gates_a);
-    new_gates.extend(extra_gates_b);
-    new_gates.push(Opcode::Arithmetic(and_expr));
+    let mut new_opcodes = Vec::new();
+    new_opcodes.extend(extra_opcodes_a);
+    new_opcodes.extend(extra_opcodes_b);
+    new_opcodes.push(Opcode::Arithmetic(and_expr));
 
-    (updated_witness_counter, new_gates)
+    (updated_witness_counter, new_opcodes)
 }
 
 /// Returns a set of opcodes which constrain `a ^ b == result`
@@ -94,9 +95,9 @@ pub fn xor(
 
     // Decompose the operands into bits
     //
-    let (extra_gates_a, a_bits, updated_witness_counter) =
+    let (extra_opcodes_a, a_bits, updated_witness_counter) =
         bit_decomposition(a, bit_size, num_witness);
-    let (extra_gates_b, b_bits, updated_witness_counter) =
+    let (extra_opcodes_b, b_bits, updated_witness_counter) =
         bit_decomposition(b, bit_size, updated_witness_counter);
 
     assert_eq!(a_bits.len(), b_bits.len());
@@ -117,10 +118,10 @@ pub fn xor(
     xor_expr.push_addition_term(-FieldElement::one(), result);
 
     xor_expr.sort();
-    let mut new_gates = Vec::new();
-    new_gates.extend(extra_gates_a);
-    new_gates.extend(extra_gates_b);
-    new_gates.push(Opcode::Arithmetic(xor_expr));
+    let mut new_opcodes = Vec::new();
+    new_opcodes.extend(extra_opcodes_a);
+    new_opcodes.extend(extra_opcodes_b);
+    new_opcodes.push(Opcode::Arithmetic(xor_expr));
 
-    (updated_witness_counter, new_gates)
+    (updated_witness_counter, new_opcodes)
 }

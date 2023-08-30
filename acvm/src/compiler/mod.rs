@@ -36,41 +36,25 @@ pub struct AcirTransformationMap {
 }
 
 impl AcirTransformationMap {
-    pub fn new_locations(&self, old_location: OpcodeLocation) -> Vec<OpcodeLocation> {
+    pub fn new_locations(
+        &self,
+        old_location: OpcodeLocation,
+    ) -> impl Iterator<Item = OpcodeLocation> + '_ {
         let old_acir_index = match old_location {
             OpcodeLocation::Acir(index) => index,
             OpcodeLocation::Brillig { acir_index, .. } => acir_index,
         };
 
-        let new_opcode_indexes: Vec<usize> = self
-            .acir_opcode_positions
+        self.acir_opcode_positions
             .iter()
             .enumerate()
-            .filter_map(
-                |(new_index, &old_index)| {
-                    if old_index == old_acir_index {
-                        Some(new_index)
-                    } else {
-                        None
-                    }
-                },
-            )
-            .collect();
-
-        match old_location {
-            OpcodeLocation::Acir(_) => new_opcode_indexes
-                .iter()
-                .map(|&new_index| OpcodeLocation::Acir(new_index))
-                .collect(),
-            OpcodeLocation::Brillig { brillig_index, .. } => {
-                assert!(
-                    new_opcode_indexes.len() == 1,
-                    "The transformation must not decompose or remove brillig opcodes"
-                );
-
-                vec![OpcodeLocation::Brillig { acir_index: new_opcode_indexes[0], brillig_index }]
-            }
-        }
+            .filter(move |(_, &old_index)| old_index == old_acir_index)
+            .map(move |(new_index, _)| match old_location {
+                OpcodeLocation::Acir(_) => OpcodeLocation::Acir(new_index),
+                OpcodeLocation::Brillig { brillig_index, .. } => {
+                    OpcodeLocation::Brillig { acir_index: new_index, brillig_index }
+                }
+            })
     }
 }
 
@@ -99,7 +83,7 @@ pub fn compile(
             Opcode::Arithmetic(arith_expr) => {
                 opcodes.push(Opcode::Arithmetic(GeneralOptimizer::optimize(arith_expr)))
             }
-            other_gate => opcodes.push(other_gate),
+            other_opcode => opcodes.push(other_opcode),
         };
     }
     let acir = Circuit { opcodes, ..acir };
@@ -131,7 +115,7 @@ pub fn compile(
     let mut new_acir_opcode_positions: Vec<usize> = Vec::with_capacity(acir_opcode_positions.len());
     // Optimize the arithmetic gates by reducing them into the correct width and
     // creating intermediate variables when necessary
-    let mut transformed_gates = Vec::new();
+    let mut transformed_opcodes = Vec::new();
 
     let mut next_witness_index = acir.current_witness_index + 1;
     // maps a normalized expression to the intermediate variable which represents the expression, along with its 'norm'
@@ -150,19 +134,19 @@ pub fn compile(
 
                 // Update next_witness counter
                 next_witness_index += (intermediate_variables.len() - len) as u32;
-                let mut new_gates = Vec::new();
+                let mut new_opcodes = Vec::new();
                 for (g, (norm, w)) in intermediate_variables.iter().skip(len) {
                     // de-normalize
-                    let mut intermediate_gate = g * *norm;
-                    // constrain the intermediate gate to the intermediate variable
-                    intermediate_gate.linear_combinations.push((-FieldElement::one(), *w));
-                    intermediate_gate.sort();
-                    new_gates.push(intermediate_gate);
+                    let mut intermediate_opcode = g * *norm;
+                    // constrain the intermediate opcode to the intermediate variable
+                    intermediate_opcode.linear_combinations.push((-FieldElement::one(), *w));
+                    intermediate_opcode.sort();
+                    new_opcodes.push(intermediate_opcode);
                 }
-                new_gates.push(arith_expr);
-                for gate in new_gates {
+                new_opcodes.push(arith_expr);
+                for opcode in new_opcodes {
                     new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                    transformed_gates.push(Opcode::Arithmetic(gate));
+                    transformed_opcodes.push(Opcode::Arithmetic(opcode));
                 }
             }
             Opcode::BlackBoxFuncCall(func) => {
@@ -207,7 +191,7 @@ pub fn compile(
                 }
 
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::Directive(directive) => {
                 match directive {
@@ -230,12 +214,12 @@ pub fn compile(
                     }
                 }
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryInit { .. } => {
                 // `MemoryInit` does not write values to the `WitnessMap`
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::MemoryOp { op, .. } => {
                 for (_, witness1, witness2) in &op.value.mul_terms {
@@ -246,7 +230,7 @@ pub fn compile(
                     transformer.mark_solvable(*witness);
                 }
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
             Opcode::Brillig(brillig) => {
                 for output in &brillig.outputs {
@@ -260,7 +244,7 @@ pub fn compile(
                     }
                 }
                 new_acir_opcode_positions.push(acir_opcode_positions[index]);
-                transformed_gates.push(opcode.clone());
+                transformed_opcodes.push(opcode.clone());
             }
         }
     }
@@ -269,7 +253,7 @@ pub fn compile(
 
     let acir = Circuit {
         current_witness_index,
-        opcodes: transformed_gates,
+        opcodes: transformed_opcodes,
         // The optimizer does not add new public inputs
         private_parameters: acir.private_parameters,
         public_parameters: acir.public_parameters,
