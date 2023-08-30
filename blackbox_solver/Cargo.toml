@@ -1,7 +1,7 @@
 [package]
 name = "acvm_blackbox_solver"
 description = "A solver for the blackbox functions found in ACIR and Brillig"
-version = "0.22.0"
+version = "0.23.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
