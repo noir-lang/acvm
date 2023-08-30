@@ -33,8 +33,6 @@ fn unpack_archive<T: Read>(archive: T, target_dir: &Path) {
 
 /// Try to download the specified URL into a buffer which is returned.
 fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
-    // use base64ct::{Base64, Encoding};
-    // use sha2::{Digest, Sha256};
 
     let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
 
