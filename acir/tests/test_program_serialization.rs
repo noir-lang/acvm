@@ -20,7 +20,7 @@ use acir::{
     native_types::{Expression, Witness},
 };
 use acir_field::FieldElement;
-use brillig::{BinaryFieldOp, BrilligOpcode, HeapArray, RegisterIndex, RegisterOrMemory};
+use brillig::{BrilligOpcode, HeapArray, RegisterIndex, RegisterOrMemory};
 
 #[test]
 fn addition_circuit() {
@@ -182,7 +182,7 @@ fn simple_brillig_foreign_call() {
         ],
         // stack of foreign call/oracle resolutions, starts empty
         foreign_call_results: vec![],
-        bytecode: vec![brillig::Opcode::ForeignCall {
+        bytecode: vec![BrilligOpcode::ForeignCall {
             function: "invert".into(),
             destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
             inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],

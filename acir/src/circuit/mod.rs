@@ -52,7 +52,7 @@ mod reflection {
     use crate::{
         circuit::{
             brillig::{BrilligInputs, BrilligOutputs},
-            directives::{Directive, LogInfo},
+            directives::Directive,
             opcodes::BlackBoxFuncCall,
             Circuit, Opcode,
         },
@@ -77,7 +77,6 @@ mod reflection {
         tracer.trace_simple_type::<Directive>().unwrap();
         tracer.trace_simple_type::<ForeignCallOutput>().unwrap();
         tracer.trace_simple_type::<RegisterOrMemory>().unwrap();
-        tracer.trace_simple_type::<LogInfo>().unwrap();
 
         let registry = tracer.registry().unwrap();
 
