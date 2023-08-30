@@ -427,24 +427,14 @@ fn oracle_dependent_execution() {
 
 #[test]
 fn brillig_oracle_predicate() {
-    // Opcodes below describe the following:
-    // fn main(x : Field, y : pub Field, cond: bool) {
-    //     let z = x + y;
-    //     let z_inverse = 1/z
-    //     if cond {
-    //         assert( z_inverse == Oracle("inverse", x + y) );
-    //     }
-    // }
     let fe_0 = FieldElement::zero();
     let fe_1 = FieldElement::one();
     let w_x = Witness(1);
     let w_y = Witness(2);
     let w_oracle = Witness(3);
-    let w_z = Witness(4);
-    let w_z_inverse = Witness(5);
-    let w_x_plus_y = Witness(6);
-    let w_equal_res = Witness(7);
-    let w_lt_res = Witness(8);
+    let w_x_plus_y = Witness(4);
+    let w_equal_res = Witness(5);
+    let w_lt_res = Witness(6);
 
     let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
@@ -482,20 +472,7 @@ fn brillig_oracle_predicate() {
         foreign_call_results: vec![],
     });
 
-    let opcodes = vec![
-        brillig_opcode,
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-            q_c: fe_0,
-        }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-            linear_combinations: vec![],
-            q_c: -fe_1,
-        }),
-    ];
+    let opcodes = vec![brillig_opcode];
 
     let witness_assignments = BTreeMap::from([
         (Witness(1), FieldElement::from(2u128)),
@@ -510,7 +487,6 @@ fn brillig_oracle_predicate() {
     // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
-
 #[test]
 fn unsatisfied_opcode_resolved() {
     let a = Witness(0);
