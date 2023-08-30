@@ -231,9 +231,9 @@ fn complex_brillig_foreign_call() {
         inputs: vec![
             // Input Register 0
             BrilligInputs::Array(vec![
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, a)], q_c: fe_0 },
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, b)], q_c: fe_0 },
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, c)], q_c: fe_0 },
+                Expression::from(a),
+                Expression::from(b),
+                Expression::from(c),
             ]),
             // Input Register 1
             BrilligInputs::Single(Expression {
