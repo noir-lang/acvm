@@ -1,6 +1,6 @@
 use super::{
     brillig::Brillig,
-    directives::{Directive, LogInfo, QuotientDirective},
+    directives::{Directive, QuotientDirective},
 };
 use crate::native_types::{Expression, Witness};
 use serde::{Deserialize, Serialize};
@@ -100,10 +100,6 @@ impl std::fmt::Display for Opcode {
 
                 write!(f, " ]")
             }
-            Opcode::Directive(Directive::Invert { x, result: r }) => {
-                write!(f, "DIR::INVERT ")?;
-                write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
-            }
             Opcode::Directive(Directive::Quotient(QuotientDirective { a, b, q, r, predicate })) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
@@ -145,15 +141,7 @@ impl std::fmt::Display for Opcode {
                     bits.last().unwrap().witness_index(),
                 )
             }
-            Opcode::Directive(Directive::Log(info)) => match info {
-                LogInfo::FinalizedOutput(output_string) => write!(f, "Log: {output_string}"),
-                LogInfo::WitnessOutput(witnesses) => write!(
-                    f,
-                    "Log: _{}..._{}",
-                    witnesses.first().unwrap().witness_index(),
-                    witnesses.last().unwrap().witness_index()
-                ),
-            },
+
             Opcode::Brillig(brillig) => {
                 write!(f, "BRILLIG: ")?;
                 writeln!(f, "inputs: {:?}", brillig.inputs)?;
