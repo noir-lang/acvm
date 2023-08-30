@@ -114,10 +114,7 @@ impl MemoryOpSolver {
             // the memory it touches.
             if pred_value.is_zero() {
                 // We only want to write to already initialized memory.
-                // If a memory block is uninitialized `self.block_len` will be zero.
-                for i in 0..self.block_len {
-                    self.write_memory_index(i, FieldElement::zero())?;
-                }
+                // Do nothing if the predicate is zero.
                 return Ok(());
             } else {
                 let value_to_write = get_value(&value_write, initial_witness)?;
