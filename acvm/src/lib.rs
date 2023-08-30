@@ -37,12 +37,7 @@ pub trait SmartContract {
     // TODO: Allow a backend to support multiple smart contract platforms
 
     /// Returns an Ethereum smart contract to verify proofs against a given common reference string and verification key.
-    fn eth_contract_from_vk(
-        &self,
-        common_reference_string: &[u8],
-        circuit: &Circuit,
-        verification_key: &[u8],
-    ) -> Result<String, Self::Error>;
+    fn eth_contract(&self, circuit: &Circuit) -> Result<String, Self::Error>;
 }
 
 pub trait ProofSystemCompiler {
@@ -61,33 +56,29 @@ pub trait ProofSystemCompiler {
     /// Returns the number of gates in a circuit
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
 
-    /// Creates a Proof given the circuit description, the initial witness values, and the proving key
+    /// Creates a Proof given the [`Circuit`] and the [witness values][`WitnessMap`]
     /// It is important to note that the intermediate witnesses for black box functions will not generated
     /// This is the responsibility of the proof system.
     ///
     /// The `is_recursive` flag represents whether one wants to create proofs that are to be natively verified.
     /// A proof system may use a certain hash type for the Fiat-Shamir normally that is not hash friendly (such as keccak to enable Solidity verification),
     /// but may want to use a snark-friendly hash function when performing native verification.
-    fn prove_with_pk(
+    fn prove(
         &self,
-        common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
-        proving_key: &[u8],
         is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error>;
 
-    /// Verifies a Proof, given the circuit description, the circuit's public inputs, and the verification key
+    /// Verifies a Proof, given the [`Circuit`] and [public inputs][`WitnessMap`]
     ///
     /// The `is_recursive` flag represents whether one wants to verify proofs that are to be natively verified.
     /// The flag must match the `is_recursive` flag used to generate the proof passed into this method, otherwise verification will return false.
-    fn verify_with_vk(
+    fn verify(
         &self,
-        common_reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
-        verification_key: &[u8],
         is_recursive: bool,
     ) -> Result<bool, Self::Error>;
 
@@ -103,7 +94,6 @@ pub trait ProofSystemCompiler {
     /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
     fn vk_as_fields(
         &self,
-        common_reference_string: &[u8],
         verification_key: &[u8],
     ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error>;
 }
