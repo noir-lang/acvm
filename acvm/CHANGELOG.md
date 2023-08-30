@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm-v0.22.0...acvm-v0.23.0) (2023-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508))
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference
+
+### Features
+
+* **acvm_js:** Add `execute_circuit_with_black_box_solver` to prevent reinitialization of `BlackBoxFunctionSolver` ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508)) ([3827dd3](https://github.com/noir-lang/acvm/commit/3827dd3ce487650843ba4df8337b423e39f97edf))
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507)) ([8d49a5c](https://github.com/noir-lang/acvm/commit/8d49a5c15b1e962cd59252467a20a922edadc2f2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.22.0 to 0.23.0
+
 ## [0.22.0](https://github.com/noir-lang/acvm/compare/acvm-v0.21.0...acvm-v0.22.0) (2023-08-18)
 
 
