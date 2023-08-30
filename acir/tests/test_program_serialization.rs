@@ -21,7 +21,7 @@ use acir::{
     native_types::{Expression, Witness},
 };
 use acir_field::FieldElement;
-use brillig::{BinaryFieldOp, HeapArray, RegisterIndex, RegisterOrMemory};
+use brillig::{BinaryFieldOp, BrilligOpcode, HeapArray, RegisterIndex, RegisterOrMemory};
 
 #[test]
 fn addition_circuit() {
@@ -180,7 +180,7 @@ fn simple_brillig_foreign_call() {
     let w_x_plus_y = Witness(6);
     let w_equal_res = Witness(7);
 
-    let equal_opcode = brillig::Opcode::BinaryFieldOp {
+    let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
         lhs: RegisterIndex::from(0),
         rhs: RegisterIndex::from(1),
@@ -208,7 +208,7 @@ fn simple_brillig_foreign_call() {
         bytecode: vec![
             equal_opcode,
             // Oracles are named 'foreign calls' in brillig
-            brillig::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "invert".into(),
                 destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
                 inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
@@ -301,7 +301,7 @@ fn complex_brillig_foreign_call() {
         foreign_call_results: vec![],
         bytecode: vec![
             // Oracles are named 'foreign calls' in brillig
-            brillig::Opcode::ForeignCall {
+            BrilligOpcode::ForeignCall {
                 function: "complex".into(),
                 inputs: vec![
                     RegisterOrMemory::HeapArray(HeapArray { pointer: 0.into(), size: 3 }),

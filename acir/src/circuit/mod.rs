@@ -59,11 +59,14 @@ mod reflection {
         native_types::{Witness, WitnessMap},
     };
 
+    use super::OpcodeLocation;
+
     #[test]
     fn serde_acir_cpp_codegen() {
         let mut tracer = Tracer::new(TracerConfig::default());
         tracer.trace_simple_type::<Circuit>().unwrap();
         tracer.trace_simple_type::<Opcode>().unwrap();
+        tracer.trace_simple_type::<OpcodeLocation>().unwrap();
         tracer.trace_simple_type::<BinaryFieldOp>().unwrap();
         tracer.trace_simple_type::<BlackBoxFuncCall>().unwrap();
         tracer.trace_simple_type::<BrilligInputs>().unwrap();
