@@ -6,8 +6,8 @@ use acir::{
     FieldElement,
 };
 
-use super::OpcodeResolutionError;
 use super::{arithmetic::ArithmeticSolver, get_value, insert_value, witness_to_value};
+use super::{ErrorLocation, OpcodeResolutionError};
 
 type MemoryIndex = u32;
 
@@ -15,15 +15,32 @@ type MemoryIndex = u32;
 #[derive(Default)]
 pub(super) struct MemoryOpSolver {
     block_value: HashMap<MemoryIndex, FieldElement>,
+    block_len: u32,
 }
 
 impl MemoryOpSolver {
-    fn write_memory_index(&mut self, index: MemoryIndex, value: FieldElement) {
+    fn write_memory_index(
+        &mut self,
+        index: MemoryIndex,
+        value: FieldElement,
+    ) -> Result<(), OpcodeResolutionError> {
+        if index >= self.block_len {
+            return Err(OpcodeResolutionError::IndexOutOfBounds {
+                opcode_location: ErrorLocation::Unresolved,
+                index,
+                array_size: self.block_len,
+            });
+        }
         self.block_value.insert(index, value);
+        Ok(())
     }
 
-    fn read_memory_index(&self, index: MemoryIndex) -> FieldElement {
-        self.block_value.get(&index).copied().expect("Should not read uninitialized memory")
+    fn read_memory_index(&self, index: MemoryIndex) -> Result<FieldElement, OpcodeResolutionError> {
+        self.block_value.get(&index).copied().ok_or(OpcodeResolutionError::IndexOutOfBounds {
+            opcode_location: ErrorLocation::Unresolved,
+            index,
+            array_size: self.block_len,
+        })
     }
 
     /// Set the block_value from a MemoryInit opcode
@@ -32,11 +49,12 @@ impl MemoryOpSolver {
         init: &[Witness],
         initial_witness: &WitnessMap,
     ) -> Result<(), OpcodeResolutionError> {
+        self.block_len = init.len() as u32;
         for (memory_index, witness) in init.iter().enumerate() {
             self.write_memory_index(
                 memory_index as MemoryIndex,
                 *witness_to_value(initial_witness, *witness)?,
-            );
+            )?;
         }
         Ok(())
     }
@@ -70,8 +88,7 @@ impl MemoryOpSolver {
                 "Memory must be read into a specified witness index, encountered an Expression",
             );
 
-            let value_in_array = self.read_memory_index(memory_index);
-
+            let value_in_array = self.read_memory_index(memory_index)?;
             insert_value(&value_read_witness, value_in_array, initial_witness)
         } else {
             // `arr[memory_index] = value_write`
@@ -82,8 +99,7 @@ impl MemoryOpSolver {
 
             let value_to_write = get_value(&value_write, initial_witness)?;
 
-            self.write_memory_index(memory_index, value_to_write);
-            Ok(())
+            self.write_memory_index(memory_index, value_to_write)
         }
     }
 }
@@ -111,7 +127,7 @@ mod tests {
         let init = vec![Witness(1), Witness(2)];
 
         let trace = vec![
-            MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
             MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
         ];
 
@@ -121,6 +137,38 @@ mod tests {
         for op in trace {
             block_solver.solve_memory_op(&op, &mut initial_witness).unwrap();
         }
-        assert_eq!(initial_witness[&Witness(4)], FieldElement::one());
+        assert_eq!(initial_witness[&Witness(4)], FieldElement::from(2u128));
+    }
+
+    #[test]
+    fn test_index_out_of_bounds() {
+        let mut initial_witness = WitnessMap::from(BTreeMap::from_iter([
+            (Witness(1), FieldElement::from(1u128)),
+            (Witness(2), FieldElement::from(1u128)),
+            (Witness(3), FieldElement::from(2u128)),
+        ]));
+
+        let init = vec![Witness(1), Witness(2)];
+
+        let invalid_trace = vec![
+            MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
+            MemOp::read_at_mem_index(FieldElement::from(2u128).into(), Witness(4)),
+        ];
+        let mut block_solver = MemoryOpSolver::default();
+        block_solver.init(&init, &initial_witness).unwrap();
+        let mut err = None;
+        for op in invalid_trace {
+            if err.is_none() {
+                err = block_solver.solve_memory_op(&op, &mut initial_witness).err();
+            }
+        }
+        assert!(matches!(
+            err,
+            Some(crate::pwg::OpcodeResolutionError::IndexOutOfBounds {
+                opcode_location: _,
+                index: 2,
+                array_size: 2
+            })
+        ));
     }
 }

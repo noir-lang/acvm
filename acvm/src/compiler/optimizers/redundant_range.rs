@@ -1,5 +1,5 @@
 use acir::{
-    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode, OpcodeLabel},
+    circuit::{opcodes::BlackBoxFuncCall, Circuit, Opcode},
     native_types::Witness,
 };
 use std::collections::{BTreeMap, HashSet};
@@ -69,10 +69,7 @@ impl RangeOptimizer {
 
     /// Returns a `Circuit` where each Witness is only range constrained
     /// once to the lowest number `bit size` possible.
-    pub(crate) fn replace_redundant_ranges(
-        self,
-        order_list: Vec<OpcodeLabel>,
-    ) -> (Circuit, Vec<OpcodeLabel>) {
+    pub(crate) fn replace_redundant_ranges(self, order_list: Vec<usize>) -> (Circuit, Vec<usize>) {
         let mut already_seen_witness = HashSet::new();
 
         let mut new_order_list = Vec::with_capacity(order_list.len());
@@ -112,9 +109,7 @@ impl RangeOptimizer {
             Circuit {
                 current_witness_index: self.circuit.current_witness_index,
                 opcodes: optimized_opcodes,
-                private_parameters: self.circuit.private_parameters,
-                public_parameters: self.circuit.public_parameters,
-                return_values: self.circuit.return_values,
+                ..self.circuit
             },
             new_order_list,
         )
@@ -140,7 +135,7 @@ fn extract_range_opcode(opcode: &Opcode) -> Option<(Witness, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeMap, BTreeSet};
 
     use crate::compiler::optimizers::redundant_range::{extract_range_opcode, RangeOptimizer};
     use acir::{
@@ -169,6 +164,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs::default(),
             return_values: PublicInputs::default(),
+            assert_messages: BTreeMap::new(),
         }
     }
 
@@ -176,7 +172,7 @@ mod tests {
     fn retain_lowest_range_size() {
         // The optimizer should keep the lowest bit size range constraint
         let circuit = test_circuit(vec![(Witness(1), 32), (Witness(1), 16)]);
-        let opcode_labels = circuit.initial_opcode_labels();
+        let acir_opcode_positions = circuit.opcodes.iter().enumerate().map(|(i, _)| i).collect();
         let optimizer = RangeOptimizer::new(circuit);
 
         let range_size = *optimizer
@@ -188,7 +184,7 @@ mod tests {
             "expected a range size of 16 since that was the lowest bit size provided"
         );
 
-        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_labels);
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(acir_opcode_positions);
         assert_eq!(optimized_circuit.opcodes.len(), 1);
 
         let (witness, num_bits) =
@@ -208,9 +204,9 @@ mod tests {
             (Witness(2), 23),
             (Witness(2), 23),
         ]);
-        let opcode_labels = circuit.initial_opcode_labels();
+        let acir_opcode_positions = circuit.opcodes.iter().enumerate().map(|(i, _)| i).collect();
         let optimizer = RangeOptimizer::new(circuit);
-        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_labels);
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(acir_opcode_positions);
         assert_eq!(optimized_circuit.opcodes.len(), 2);
 
         let (witness_a, num_bits_a) =
@@ -234,9 +230,9 @@ mod tests {
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
         circuit.opcodes.push(Opcode::Arithmetic(Expression::default()));
-        let opcode_labels = circuit.initial_opcode_labels();
+        let acir_opcode_positions = circuit.opcodes.iter().enumerate().map(|(i, _)| i).collect();
         let optimizer = RangeOptimizer::new(circuit);
-        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(opcode_labels);
+        let (optimized_circuit, _) = optimizer.replace_redundant_ranges(acir_opcode_positions);
         assert_eq!(optimized_circuit.opcodes.len(), 5)
     }
 }

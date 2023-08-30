@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.22.0...acvm_blackbox_solver-v0.23.0) (2023-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** Remove `BlackBoxFunctionSolver` from `Backend` trait ([#494](https://github.com/noir-lang/acvm/issues/494))
+
+### Features
+
+* Expose a `BlackBoxFunctionSolver` containing a barretenberg wasm from `blackbox_solver` ([#494](https://github.com/noir-lang/acvm/issues/494)) ([a1d4b71](https://github.com/noir-lang/acvm/commit/a1d4b71256dfbf1e883e770dd9c45479235aa860))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Remove `BlackBoxFunctionSolver` from `Backend` trait ([#494](https://github.com/noir-lang/acvm/issues/494)) ([a1d4b71](https://github.com/noir-lang/acvm/commit/a1d4b71256dfbf1e883e770dd9c45479235aa860))
+
+## [0.22.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.21.0...acvm_blackbox_solver-v0.22.0) (2023-08-18)
+
+
+### Miscellaneous Chores
+
+* **acvm_blackbox_solver:** Synchronize acvm versions
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.20.1...acvm_blackbox_solver-v0.21.0) (2023-07-26)
 
 

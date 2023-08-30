@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm-v0.22.0...acvm-v0.23.0) (2023-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508))
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference
+
+### Features
+
+* **acvm_js:** Add `execute_circuit_with_black_box_solver` to prevent reinitialization of `BlackBoxFunctionSolver` ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508)) ([3827dd3](https://github.com/noir-lang/acvm/commit/3827dd3ce487650843ba4df8337b423e39f97edf))
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507)) ([8d49a5c](https://github.com/noir-lang/acvm/commit/8d49a5c15b1e962cd59252467a20a922edadc2f2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.22.0 to 0.23.0
+
+## [0.22.0](https://github.com/noir-lang/acvm/compare/acvm-v0.21.0...acvm-v0.22.0) (2023-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493))
+* **acvm:** check for index out-of-bounds on memory operations ([#468](https://github.com/noir-lang/acvm/issues/468))
+
+### Features
+
+* **acvm:** check for index out-of-bounds on memory operations ([#468](https://github.com/noir-lang/acvm/issues/468)) ([740468c](https://github.com/noir-lang/acvm/commit/740468c0a144f7179c38f615cfda31b2fcc77359))
+* print error location with fmt ([#497](https://github.com/noir-lang/acvm/issues/497)) ([575a9e5](https://github.com/noir-lang/acvm/commit/575a9e50e97afb04a7b91799e06752cec3093f0b))
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493)) ([27a5a93](https://github.com/noir-lang/acvm/commit/27a5a935849f8904e10056b08089f532a06962b8))
+
+
+### Bug Fixes
+
+* add opcode label to unsatisfied constrain string ([#482](https://github.com/noir-lang/acvm/issues/482)) ([cbbbe67](https://github.com/noir-lang/acvm/commit/cbbbe67b9a19a4a560b2dfa8f27ea1c6ebd61f28))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.21.0 to 0.22.0
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/acvm-v0.20.1...acvm-v0.21.0) (2023-07-26)
 
 
