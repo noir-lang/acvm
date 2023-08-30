@@ -305,12 +305,6 @@ mod tests {
     use crate::native_types::Witness;
     use acir_field::FieldElement;
 
-    fn directive_opcode() -> Opcode {
-        Opcode::Directive(super::directives::Directive::Invert {
-            x: Witness(0),
-            result: Witness(1),
-        })
-    }
     fn and_opcode() -> Opcode {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
             lhs: FunctionInput { witness: Witness(1), num_bits: 4 },
@@ -328,7 +322,7 @@ mod tests {
     fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
-            opcodes: vec![and_opcode(), range_opcode(), directive_opcode()],
+            opcodes: vec![and_opcode(), range_opcode()],
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),

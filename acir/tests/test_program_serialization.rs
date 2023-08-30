@@ -14,8 +14,7 @@ use std::collections::BTreeSet;
 use acir::{
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
-        directives::Directive,
-        opcodes::{BlackBoxFuncCall, FunctionInput},
+        opcodes::{BlackBoxFuncCall, BlockId, FunctionInput, MemOp},
         Circuit, Opcode, PublicInputs,
     },
     native_types::{Expression, Witness},
@@ -170,72 +169,28 @@ fn schnorr_verify_circuit() {
 
 #[test]
 fn simple_brillig_foreign_call() {
-    let fe_0 = FieldElement::zero();
-    let fe_1 = FieldElement::one();
-    let w_x = Witness(1);
-    let w_y = Witness(2);
-    let w_oracle = Witness(3);
-    let w_z = Witness(4);
-    let w_z_inverse = Witness(5);
-    let w_x_plus_y = Witness(6);
-    let w_equal_res = Witness(7);
-
-    let equal_opcode = BrilligOpcode::BinaryFieldOp {
-        op: BinaryFieldOp::Equals,
-        lhs: RegisterIndex::from(0),
-        rhs: RegisterIndex::from(1),
-        destination: RegisterIndex::from(2),
-    };
+    let w_input = Witness(1);
+    let w_inverted = Witness(2);
 
     let brillig_data = Brillig {
         inputs: vec![
-            BrilligInputs::Single(Expression {
-                // Input Register 0
-                mul_terms: vec![],
-                linear_combinations: vec![(fe_1, w_x), (fe_1, w_y)],
-                q_c: fe_0,
-            }),
-            BrilligInputs::Single(Expression::default()), // Input Register 1
+            BrilligInputs::Single(w_input.into()), // Input Register 0,
         ],
         // This tells the BrilligSolver which witnesses its output registers correspond to
         outputs: vec![
-            BrilligOutputs::Simple(w_x_plus_y), // Output Register 0 - from input
-            BrilligOutputs::Simple(w_oracle),   // Output Register 1
-            BrilligOutputs::Simple(w_equal_res), // Output Register 2
+            BrilligOutputs::Simple(w_inverted), // Output Register 1
         ],
         // stack of foreign call/oracle resolutions, starts empty
         foreign_call_results: vec![],
-        bytecode: vec![
-            equal_opcode,
-            // Oracles are named 'foreign calls' in brillig
-            BrilligOpcode::ForeignCall {
-                function: "invert".into(),
-                destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(1))],
-                inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
-            },
-        ],
+        bytecode: vec![brillig::Opcode::ForeignCall {
+            function: "invert".into(),
+            destinations: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+            inputs: vec![RegisterOrMemory::RegisterIndex(RegisterIndex::from(0))],
+        }],
         predicate: None,
     };
 
-    let opcodes = vec![
-        Opcode::Brillig(brillig_data),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-            q_c: fe_0,
-        }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-            linear_combinations: vec![],
-            q_c: -fe_1,
-        }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(-fe_1, w_oracle), (fe_1, w_z_inverse)],
-            q_c: fe_0,
-        }),
-    ];
+    let opcodes = vec![Opcode::Brillig(brillig_data)];
     let circuit = Circuit {
         current_witness_index: 8,
         opcodes,
@@ -247,16 +202,11 @@ fn simple_brillig_foreign_call() {
     circuit.write(&mut bytes).unwrap();
 
     let expected_serialization: Vec<u8> = vec![
-        31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 181, 148, 209, 10, 195, 32, 12, 69, 99, 109, 183, 126,
-        78, 82, 181, 141, 111, 251, 149, 201, 44, 236, 101, 15, 99, 236, 251, 183, 49, 11, 161,
-        245, 173, 233, 5, 137, 4, 57, 120, 111, 208, 30, 0, 58, 248, 203, 126, 87, 3, 91, 45, 189,
-        75, 169, 184, 79, 100, 20, 89, 141, 30, 11, 43, 214, 213, 216, 86, 48, 79, 34, 239, 159,
-        206, 149, 172, 229, 190, 21, 61, 83, 106, 47, 56, 247, 199, 59, 63, 95, 166, 114, 74, 246,
-        170, 178, 186, 54, 15, 27, 173, 195, 209, 251, 60, 13, 153, 28, 93, 113, 136, 137, 3, 250,
-        144, 70, 38, 166, 192, 225, 54, 176, 115, 153, 61, 79, 49, 197, 9, 35, 121, 151, 105, 14,
-        209, 205, 5, 214, 234, 221, 11, 229, 88, 186, 85, 208, 90, 222, 37, 27, 20, 115, 16, 200,
-        205, 179, 222, 203, 182, 138, 254, 187, 3, 230, 101, 160, 254, 189, 45, 250, 0, 87, 206,
-        28, 176, 11, 5, 0, 0,
+        31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 173, 143, 81, 10, 0, 16, 16, 68, 199, 42, 57, 14, 55,
+        112, 25, 31, 126, 124, 72, 206, 79, 161, 86, 225, 135, 87, 219, 78, 187, 53, 205, 104, 0,
+        2, 29, 201, 52, 103, 222, 220, 216, 230, 13, 43, 254, 121, 25, 158, 151, 54, 153, 117, 27,
+        53, 116, 136, 197, 167, 124, 107, 184, 64, 236, 73, 56, 83, 1, 18, 139, 122, 157, 67, 1, 0,
+        0,
     ];
 
     assert_eq!(bytes, expected_serialization)
@@ -280,9 +230,9 @@ fn complex_brillig_foreign_call() {
         inputs: vec![
             // Input Register 0
             BrilligInputs::Array(vec![
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, a)], q_c: fe_0 },
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, b)], q_c: fe_0 },
-                Expression { mul_terms: vec![], linear_combinations: vec![(fe_1, c)], q_c: fe_0 },
+                Expression::from(a),
+                Expression::from(b),
+                Expression::from(c),
             ]),
             // Input Register 1
             BrilligInputs::Single(Expression {
@@ -336,6 +286,43 @@ fn complex_brillig_foreign_call() {
         157, 31, 63, 236, 79, 147, 172, 77, 214, 73, 220, 139, 15, 106, 214, 168, 114, 249, 126,
         218, 214, 125, 153, 15, 54, 37, 90, 26, 155, 39, 227, 95, 223, 232, 230, 4, 247, 157, 215,
         56, 1, 153, 86, 63, 138, 44, 4, 0, 0,
+    ];
+
+    assert_eq!(bytes, expected_serialization)
+}
+
+#[test]
+fn memory_op_circuit() {
+    let init = vec![Witness(1), Witness(2)];
+
+    let memory_init = Opcode::MemoryInit { block_id: BlockId(0), init };
+    let write = Opcode::MemoryOp {
+        block_id: BlockId(0),
+        op: MemOp::write_to_mem_index(FieldElement::from(1u128).into(), Witness(3).into()),
+        predicate: None,
+    };
+    let read = Opcode::MemoryOp {
+        block_id: BlockId(0),
+        op: MemOp::read_at_mem_index(FieldElement::one().into(), Witness(4)),
+        predicate: None,
+    };
+
+    let circuit = Circuit {
+        current_witness_index: 5,
+        opcodes: vec![memory_init, write, read],
+        private_parameters: BTreeSet::from([Witness(1), Witness(2), Witness(3)]),
+        return_values: PublicInputs([Witness(4)].into()),
+        ..Circuit::default()
+    };
+    let mut bytes = Vec::new();
+    circuit.write(&mut bytes).unwrap();
+
+    let expected_serialization: Vec<u8> = vec![
+        31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 213, 146, 49, 14, 0, 32, 8, 3, 139, 192, 127, 240, 7,
+        254, 255, 85, 198, 136, 9, 131, 155, 48, 216, 165, 76, 77, 57, 80, 0, 140, 45, 117, 111,
+        238, 228, 179, 224, 174, 225, 110, 111, 234, 213, 185, 148, 156, 203, 121, 89, 86, 13, 215,
+        126, 131, 43, 153, 187, 115, 40, 185, 62, 153, 3, 136, 83, 60, 30, 96, 2, 12, 235, 225,
+        124, 14, 3, 0, 0,
     ];
 
     assert_eq!(bytes, expected_serialization)
