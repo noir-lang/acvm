@@ -54,7 +54,6 @@ name = "acvm_blackbox_solver"
 version = "0.22.0"
 dependencies = [
  "acir",
- "base64ct",
  "blake2",
  "flate2",
  "getrandom",
