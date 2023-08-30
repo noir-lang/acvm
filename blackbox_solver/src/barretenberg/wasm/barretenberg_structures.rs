@@ -1,4 +1,4 @@
-use acvm::FieldElement;
+use acir::FieldElement;
 
 #[derive(Debug, Default)]
 pub(crate) struct Assignments(Vec<FieldElement>);
