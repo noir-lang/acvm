@@ -518,7 +518,7 @@ fn unsatisfied_opcode_resolved() {
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0))
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0)),
         }),
         "The first opcode is not satisfiable, expected an error indicating this"
     );
@@ -603,7 +603,7 @@ fn unsatisfied_opcode_resolved_brillig() {
             opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
                 acir_index: 0,
                 brillig_index: 2
-            })
+            }),
         }),
         "The first opcode is not satisfiable, expected an error indicating this"
     );
@@ -624,8 +624,11 @@ fn memory_operations() {
 
     let init = Opcode::MemoryInit { block_id, init: (1..6).map(Witness).collect() };
 
-    let read_op =
-        Opcode::MemoryOp { block_id, op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)) };
+    let read_op = Opcode::MemoryOp {
+        block_id,
+        op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)),
+        predicate: None,
+    };
 
     let expression = Opcode::Arithmetic(Expression {
         mul_terms: Vec::new(),

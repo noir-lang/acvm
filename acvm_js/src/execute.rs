@@ -2,7 +2,7 @@
 use acvm::{
     acir::circuit::Circuit,
     blackbox_solver::BarretenbergSolver,
-    pwg::{ACVMStatus, ACVM},
+    pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
 
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -75,7 +75,25 @@ pub async fn execute_circuit_with_black_box_solver(
             ACVMStatus::InProgress => {
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
-            ACVMStatus::Failure(error) => return Err(error.to_string().into()),
+            ACVMStatus::Failure(error) => {
+                let assert_message = match &error {
+                    OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                    }
+                    | OpcodeResolutionError::IndexOutOfBounds {
+                        opcode_location: ErrorLocation::Resolved(opcode_location),
+                        ..
+                    } => circuit.assert_messages.get(opcode_location).cloned(),
+                    _ => None,
+                };
+
+                let error_string = match assert_message {
+                    Some(assert_message) => format!("{}: {}", error, assert_message),
+                    None => error.to_string(),
+                };
+
+                return Err(error_string.into());
+            }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
 

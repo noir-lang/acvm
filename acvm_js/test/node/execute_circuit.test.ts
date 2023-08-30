@@ -156,6 +156,22 @@ it("successfully executes a SchnorrVerify opcode", async () => {
   expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
 });
 
+it("successfully executes a MemoryOp opcode", async () => {
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
+    "../shared/memory_op"
+  );
+
+  const solvedWitness: WitnessMap = await executeCircuit(
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
+});
+
 it("successfully executes two circuits with same backend", async function () {
   this.timeout(10000);
 

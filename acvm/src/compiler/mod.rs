@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use acir::{
     circuit::{
         brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
@@ -58,6 +60,19 @@ impl AcirTransformationMap {
     }
 }
 
+fn transform_assert_messages(
+    assert_messages: BTreeMap<OpcodeLocation, String>,
+    map: &AcirTransformationMap,
+) -> BTreeMap<OpcodeLocation, String> {
+    assert_messages
+        .into_iter()
+        .flat_map(|(location, message)| {
+            let new_locations = map.new_locations(location);
+            new_locations.into_iter().map(move |new_location| (new_location, message.clone()))
+        })
+        .collect()
+}
+
 /// Applies [`ProofSystemCompiler`][crate::ProofSystemCompiler] specific optimizations to a [`Circuit`].
 pub fn compile(
     acir: Circuit,
@@ -90,12 +105,14 @@ pub fn compile(
 
     // Range optimization pass
     let range_optimizer = RangeOptimizer::new(acir);
-    let (acir, acir_opcode_positions) =
+    let (mut acir, acir_opcode_positions) =
         range_optimizer.replace_redundant_ranges(acir_opcode_positions);
 
     let mut transformer = match &np_language {
         crate::Language::R1CS => {
             let transformation_map = AcirTransformationMap { acir_opcode_positions };
+            acir.assert_messages =
+                transform_assert_messages(acir.assert_messages, &transformation_map);
             let transformer = R1CSTransformer::new(acir);
             return Ok((transformer.transform(), transformation_map));
         }
@@ -248,6 +265,9 @@ pub fn compile(
 
     let current_witness_index = next_witness_index - 1;
 
+    let transformation_map =
+        AcirTransformationMap { acir_opcode_positions: new_acir_opcode_positions };
+
     let acir = Circuit {
         current_witness_index,
         opcodes: transformed_opcodes,
@@ -255,10 +275,8 @@ pub fn compile(
         private_parameters: acir.private_parameters,
         public_parameters: acir.public_parameters,
         return_values: acir.return_values,
+        assert_messages: transform_assert_messages(acir.assert_messages, &transformation_map),
     };
-
-    let transformation_map =
-        AcirTransformationMap { acir_opcode_positions: new_acir_opcode_positions };
 
     Ok((acir, transformation_map))
 }
