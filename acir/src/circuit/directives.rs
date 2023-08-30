@@ -15,12 +15,6 @@ pub struct QuotientDirective {
 /// You can think of them as opcodes that allow one to use non-determinism
 /// In the future, this can be replaced with asm non-determinism blocks
 pub enum Directive {
-    //Inverts the value of x and stores it in the result variable
-    Invert {
-        x: Witness,
-        result: Witness,
-    },
-
     //Performs euclidian division of a / b (as integers) and stores the quotient in q and the rest in r
     Quotient(QuotientDirective),
 
@@ -44,7 +38,6 @@ pub enum Directive {
 impl Directive {
     pub fn name(&self) -> &str {
         match self {
-            Directive::Invert { .. } => "invert",
             Directive::Quotient(_) => "quotient",
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",

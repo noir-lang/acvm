@@ -10,7 +10,7 @@ use num_traits::Zero;
 
 use crate::OpcodeResolutionError;
 
-use super::{get_value, insert_value, witness_to_value, ErrorLocation};
+use super::{get_value, insert_value, ErrorLocation};
 
 mod sorting;
 
@@ -25,11 +25,6 @@ pub(super) fn solve_directives(
     directive: &Directive,
 ) -> Result<(), OpcodeResolutionError> {
     match directive {
-        Directive::Invert { x, result } => {
-            let val = witness_to_value(initial_witness, *x)?;
-            insert_value(result, val.inverse(), initial_witness)?;
-            Ok(())
-        }
         Directive::Quotient(QuotientDirective { a, b, q, r, predicate }) => {
             let val_a = get_value(a, initial_witness)?;
             let val_b = get_value(b, initial_witness)?;

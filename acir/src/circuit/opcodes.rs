@@ -98,10 +98,6 @@ impl std::fmt::Display for Opcode {
 
                 write!(f, " ]")
             }
-            Opcode::Directive(Directive::Invert { x, result: r }) => {
-                write!(f, "DIR::INVERT ")?;
-                write!(f, "(_{}, out: _{}) ", x.witness_index(), r.witness_index())
-            }
             Opcode::Directive(Directive::Quotient(QuotientDirective { a, b, q, r, predicate })) => {
                 write!(f, "DIR::QUOTIENT ")?;
                 if let Some(pred) = predicate {
