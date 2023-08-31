@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     foreign_call::{resolve_brillig, ForeignCallHandler},
-    JsWitnessMap,
+    JsExecutionError, JsWitnessMap,
 };
 
 #[wasm_bindgen]
@@ -39,7 +39,7 @@ pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, js_sys::JsString> {
+) -> Result<JsWitnessMap, JsExecutionError> {
     console_error_panic_hook::set_once();
 
     let solver = WasmBlackBoxFunctionSolver::initialize().await;
@@ -61,7 +61,7 @@ pub async fn execute_circuit_with_black_box_solver(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, js_sys::JsString> {
+) -> Result<JsWitnessMap, JsExecutionError> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
@@ -76,15 +76,26 @@ pub async fn execute_circuit_with_black_box_solver(
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
             ACVMStatus::Failure(error) => {
-                let assert_message = match &error {
+                let (assert_message, call_stack) = match &error {
                     OpcodeResolutionError::UnsatisfiedConstrain {
                         opcode_location: ErrorLocation::Resolved(opcode_location),
                     }
                     | OpcodeResolutionError::IndexOutOfBounds {
                         opcode_location: ErrorLocation::Resolved(opcode_location),
                         ..
-                    } => circuit.assert_messages.get(opcode_location).cloned(),
-                    _ => None,
+                    } => (
+                        circuit.assert_messages.get(opcode_location).cloned(),
+                        Some(vec![*opcode_location]),
+                    ),
+                    OpcodeResolutionError::BrilligFunctionFailed { call_stack, .. } => {
+                        let failing_opcode =
+                            call_stack.last().expect("Brillig error call stacks cannot be empty");
+                        (
+                            circuit.assert_messages.get(failing_opcode).cloned(),
+                            Some(call_stack.clone()),
+                        )
+                    }
+                    _ => (None, None),
                 };
 
                 let error_string = match assert_message {
@@ -92,10 +103,12 @@ pub async fn execute_circuit_with_black_box_solver(
                     None => error.to_string(),
                 };
 
-                return Err(error_string.into());
+                return Err(JsExecutionError::create(error_string, call_stack));
             }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
-                let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
+                let result = resolve_brillig(&foreign_call_handler, &foreign_call)
+                    .await
+                    .map_err(|err| JsExecutionError::create(err, None))?;
 
                 acvm.resolve_pending_foreign_call(result);
             }

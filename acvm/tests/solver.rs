@@ -4,7 +4,6 @@ use acir::{
     brillig::{BinaryFieldOp, Opcode as BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
-        directives::Directive,
         opcodes::{BlockId, MemOp},
         Opcode, OpcodeLocation,
     },
@@ -599,11 +598,9 @@ fn unsatisfied_opcode_resolved_brillig() {
     let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
-                acir_index: 0,
-                brillig_index: 2
-            }),
+        ACVMStatus::Failure(OpcodeResolutionError::BrilligFunctionFailed {
+            message: "explicit trap hit in brillig".to_string(),
+            call_stack: vec![OpcodeLocation::Brillig { acir_index: 0, brillig_index: 2 }]
         }),
         "The first opcode is not satisfiable, expected an error indicating this"
     );

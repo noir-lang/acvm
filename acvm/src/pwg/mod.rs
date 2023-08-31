@@ -103,14 +103,14 @@ pub enum OpcodeResolutionError {
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
     #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("Cannot satisfy constraint {opcode_location}")]
+    #[error("Cannot satisfy constraint")]
     UnsatisfiedConstrain { opcode_location: ErrorLocation },
-    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?} at {opcode_location}")]
+    #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
     IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
     #[error("failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
-    #[error("failed to solve brillig function, reason: {0} at index {1}")]
-    BrilligFunctionFailed(String, usize),
+    #[error("Failed to solve brillig function, reason: {message}")]
+    BrilligFunctionFailed { message: String, call_stack: Vec<OpcodeLocation> },
 }
 
 impl From<BlackBoxResolutionError> for OpcodeResolutionError {
@@ -258,7 +258,12 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
                 solver.solve_memory_op(op, &mut self.witness_map, predicate)
             }
             Opcode::Brillig(brillig) => {
-                match BrilligSolver::solve(&mut self.witness_map, brillig, self.backend) {
+                match BrilligSolver::solve(
+                    &mut self.witness_map,
+                    brillig,
+                    self.backend,
+                    self.instruction_pointer,
+                ) {
                     Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
                     res => res.map(|_| ()),
                 }
@@ -288,20 +293,6 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
                         *opcode_index = ErrorLocation::Resolved(OpcodeLocation::Acir(
                             self.instruction_pointer(),
                         ));
-                    }
-                    // If a brillig function has failed, we return an unsatisfied constraint error
-                    // We intentionally ignore the brillig failure message, as there is no way to
-                    // propagate this to the caller.
-                    OpcodeResolutionError::BrilligFunctionFailed(
-                        _,
-                        brillig_instruction_pointer,
-                    ) => {
-                        error = OpcodeResolutionError::UnsatisfiedConstrain {
-                            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Brillig {
-                                acir_index: self.instruction_pointer(),
-                                brillig_index: *brillig_instruction_pointer,
-                            }),
-                        }
                     }
                     // All other errors are thrown normally.
                     _ => (),

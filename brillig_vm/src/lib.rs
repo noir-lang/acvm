@@ -36,6 +36,7 @@ pub enum VMStatus {
     InProgress,
     Failure {
         message: String,
+        call_stack: Vec<usize>,
     },
     /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
     /// reached where the outputs are yet to be resolved.  
@@ -121,7 +122,10 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
     /// Indicating that the VM encountered a `Trap` Opcode
     /// or an invalid state.
     fn fail(&mut self, message: String) -> VMStatus {
-        self.status(VMStatus::Failure { message });
+        let mut error_stack: Vec<_> =
+            self.call_stack.iter().map(|value| value.to_usize()).collect();
+        error_stack.push(self.program_counter);
+        self.status(VMStatus::Failure { call_stack: error_stack, message });
         self.status.clone()
     }
 
@@ -174,7 +178,7 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
             }
             Opcode::Return => {
                 if let Some(register) = self.call_stack.pop() {
-                    self.set_program_counter(register.to_usize())
+                    self.set_program_counter(register.to_usize() + 1)
                 } else {
                     self.fail("return opcode hit, but callstack already empty".to_string())
                 }
@@ -278,7 +282,7 @@ impl<'bb_solver, B: BlackBoxFunctionSolver> VM<'bb_solver, B> {
             }
             Opcode::Call { location } => {
                 // Push a return location
-                self.call_stack.push(Value::from(self.program_counter + 1));
+                self.call_stack.push(Value::from(self.program_counter));
                 self.set_program_counter(*location)
             }
             Opcode::Const { destination, value } => {
@@ -539,7 +543,10 @@ mod tests {
         let status = vm.process_opcode();
         assert_eq!(
             status,
-            VMStatus::Failure { message: "explicit trap hit in brillig".to_string() }
+            VMStatus::Failure {
+                message: "explicit trap hit in brillig".to_string(),
+                call_stack: vec![1]
+            }
         );
 
         // The register at index `2` should have not changed as we jumped over the add opcode
