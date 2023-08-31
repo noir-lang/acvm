@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use acir::{
     circuit::{
         brillig::BrilligOutputs, directives::Directive, opcodes::UnsupportedMemoryOpcode, Circuit,
@@ -61,9 +59,9 @@ impl AcirTransformationMap {
 }
 
 fn transform_assert_messages(
-    assert_messages: BTreeMap<OpcodeLocation, String>,
+    assert_messages: Vec<(OpcodeLocation, String)>,
     map: &AcirTransformationMap,
-) -> BTreeMap<OpcodeLocation, String> {
+) -> Vec<(OpcodeLocation, String)> {
     assert_messages
         .into_iter()
         .flat_map(|(location, message)| {

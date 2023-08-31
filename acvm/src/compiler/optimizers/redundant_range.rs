@@ -135,7 +135,7 @@ fn extract_range_opcode(opcode: &Opcode) -> Option<(Witness, u32)> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeSet;
 
     use crate::compiler::optimizers::redundant_range::{extract_range_opcode, RangeOptimizer};
     use acir::{
@@ -164,7 +164,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs::default(),
             return_values: PublicInputs::default(),
-            assert_messages: BTreeMap::new(),
+            assert_messages: Default::default(),
         }
     }
 
