@@ -4,7 +4,6 @@ use acir::{
     brillig::{BinaryFieldOp, Opcode as BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
-        directives::Directive,
         opcodes::{BlockId, MemOp},
         Opcode, OpcodeLocation,
     },
