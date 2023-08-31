@@ -13,6 +13,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
         // First check if the number is zero
         //
         let number = BigUint::from_bytes_be(&self.to_be_bytes());
+
         if number == BigUint::zero() {
             return write!(f, "0");
         }
@@ -74,6 +75,24 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
 }
 
 impl<F: PrimeField> std::fmt::Debug for FieldElement<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct DivisionResult<F: PrimeField>(Result<FieldElement<F>, String>);
+
+impl<F: PrimeField> std::fmt::Display for DivisionResult<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self.0 {
+            Ok(field_element) => std::fmt::Display::fmt(field_element, f),
+            Err(error) => write!(f, "{}", error),
+        }
+    }
+}
+
+impl<F: PrimeField> std::fmt::Debug for DivisionResult<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self, f)
     }
@@ -423,10 +442,17 @@ impl<F: PrimeField> Mul for FieldElement<F> {
     }
 }
 impl<F: PrimeField> Div for FieldElement<F> {
-    type Output = FieldElement<F>;
+    type Output = DivisionResult<F>;
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: FieldElement<F>) -> Self::Output {
-        self * rhs.inverse()
+        let division = self.clone().division_with_reminder(&rhs);
+
+        if !division.is_zero() {
+            DivisionResult(Err(format!("{} / {}", self, rhs)))
+        }
+        else {
+            DivisionResult(Ok(self * rhs.inverse()))
+        }
     }
 }
 impl<F: PrimeField> Add for FieldElement<F> {
@@ -606,6 +632,22 @@ mod tests {
             let result = dividend % divisor;
 
             assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+        }
+
+        #[test]
+        fn fmt_test() {
+            let dividend = FieldElement::<ark_bn254::Fr>::from(10 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
+            let result = dividend / divisor;
+
+            assert!(result.0.is_err());
+            assert_eq!(result.0.err().unwrap(), "10 / 3".to_string());
+
+            let dividend = FieldElement::<ark_bn254::Fr>::from(9 as i128);
+            let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
+            let result = dividend / divisor;
+
+            assert_eq!(result.0.unwrap(), divisor);
         }
     }
 }
