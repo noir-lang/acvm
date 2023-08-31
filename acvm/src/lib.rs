@@ -4,10 +4,6 @@
 pub mod compiler;
 pub mod pwg;
 
-use acir::{
-    circuit::{Circuit, Opcode},
-    native_types::WitnessMap,
-};
 pub use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use core::fmt::Debug;
 use pwg::OpcodeResolutionError;
@@ -26,74 +22,4 @@ pub use blackbox_solver;
 pub enum Language {
     R1CS,
     PLONKCSat { width: usize },
-}
-
-pub trait Backend: SmartContract + ProofSystemCompiler + Default + Debug {}
-
-pub trait SmartContract {
-    /// The Error type returned by failed function calls in the SmartContract trait.
-    type Error: std::error::Error;
-
-    // TODO: Allow a backend to support multiple smart contract platforms
-
-    /// Returns an Ethereum smart contract to verify proofs against a given common reference string and verification key.
-    fn eth_contract(&self, circuit: &Circuit) -> Result<String, Self::Error>;
-}
-
-pub trait ProofSystemCompiler {
-    /// The Error type returned by failed function calls in the ProofSystemCompiler trait.
-    type Error: std::error::Error;
-
-    /// The NPC language that this proof system directly accepts.
-    /// It is possible for ACVM to transpile to different languages, however it is advised to create a new backend
-    /// as this in most cases will be inefficient. For this reason, we want to throw a hard error
-    /// if the language and proof system does not line up.
-    fn np_language(&self) -> Language;
-
-    // Returns true if the backend supports the selected opcode
-    fn supports_opcode(&self, opcode: &Opcode) -> bool;
-
-    /// Returns the number of gates in a circuit
-    fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error>;
-
-    /// Creates a Proof given the [`Circuit`] and the [witness values][`WitnessMap`]
-    /// It is important to note that the intermediate witnesses for black box functions will not generated
-    /// This is the responsibility of the proof system.
-    ///
-    /// The `is_recursive` flag represents whether one wants to create proofs that are to be natively verified.
-    /// A proof system may use a certain hash type for the Fiat-Shamir normally that is not hash friendly (such as keccak to enable Solidity verification),
-    /// but may want to use a snark-friendly hash function when performing native verification.
-    fn prove(
-        &self,
-        circuit: &Circuit,
-        witness_values: WitnessMap,
-        is_recursive: bool,
-    ) -> Result<Vec<u8>, Self::Error>;
-
-    /// Verifies a Proof, given the [`Circuit`] and [public inputs][`WitnessMap`]
-    ///
-    /// The `is_recursive` flag represents whether one wants to verify proofs that are to be natively verified.
-    /// The flag must match the `is_recursive` flag used to generate the proof passed into this method, otherwise verification will return false.
-    fn verify(
-        &self,
-        proof: &[u8],
-        public_inputs: WitnessMap,
-        circuit: &Circuit,
-        is_recursive: bool,
-    ) -> Result<bool, Self::Error>;
-
-    /// When performing recursive aggregation in a circuit it is most efficient to use a proof formatted using a backend's native field.
-    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
-    fn proof_as_fields(
-        &self,
-        proof: &[u8],
-        public_inputs: WitnessMap,
-    ) -> Result<Vec<FieldElement>, Self::Error>;
-
-    /// When performing recursive aggregation in a circuit it is most efficient to use a verification key formatted using a backend's native field.
-    /// This method is exposed to enable backends to integrate a native recursion format and optimize their recursive circuits.
-    fn vk_as_fields(
-        &self,
-        verification_key: &[u8],
-    ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error>;
 }
