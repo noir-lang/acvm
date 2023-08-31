@@ -81,11 +81,13 @@ impl<F: PrimeField> std::fmt::Debug for FieldElement<F> {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct DivisionResult<F: PrimeField>(Result<FieldElement<F>, String>);
+pub struct DivisionResult<F: PrimeField> {
+    pub result_field: Result<FieldElement<F>, String>,
+}
 
 impl<F: PrimeField> std::fmt::Display for DivisionResult<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match &self.0 {
+        match &self.result_field {
             Ok(field_element) => std::fmt::Display::fmt(field_element, f),
             Err(error) => write!(f, "{}", error),
         }
@@ -448,9 +450,9 @@ impl<F: PrimeField> Div for FieldElement<F> {
         let division = self.clone().division_with_reminder(&rhs);
 
         if !division.is_zero() {
-            DivisionResult(Err(format!("{} / {}", self, rhs)))
+            DivisionResult { result_field: Err(format!("{} / {}", self, rhs)) }
         } else {
-            DivisionResult(Ok(self * rhs.inverse()))
+            DivisionResult { result_field: Ok(self * rhs.inverse()) }
         }
     }
 }
@@ -639,14 +641,14 @@ mod tests {
             let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
             let result = dividend / divisor;
 
-            assert!(result.0.is_err());
-            assert_eq!(result.0.err().unwrap(), "10 / 3".to_string());
+            assert!(result.result_field.is_err());
+            assert_eq!(result.result_field.err().unwrap(), "10 / 3".to_string());
 
             let dividend = FieldElement::<ark_bn254::Fr>::from(9 as i128);
             let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
             let result = dividend / divisor;
 
-            assert_eq!(result.0.unwrap(), divisor);
+            assert_eq!(result.result_field.unwrap(), divisor);
         }
     }
 }
