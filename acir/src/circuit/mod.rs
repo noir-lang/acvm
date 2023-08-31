@@ -7,7 +7,7 @@ use crate::native_types::Witness;
 pub use opcodes::Opcode;
 use thiserror::Error;
 
-use std::{collections::BTreeMap, io::prelude::*, num::ParseIntError, str::FromStr};
+use std::{io::prelude::*, num::ParseIntError, str::FromStr};
 
 use flate2::Compression;
 
@@ -33,7 +33,11 @@ pub struct Circuit {
     /// Maps opcode locations to failed assertion messages.
     /// These messages are embedded in the circuit to provide useful feedback to users
     /// when a constraint in the circuit is not satisfied.
-    pub assert_messages: BTreeMap<OpcodeLocation, String>,
+    ///
+    // Note: This should be a BTreeMap, but serde-reflect is creating invalid
+    // c++ code at the moment when it is, due to OpcodeLocation needing a comparison
+    // implementation which is never generated.
+    pub assert_messages: Vec<(OpcodeLocation, String)>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -199,7 +203,7 @@ impl PublicInputs {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, BTreeSet};
+    use std::collections::BTreeSet;
 
     use super::{
         opcodes::{BlackBoxFuncCall, FunctionInput},
@@ -229,7 +233,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
-            assert_messages: BTreeMap::new(),
+            assert_messages: Default::default(),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -259,7 +263,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
-            assert_messages: BTreeMap::new(),
+            assert_messages: Default::default(),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();

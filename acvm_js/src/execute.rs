@@ -1,6 +1,6 @@
 #[allow(deprecated)]
 use acvm::{
-    acir::circuit::Circuit,
+    acir::circuit::{Circuit, OpcodeLocation},
     blackbox_solver::BarretenbergSolver,
     pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
@@ -83,7 +83,7 @@ pub async fn execute_circuit_with_black_box_solver(
                     | OpcodeResolutionError::IndexOutOfBounds {
                         opcode_location: ErrorLocation::Resolved(opcode_location),
                         ..
-                    } => circuit.assert_messages.get(opcode_location).cloned(),
+                    } => get_assert_message(&circuit.assert_messages, opcode_location),
                     _ => None,
                 };
 
@@ -104,4 +104,16 @@ pub async fn execute_circuit_with_black_box_solver(
 
     let witness_map = acvm.finalize();
     Ok(witness_map.into())
+}
+
+// Searches the slice for `opcode_location`.
+// This is functionality equivalent to .get on a map.
+fn get_assert_message(
+    assert_messages: &[(OpcodeLocation, String)],
+    opcode_location: &OpcodeLocation,
+) -> Option<String> {
+    assert_messages
+        .iter()
+        .find(|(loc, _)| loc == opcode_location)
+        .map(|(_, message)| message.clone())
 }
