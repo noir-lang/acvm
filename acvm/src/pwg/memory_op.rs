@@ -114,7 +114,7 @@ impl MemoryOpSolver {
             if pred_value.is_zero() {
                 // We only want to write to already initialized memory.
                 // Do nothing if the predicate is zero.
-                return Ok(());
+                Ok(())
             } else {
                 let value_to_write = get_value(&value_write, initial_witness)?;
                 self.write_memory_index(memory_index, value_to_write)
@@ -236,8 +236,8 @@ mod tests {
 
         let invalid_trace = vec![
             MemOp::write_to_mem_index(FieldElement::from(2u128).into(), Witness(3).into()),
-            MemOp::read_at_mem_index(FieldElement::from(0u128).into(), Witness(4).into()),
-            MemOp::read_at_mem_index(FieldElement::from(1u128).into(), Witness(5).into()),
+            MemOp::read_at_mem_index(FieldElement::from(0u128).into(), Witness(4)),
+            MemOp::read_at_mem_index(FieldElement::from(1u128).into(), Witness(5)),
         ];
         let mut block_solver = MemoryOpSolver::default();
         block_solver.init(&init, &initial_witness).unwrap();
