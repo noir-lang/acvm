@@ -449,8 +449,7 @@ impl<F: PrimeField> Div for FieldElement<F> {
 
         if !division.is_zero() {
             DivisionResult(Err(format!("{} / {}", self, rhs)))
-        }
-        else {
+        } else {
             DivisionResult(Ok(self * rhs.inverse()))
         }
     }
