@@ -92,37 +92,42 @@ jobs:
         working-directory: ./acvm_js
         run: yarn test:browser
 
-  # test-acvm_js-rust:
-  #   needs: [build-acvm-js-package]
-  #   name: Rust Tests
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       target: "wasm32-unknown-unknown"
+  test-acvm_js-rust:
+    needs: [build-acvm-js-package]
+    name: Rust Tests
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@v3
+    strategy:
+      # fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu
+            runner: ubuntu-latest
+            target: wasm32-unknown-unknown
 
-  #     - name: Download artifact
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: acvm-js
-  #         path: ./result
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
 
-  #     - name: Set up test environment
-  #       uses: ./.github/actions/setup
-  #       with:
-  #         working-directory: ./acvm_js
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: acvm-js
+          path: ./result
 
-  #     - name: Setup toolchain
-  #       uses: dtolnay/rust-toolchain@1.66.0
-  #       with:
-  #         targets: ${{ matrix.target }}
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+        with:
+          working-directory: ./acvm_js
 
-  #     - name: Add wasm32 target
-  #       run: cargo install wasm-bindgen-cli --vers "0.2.87"
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@1.66.0
+        with:
+          targets: ${{ matrix.target }}
 
-  #     - name: Run rust tests
-  #       working-directory: ./acvm_js
-  #       run: yarn test:rust
+      - name: Add wasm32 target
+        run: cargo install wasm-bindgen-cli --vers "0.2.87"
+
+      - name: Run rust tests
+        working-directory: ./acvm_js
+        run: yarn test:rust
