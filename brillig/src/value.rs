@@ -91,7 +91,7 @@ impl Div for Value {
     type Output = Value;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Value { inner: (self.inner / rhs.inner).result_field.unwrap() }
+        Value { inner: self.inner / rhs.inner }
     }
 }
 impl Neg for Value {

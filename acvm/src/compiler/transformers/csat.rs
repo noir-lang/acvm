@@ -268,7 +268,7 @@ impl CSatTransformer {
 
         if intermediate_variables.contains_key(&normalized_expr) {
             let (l, iv) = intermediate_variables[&normalized_expr];
-            ((k / l).result_field.unwrap(), iv)
+            (k / l, iv)
         } else {
             let inter_var = Witness(*num_witness);
             *num_witness += 1;

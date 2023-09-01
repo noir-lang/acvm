@@ -14,7 +14,7 @@ pub(crate) fn evaluate_binary_field_op(
         BinaryFieldOp::Add => a + b,
         BinaryFieldOp::Sub => a - b,
         BinaryFieldOp::Mul => a * b,
-        BinaryFieldOp::Div => (a / b).result_field.unwrap(),
+        BinaryFieldOp::Div => a / b,
         BinaryFieldOp::Equals => (a == b).into(),
     }
 }
