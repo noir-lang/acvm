@@ -107,6 +107,10 @@ jobs:
           name: acvm-js
           path: ./result
 
+      - name: Run yarn install
+        working-directory: ./acvm_js
+        run: yarn
+
       - name: Run browser tests
         working-directory: ./acvm_js
         run: yarn test:rust
