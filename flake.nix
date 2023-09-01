@@ -145,13 +145,6 @@
           doCheck = true;
         });
 
-        cargo-test-acvm-js = craneLib.cargoTest (acvmjsWasmArgs // {
-          inherit GIT_COMMIT GIT_DIRTY;
-          cargoArtifacts = cargo-artifacts;
-          doCheck = true;
-          cargoExtraArgs = "--package acvm_js -- --test";
-        });
-
         cargo-test = craneLib.cargoTest (commonArgs // sharedEnvironment // {
           inherit GIT_COMMIT GIT_DIRTY;
 
