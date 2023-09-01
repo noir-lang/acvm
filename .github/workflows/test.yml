@@ -96,6 +96,9 @@ jobs:
     needs: [build-acvm-js-package]
     name: Rust Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: "wasm32-unknown-unknown"
 
     steps:
       - name: Checkout sources
@@ -112,17 +115,13 @@ jobs:
         with:
           working-directory: ./acvm_js
 
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+      - name: Setup toolchain
+        uses: dtolnay/rust-toolchain@1.66.0
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
+          targets: ${{ matrix.target }}
 
       - name: Add wasm32 target
-        run: |
-          rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli --vers "0.2.87"
+        run: cargo install wasm-bindgen-cli --vers "0.2.87"
 
       - name: Run rust tests
         working-directory: ./acvm_js
