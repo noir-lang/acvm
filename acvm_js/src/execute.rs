@@ -5,6 +5,7 @@ use acvm::{
     pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
 
+use js_sys::Error;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
@@ -39,7 +40,7 @@ pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, JsExecutionError> {
+) -> Result<JsWitnessMap, Error> {
     console_error_panic_hook::set_once();
 
     let solver = WasmBlackBoxFunctionSolver::initialize().await;
@@ -61,7 +62,7 @@ pub async fn execute_circuit_with_black_box_solver(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, JsExecutionError> {
+) -> Result<JsWitnessMap, Error> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
@@ -103,12 +104,10 @@ pub async fn execute_circuit_with_black_box_solver(
                     None => error.to_string(),
                 };
 
-                return Err(JsExecutionError::create(error_string, call_stack));
+                return Err(JsExecutionError::create(error_string, call_stack).into());
             }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
-                let result = resolve_brillig(&foreign_call_handler, &foreign_call)
-                    .await
-                    .map_err(|err| JsExecutionError::create(err, None))?;
+                let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
 
                 acvm.resolve_pending_foreign_call(result);
             }
