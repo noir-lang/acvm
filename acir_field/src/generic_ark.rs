@@ -423,6 +423,9 @@ impl<F: PrimeField> FieldElement<F> {
         }
     }
 
+    /// Performs the division of the FieldElement
+    /// Returns FieldElement if the number is divisible
+    /// Returns String in a pretty format if the number is not divisible
     pub fn pretty_div(self, rhs: FieldElement<F>) -> DivisionResult<F> {
         let division = self.clone().division_with_reminder(&rhs);
 

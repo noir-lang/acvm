@@ -53,7 +53,7 @@ impl ArithmeticSolver {
                             Ok(())
                         }
                     } else {
-                        let assignment = (-total_sum / (q + b)).result_field.unwrap();
+                        let assignment = -total_sum / (q + b);
                         // Add this into the witness assignments
                         insert_value(&w1, assignment, initial_witness)?;
                         Ok(())
@@ -83,7 +83,7 @@ impl ArithmeticSolver {
                         Ok(())
                     }
                 } else {
-                    let assignment = -(total_sum / partial_prod).result_field.unwrap();
+                    let assignment = -(total_sum / partial_prod);
                     // Add this into the witness assignments
                     insert_value(&unknown_var, assignment, initial_witness)?;
                     Ok(())
@@ -117,7 +117,7 @@ impl ArithmeticSolver {
                         Ok(())
                     }
                 } else {
-                    let assignment = -(total_sum / coeff).result_field.unwrap();
+                    let assignment = -(total_sum / coeff);
                     // Add this into the witness assignments
                     insert_value(&unknown_var, assignment, initial_witness)?;
                     Ok(())
