@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.23.0...acvm_blackbox_solver-v0.24.0) (2023-08-31)
+
+
+### Miscellaneous Chores
+
+* **acvm_blackbox_solver:** Synchronize acvm versions
+
 ## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.22.0...acvm_blackbox_solver-v0.23.0) (2023-08-30)
 
 
