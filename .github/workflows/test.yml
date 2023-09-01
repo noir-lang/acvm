@@ -112,6 +112,16 @@ jobs:
         with:
           working-directory: ./acvm_js
 
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
       - name: Run browser tests
         working-directory: ./acvm_js
         run: yarn test:rust
