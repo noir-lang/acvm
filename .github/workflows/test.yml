@@ -121,12 +121,12 @@ jobs:
           working-directory: ./acvm_js
 
       - name: Setup toolchain
-        uses: dtolnay/rust-toolchain@1.66.0
+        uses: dtolnay/rust-toolchain@1.67.0
         with:
           targets: ${{ matrix.target }}
 
-      - name: Add wasm32 target
-        run: cargo install wasm-bindgen-cli --vers "0.2.87"
+      # - name: Add wasm32 target
+      #   run: cargo install wasm-bindgen-cli --vers "0.2.87" --locked
 
       - name: Run rust tests
         working-directory: ./acvm_js
