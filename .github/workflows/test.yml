@@ -98,7 +98,6 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      # fail-fast: false
       matrix:
         include:
           - os: ubuntu
@@ -125,8 +124,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Add wasm32 target
-        run: cargo install wasm-bindgen-cli --vers "0.2.87" --locked
+      - name: Install cargo
+        working-directory: ./acvm_js
+        run: cargo install --path .
 
       - name: Run rust tests
         working-directory: ./acvm_js
