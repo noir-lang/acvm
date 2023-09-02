@@ -87,13 +87,17 @@ impl Barretenberg {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn new() -> Barretenberg {
         let (instance, memory, store) = instance_load();
-        Barretenberg { memory, instance, store: RefCell::new(store) }
+        let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
+        barretenberg.call_multiple("_initialize", vec![]).unwrap();
+        barretenberg
     }
 
     #[cfg(target_arch = "wasm32")]
     pub(crate) async fn initialize() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
-        Barretenberg { memory, instance, store: RefCell::new(store) }
+        let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
+        barretenberg.call_multiple("_initialize", vec![]).unwrap();
+        barretenberg
     }
 }
 
