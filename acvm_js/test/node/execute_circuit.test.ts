@@ -219,7 +219,6 @@ it.only("successfully executes 500 circuits with same backend", async function (
   );
 
   for (let i = 0; i < 500; i++) {
-    console.log("Iteration", i);
     const solvedWitness = await executeCircuitWithBlackBoxSolver(
       solver,
       bytecode,
@@ -228,7 +227,6 @@ it.only("successfully executes 500 circuits with same backend", async function (
         throw Error("unexpected oracle");
       }
     );
-    console.log("Solved!");
 
     expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
   }

@@ -88,7 +88,7 @@ impl Barretenberg {
     pub(crate) fn new() -> Barretenberg {
         let (instance, memory, store) = instance_load();
         let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
-        barretenberg.call_multiple("_initialize", vec![]).unwrap();
+        barretenberg.call_wasi_initialize();
         barretenberg
     }
 
@@ -96,8 +96,13 @@ impl Barretenberg {
     pub(crate) async fn initialize() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
         let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
-        barretenberg.call_multiple("_initialize", vec![]).unwrap();
         barretenberg
+    }
+    /// Call initialization function for WASI, to initialize all of the appropriate
+    /// globals.
+    fn call_wasi_initialize(&self) {
+        self.call_multiple("_initialize", vec![])
+            .expect("expected call to WASI initialization function to not fail");
     }
 }
 
