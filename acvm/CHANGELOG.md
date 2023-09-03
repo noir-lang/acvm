@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.24.1](https://github.com/noir-lang/acvm/compare/acvm-v0.24.0...acvm-v0.24.1) (2023-09-03)
+
+
+### Miscellaneous Chores
+
+* **acvm:** Synchronize acvm versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.24.0 to 0.24.1
+
 ## [0.24.0](https://github.com/noir-lang/acvm/compare/acvm-v0.23.0...acvm-v0.24.0) (2023-08-31)
 
 

@@ -7,7 +7,7 @@ use std::{
 const BARRETENBERG_ARCHIVE: &str = "BARRETENBERG_ARCHIVE";
 const BARRETENBERG_BIN_DIR: &str = "BARRETENBERG_BIN_DIR";
 
-const BARRETENBERG_ARCHIVE_FALLBACK: &str = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/acvm_backend.wasm.tar.gz";
+const BARRETENBERG_ARCHIVE_FALLBACK: &str = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.5.0/acvm_backend.wasm.tar.gz";
 // const ARCHIVE_SHA256: &str = "1xpycikqlvsjcryi3hkbc4mwmmdz7zshw6f76vyf1qssq53asyfx";
 
 fn unpack_wasm(archive_path: &Path, target_dir: &Path) -> Result<(), String> {
