@@ -96,6 +96,7 @@ impl Barretenberg {
     pub(crate) async fn initialize() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
         let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
+        barretenberg.call_wasi_initialize();
         barretenberg
     }
     /// Call initialization function for WASI, to initialize all of the appropriate
