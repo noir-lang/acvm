@@ -40,15 +40,17 @@ rust-embed = { version = "6.6.0", features = [
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasmer = { version = "3.3", default-features = false, features = [ "js-default" ] }
-getrandom = { version = "0.2", features = [ "js" ]}
+wasmer = { version = "4.1.2", default-features = false, features = [
+    "js-default",
+] }
+getrandom = { version = "0.2", features = ["js"] }
 wasm-bindgen-futures = "0.4.36"
 js-sys = "0.3.62"
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.2"
-wasmer = "3.3"
+wasmer = "4.1.2"
 
 
 [build-dependencies]
