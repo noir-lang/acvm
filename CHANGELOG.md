@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.1](https://github.com/noir-lang/acvm/compare/root-v0.24.0...root-v0.24.1) (2023-09-03)
+
+
+### Bug Fixes
+
+* Add WASI 20 `_initialize` call to `acvm_backend.wasm` binary ([#518](https://github.com/noir-lang/acvm/issues/518)) ([ec6ab0c](https://github.com/noir-lang/acvm/commit/ec6ab0c6fb2753209abe1e03a449873e255ffd76))
+
 ## [0.24.0](https://github.com/noir-lang/acvm/compare/root-v0.23.0...root-v0.24.0) (2023-08-31)
 
 
