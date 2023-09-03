@@ -16,7 +16,7 @@ resolver = "2"
 authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 license = "MIT"
-rust-version = "1.67"
+rust-version = "1.70"
 repository = "https://github.com/noir-lang/acvm/"
 
 [workspace.dependencies]
