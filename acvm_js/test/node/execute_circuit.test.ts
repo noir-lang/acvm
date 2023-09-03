@@ -206,7 +206,7 @@ it("successfully executes two circuits with same backend", async function () {
   expect(solvedWitness1).to.be.deep.eq(expectedWitnessMap);
 });
 
-it.only("successfully executes 500 circuits with same backend", async function () {
+it("successfully executes 500 circuits with same backend", async function () {
   this.timeout(100000);
 
   // chose pedersen op here because it is the one with slow initialization
