@@ -99,17 +99,12 @@ pub async fn execute_circuit_with_black_box_solver(
                     _ => (None, None),
                 };
 
-                let error_string = match assert_message {
+                let error_string = match &assert_message {
                     Some(assert_message) => format!("{}: {}", error, assert_message),
                     None => error.to_string(),
                 };
 
-                let mut err = JsExecutionError::new(error_string.into());
-                if let Some(call_stack) = call_stack {
-                    err.set_call_stack(call_stack);
-                }
-
-                return Err(err.into());
+                return Err(JsExecutionError::new(error_string.into(), call_stack).into());
             }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;

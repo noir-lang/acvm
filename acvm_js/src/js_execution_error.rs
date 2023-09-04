@@ -19,19 +19,33 @@ extern "C" {
     pub type JsExecutionError;
 
     #[wasm_bindgen(constructor, js_class = "Error")]
-    pub fn new(message: JsString) -> JsExecutionError;
+    fn constructor(message: JsString) -> JsExecutionError;
 }
 
 impl JsExecutionError {
-    /// Sets the call stack in an execution error.
-    pub fn set_call_stack(&mut self, call_stack: Vec<OpcodeLocation>) {
-        let js_array = Array::new();
-        for loc in call_stack {
-            js_array.push(&JsValue::from(format!("{}", loc)));
-        }
+    /// Creates a new execution error with the given call stack.
+    /// Call stacks won't be optional in the future, after removing ErrorLocation in ACVM.
+    pub fn new(message: String, call_stack: Option<Vec<OpcodeLocation>>) -> Self {
+        let mut error = JsExecutionError::constructor(JsString::from(message));
+        let js_call_stack = match call_stack {
+            Some(call_stack) => {
+                let js_array = Array::new();
+                for loc in call_stack {
+                    js_array.push(&JsValue::from(format!("{}", loc)));
+                }
+                js_array.into()
+            }
+            None => JsValue::UNDEFINED,
+        };
+
+        error.set_property("callStack", js_call_stack);
+
+        error
+    }
+
+    fn set_property(&mut self, property: &str, value: JsValue) {
         assert!(
-            Reflect::set(self, &JsValue::from("callStack"), &js_array)
-                .expect("Errors should be objects"),
+            Reflect::set(self, &JsValue::from(property), &value).expect("Errors should be objects"),
             "Errors should be writable"
         );
     }
