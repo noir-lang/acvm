@@ -152,7 +152,7 @@ pub(crate) fn solve(
             fixed_base_scalar_mul(backend, initial_witness, *input, *outputs)
         }
         BlackBoxFuncCall::RecursiveAggregation { output_aggregation_object, .. } => {
-            // Solve the output of the recursive aggregation to zero to prevent missing assignement errors
+            // Solve the output of the recursive aggregation to zero to prevent missing assignment errors
             // The correct value will be computed by the backend
             for witness in output_aggregation_object {
                 insert_value(witness, FieldElement::zero(), initial_witness)?;
