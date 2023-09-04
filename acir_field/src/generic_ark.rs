@@ -212,7 +212,8 @@ impl<F: PrimeField> FieldElement<F> {
 
     /// This is the number of bits required to represent this specific field element
     pub fn num_bits(&self) -> u32 {
-        if self.is_zero() { // now returns one for a zero field element
+        if self.is_zero() {
+            // now returns one for a zero field element
             return 1;
         }
         let bits = self.bits();
