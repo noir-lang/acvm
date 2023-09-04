@@ -96,13 +96,6 @@ jobs:
     name: Rust Tests
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu
-            runner: ubuntu-latest
-            target: wasm32-unknown-unknown
-
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
@@ -110,7 +103,7 @@ jobs:
       - name: Setup toolchain
         uses: dtolnay/rust-toolchain@1.66.0
         with:
-          targets: ${{ matrix.target }}
+          targets: wasm32-unknown-unknown
 
       - name: Add wasm32 target
         run: cargo install wasm-bindgen-cli --vers "0.2.87" --locked
