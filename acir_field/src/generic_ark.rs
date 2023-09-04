@@ -171,6 +171,7 @@ impl<F: PrimeField> FieldElement<F> {
     pub fn into_bigint(self) -> <F as PrimeField>::BigInt {
         self.0.into_bigint()
     }
+
     pub fn from_bigint(repr: F::BigInt) -> Option<Self> {
         F::from_bigint(repr).map(|f| FieldElement(f))
     }
