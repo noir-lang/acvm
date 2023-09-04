@@ -100,7 +100,7 @@ pub async fn execute_circuit_with_black_box_solver(
                 };
 
                 let error_string = match &assert_message {
-                    Some(assert_message) => format!("{}: {}", error, assert_message),
+                    Some(assert_message) => format!("Assertion failed: {}", assert_message),
                     None => error.to_string(),
                 };
 
