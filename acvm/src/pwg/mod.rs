@@ -99,15 +99,15 @@ impl std::fmt::Display for ErrorLocation {
 
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
-    #[error("cannot solve opcode: {0}")]
+    #[error("Cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
-    #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
+    #[error("Backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
     #[error("Cannot satisfy constraint")]
     UnsatisfiedConstrain { opcode_location: ErrorLocation },
     #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
     IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
-    #[error("failed to solve blackbox function: {0}, reason: {1}")]
+    #[error("Failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
     #[error("Failed to solve brillig function, reason: {message}")]
     BrilligFunctionFailed { message: String, call_stack: Vec<OpcodeLocation> },
