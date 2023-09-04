@@ -212,6 +212,9 @@ impl<F: PrimeField> FieldElement<F> {
 
     /// This is the number of bits required to represent this specific field element
     pub fn num_bits(&self) -> u32 {
+        if self.is_zero() { // now returns one for a zero field element
+            return 1;
+        }
         let bits = self.bits();
         // Iterate the number of bits and pop off all leading zeroes
         let iter = bits.iter().skip_while(|x| !(**x));
@@ -440,6 +443,21 @@ mod tests {
     fn max_num_bits_smoke() {
         let max_num_bits_bn254 = crate::generic_ark::FieldElement::<ark_bn254::Fr>::max_num_bits();
         assert_eq!(max_num_bits_bn254, 254)
+    }
+
+    #[test]
+    fn num_bits_smoke() {
+        let x = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128);
+
+        assert_eq!(1, x.num_bits());
+
+        let x = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
+
+        assert_eq!(1, x.num_bits());
+
+        let x = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000000 as i128);
+
+        assert_eq!(20, x.num_bits());
     }
 }
 
