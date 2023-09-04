@@ -30,13 +30,16 @@ pub use memory::Memory;
 use num_bigint::BigUint;
 pub use registers::Registers;
 
+/// The error call stack contains the opcode indexes of the call stack at the time of failure, plus the index of the opcode that failed.
+pub type ErrorCallStack = Vec<usize>;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum VMStatus {
     Finished,
     InProgress,
     Failure {
         message: String,
-        call_stack: Vec<usize>,
+        call_stack: ErrorCallStack,
     },
     /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
     /// reached where the outputs are yet to be resolved.  
