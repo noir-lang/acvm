@@ -1,4 +1,7 @@
 /target
 .DS_Store
 .vscode
-Cargo.lock
+# Cargo.lock
+result
+outputs/
+.direnv

@@ -10,20 +10,20 @@ use indexmap::IndexMap;
 pub(crate) struct GeneralOptimizer;
 
 impl GeneralOptimizer {
-    pub(crate) fn optimize(gate: Expression) -> Expression {
+    pub(crate) fn optimize(opcode: Expression) -> Expression {
         // XXX: Perhaps this optimization can be done on the fly
-        let gate = remove_zero_coefficients(gate);
-        simplify_mul_terms(gate)
+        let opcode = remove_zero_coefficients(opcode);
+        simplify_mul_terms(opcode)
     }
 }
 
 // Remove all terms with zero as a coefficient
-fn remove_zero_coefficients(mut gate: Expression) -> Expression {
+fn remove_zero_coefficients(mut opcode: Expression) -> Expression {
     // Check the mul terms
-    gate.mul_terms.retain(|(scale, _, _)| !scale.is_zero());
+    opcode.mul_terms.retain(|(scale, _, _)| !scale.is_zero());
     // Check the linear combination terms
-    gate.linear_combinations.retain(|(scale, _)| !scale.is_zero());
-    gate
+    opcode.linear_combinations.retain(|(scale, _)| !scale.is_zero());
+    opcode
 }
 
 // Simplifies all mul terms with the same bi-variate variables

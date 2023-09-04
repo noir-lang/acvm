@@ -32,6 +32,11 @@
           "type": "toml",
           "path": "Cargo.toml",
           "jsonpath": "$.workspace.dependencies.blackbox_solver.version"
+        },
+        {
+          "type": "json",
+          "path": "acvm_js/package.json",
+          "jsonpath": "$.version"
         }
       ]
     },
@@ -43,6 +48,9 @@
     },
     "acvm": {
       "component": "acvm"
+    },
+    "acvm_js": {
+      "component": "acvm_js"
     },
     "brillig": {
       "component": "brillig"
@@ -70,6 +78,7 @@
         "acir",
         "acir_field",
         "acvm",
+        "acvm_js",
         "brillig",
         "brillig_vm",
         "acvm_stdlib",

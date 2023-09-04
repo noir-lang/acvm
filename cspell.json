@@ -9,7 +9,10 @@
         "ACVM",
         "Axyz",
         "arithmetization",
+        "Barretenberg",
+        "bindgen",
         "bivariate",
+        "barretenberg",
         "Brillig",
         "canonicalize",
         "callstack",
@@ -23,6 +26,7 @@
         "funcs",
         "grumpkin",
         "hasher",
+        "jsdoc",
         "keccak",
         "Merkle",
         "OddRange",
@@ -41,12 +45,14 @@
         "Msgpack",
         // Dependencies
         //
+        "bindir",
         "bufread",
         "flate",
         "indexmap",
         "thiserror",
         "typenum",
         "jmpif",
-        "jmpifnot"
+        "jmpifnot",
+        "rustc"
     ]
 }

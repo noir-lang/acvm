@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.24.1](https://github.com/noir-lang/acvm/compare/acir-v0.24.0...acir-v0.24.1) (2023-09-03)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
+## [0.24.0](https://github.com/noir-lang/acvm/compare/acir-v0.23.0...acir-v0.24.0) (2023-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510))
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484))
+
+### Features
+
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503)) ([ca9eebe](https://github.com/noir-lang/acvm/commit/ca9eebe34e61adabf97318c8ccaf60c8a424aafd))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484)) ([06b97c5](https://github.com/noir-lang/acvm/commit/06b97c51041e16651cf8b2be8bc18214e276c6c9))
+
+
+### Miscellaneous Chores
+
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510)) ([cfd8cbf](https://github.com/noir-lang/acvm/commit/cfd8cbf58307511ac0cc9106c299695c2ca779de))
+
+## [0.23.0](https://github.com/noir-lang/acvm/compare/acir-v0.22.0...acir-v0.23.0) (2023-08-30)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
+## [0.22.0](https://github.com/noir-lang/acvm/compare/acir-v0.21.0...acir-v0.22.0) (2023-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493))
+
+### Features
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493)) ([27a5a93](https://github.com/noir-lang/acvm/commit/27a5a935849f8904e10056b08089f532a06962b8))
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/acir-v0.20.1...acir-v0.21.0) (2023-07-26)
 
 

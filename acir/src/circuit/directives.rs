@@ -15,12 +15,6 @@ pub struct QuotientDirective {
 /// You can think of them as opcodes that allow one to use non-determinism
 /// In the future, this can be replaced with asm non-determinism blocks
 pub enum Directive {
-    //Inverts the value of x and stores it in the result variable
-    Invert {
-        x: Witness,
-        result: Witness,
-    },
-
     //Performs euclidian division of a / b (as integers) and stores the quotient in q and the rest in r
     Quotient(QuotientDirective),
 
@@ -39,27 +33,14 @@ pub enum Directive {
         bits: Vec<Witness>, // control bits of the network which permutes the inputs into its sorted version
         sort_by: Vec<u32>, // specify primary index to sort by, then the secondary,... For instance, if tuple is 2 and sort_by is [1,0], then a=[(a0,b0),..] is sorted by bi and then ai.
     },
-    Log(LogInfo),
 }
 
 impl Directive {
     pub fn name(&self) -> &str {
         match self {
-            Directive::Invert { .. } => "invert",
             Directive::Quotient(_) => "quotient",
             Directive::ToLeRadix { .. } => "to_le_radix",
             Directive::PermutationSort { .. } => "permutation_sort",
-            Directive::Log { .. } => "log",
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-// If values are compile time and/or known during
-// evaluation, we can form an output string during ACIR generation.
-// Otherwise, we must store witnesses whose values will
-// be fetched during the PWG stage.
-pub enum LogInfo {
-    FinalizedOutput(String),
-    WitnessOutput(Vec<Witness>),
 }
