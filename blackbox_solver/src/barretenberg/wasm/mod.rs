@@ -87,13 +87,23 @@ impl Barretenberg {
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn new() -> Barretenberg {
         let (instance, memory, store) = instance_load();
-        Barretenberg { memory, instance, store: RefCell::new(store) }
+        let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
+        barretenberg.call_wasi_initialize();
+        barretenberg
     }
 
     #[cfg(target_arch = "wasm32")]
     pub(crate) async fn initialize() -> Barretenberg {
         let (instance, memory, store) = instance_load().await;
-        Barretenberg { memory, instance, store: RefCell::new(store) }
+        let barretenberg = Barretenberg { memory, instance, store: RefCell::new(store) };
+        barretenberg.call_wasi_initialize();
+        barretenberg
+    }
+    /// Call initialization function for WASI, to initialize all of the appropriate
+    /// globals.
+    fn call_wasi_initialize(&self) {
+        self.call_multiple("_initialize", vec![])
+            .expect("expected call to WASI initialization function to not fail");
     }
 }
 
