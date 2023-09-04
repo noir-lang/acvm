@@ -105,7 +105,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Add wasm32 target
+      - name: Install wasm-bindgen-cli
         run: cargo install wasm-bindgen-cli --vers "0.2.87" --locked
 
       - name: Run rust tests
