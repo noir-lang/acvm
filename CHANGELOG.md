@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0](https://github.com/noir-lang/acvm/compare/root-v0.24.1...root-v0.25.0) (2023-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523))
+
+### Features
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523)) ([7ab7cff](https://github.com/noir-lang/acvm/commit/7ab7cff48a9aba61a97fad2a759fc8e55740b098))
+
+
+### Bug Fixes
+
+* initialize recursive proof output to zero ([#524](https://github.com/noir-lang/acvm/issues/524)) ([5453074](https://github.com/noir-lang/acvm/commit/545307457dd7634b20ea3977e2d2cc751eba06d2))
+
 ## [0.24.1](https://github.com/noir-lang/acvm/compare/root-v0.24.0...root-v0.24.1) (2023-09-03)
 
 

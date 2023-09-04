@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/noir-lang/acvm/compare/acir-v0.24.1...acir-v0.25.0) (2023-09-04)
+
+
+### Miscellaneous Chores
+
+* **acir:** Synchronize acvm versions
+
 ## [0.24.1](https://github.com/noir-lang/acvm/compare/acir-v0.24.0...acir-v0.24.1) (2023-09-03)
 
 
