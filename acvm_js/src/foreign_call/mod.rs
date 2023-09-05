@@ -1,6 +1,6 @@
 use acvm::{brillig_vm::brillig::ForeignCallResult, pwg::ForeignCallWaitInfo};
 
-use js_sys::JsString;
+use js_sys::{Error, JsString};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 mod inputs;
@@ -30,7 +30,7 @@ extern "C" {
 pub(super) async fn resolve_brillig(
     foreign_call_callback: &ForeignCallHandler,
     foreign_call_wait_info: &ForeignCallWaitInfo,
-) -> Result<ForeignCallResult, String> {
+) -> Result<ForeignCallResult, Error> {
     // Prepare to call
     let name = JsString::from(foreign_call_wait_info.function.clone());
     let inputs = inputs::encode_foreign_call_inputs(&foreign_call_wait_info.inputs);
@@ -40,38 +40,35 @@ pub(super) async fn resolve_brillig(
 
     // The Brillig VM checks that the number of return values from
     // the foreign call is valid so we don't need to do it here.
-    outputs::decode_foreign_call_result(outputs)
+    outputs::decode_foreign_call_result(outputs).map_err(|message| Error::new(&message))
 }
 
-#[allow(dead_code)]
 async fn perform_foreign_call(
     foreign_call_handler: &ForeignCallHandler,
     name: JsString,
     inputs: js_sys::Array,
-) -> Result<js_sys::Array, String> {
+) -> Result<js_sys::Array, Error> {
     // Call and await
     let this = JsValue::null();
     let ret_js_val = foreign_call_handler
         .call2(&this, &name, &inputs)
-        .map_err(|err| format!("Error calling `foreign_call_callback`: {}", format_js_err(err)))?;
+        .map_err(|err| wrap_js_error("Error calling `foreign_call_callback`", &err))?;
     let ret_js_prom: js_sys::Promise = ret_js_val.into();
     let ret_future: wasm_bindgen_futures::JsFuture = ret_js_prom.into();
     let js_resolution = ret_future
         .await
-        .map_err(|err| format!("Error awaiting `foreign_call_handler`: {}", format_js_err(err)))?;
+        .map_err(|err| wrap_js_error("Error awaiting `foreign_call_handler`", &err))?;
 
     // Check that result conforms to expected shape.
     if !js_resolution.is_array() {
-        return Err("`foreign_call_handler` must return a Promise<ForeignCallValue[]>".into());
+        return Err(Error::new("Expected `foreign_call_handler` to return an array"));
     }
 
     Ok(js_sys::Array::from(&js_resolution))
 }
 
-#[allow(dead_code)]
-fn format_js_err(err: JsValue) -> String {
-    match err.as_string() {
-        Some(str) => str,
-        None => "Unknown".to_owned(),
-    }
+fn wrap_js_error(message: &str, err: &JsValue) -> Error {
+    let new_error = Error::new(message);
+    new_error.set_cause(err);
+    new_error
 }

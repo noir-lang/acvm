@@ -14,6 +14,7 @@ cfg_if::cfg_if! {
         mod js_witness_map;
         mod logging;
         mod public_witness;
+        mod js_execution_error;
 
         pub use build_info::build_info;
         pub use compression::{compress_witness, decompress_witness};
@@ -21,6 +22,6 @@ cfg_if::cfg_if! {
         pub use js_witness_map::JsWitnessMap;
         pub use logging::{init_log_level, LogLevel};
         pub use public_witness::{get_public_parameters_witness, get_public_witness, get_return_witness};
-
+        pub use js_execution_error::JsExecutionError;
     }
 }
