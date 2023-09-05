@@ -563,94 +563,94 @@ mod tests {
     }
 
     mod division_with_reminder {
-        use crate::generic_ark::FieldElement;
+        type FieldElement = crate::generic_ark::FieldElement<ark_bn254::Fr>;
 
         #[test]
         fn simple_case() {
             //test for a simple case: 1000 % 3 = 1
-            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(7 as i128);
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(7 as i128);
             let result = dividend.division_with_reminder(&divisor);
 
-            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(6 as i128));
+            assert_eq!(result, FieldElement::from(6 as i128));
 
-            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(142 as i128));
+            assert_eq!(dividend, FieldElement::from(142 as i128));
         }
 
         #[test]
         fn one_divisor() {
             //test for a case when the divisor is 1: 1000 % 1 = 0
-            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(1 as i128);
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(1 as i128);
             let result = dividend.division_with_reminder(&divisor);
 
-            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(0 as i128));
+            assert_eq!(result, FieldElement::from(0 as i128));
 
-            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(1000 as i128));
+            assert_eq!(dividend, FieldElement::from(1000 as i128));
         }
 
         #[test]
         fn zero_divisor() {
             //test for a case when the divisor is 0: 1000 % 0 = 0
-            let mut dividend = FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(0 as i128);
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(0 as i128);
             let result = dividend.division_with_reminder(&divisor);
 
-            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(0 as i128));
+            assert_eq!(result, FieldElement::from(0 as i128));
 
-            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(1000 as i128));
+            assert_eq!(dividend, FieldElement::from(1000 as i128));
         }
 
         #[test]
         fn negative_dividend() {
             //test for a case when the dividend is -1: -1 % 2 = -1
-            let mut dividend = FieldElement::<ark_bn254::Fr>::from(-1 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(2 as i128);
+            let mut dividend = FieldElement::from(-1 as i128);
+            let divisor = FieldElement::from(2 as i128);
             let result = dividend.division_with_reminder(&divisor);
 
-            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(-1 as i128));
+            assert_eq!(result, FieldElement::from(-1 as i128));
 
-            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(0 as i128));
+            assert_eq!(dividend, FieldElement::from(0 as i128));
         }
 
         #[test]
         fn negative_dividend_and_divisor() {
             //test for a simple case when the dividend is negative: -1000 % -3 = -1
-            let mut dividend = FieldElement::<ark_bn254::Fr>::from(-1000 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(-3 as i128);
+            let mut dividend = FieldElement::from(-1000 as i128);
+            let divisor = FieldElement::from(-3 as i128);
             let result = dividend.division_with_reminder(&divisor);
 
-            assert_eq!(result, FieldElement::<ark_bn254::Fr>::from(-1 as i128));
+            assert_eq!(result, FieldElement::from(-1 as i128));
 
-            assert_eq!(dividend, FieldElement::<ark_bn254::Fr>::from(333 as i128));
+            assert_eq!(dividend, FieldElement::from(333 as i128));
         }
 
         #[test]
         fn rem_smoke() {
-            let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-            let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(7 as i128);
+            let dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(7 as i128);
             let result = dividend % divisor;
 
-            assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(6 as i128));
+            assert_eq!(result, FieldElement::from(6 as i128));
 
-            let dividend = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1000 as i128);
-            let divisor = crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(1 as i128);
+            let dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(1 as i128);
             let result = dividend % divisor;
 
-            assert_eq!(result, crate::generic_ark::FieldElement::<ark_bn254::Fr>::from(0 as i128));
+            assert_eq!(result, FieldElement::from(0 as i128));
         }
 
         #[test]
         fn pretty_div_test() {
-            let dividend = FieldElement::<ark_bn254::Fr>::from(10 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
+            let dividend = FieldElement::from(10 as i128);
+            let divisor = FieldElement::from(3 as i128);
             let result = dividend.pretty_div(divisor);
 
             assert!(result.0.is_err());
             assert_eq!(result.0.err().unwrap(), "10 / 3".to_string());
 
-            let dividend = FieldElement::<ark_bn254::Fr>::from(9 as i128);
-            let divisor = FieldElement::<ark_bn254::Fr>::from(3 as i128);
+            let dividend = FieldElement::from(9 as i128);
+            let divisor = FieldElement::from(3 as i128);
             let result = dividend.pretty_div(divisor);
 
             assert_eq!(result.0.unwrap(), divisor);
