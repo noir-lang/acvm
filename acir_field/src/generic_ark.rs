@@ -563,7 +563,7 @@ mod tests {
     }
 
     mod division_with_reminder {
-        type FieldElement = crate::generic_ark::FieldElement<ark_bn254::Fr>;
+        use crate::FieldElement;
 
         #[test]
         fn simple_case() {
