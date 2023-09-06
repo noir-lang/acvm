@@ -1,0 +1,31 @@
+name: Tag Release Workflow
+
+on:
+  push:
+    tags:
+      - "acvm_js-v*"
+
+jobs:
+  build-acvm-js-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v20
+        with:
+          nix_path: nixpkgs=channel:nixos-22.11
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: cachix/cachix-action@v12
+        with:
+          name: barretenberg
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Build acvm-js
+        run: |
+          nix build .#
+
+      - name: Dereference symlink
+        run: echo "UPLOAD_PATH=$(readlink -f result)" >> $GITHUB_ENV
+# TODO: publish!
