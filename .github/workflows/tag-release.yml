@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "acvm_js-v*"
+    branches:
+      - jb/acvm-js-publishing
 
 jobs:
   build-acvm-js-package:
@@ -36,7 +38,9 @@ jobs:
 
       - name: Publish to NPM
         working-directory: ./temp_publish_dir
-        run: npm pack
         # run: npm publish
+        run: |
+          npm pack
+          tar -tzf *.tgz
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
