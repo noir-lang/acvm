@@ -3,14 +3,22 @@ use acir::FieldElement;
 use super::{Barretenberg, Error, FIELD_BYTES};
 
 pub(crate) trait ScalarMul {
-    fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error>;
+    fn fixed_base(
+        &self,
+        low: &FieldElement,
+        high: &FieldElement,
+    ) -> Result<(FieldElement, FieldElement), Error>;
 }
 
 impl ScalarMul for Barretenberg {
-    fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error> {
+    fn fixed_base(
+        &self,
+        low: &FieldElement,
+        _high: &FieldElement,
+    ) -> Result<(FieldElement, FieldElement), Error> {
         let lhs_ptr: usize = 0;
         let result_ptr: usize = lhs_ptr + FIELD_BYTES;
-        self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
+        self.transfer_to_heap(&low.to_be_bytes(), lhs_ptr);
 
         self.call_multiple("compute_public_key", vec![&lhs_ptr.into(), &result_ptr.into()])?;
 
@@ -34,7 +42,7 @@ mod test {
         let barretenberg = Barretenberg::new();
         let input = FieldElement::one();
 
-        let res = barretenberg.fixed_base(&input)?;
+        let res = barretenberg.fixed_base(&input, &FieldElement::zero())?;
         let x = "0000000000000000000000000000000000000000000000000000000000000001";
         let y = "0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c";
 
