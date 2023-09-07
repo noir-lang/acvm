@@ -410,7 +410,8 @@ impl BlackBoxFunctionSolver for DummyBlackBoxSolver {
     }
     fn fixed_base_scalar_mul(
         &self,
-        _input: &FieldElement,
+        _low: &FieldElement,
+        _high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         Ok((4_u128.into(), 5_u128.into()))
     }

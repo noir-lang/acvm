@@ -140,9 +140,10 @@ pub(crate) fn evaluate_black_box<Solver: BlackBoxFunctionSolver>(
             registers.set(*result, verified.into());
             Ok(())
         }
-        BlackBoxOp::FixedBaseScalarMul { input, result } => {
-            let input = registers.get(*input).to_field();
-            let (x, y) = solver.fixed_base_scalar_mul(&input)?;
+        BlackBoxOp::FixedBaseScalarMul { low, high, result } => {
+            let low = registers.get(*low).to_field();
+            let high = registers.get(*high).to_field();
+            let (x, y) = solver.fixed_base_scalar_mul(&low, &high)?;
             memory.write_slice(registers.get(result.pointer).to_usize(), &[x.into(), y.into()]);
             Ok(())
         }
