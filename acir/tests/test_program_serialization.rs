@@ -60,7 +60,8 @@ fn addition_circuit() {
 #[test]
 fn fixed_base_scalar_mul_circuit() {
     let fixed_base_scalar_mul = Opcode::BlackBoxFuncCall(BlackBoxFuncCall::FixedBaseScalarMul {
-        input: FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() },
+        low: FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() },
+        high: FunctionInput { witness: Witness(1), num_bits: FieldElement::max_num_bits() },
         outputs: (Witness(2), Witness(3)),
     });
 
