@@ -11,12 +11,14 @@ use crate::{
 pub(super) fn fixed_base_scalar_mul(
     backend: &impl BlackBoxFunctionSolver,
     initial_witness: &mut WitnessMap,
-    input: FunctionInput,
+    low: FunctionInput,
+    high: FunctionInput,
     outputs: (Witness, Witness),
 ) -> Result<(), OpcodeResolutionError> {
-    let scalar = witness_to_value(initial_witness, input.witness)?;
+    let low = witness_to_value(initial_witness, low.witness)?;
+    let high = witness_to_value(initial_witness, high.witness)?;
 
-    let (pub_x, pub_y) = backend.fixed_base_scalar_mul(scalar)?;
+    let (pub_x, pub_y) = backend.fixed_base_scalar_mul(low, high)?;
 
     insert_value(&outputs.0, pub_x, initial_witness)?;
     insert_value(&outputs.1, pub_y, initial_witness)?;
