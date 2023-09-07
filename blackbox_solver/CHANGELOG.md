@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.26.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.25.0...acvm_blackbox_solver-v0.26.0) (2023-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532))
+
+### Miscellaneous Chores
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532)) ([b054f66](https://github.com/noir-lang/acvm/commit/b054f66be9c73d4e02dbecdab80874a907f19242))
+
 ## [0.25.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.24.1...acvm_blackbox_solver-v0.25.0) (2023-09-04)
 
 
