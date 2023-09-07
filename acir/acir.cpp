@@ -454,7 +454,8 @@ namespace Circuit {
         };
 
         struct FixedBaseScalarMul {
-            Circuit::RegisterIndex input;
+            Circuit::RegisterIndex low;
+            Circuit::RegisterIndex high;
             Circuit::HeapArray result;
 
             friend bool operator==(const FixedBaseScalarMul&, const FixedBaseScalarMul&);
@@ -2672,7 +2673,8 @@ Circuit::BlackBoxOp::Pedersen serde::Deserializable<Circuit::BlackBoxOp::Pederse
 namespace Circuit {
 
     inline bool operator==(const BlackBoxOp::FixedBaseScalarMul &lhs, const BlackBoxOp::FixedBaseScalarMul &rhs) {
-        if (!(lhs.input == rhs.input)) { return false; }
+        if (!(lhs.low == rhs.low)) { return false; }
+        if (!(lhs.high == rhs.high)) { return false; }
         if (!(lhs.result == rhs.result)) { return false; }
         return true;
     }
@@ -2697,7 +2699,8 @@ namespace Circuit {
 template <>
 template <typename Serializer>
 void serde::Serializable<Circuit::BlackBoxOp::FixedBaseScalarMul>::serialize(const Circuit::BlackBoxOp::FixedBaseScalarMul &obj, Serializer &serializer) {
-    serde::Serializable<decltype(obj.input)>::serialize(obj.input, serializer);
+    serde::Serializable<decltype(obj.low)>::serialize(obj.low, serializer);
+    serde::Serializable<decltype(obj.high)>::serialize(obj.high, serializer);
     serde::Serializable<decltype(obj.result)>::serialize(obj.result, serializer);
 }
 
@@ -2705,7 +2708,8 @@ template <>
 template <typename Deserializer>
 Circuit::BlackBoxOp::FixedBaseScalarMul serde::Deserializable<Circuit::BlackBoxOp::FixedBaseScalarMul>::deserialize(Deserializer &deserializer) {
     Circuit::BlackBoxOp::FixedBaseScalarMul obj;
-    obj.input = serde::Deserializable<decltype(obj.input)>::deserialize(deserializer);
+    obj.low = serde::Deserializable<decltype(obj.low)>::deserialize(deserializer);
+    obj.high = serde::Deserializable<decltype(obj.high)>::deserialize(deserializer);
     obj.result = serde::Deserializable<decltype(obj.result)>::deserialize(deserializer);
     return obj;
 }
