@@ -43,6 +43,6 @@ pub enum BlackBoxOp {
     },
     /// Calculates a Pedersen commitment to the inputs.
     Pedersen { inputs: HeapVector, domain_separator: RegisterIndex, output: HeapArray },
-    /// Performs scalar multiplication over the embedded curve on which [`FieldElement`][acir_field::FieldElement] is defined.
-    FixedBaseScalarMul { input: RegisterIndex, result: HeapArray },
+    /// Performs scalar multiplication over the embedded curve.
+    FixedBaseScalarMul { low: RegisterIndex, high: RegisterIndex, result: HeapArray },
 }

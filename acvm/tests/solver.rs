@@ -38,7 +38,8 @@ impl BlackBoxFunctionSolver for StubbedBackend {
     }
     fn fixed_base_scalar_mul(
         &self,
-        _input: &FieldElement,
+        _low: &FieldElement,
+        _high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
