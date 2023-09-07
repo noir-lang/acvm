@@ -1,15 +1,16 @@
 #[allow(deprecated)]
 use acvm::{
-    acir::circuit::Circuit,
+    acir::circuit::{Circuit, OpcodeLocation},
     blackbox_solver::BarretenbergSolver,
     pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
 
+use js_sys::Error;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     foreign_call::{resolve_brillig, ForeignCallHandler},
-    JsWitnessMap,
+    JsExecutionError, JsWitnessMap,
 };
 
 #[wasm_bindgen]
@@ -39,7 +40,7 @@ pub async fn execute_circuit(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, js_sys::JsString> {
+) -> Result<JsWitnessMap, Error> {
     console_error_panic_hook::set_once();
 
     let solver = WasmBlackBoxFunctionSolver::initialize().await;
@@ -61,7 +62,7 @@ pub async fn execute_circuit_with_black_box_solver(
     circuit: Vec<u8>,
     initial_witness: JsWitnessMap,
     foreign_call_handler: ForeignCallHandler,
-) -> Result<JsWitnessMap, js_sys::JsString> {
+) -> Result<JsWitnessMap, Error> {
     console_error_panic_hook::set_once();
     let circuit: Circuit = Circuit::read(&*circuit).expect("Failed to deserialize circuit");
 
@@ -76,23 +77,34 @@ pub async fn execute_circuit_with_black_box_solver(
                 unreachable!("Execution should not stop while in `InProgress` state.")
             }
             ACVMStatus::Failure(error) => {
-                let assert_message = match &error {
+                let (assert_message, call_stack) = match &error {
                     OpcodeResolutionError::UnsatisfiedConstrain {
                         opcode_location: ErrorLocation::Resolved(opcode_location),
                     }
                     | OpcodeResolutionError::IndexOutOfBounds {
                         opcode_location: ErrorLocation::Resolved(opcode_location),
                         ..
-                    } => circuit.assert_messages.get(opcode_location).cloned(),
-                    _ => None,
+                    } => (
+                        get_assert_message(&circuit.assert_messages, opcode_location),
+                        Some(vec![*opcode_location]),
+                    ),
+                    OpcodeResolutionError::BrilligFunctionFailed { call_stack, .. } => {
+                        let failing_opcode =
+                            call_stack.last().expect("Brillig error call stacks cannot be empty");
+                        (
+                            get_assert_message(&circuit.assert_messages, failing_opcode),
+                            Some(call_stack.clone()),
+                        )
+                    }
+                    _ => (None, None),
                 };
 
-                let error_string = match assert_message {
-                    Some(assert_message) => format!("{}: {}", error, assert_message),
+                let error_string = match &assert_message {
+                    Some(assert_message) => format!("Assertion failed: {}", assert_message),
                     None => error.to_string(),
                 };
 
-                return Err(error_string.into());
+                return Err(JsExecutionError::new(error_string.into(), call_stack).into());
             }
             ACVMStatus::RequiresForeignCall(foreign_call) => {
                 let result = resolve_brillig(&foreign_call_handler, &foreign_call).await?;
@@ -104,4 +116,16 @@ pub async fn execute_circuit_with_black_box_solver(
 
     let witness_map = acvm.finalize();
     Ok(witness_map.into())
+}
+
+// Searches the slice for `opcode_location`.
+// This is functionality equivalent to .get on a map.
+fn get_assert_message(
+    assert_messages: &[(OpcodeLocation, String)],
+    opcode_location: &OpcodeLocation,
+) -> Option<String> {
+    assert_messages
+        .iter()
+        .find(|(loc, _)| loc == opcode_location)
+        .map(|(_, message)| message.clone())
 }

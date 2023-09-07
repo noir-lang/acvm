@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.25.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.24.1...acvm_blackbox_solver-v0.25.0) (2023-09-04)
+
+
+### Miscellaneous Chores
+
+* **acvm_blackbox_solver:** Synchronize acvm versions
+
+## [0.24.1](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.24.0...acvm_blackbox_solver-v0.24.1) (2023-09-03)
+
+
+### Bug Fixes
+
+* Add WASI 20 `_initialize` call to `acvm_backend.wasm` binary ([#518](https://github.com/noir-lang/acvm/issues/518)) ([ec6ab0c](https://github.com/noir-lang/acvm/commit/ec6ab0c6fb2753209abe1e03a449873e255ffd76))
+
+## [0.24.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.23.0...acvm_blackbox_solver-v0.24.0) (2023-08-31)
+
+
+### Miscellaneous Chores
+
+* **acvm_blackbox_solver:** Synchronize acvm versions
+
 ## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.22.0...acvm_blackbox_solver-v0.23.0) (2023-08-30)
 
 

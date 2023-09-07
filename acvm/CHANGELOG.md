@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.25.0](https://github.com/noir-lang/acvm/compare/acvm-v0.24.1...acvm-v0.25.0) (2023-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523))
+
+### Features
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523)) ([7ab7cff](https://github.com/noir-lang/acvm/commit/7ab7cff48a9aba61a97fad2a759fc8e55740b098))
+
+
+### Bug Fixes
+
+* initialize recursive proof output to zero ([#524](https://github.com/noir-lang/acvm/issues/524)) ([5453074](https://github.com/noir-lang/acvm/commit/545307457dd7634b20ea3977e2d2cc751eba06d2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.24.1 to 0.25.0
+
+## [0.24.1](https://github.com/noir-lang/acvm/compare/acvm-v0.24.0...acvm-v0.24.1) (2023-09-03)
+
+
+### Miscellaneous Chores
+
+* **acvm:** Synchronize acvm versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.24.0 to 0.24.1
+
+## [0.24.0](https://github.com/noir-lang/acvm/compare/acvm-v0.23.0...acvm-v0.24.0) (2023-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** Remove the `Backend` trait ([#514](https://github.com/noir-lang/acvm/issues/514))
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510))
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503))
+* **acvm:** Remove unused arguments from `Backend` trait ([#511](https://github.com/noir-lang/acvm/issues/511))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484))
+
+### Features
+
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503)) ([ca9eebe](https://github.com/noir-lang/acvm/commit/ca9eebe34e61adabf97318c8ccaf60c8a424aafd))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484)) ([06b97c5](https://github.com/noir-lang/acvm/commit/06b97c51041e16651cf8b2be8bc18214e276c6c9))
+
+
+### Miscellaneous Chores
+
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510)) ([cfd8cbf](https://github.com/noir-lang/acvm/commit/cfd8cbf58307511ac0cc9106c299695c2ca779de))
+* **acvm:** Remove the `Backend` trait ([#514](https://github.com/noir-lang/acvm/issues/514)) ([681535d](https://github.com/noir-lang/acvm/commit/681535da52815a4a164ee4f48f7b48329664af98))
+* **acvm:** Remove unused arguments from `Backend` trait ([#511](https://github.com/noir-lang/acvm/issues/511)) ([ae65355](https://github.com/noir-lang/acvm/commit/ae65355afb7df98c71f81d5a54e89f39f9333920))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * brillig_vm bumped from 0.23.0 to 0.24.0
+
 ## [0.23.0](https://github.com/noir-lang/acvm/compare/acvm-v0.22.0...acvm-v0.23.0) (2023-08-30)
 
 

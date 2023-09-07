@@ -1,10 +1,11 @@
 use acir::{
     circuit::opcodes::{BlackBoxFuncCall, FunctionInput},
     native_types::{Witness, WitnessMap},
+    FieldElement,
 };
 use blackbox_solver::{blake2s, keccak256, sha256};
 
-use super::{OpcodeNotSolvable, OpcodeResolutionError};
+use super::{insert_value, OpcodeNotSolvable, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;
 
 mod fixed_base_scalar_mul;
@@ -147,9 +148,16 @@ pub(crate) fn solve(
             message,
             *output,
         ),
-        BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
-            fixed_base_scalar_mul(backend, initial_witness, *input, *outputs)
+        BlackBoxFuncCall::FixedBaseScalarMul { low, high: _, outputs } => {
+            fixed_base_scalar_mul(backend, initial_witness, *low, *outputs)
         }
-        BlackBoxFuncCall::RecursiveAggregation { .. } => Ok(()),
+        BlackBoxFuncCall::RecursiveAggregation { output_aggregation_object, .. } => {
+            // Solve the output of the recursive aggregation to zero to prevent missing assignment errors
+            // The correct value will be computed by the backend
+            for witness in output_aggregation_object {
+                insert_value(witness, FieldElement::zero(), initial_witness)?;
+            }
+            Ok(())
+        }
     }
 }
