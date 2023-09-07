@@ -226,7 +226,7 @@ impl Circuit {
 
     #[cfg(not(feature = "serialize-messagepack"))]
     pub fn write<W: std::io::Write>(&self, writer: W) -> std::io::Result<()> {
-        let buf = bincode::serde::encode_to_vec(&self, bincode::config::legacy()).unwrap();
+        let buf = bincode::serde::encode_to_vec(self, bincode::config::legacy()).unwrap();
         let mut encoder = flate2::write::GzEncoder::new(writer, Compression::default());
         encoder.write_all(&buf).unwrap();
         encoder.finish().unwrap();
