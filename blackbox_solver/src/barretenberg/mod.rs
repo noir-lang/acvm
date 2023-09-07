@@ -71,10 +71,11 @@ impl BlackBoxFunctionSolver for BarretenbergSolver {
 
     fn fixed_base_scalar_mul(
         &self,
-        input: &FieldElement,
+        low: &FieldElement,
+        high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         #[allow(deprecated)]
-        self.blackbox_vendor.fixed_base(input).map_err(|err| {
+        self.blackbox_vendor.fixed_base(low, high).map_err(|err| {
             BlackBoxResolutionError::Failed(BlackBoxFunc::FixedBaseScalarMul, err.to_string())
         })
     }

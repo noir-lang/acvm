@@ -72,7 +72,8 @@ pub enum BlackBoxFuncCall {
         output: Witness,
     },
     FixedBaseScalarMul {
-        input: FunctionInput,
+        low: FunctionInput,
+        high: FunctionInput,
         outputs: (Witness, Witness),
     },
     Keccak256 {
@@ -160,7 +161,8 @@ impl BlackBoxFuncCall {
                 output: Witness(0),
             },
             BlackBoxFunc::FixedBaseScalarMul => BlackBoxFuncCall::FixedBaseScalarMul {
-                input: FunctionInput::dummy(),
+                low: FunctionInput::dummy(),
+                high: FunctionInput::dummy(),
                 outputs: (Witness(0), Witness(0)),
             },
             BlackBoxFunc::Keccak256 => {
@@ -210,8 +212,8 @@ impl BlackBoxFuncCall {
             BlackBoxFuncCall::AND { lhs, rhs, .. } | BlackBoxFuncCall::XOR { lhs, rhs, .. } => {
                 vec![*lhs, *rhs]
             }
-            BlackBoxFuncCall::FixedBaseScalarMul { input, .. }
-            | BlackBoxFuncCall::RANGE { input } => vec![*input],
+            BlackBoxFuncCall::FixedBaseScalarMul { low, high, .. } => vec![*low, *high],
+            BlackBoxFuncCall::RANGE { input } => vec![*input],
             BlackBoxFuncCall::SchnorrVerify {
                 public_key_x,
                 public_key_y,
