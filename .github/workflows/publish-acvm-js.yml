@@ -1,6 +1,7 @@
 name: Publish acvm_js
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "acvm_js-v*"
