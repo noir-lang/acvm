@@ -3,6 +3,8 @@ name: Publish acvm_js
 on:
   workflow_dispatch:
   push:
+    branches:
+      - jb/acvm-js-publishing
     tags:
       - "acvm_js-v*"
 

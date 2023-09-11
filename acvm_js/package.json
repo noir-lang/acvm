@@ -6,6 +6,9 @@
     "type": "git",
     "url": "https://github.com/noir-lang/acvm.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "collaborators": [
     "The Noir Team <team@noir-lang.org>"
   ],
