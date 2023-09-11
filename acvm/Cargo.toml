@@ -43,3 +43,9 @@ unstable-fallbacks = []
 rand = "0.8.5"
 proptest = "1.2.0"
 paste = "1.0.14"
+criterion = "0.5"
+
+[[bench]]
+name = "acvm_benchmarks"
+path = "tests/benchmarks.rs"
+harness = false
