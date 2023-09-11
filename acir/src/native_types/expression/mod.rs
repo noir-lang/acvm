@@ -19,12 +19,12 @@ pub struct Expression {
     // We collect all of the multiplication terms in the arithmetic opcode
     // A multiplication term if of the form q_M * wL * wR
     // Hence this vector represents the following sum: q_M1 * wL1 * wR1 + q_M2 * wL2 * wR2 + .. +
-    pub mul_terms: Vec<(FieldElement, Witness, Witness)>,
+    pub(crate) mul_terms: Vec<(FieldElement, Witness, Witness)>,
 
-    pub linear_combinations: Vec<(FieldElement, Witness)>,
+    pub(crate) linear_combinations: Vec<(FieldElement, Witness)>,
     // TODO: rename q_c to `constant` moreover q_X is not clear to those who
     // TODO are not familiar with PLONK
-    pub q_c: FieldElement,
+    pub(crate) q_c: FieldElement,
 }
 
 impl Default for Expression {
