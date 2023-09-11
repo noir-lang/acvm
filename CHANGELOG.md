@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0](https://github.com/noir-lang/acvm/compare/root-v0.25.0...root-v0.26.0) (2023-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532))
+
+### Miscellaneous Chores
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532)) ([b054f66](https://github.com/noir-lang/acvm/commit/b054f66be9c73d4e02dbecdab80874a907f19242))
+
 ## [0.25.0](https://github.com/noir-lang/acvm/compare/root-v0.24.1...root-v0.25.0) (2023-09-04)
 
 

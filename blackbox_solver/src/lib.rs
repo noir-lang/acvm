@@ -44,7 +44,8 @@ pub trait BlackBoxFunctionSolver {
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
-        input: &FieldElement,
+        low: &FieldElement,
+        high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError>;
 }
 
