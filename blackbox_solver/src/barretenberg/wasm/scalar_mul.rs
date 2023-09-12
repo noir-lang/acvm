@@ -25,23 +25,23 @@ impl ScalarMul for Barretenberg {
         let low_bytes = low.to_be_bytes();
         let high_bytes = high.to_be_bytes();
 
+        let two_pow_128 = BigUint::from(2u128).pow(128);
+        if BigUint::from_bytes_be(&low_bytes) >= two_pow_128 {
+            return Err(Error::FromFeature(FeatureError::InvalidGrumpkinScalarLimb {
+                limb_as_hex: hex::encode(low_bytes),
+            }));
+        }
+        if BigUint::from_bytes_be(&high_bytes) >= two_pow_128 {
+            return Err(Error::FromFeature(FeatureError::InvalidGrumpkinScalarLimb {
+                limb_as_hex: hex::encode(high_bytes),
+            }));
+        }
+
         let low_16_bytes = low_bytes[16..32].to_vec();
         let high_16_bytes = high_bytes[16..32].to_vec();
 
         let mut bytes = high_16_bytes.to_vec();
         bytes.extend_from_slice(&low_16_bytes);
-
-        let two_pow_128 = BigUint::from(2u128).pow(128);
-        if BigUint::from_bytes_be(&low_16_bytes) >= two_pow_128 {
-            return Err(Error::FromFeature(FeatureError::InvalidGrumpkinScalarLimb {
-                limb_as_hex: hex::encode(low_16_bytes),
-            }));
-        }
-        if BigUint::from_bytes_be(&high_16_bytes) >= two_pow_128 {
-            return Err(Error::FromFeature(FeatureError::InvalidGrumpkinScalarLimb {
-                limb_as_hex: hex::encode(high_16_bytes),
-            }));
-        }
 
         // Check if this is smaller than the grumpkin modulus
         let grumpkin_integer = BigUint::from_bytes_be(&bytes);
