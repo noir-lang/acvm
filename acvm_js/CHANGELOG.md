@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.26.1](https://github.com/noir-lang/acvm/compare/acvm_js-v0.26.0...acvm_js-v0.26.1) (2023-09-12)
+
+
+### Bug Fixes
+
+* Implements handling of the high limb during fixed base scalar multiplication ([#535](https://github.com/noir-lang/acvm/issues/535)) ([551504a](https://github.com/noir-lang/acvm/commit/551504aa572d3f9d56b5576d25ce1211296ee488))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * acvm bumped from 0.26.0 to 0.26.1
+
 ## [0.26.0](https://github.com/noir-lang/acvm/compare/acvm_js-v0.25.0...acvm_js-v0.26.0) (2023-09-07)
 
 
