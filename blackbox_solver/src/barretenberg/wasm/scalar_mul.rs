@@ -37,11 +37,11 @@ impl ScalarMul for Barretenberg {
             }));
         }
 
-        let low_16_bytes = low_bytes[16..32].to_vec();
-        let high_16_bytes = high_bytes[16..32].to_vec();
+        let low_16_bytes = &low_bytes[16..32];
+        let high_16_bytes = &high_bytes[16..32];
 
         let mut bytes = high_16_bytes.to_vec();
-        bytes.extend_from_slice(&low_16_bytes);
+        bytes.extend_from_slice(low_16_bytes);
 
         // Check if this is smaller than the grumpkin modulus
         let grumpkin_integer = BigUint::from_bytes_be(&bytes);
