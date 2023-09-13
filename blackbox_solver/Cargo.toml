@@ -31,7 +31,7 @@ p256 = { version = "0.11.0", features = [
     "digest",
     "arithmetic",
 ] }
-hex = "*"
+hex = "0.4.2"
 num-bigint.workspace = true
 
 # Barretenberg WASM dependencies
