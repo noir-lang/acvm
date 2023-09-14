@@ -38,6 +38,7 @@ dependencies = [
  "acir",
  "acvm_blackbox_solver",
  "acvm_stdlib",
+ "base64",
  "brillig_vm",
  "indexmap",
  "num-bigint",

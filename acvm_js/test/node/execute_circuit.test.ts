@@ -231,3 +231,26 @@ it("successfully executes 500 circuits with same backend", async function () {
     expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
   }
 });
+
+it.only("successfully executes a recursion circuit", async function () {
+  this.timeout(100000);
+
+  const solver: WasmBlackBoxFunctionSolver = await createBlackBoxSolver();
+
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
+    "../shared/inner_recursion"
+  );
+
+  for (let i = 0; i < 500; i++) {
+    const solvedWitness = await executeCircuitWithBlackBoxSolver(
+      solver,
+      bytecode,
+      initialWitnessMap,
+      () => {
+        throw Error("unexpected oracle");
+      }
+    );
+
+    expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
+  }
+});
