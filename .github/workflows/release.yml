@@ -43,6 +43,5 @@ jobs:
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: publish-acvm-js.yml
-          repo: ${{ github.repository }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: master
           inputs: '{ "acvm-ref": "${{ needs.release-please.outputs.tag-name }}" }'
