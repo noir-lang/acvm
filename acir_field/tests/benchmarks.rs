@@ -1,6 +1,8 @@
 use acir_field::FieldElement;
 use criterion::{criterion_group, criterion_main, Criterion};
-use ruint::Uint;
+use ruint::{Uint, aliases::U256};
+
+const BN254_MODULUS: Uint<256, 4> = ruint::uint!(21888242871839275222246405745257275088548364400416034343698204186575808495617_U256);
 
 fn pow_bench(c: &mut Criterion) {
     let x = FieldElement::from(100 as i128);
@@ -150,7 +152,7 @@ fn add_uint_bench(c: &mut Criterion) {
     let y: Uint<256, 4> = Uint::from(77777);
 
     c.bench_function("add_uint_bench", |b| {
-        b.iter(|| x + y);
+        b.iter(|| (x + y) % BN254_MODULUS);
     });
 }
 
@@ -159,7 +161,7 @@ fn sub_uint_bench(c: &mut Criterion) {
     let y: Uint<256, 4> = Uint::from(77777);
 
     c.bench_function("sub_uint_bench", |b| {
-        b.iter(|| x - y);
+        b.iter(|| (x - y) % BN254_MODULUS);
     });
 }
 
@@ -168,7 +170,7 @@ fn mul_uint_bench(c: &mut Criterion) {
     let y: Uint<256, 4> = Uint::from(77777);
 
     c.bench_function("mul_uint_bench", |b| {
-        b.iter(|| x * y);
+        b.iter(|| (x * y) % BN254_MODULUS);
     });
 }
 
@@ -177,7 +179,7 @@ fn div_uint_bench(c: &mut Criterion) {
     let y: Uint<256, 4> = Uint::from(77777);
 
     c.bench_function("div_uint_bench", |b| {
-        b.iter(|| x / y);
+        b.iter(|| (x / y) % BN254_MODULUS);
     });
 }
 

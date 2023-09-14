@@ -4,10 +4,10 @@
 
 | Operation | ark_bn254 time (ns) | uint time (ns) | from uint time (ns) |
 | :--- | :---: | :---: | :---: |
-| multiplication    | 22.796  | 0.99923      | 22.775      |
-| subtraction    | 10.052  | 1.0178       |  10.033       |
-| addition    | 1.0185  | 1.0383      |  1.0532      |
-| division    | 3168.1  | 11.791      | 3165.8      |
+| multiplication    | 22.796  | 16.318      | 22.775      |
+| subtraction    | 10.052  | 41.619       |  10.033       |
+| addition    | 1.0185  | 15.749      |  1.0532      |
+| division    | 3168.1  | 23.092      | 3165.8      |
 
 ## Other functions
 
