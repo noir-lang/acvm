@@ -2,9 +2,10 @@ name: Publish acvm_js
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - "acvm_js-v*"
+    inputs:
+      acvm-ref:
+        description: The acvm reference to checkout
+        required: true
 
 jobs:
   publish-acvm-js-package:
@@ -12,6 +13,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.acvm-ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
