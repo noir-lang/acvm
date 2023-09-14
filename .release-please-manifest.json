@@ -1,11 +1,11 @@
 {
-    ".": "0.26.0",
-    "acir": "0.26.0",
-    "acir_field": "0.26.0",
-    "acvm": "0.26.0",
-    "acvm_js": "0.26.0",
-    "stdlib": "0.26.0",
-    "brillig": "0.26.0",
-    "brillig_vm": "0.26.0",
-    "blackbox_solver": "0.26.0"
+    ".": "0.26.1",
+    "acir": "0.26.1",
+    "acir_field": "0.26.1",
+    "acvm": "0.26.1",
+    "acvm_js": "0.26.1",
+    "stdlib": "0.26.1",
+    "brillig": "0.26.1",
+    "brillig_vm": "0.26.1",
+    "blackbox_solver": "0.26.1"
 }

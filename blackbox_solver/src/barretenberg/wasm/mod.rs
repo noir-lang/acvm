@@ -34,6 +34,10 @@ pub(crate) enum FeatureError {
     NoValue,
     #[error("Value expected to be i32")]
     InvalidI32,
+    #[error("Value {scalar_as_hex} is not a valid grumpkin scalar")]
+    InvalidGrumpkinScalar { scalar_as_hex: String },
+    #[error("Limb {limb_as_hex} is not less than 2^128")]
+    InvalidGrumpkinScalarLimb { limb_as_hex: String },
     #[error("Could not convert value {value} from i32 to u32")]
     InvalidU32 { value: i32, source: std::num::TryFromIntError },
     #[error("Could not convert value {value} from i32 to usize")]

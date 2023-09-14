@@ -7,11 +7,17 @@ on:
       - "acvm_js-v*"
 
 jobs:
-  build-acvm-js-package:
+  publish-acvm-js-package:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          registry-url: "https://registry.npmjs.org"
+          node-version: 18.15
 
       - uses: cachix/install-nix-action@v22
         with:

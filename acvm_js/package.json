@@ -1,10 +1,13 @@
 {
   "name": "@noir-lang/acvm_js",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/noir-lang/acvm.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "collaborators": [
     "The Noir Team <team@noir-lang.org>"

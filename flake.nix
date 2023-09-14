@@ -93,6 +93,12 @@
       GIT_COMMIT = if (self ? rev) then self.rev else "unknown";
       GIT_DIRTY = if (self ? rev) then "false" else "true";
 
+      extraBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
+        pkgs.libiconv
+        pkgs.darwin.apple_sdk.frameworks.Security
+      ];
+
       commonArgs = {
         inherit (crateACVMDefinitions) pname version;
         src = pkgs.lib.cleanSourceWith {
@@ -120,7 +126,7 @@
           src = ./.;
         };
 
-        buildInputs = [ ];
+        buildInputs = [ ] ++ extraBuildInputs;
 
       };
 
