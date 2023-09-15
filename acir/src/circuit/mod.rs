@@ -5,8 +5,9 @@ pub mod opcodes;
 
 use crate::native_types::Witness;
 pub use opcodes::Opcode;
+use thiserror::Error;
 
-use std::io::prelude::*;
+use std::{io::prelude::*, num::ParseIntError, str::FromStr};
 
 use flate2::Compression;
 
@@ -29,15 +30,70 @@ pub struct Circuit {
     pub public_parameters: PublicInputs,
     /// The set of public inputs calculated within the circuit.
     pub return_values: PublicInputs,
+    /// Maps opcode locations to failed assertion messages.
+    /// These messages are embedded in the circuit to provide useful feedback to users
+    /// when a constraint in the circuit is not satisfied.
+    ///
+    // Note: This should be a BTreeMap, but serde-reflect is creating invalid
+    // c++ code at the moment when it is, due to OpcodeLocation needing a comparison
+    // implementation which is never generated.
+    pub assert_messages: Vec<(OpcodeLocation, String)>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
-/// Opcodes are given labels so that callers can
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+/// Opcodes are locatable so that callers can
 /// map opcodes to debug information related to their context.
-pub enum OpcodeLabel {
-    #[default]
-    Unresolved,
-    Resolved(u64),
+pub enum OpcodeLocation {
+    Acir(usize),
+    Brillig { acir_index: usize, brillig_index: usize },
+}
+
+impl std::fmt::Display for OpcodeLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OpcodeLocation::Acir(index) => write!(f, "{index}"),
+            OpcodeLocation::Brillig { acir_index, brillig_index } => {
+                write!(f, "{acir_index}.{brillig_index}")
+            }
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum OpcodeLocationFromStrError {
+    #[error("Invalid opcode location string: {0}")]
+    InvalidOpcodeLocationString(String),
+}
+
+/// The implementation of display and FromStr allows serializing and deserializing a OpcodeLocation to a string.
+/// This is useful when used as key in a map that has to be serialized to JSON/TOML, for example when mapping an opcode to its metadata.
+impl FromStr for OpcodeLocation {
+    type Err = OpcodeLocationFromStrError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts: Vec<_> = s.split('.').collect();
+
+        if parts.is_empty() || parts.len() > 2 {
+            return Err(OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()));
+        }
+
+        fn parse_components(parts: Vec<&str>) -> Result<OpcodeLocation, ParseIntError> {
+            match parts.len() {
+                1 => {
+                    let index = parts[0].parse()?;
+                    Ok(OpcodeLocation::Acir(index))
+                }
+                2 => {
+                    let acir_index = parts[0].parse()?;
+                    let brillig_index = parts[1].parse()?;
+                    Ok(OpcodeLocation::Brillig { acir_index, brillig_index })
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        parse_components(parts)
+            .map_err(|_| OpcodeLocationFromStrError::InvalidOpcodeLocationString(s.to_string()))
+    }
 }
 
 impl Circuit {
@@ -91,11 +147,6 @@ impl Circuit {
         gz_decoder.read_to_end(&mut buf_d).unwrap();
         let circuit = bincode::deserialize(&buf_d).unwrap();
         Ok(circuit)
-    }
-
-    /// Initial list of labels attached to opcodes.
-    pub fn initial_opcode_labels(&self) -> Vec<OpcodeLabel> {
-        (0..self.opcodes.len()).map(|label| OpcodeLabel::Resolved(label as u64)).collect()
     }
 }
 
@@ -161,12 +212,6 @@ mod tests {
     use crate::native_types::Witness;
     use acir_field::FieldElement;
 
-    fn directive_opcode() -> Opcode {
-        Opcode::Directive(super::directives::Directive::Invert {
-            x: Witness(0),
-            result: Witness(1),
-        })
-    }
     fn and_opcode() -> Opcode {
         Opcode::BlackBoxFuncCall(BlackBoxFuncCall::AND {
             lhs: FunctionInput { witness: Witness(1), num_bits: 4 },
@@ -184,10 +229,11 @@ mod tests {
     fn serialization_roundtrip() {
         let circuit = Circuit {
             current_witness_index: 5,
-            opcodes: vec![and_opcode(), range_opcode(), directive_opcode()],
+            opcodes: vec![and_opcode(), range_opcode()],
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2), Witness(12)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(4), Witness(12)])),
+            assert_messages: Default::default(),
         };
 
         fn read_write(circuit: Circuit) -> (Circuit, Circuit) {
@@ -217,6 +263,7 @@ mod tests {
             private_parameters: BTreeSet::new(),
             public_parameters: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
             return_values: PublicInputs(BTreeSet::from_iter(vec![Witness(2)])),
+            assert_messages: Default::default(),
         };
 
         let json = serde_json::to_string_pretty(&circuit).unwrap();

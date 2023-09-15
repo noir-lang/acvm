@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.26.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.26.0...brillig_vm-v0.26.1) (2023-09-12)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
+## [0.26.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.25.0...brillig_vm-v0.26.0) (2023-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532))
+
+### Miscellaneous Chores
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532)) ([b054f66](https://github.com/noir-lang/acvm/commit/b054f66be9c73d4e02dbecdab80874a907f19242))
+
+## [0.25.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.24.1...brillig_vm-v0.25.0) (2023-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523))
+
+### Features
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523)) ([7ab7cff](https://github.com/noir-lang/acvm/commit/7ab7cff48a9aba61a97fad2a759fc8e55740b098))
+
+## [0.24.1](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.24.0...brillig_vm-v0.24.1) (2023-09-03)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
+## [0.24.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.23.0...brillig_vm-v0.24.0) (2023-08-31)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
+## [0.23.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.22.0...brillig_vm-v0.23.0) (2023-08-30)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
+## [0.22.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.21.0...brillig_vm-v0.22.0) (2023-08-18)
+
+
+### Miscellaneous Chores
+
+* **brillig_vm:** Synchronize acvm versions
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/brillig_vm-v0.20.1...brillig_vm-v0.21.0) (2023-07-26)
 
 

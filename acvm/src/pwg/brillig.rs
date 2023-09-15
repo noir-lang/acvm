@@ -1,6 +1,9 @@
 use acir::{
     brillig::{RegisterIndex, Value},
-    circuit::brillig::{Brillig, BrilligInputs, BrilligOutputs},
+    circuit::{
+        brillig::{Brillig, BrilligInputs, BrilligOutputs},
+        OpcodeLocation,
+    },
     native_types::WitnessMap,
     FieldElement,
 };
@@ -18,6 +21,7 @@ impl BrilligSolver {
         initial_witness: &mut WitnessMap,
         brillig: &Brillig,
         bb_solver: &B,
+        acir_index: usize,
     ) -> Result<Option<ForeignCallWaitInfo>, OpcodeResolutionError> {
         // If the predicate is `None`, then we simply return the value 1
         // If the predicate is `Some` but we cannot find a value, then we return stalled
@@ -107,8 +111,17 @@ impl BrilligSolver {
                 Ok(None)
             }
             VMStatus::InProgress => unreachable!("Brillig VM has not completed execution"),
-            VMStatus::Failure { message } => {
-                Err(OpcodeResolutionError::BrilligFunctionFailed(message))
+            VMStatus::Failure { message, call_stack } => {
+                Err(OpcodeResolutionError::BrilligFunctionFailed {
+                    message,
+                    call_stack: call_stack
+                        .iter()
+                        .map(|brillig_index| OpcodeLocation::Brillig {
+                            acir_index,
+                            brillig_index: *brillig_index,
+                        })
+                        .collect(),
+                })
             }
             VMStatus::ForeignCallWait { function, inputs } => {
                 Ok(Some(ForeignCallWaitInfo { function, inputs }))

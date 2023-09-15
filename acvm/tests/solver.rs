@@ -4,16 +4,15 @@ use acir::{
     brillig::{BinaryFieldOp, Opcode as BrilligOpcode, RegisterIndex, RegisterOrMemory, Value},
     circuit::{
         brillig::{Brillig, BrilligInputs, BrilligOutputs},
-        directives::Directive,
         opcodes::{BlockId, MemOp},
-        Opcode, OpcodeLabel,
+        Opcode, OpcodeLocation,
     },
     native_types::{Expression, Witness, WitnessMap},
     FieldElement,
 };
 
 use acvm::{
-    pwg::{ACVMStatus, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
+    pwg::{ACVMStatus, ErrorLocation, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
 use blackbox_solver::BlackBoxResolutionError;
@@ -39,13 +38,17 @@ impl BlackBoxFunctionSolver for StubbedBackend {
     }
     fn fixed_base_scalar_mul(
         &self,
-        _input: &FieldElement,
+        _low: &FieldElement,
+        _high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         panic!("Path not trodden by this test")
     }
 }
 
+// Reenable these test cases once we move the brillig implementation of inversion down into the acvm stdlib.
+
 #[test]
+#[ignore]
 fn inversion_brillig_oracle_equivalence() {
     // Opcodes below describe the following:
     // fn main(x : Field, y : pub Field) {
@@ -108,7 +111,7 @@ fn inversion_brillig_oracle_equivalence() {
             linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
             q_c: fe_0,
         }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+        // Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
         Opcode::Arithmetic(Expression {
             mul_terms: vec![(fe_1, w_z, w_z_inverse)],
             linear_combinations: vec![],
@@ -127,7 +130,7 @@ fn inversion_brillig_oracle_equivalence() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
 
@@ -155,6 +158,7 @@ fn inversion_brillig_oracle_equivalence() {
 }
 
 #[test]
+#[ignore]
 fn double_inversion_brillig_oracle() {
     // Opcodes below describe the following:
     // fn main(x : Field, y : pub Field) {
@@ -235,7 +239,7 @@ fn double_inversion_brillig_oracle() {
             linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
             q_c: fe_0,
         }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
+        // Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
         Opcode::Arithmetic(Expression {
             mul_terms: vec![(fe_1, w_z, w_z_inverse)],
             linear_combinations: vec![],
@@ -256,7 +260,7 @@ fn double_inversion_brillig_oracle() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
@@ -377,7 +381,7 @@ fn oracle_dependent_execution() {
     let witness_assignments =
         BTreeMap::from([(w_x, FieldElement::from(2u128)), (w_y, FieldElement::from(2u128))]).into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
 
     // use the partial witness generation solver with our acir program
     let solver_status = acvm.solve();
@@ -423,24 +427,14 @@ fn oracle_dependent_execution() {
 
 #[test]
 fn brillig_oracle_predicate() {
-    // Opcodes below describe the following:
-    // fn main(x : Field, y : pub Field, cond: bool) {
-    //     let z = x + y;
-    //     let z_inverse = 1/z
-    //     if cond {
-    //         assert( z_inverse == Oracle("inverse", x + y) );
-    //     }
-    // }
     let fe_0 = FieldElement::zero();
     let fe_1 = FieldElement::one();
     let w_x = Witness(1);
     let w_y = Witness(2);
     let w_oracle = Witness(3);
-    let w_z = Witness(4);
-    let w_z_inverse = Witness(5);
-    let w_x_plus_y = Witness(6);
-    let w_equal_res = Witness(7);
-    let w_lt_res = Witness(8);
+    let w_x_plus_y = Witness(4);
+    let w_equal_res = Witness(5);
+    let w_lt_res = Witness(6);
 
     let equal_opcode = BrilligOpcode::BinaryFieldOp {
         op: BinaryFieldOp::Equals,
@@ -478,20 +472,7 @@ fn brillig_oracle_predicate() {
         foreign_call_results: vec![],
     });
 
-    let opcodes = vec![
-        brillig_opcode,
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![],
-            linear_combinations: vec![(fe_1, w_x), (fe_1, w_y), (-fe_1, w_z)],
-            q_c: fe_0,
-        }),
-        Opcode::Directive(Directive::Invert { x: w_z, result: w_z_inverse }),
-        Opcode::Arithmetic(Expression {
-            mul_terms: vec![(fe_1, w_z, w_z_inverse)],
-            linear_combinations: vec![],
-            q_c: -fe_1,
-        }),
-    ];
+    let opcodes = vec![brillig_opcode];
 
     let witness_assignments = BTreeMap::from([
         (Witness(1), FieldElement::from(2u128)),
@@ -499,14 +480,13 @@ fn brillig_oracle_predicate() {
     ])
     .into();
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, witness_assignments);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, witness_assignments);
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved, "should be fully solved");
 
     // ACVM should be able to be finalized in `Solved` state.
     acvm.finalize();
 }
-
 #[test]
 fn unsatisfied_opcode_resolved() {
     let a = Witness(0);
@@ -515,7 +495,7 @@ fn unsatisfied_opcode_resolved() {
     let d = Witness(3);
 
     // a = b + c + d;
-    let gate_a = Expression {
+    let opcode_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -532,15 +512,15 @@ fn unsatisfied_opcode_resolved() {
     values.insert(c, FieldElement::from(1_i128));
     values.insert(d, FieldElement::from(2_i128));
 
-    let opcodes = vec![Opcode::Arithmetic(gate_a)];
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let opcodes = vec![Opcode::Arithmetic(opcode_a)];
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
         ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+            opcode_location: ErrorLocation::Resolved(OpcodeLocation::Acir(0)),
         }),
-        "The first gate is not satisfiable, expected an error indicating this"
+        "The first opcode is not satisfiable, expected an error indicating this"
     );
 }
 
@@ -593,7 +573,7 @@ fn unsatisfied_opcode_resolved_brillig() {
         foreign_call_results: vec![],
     });
 
-    let gate_a = Expression {
+    let opcode_a = Expression {
         mul_terms: vec![],
         linear_combinations: vec![
             (FieldElement::one(), a),
@@ -613,16 +593,17 @@ fn unsatisfied_opcode_resolved_brillig() {
     values.insert(w_y, FieldElement::from(1_i128));
     values.insert(w_result, FieldElement::from(0_i128));
 
-    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(gate_a)];
+    let opcodes = vec![brillig_opcode, Opcode::Arithmetic(opcode_a)];
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, values);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, values);
     let solver_status = acvm.solve();
     assert_eq!(
         solver_status,
-        ACVMStatus::Failure(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Resolved(0)
+        ACVMStatus::Failure(OpcodeResolutionError::BrilligFunctionFailed {
+            message: "explicit trap hit in brillig".to_string(),
+            call_stack: vec![OpcodeLocation::Brillig { acir_index: 0, brillig_index: 2 }]
         }),
-        "The first gate is not satisfiable, expected an error indicating this"
+        "The first opcode is not satisfiable, expected an error indicating this"
     );
 }
 
@@ -641,8 +622,11 @@ fn memory_operations() {
 
     let init = Opcode::MemoryInit { block_id, init: (1..6).map(Witness).collect() };
 
-    let read_op =
-        Opcode::MemoryOp { block_id, op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)) };
+    let read_op = Opcode::MemoryOp {
+        block_id,
+        op: MemOp::read_at_mem_index(Witness(6).into(), Witness(7)),
+        predicate: None,
+    };
 
     let expression = Opcode::Arithmetic(Expression {
         mul_terms: Vec::new(),
@@ -655,7 +639,7 @@ fn memory_operations() {
 
     let opcodes = vec![init, read_op, expression];
 
-    let mut acvm = ACVM::new(StubbedBackend, opcodes, initial_witness);
+    let mut acvm = ACVM::new(&StubbedBackend, opcodes, initial_witness);
     let solver_status = acvm.solve();
     assert_eq!(solver_status, ACVMStatus::Solved);
     let witness_map = acvm.finalize();

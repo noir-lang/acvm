@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use acir::{
     brillig::ForeignCallResult,
-    circuit::{opcodes::BlockId, Opcode, OpcodeLabel},
+    circuit::{opcodes::BlockId, Opcode, OpcodeLocation},
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
@@ -77,20 +77,40 @@ pub enum OpcodeNotSolvable {
     ExpressionHasTooManyUnknowns(Expression),
 }
 
+/// Allows to point to a specific opcode as cause in errors.
+/// Some errors don't have a specific opcode associated with them, or are created without one and added later.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub enum ErrorLocation {
+    #[default]
+    Unresolved,
+    Resolved(OpcodeLocation),
+}
+
+impl std::fmt::Display for ErrorLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorLocation::Unresolved => write!(f, "unresolved"),
+            ErrorLocation::Resolved(location) => {
+                write!(f, "{location}")
+            }
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum OpcodeResolutionError {
-    #[error("cannot solve opcode: {0}")]
+    #[error("Cannot solve opcode: {0}")]
     OpcodeNotSolvable(#[from] OpcodeNotSolvable),
-    #[error("backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
+    #[error("Backend does not currently support the {0} opcode. ACVM does not currently have a fallback for this opcode.")]
     UnsupportedBlackBoxFunc(BlackBoxFunc),
-    #[error("could not satisfy all constraints")]
-    UnsatisfiedConstrain { opcode_label: OpcodeLabel },
+    #[error("Cannot satisfy constraint")]
+    UnsatisfiedConstrain { opcode_location: ErrorLocation },
     #[error("Index out of bounds, array has size {array_size:?}, but index was {index:?}")]
-    IndexOutOfBounds { opcode_label: OpcodeLabel, index: u32, array_size: u32 },
-    #[error("failed to solve blackbox function: {0}, reason: {1}")]
+    IndexOutOfBounds { opcode_location: ErrorLocation, index: u32, array_size: u32 },
+    #[error("Failed to solve blackbox function: {0}, reason: {1}")]
     BlackBoxFunctionFailed(BlackBoxFunc, String),
-    #[error("failed to solve brillig function, reason: {0}")]
-    BrilligFunctionFailed(String),
+    #[error("Failed to solve brillig function, reason: {message}")]
+    BrilligFunctionFailed { message: String, call_stack: Vec<OpcodeLocation> },
 }
 
 impl From<BlackBoxResolutionError> for OpcodeResolutionError {
@@ -106,10 +126,10 @@ impl From<BlackBoxResolutionError> for OpcodeResolutionError {
     }
 }
 
-pub struct ACVM<B: BlackBoxFunctionSolver> {
+pub struct ACVM<'backend, B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
-    backend: B,
+    backend: &'backend B,
 
     /// Stores the solver for memory operations acting on blocks of memory disambiguated by [block][`BlockId`].
     block_solvers: HashMap<BlockId, MemoryOpSolver>,
@@ -122,8 +142,8 @@ pub struct ACVM<B: BlackBoxFunctionSolver> {
     witness_map: WitnessMap,
 }
 
-impl<B: BlackBoxFunctionSolver> ACVM<B> {
-    pub fn new(backend: B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
+    pub fn new(backend: &'backend B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
         let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
         ACVM {
             status,
@@ -226,19 +246,24 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
         let resolution = match opcode {
             Opcode::Arithmetic(expr) => ArithmeticSolver::solve(&mut self.witness_map, expr),
             Opcode::BlackBoxFuncCall(bb_func) => {
-                blackbox::solve(&self.backend, &mut self.witness_map, bb_func)
+                blackbox::solve(self.backend, &mut self.witness_map, bb_func)
             }
             Opcode::Directive(directive) => solve_directives(&mut self.witness_map, directive),
             Opcode::MemoryInit { block_id, init } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
                 solver.init(init, &self.witness_map)
             }
-            Opcode::MemoryOp { block_id, op } => {
+            Opcode::MemoryOp { block_id, op, predicate } => {
                 let solver = self.block_solvers.entry(*block_id).or_default();
-                solver.solve_memory_op(op, &mut self.witness_map)
+                solver.solve_memory_op(op, &mut self.witness_map, predicate)
             }
             Opcode::Brillig(brillig) => {
-                match BrilligSolver::solve(&mut self.witness_map, brillig, &self.backend) {
+                match BrilligSolver::solve(
+                    &mut self.witness_map,
+                    brillig,
+                    self.backend,
+                    self.instruction_pointer,
+                ) {
                     Ok(Some(foreign_call)) => return self.wait_for_foreign_call(foreign_call),
                     res => res.map(|_| ()),
                 }
@@ -254,23 +279,20 @@ impl<B: BlackBoxFunctionSolver> ACVM<B> {
                 }
             }
             Err(mut error) => {
-                let opcode_label =
-                    OpcodeLabel::Resolved(self.instruction_pointer.try_into().unwrap());
                 match &mut error {
                     // If we have an index out of bounds or an unsatisfied constraint, the opcode label will be unresolved
                     // because the solvers do not have knowledge of this information.
                     // We resolve, by setting this to the corresponding opcode that we just attempted to solve.
                     OpcodeResolutionError::IndexOutOfBounds {
-                        opcode_label: opcode_index, ..
+                        opcode_location: opcode_index,
+                        ..
                     }
-                    | OpcodeResolutionError::UnsatisfiedConstrain { opcode_label: opcode_index } => {
-                        *opcode_index = opcode_label;
-                    }
-                    // If a brillig function has failed, we return an unsatisfied constraint error
-                    // We intentionally ignore the brillig failure message, as there is no way to
-                    // propagate this to the caller.
-                    OpcodeResolutionError::BrilligFunctionFailed(_) => {
-                        error = OpcodeResolutionError::UnsatisfiedConstrain { opcode_label }
+                    | OpcodeResolutionError::UnsatisfiedConstrain {
+                        opcode_location: opcode_index,
+                    } => {
+                        *opcode_index = ErrorLocation::Resolved(OpcodeLocation::Acir(
+                            self.instruction_pointer(),
+                        ));
                     }
                     // All other errors are thrown normally.
                     _ => (),
@@ -327,7 +349,7 @@ pub fn insert_value(
 
     if old_value != value_to_insert {
         return Err(OpcodeResolutionError::UnsatisfiedConstrain {
-            opcode_label: OpcodeLabel::Unresolved,
+            opcode_location: ErrorLocation::Unresolved,
         });
     }
 
@@ -364,7 +386,7 @@ pub fn default_is_opcode_supported(language: Language) -> fn(&Opcode) -> bool {
 
     // PLONK supports most of the opcodes by default
     // The ones which are not supported, the acvm compiler will
-    // attempt to transform into supported gates. If these are also not available
+    // attempt to transform into supported opcodes. If these are also not available
     // then a compiler error will be emitted.
     fn plonk_is_supported(_opcode: &Opcode) -> bool {
         true

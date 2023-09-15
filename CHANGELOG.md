@@ -5,6 +5,112 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.1](https://github.com/noir-lang/acvm/compare/root-v0.26.0...root-v0.26.1) (2023-09-12)
+
+
+### Bug Fixes
+
+* Implements handling of the high limb during fixed base scalar multiplication ([#535](https://github.com/noir-lang/acvm/issues/535)) ([551504a](https://github.com/noir-lang/acvm/commit/551504aa572d3f9d56b5576d25ce1211296ee488))
+
+## [0.26.0](https://github.com/noir-lang/acvm/compare/root-v0.25.0...root-v0.26.0) (2023-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532))
+
+### Miscellaneous Chores
+
+* Add a low and high limb to scalar mul opcode ([#532](https://github.com/noir-lang/acvm/issues/532)) ([b054f66](https://github.com/noir-lang/acvm/commit/b054f66be9c73d4e02dbecdab80874a907f19242))
+
+## [0.25.0](https://github.com/noir-lang/acvm/compare/root-v0.24.1...root-v0.25.0) (2023-09-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523))
+
+### Features
+
+* Provide runtime callstacks for brillig failures and return errors in acvm_js ([#523](https://github.com/noir-lang/acvm/issues/523)) ([7ab7cff](https://github.com/noir-lang/acvm/commit/7ab7cff48a9aba61a97fad2a759fc8e55740b098))
+
+
+### Bug Fixes
+
+* initialize recursive proof output to zero ([#524](https://github.com/noir-lang/acvm/issues/524)) ([5453074](https://github.com/noir-lang/acvm/commit/545307457dd7634b20ea3977e2d2cc751eba06d2))
+
+## [0.24.1](https://github.com/noir-lang/acvm/compare/root-v0.24.0...root-v0.24.1) (2023-09-03)
+
+
+### Bug Fixes
+
+* Add WASI 20 `_initialize` call to `acvm_backend.wasm` binary ([#518](https://github.com/noir-lang/acvm/issues/518)) ([ec6ab0c](https://github.com/noir-lang/acvm/commit/ec6ab0c6fb2753209abe1e03a449873e255ffd76))
+
+## [0.24.0](https://github.com/noir-lang/acvm/compare/root-v0.23.0...root-v0.24.0) (2023-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **acvm:** Remove the `Backend` trait ([#514](https://github.com/noir-lang/acvm/issues/514))
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510))
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503))
+* **acvm:** Remove unused arguments from `Backend` trait ([#511](https://github.com/noir-lang/acvm/issues/511))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484))
+
+### Features
+
+* **acir:** Add predicate to MemoryOp ([#503](https://github.com/noir-lang/acvm/issues/503)) ([ca9eebe](https://github.com/noir-lang/acvm/commit/ca9eebe34e61adabf97318c8ccaf60c8a424aafd))
+* Assertion messages embedded in the circuit ([#484](https://github.com/noir-lang/acvm/issues/484)) ([06b97c5](https://github.com/noir-lang/acvm/commit/06b97c51041e16651cf8b2be8bc18214e276c6c9))
+
+
+### Miscellaneous Chores
+
+* **acir:** Remove unused `Directive` opcodes ([#510](https://github.com/noir-lang/acvm/issues/510)) ([cfd8cbf](https://github.com/noir-lang/acvm/commit/cfd8cbf58307511ac0cc9106c299695c2ca779de))
+* **acvm:** Remove the `Backend` trait ([#514](https://github.com/noir-lang/acvm/issues/514)) ([681535d](https://github.com/noir-lang/acvm/commit/681535da52815a4a164ee4f48f7b48329664af98))
+* **acvm:** Remove unused arguments from `Backend` trait ([#511](https://github.com/noir-lang/acvm/issues/511)) ([ae65355](https://github.com/noir-lang/acvm/commit/ae65355afb7df98c71f81d5a54e89f39f9333920))
+
+## [0.23.0](https://github.com/noir-lang/acvm/compare/root-v0.22.0...root-v0.23.0) (2023-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508))
+* **acvm:** Remove `BlackBoxFunctionSolver` from `Backend` trait ([#494](https://github.com/noir-lang/acvm/issues/494))
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference
+
+### Features
+
+* **acvm_js:** Add `execute_circuit_with_black_box_solver` to prevent reinitialization of `BlackBoxFunctionSolver` ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+* Expose a `BlackBoxFunctionSolver` containing a barretenberg wasm from `blackbox_solver` ([#494](https://github.com/noir-lang/acvm/issues/494)) ([a1d4b71](https://github.com/noir-lang/acvm/commit/a1d4b71256dfbf1e883e770dd9c45479235aa860))
+
+
+### Miscellaneous Chores
+
+* **acvm:** Pass `BlackBoxFunctionSolver` to `ACVM` by reference ([3877e0e](https://github.com/noir-lang/acvm/commit/3877e0e438a8d0e5545a4da7210767dec05c342f))
+* **acvm:** Remove `BlackBoxFunctionSolver` from `Backend` trait ([#494](https://github.com/noir-lang/acvm/issues/494)) ([a1d4b71](https://github.com/noir-lang/acvm/commit/a1d4b71256dfbf1e883e770dd9c45479235aa860))
+* **acvm:** remove `CommonReferenceString` trait and preprocess method ([#508](https://github.com/noir-lang/acvm/issues/508)) ([3827dd3](https://github.com/noir-lang/acvm/commit/3827dd3ce487650843ba4df8337b423e39f97edf))
+* Return an iterator from `new_locations()` instead of collecting ([#507](https://github.com/noir-lang/acvm/issues/507)) ([8d49a5c](https://github.com/noir-lang/acvm/commit/8d49a5c15b1e962cd59252467a20a922edadc2f2))
+
+## [0.22.0](https://github.com/noir-lang/acvm/compare/root-v0.21.0...root-v0.22.0) (2023-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493))
+* **acvm:** check for index out-of-bounds on memory operations ([#468](https://github.com/noir-lang/acvm/issues/468))
+
+### Features
+
+* **acvm:** check for index out-of-bounds on memory operations ([#468](https://github.com/noir-lang/acvm/issues/468)) ([740468c](https://github.com/noir-lang/acvm/commit/740468c0a144f7179c38f615cfda31b2fcc77359))
+* print error location with fmt ([#497](https://github.com/noir-lang/acvm/issues/497)) ([575a9e5](https://github.com/noir-lang/acvm/commit/575a9e50e97afb04a7b91799e06752cec3093f0b))
+* Switched from OpcodeLabel to OpcodeLocation and ErrorLocation ([#493](https://github.com/noir-lang/acvm/issues/493)) ([27a5a93](https://github.com/noir-lang/acvm/commit/27a5a935849f8904e10056b08089f532a06962b8))
+
+
+### Bug Fixes
+
+* add opcode label to unsatisfied constrain string ([#482](https://github.com/noir-lang/acvm/issues/482)) ([cbbbe67](https://github.com/noir-lang/acvm/commit/cbbbe67b9a19a4a560b2dfa8f27ea1c6ebd61f28))
+
 ## [0.21.0](https://github.com/noir-lang/acvm/compare/root-v0.20.1...root-v0.21.0) (2023-07-26)
 
 

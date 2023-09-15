@@ -12,6 +12,11 @@ use sha2::Sha256;
 use sha3::Keccak256;
 use thiserror::Error;
 
+mod barretenberg;
+
+#[allow(deprecated)]
+pub use barretenberg::BarretenbergSolver;
+
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum BlackBoxResolutionError {
     #[error("unsupported blackbox function: {0}")]
@@ -39,7 +44,8 @@ pub trait BlackBoxFunctionSolver {
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError>;
     fn fixed_base_scalar_mul(
         &self,
-        input: &FieldElement,
+        low: &FieldElement,
+        high: &FieldElement,
     ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError>;
 }
 

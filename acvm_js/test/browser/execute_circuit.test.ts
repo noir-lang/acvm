@@ -1,6 +1,9 @@
 import { expect } from "@esm-bundle/chai";
 import initACVM, {
+  createBlackBoxSolver,
   executeCircuit,
+  executeCircuitWithBlackBoxSolver,
+  WasmBlackBoxFunctionSolver,
   WitnessMap,
   initLogLevel,
   ForeignCallHandler,
@@ -56,6 +59,7 @@ it("successfully processes simple brillig foreign call opcodes", async () => {
 
     return oracleResponse;
   };
+
   const solved_witness: WitnessMap = await executeCircuit(
     bytecode,
     initialWitnessMap,
@@ -94,6 +98,7 @@ it("successfully processes complex brillig foreign call opcodes", async () => {
 
     return oracleResponse;
   };
+
   const solved_witness: WitnessMap = await executeCircuit(
     bytecode,
     initialWitnessMap,
@@ -155,4 +160,52 @@ it("successfully executes a SchnorrVerify opcode", async () => {
   );
 
   expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
+});
+
+it("successfully executes a MemoryOp opcode", async () => {
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
+    "../shared/memory_op"
+  );
+
+  const solvedWitness: WitnessMap = await executeCircuit(
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  expect(solvedWitness).to.be.deep.eq(expectedWitnessMap);
+});
+
+it("successfully executes two circuits with same backend", async function () {
+  // chose pedersen op here because it is the one with slow initialization
+  // that led to the decision to pull backend initialization into a separate
+  // function/wasmbind
+  const solver: WasmBlackBoxFunctionSolver = await createBlackBoxSolver();
+
+  const { bytecode, initialWitnessMap, expectedWitnessMap } = await import(
+    "../shared/pedersen"
+  );
+
+  const solvedWitness0: WitnessMap = await executeCircuitWithBlackBoxSolver(
+    solver,
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+
+  expect(solvedWitness0).to.be.deep.eq(expectedWitnessMap);
+
+  const solvedWitness1: WitnessMap = await executeCircuitWithBlackBoxSolver(
+    solver,
+    bytecode,
+    initialWitnessMap,
+    () => {
+      throw Error("unexpected oracle");
+    }
+  );
+  expect(solvedWitness1).to.be.deep.eq(expectedWitnessMap);
 });
