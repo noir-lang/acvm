@@ -1,3 +1,6 @@
+This repository has been archived and its contents have been moved into noir-lang/noir.
+
+
 # ACIR - Abstract Circuit Intermediate Representation
 
 ACIR is an NP complete language that generalizes R1CS and arithmetic circuits while not losing proving system specific optimizations through the use of black box functions.
