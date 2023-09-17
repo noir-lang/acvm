@@ -40,6 +40,17 @@ pub struct Circuit {
     pub assert_messages: Vec<(OpcodeLocation, String)>,
 }
 
+impl Circuit {
+    /// Returns the assert message associated with the provided [`OpcodeLocation`].
+    /// Returns `None` if no such assert message exists.
+    pub fn get_assert_message(&self, opcode_location: OpcodeLocation) -> Option<&str> {
+        self.assert_messages
+            .iter()
+            .find(|(loc, _)| *loc == opcode_location)
+            .map(|(_, message)| message.as_str())
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 /// Opcodes are locatable so that callers can
 /// map opcodes to debug information related to their context.
