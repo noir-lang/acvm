@@ -3,7 +3,7 @@ use acir::{
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
-use blackbox_solver::{blake2s, keccak256, sha256};
+use acvm_blackbox_solver::{blake2s, keccak256, sha256};
 
 use super::{insert_value, OpcodeNotSolvable, OpcodeResolutionError};
 use crate::BlackBoxFunctionSolver;

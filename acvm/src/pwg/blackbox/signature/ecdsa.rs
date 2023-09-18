@@ -3,7 +3,7 @@ use acir::{
     native_types::{Witness, WitnessMap},
     FieldElement,
 };
-use blackbox_solver::{ecdsa_secp256k1_verify, ecdsa_secp256r1_verify};
+use acvm_blackbox_solver::{ecdsa_secp256k1_verify, ecdsa_secp256r1_verify};
 
 use crate::{pwg::insert_value, OpcodeResolutionError};
 

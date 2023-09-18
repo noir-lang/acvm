@@ -1,6 +1,5 @@
 use acir::{BlackBoxFunc, FieldElement};
-
-use crate::{BlackBoxFunctionSolver, BlackBoxResolutionError};
+use acvm_blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 
 mod wasm;
 

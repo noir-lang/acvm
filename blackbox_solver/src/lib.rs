@@ -12,11 +12,6 @@ use sha2::Sha256;
 use sha3::Keccak256;
 use thiserror::Error;
 
-mod barretenberg;
-
-#[allow(deprecated)]
-pub use barretenberg::BarretenbergSolver;
-
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum BlackBoxResolutionError {
     #[error("unsupported blackbox function: {0}")]

@@ -1,7 +1,7 @@
 use acir::FieldElement;
 use num_bigint::BigUint;
 
-use crate::barretenberg::wasm::FeatureError;
+use crate::wasm::FeatureError;
 
 use super::{Barretenberg, Error, FIELD_BYTES};
 

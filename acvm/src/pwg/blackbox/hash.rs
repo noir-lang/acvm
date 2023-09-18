@@ -3,7 +3,7 @@ use acir::{
     native_types::{Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
-use blackbox_solver::{hash_to_field_128_security, BlackBoxResolutionError};
+use acvm_blackbox_solver::{hash_to_field_128_security, BlackBoxResolutionError};
 
 use crate::pwg::{insert_value, witness_to_value};
 use crate::OpcodeResolutionError;
