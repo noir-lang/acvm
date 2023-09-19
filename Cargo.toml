@@ -15,6 +15,7 @@ acir = { version = "0.26.1", path = "acir", default-features = false }
 acir_field = { version = "0.26.1", path = "acir_field", default-features = false }
 stdlib = { package = "acvm_stdlib", version = "0.26.1", path = "stdlib", default-features = false }
 brillig = { version = "0.26.1", path = "brillig", default-features = false }
+brillig_vm = { version = "0.26.1", path = "brillig_vm", default-features = false }
 acvm_blackbox_solver = { version = "0.26.1", path = "blackbox_solver", default-features = false }
 barretenberg_blackbox_solver = { version = "0.26.1", path = "barretenberg_blackbox_solver", default-features = false }
 
