@@ -22,7 +22,7 @@ pub enum BlackBoxResolutionError {
 
 /// This component will generate outputs for Blackbox function calls where the underlying [`acir::BlackBoxFunc`]
 /// doesn't have a canonical Rust implementation.
-///o
+///
 /// Returns an [`BlackBoxResolutionError`] if the backend does not support the given [`acir::BlackBoxFunc`].
 pub trait BlackBoxFunctionSolver {
     fn schnorr_verify(
