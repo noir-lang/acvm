@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.27.0](https://github.com/noir-lang/acvm/compare/acvm-v0.26.1...acvm-v0.27.0) (2023-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554))
+
+### Miscellaneous Chores
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554)) ([a4b9772](https://github.com/noir-lang/acvm/commit/a4b97722a0892fe379ff075e6080675adafdce0e))
+
 ## [0.26.1](https://github.com/noir-lang/acvm/compare/acvm-v0.26.0...acvm-v0.26.1) (2023-09-12)
 
 

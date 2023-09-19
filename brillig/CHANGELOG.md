@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/noir-lang/acvm/compare/brillig-v0.26.1...brillig-v0.27.0) (2023-09-19)
+
+
+### Miscellaneous Chores
+
+* **brillig:** Synchronize acvm versions
+
 ## [0.26.1](https://github.com/noir-lang/acvm/compare/brillig-v0.26.0...brillig-v0.26.1) (2023-09-12)
 
 

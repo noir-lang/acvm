@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.27.0](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.26.1...acvm_blackbox_solver-v0.27.0) (2023-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554))
+
+### Bug Fixes
+
+* use the exact version for the hex crate ([#546](https://github.com/noir-lang/acvm/issues/546)) ([2a546e5](https://github.com/noir-lang/acvm/commit/2a546e5b5cc9f39737ad81f8e96d58313a74eced))
+
+
+### Miscellaneous Chores
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554)) ([a4b9772](https://github.com/noir-lang/acvm/commit/a4b97722a0892fe379ff075e6080675adafdce0e))
+
 ## [0.26.1](https://github.com/noir-lang/acvm/compare/acvm_blackbox_solver-v0.26.0...acvm_blackbox_solver-v0.26.1) (2023-09-12)
 
 

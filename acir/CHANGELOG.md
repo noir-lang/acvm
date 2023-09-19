@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/noir-lang/acvm/compare/acir-v0.26.1...acir-v0.27.0) (2023-09-19)
+
+
+### Features
+
+* **acir:** add method on `Circuit` to return assert message ([#551](https://github.com/noir-lang/acvm/issues/551)) ([ee18cde](https://github.com/noir-lang/acvm/commit/ee18cde3537b2be6714061af0bc9ef3793929f7f))
+
 ## [0.26.1](https://github.com/noir-lang/acvm/compare/acir-v0.26.0...acir-v0.26.1) (2023-09-12)
 
 
