@@ -17,7 +17,7 @@ thiserror.workspace = true
 
 acir.workspace = true
 stdlib.workspace = true
-brillig_vm = { version = "0.26.1", path = "../brillig_vm", default-features = false }
+brillig_vm.workspace = true
 acvm_blackbox_solver.workspace = true
 
 indexmap = "1.7.0"
