@@ -31,6 +31,11 @@
         {
           "type": "toml",
           "path": "Cargo.toml",
+          "jsonpath": "$.workspace.dependencies.brillig_vm.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
           "jsonpath": "$.workspace.dependencies.acvm_blackbox_solver.version"
         },
         {
