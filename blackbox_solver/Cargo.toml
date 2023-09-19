@@ -31,37 +31,6 @@ p256 = { version = "0.11.0", features = [
     "digest",
     "arithmetic",
 ] }
-hex = "0.4.2"
-num-bigint.workspace = true
-
-# Barretenberg WASM dependencies
-rust-embed = { version = "6.6.0", features = [
-    "debug-embed",
-    "interpolate-folder-path",
-    "include-exclude",
-] }
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wasmer = { version = "3.3", default-features = false, features = [
-    "js-default",
-] }
-getrandom = { version = "0.2", features = ["js"] }
-wasm-bindgen-futures = "0.4.36"
-js-sys = "0.3.62"
-
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-getrandom = "0.2"
-wasmer = "3.3"
-
-
-[build-dependencies]
-pkg-config = "0.3"
-tar = "~0.4.15"
-flate2 = "~1.0.1"
-reqwest = { version = "0.11.16", default-features = false, features = [
-    "rustls-tls",
-    "blocking",
-] }
 
 [features]
 default = ["bn254"]

@@ -22,9 +22,9 @@ mod black_box;
 mod memory;
 mod registers;
 
+use acvm_blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 use arithmetic::{evaluate_binary_bigint_op, evaluate_binary_field_op};
 use black_box::evaluate_black_box;
-use blackbox_solver::{BlackBoxFunctionSolver, BlackBoxResolutionError};
 
 pub use memory::Memory;
 use num_bigint::BigUint;
@@ -42,7 +42,7 @@ pub enum VMStatus {
         call_stack: ErrorCallStack,
     },
     /// The VM process is not solvable as a [foreign call][Opcode::ForeignCall] has been
-    /// reached where the outputs are yet to be resolved.  
+    /// reached where the outputs are yet to be resolved.
     ///
     /// The caller should interpret the information returned to compute a [ForeignCallResult]
     /// and update the Brillig process. The VM can then be restarted to fully solve the previously

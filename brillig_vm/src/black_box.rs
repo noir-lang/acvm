@@ -1,6 +1,6 @@
 use acir::brillig::{BlackBoxOp, HeapArray, HeapVector, Value};
 use acir::{BlackBoxFunc, FieldElement};
-use blackbox_solver::{
+use acvm_blackbox_solver::{
     blake2s, ecdsa_secp256k1_verify, ecdsa_secp256r1_verify, hash_to_field_128_security, keccak256,
     sha256, BlackBoxFunctionSolver, BlackBoxResolutionError,
 };

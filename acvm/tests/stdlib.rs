@@ -14,7 +14,7 @@ use acvm::{
     pwg::{ACVMStatus, ACVM},
     Language,
 };
-use blackbox_solver::{blake2s, hash_to_field_128_security, keccak256, sha256};
+use acvm_blackbox_solver::{blake2s, hash_to_field_128_security, keccak256, sha256};
 use paste::paste;
 use proptest::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};

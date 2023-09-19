@@ -63,6 +63,9 @@
     },
     "blackbox_solver": {
       "component": "acvm_blackbox_solver"
+    },
+    "barretenberg_blackbox_solver": {
+      "component": "barretenberg_blackbox_solver"
     }
   },
   "plugins": [

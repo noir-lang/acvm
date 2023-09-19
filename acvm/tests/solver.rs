@@ -15,7 +15,7 @@ use acvm::{
     pwg::{ACVMStatus, ErrorLocation, ForeignCallWaitInfo, OpcodeResolutionError, ACVM},
     BlackBoxFunctionSolver,
 };
-use blackbox_solver::BlackBoxResolutionError;
+use acvm_blackbox_solver::BlackBoxResolutionError;
 
 pub(crate) struct StubbedBackend;
 

@@ -1,9 +1,9 @@
-#[allow(deprecated)]
 use acvm::{
     acir::circuit::{Circuit, OpcodeLocation},
-    blackbox_solver::BarretenbergSolver,
     pwg::{ACVMStatus, ErrorLocation, OpcodeResolutionError, ACVM},
 };
+#[allow(deprecated)]
+use barretenberg_blackbox_solver::BarretenbergSolver;
 
 use js_sys::Error;
 use wasm_bindgen::prelude::wasm_bindgen;

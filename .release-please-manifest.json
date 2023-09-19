@@ -7,5 +7,6 @@
     "stdlib": "0.26.1",
     "brillig": "0.26.1",
     "brillig_vm": "0.26.1",
-    "blackbox_solver": "0.26.1"
+    "blackbox_solver": "0.26.1",
+    "barretenberg_blackbox_solver": "0.26.1"
 }

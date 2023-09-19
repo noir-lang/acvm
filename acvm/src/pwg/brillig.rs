@@ -7,7 +7,7 @@ use acir::{
     native_types::WitnessMap,
     FieldElement,
 };
-use blackbox_solver::BlackBoxFunctionSolver;
+use acvm_blackbox_solver::BlackBoxFunctionSolver;
 use brillig_vm::{Registers, VMStatus, VM};
 
 use crate::{pwg::OpcodeNotSolvable, OpcodeResolutionError};
@@ -150,7 +150,7 @@ impl BrilligSolver {
     }
 }
 
-/// Encapsulates a request from a Brillig VM process that encounters a [foreign call opcode][acir::brillig_vm::Opcode::ForeignCall]  
+/// Encapsulates a request from a Brillig VM process that encounters a [foreign call opcode][acir::brillig_vm::Opcode::ForeignCall]
 /// where the result of the foreign call has not yet been provided.
 ///
 /// The caller must resolve this opcode externally based upon the information in the request.

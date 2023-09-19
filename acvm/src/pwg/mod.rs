@@ -8,7 +8,7 @@ use acir::{
     native_types::{Expression, Witness, WitnessMap},
     BlackBoxFunc, FieldElement,
 };
-use blackbox_solver::BlackBoxResolutionError;
+use acvm_blackbox_solver::BlackBoxResolutionError;
 
 use self::{
     arithmetic::ArithmeticSolver, brillig::BrilligSolver, directives::solve_directives,

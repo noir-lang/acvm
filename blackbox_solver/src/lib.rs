@@ -12,11 +12,6 @@ use sha2::Sha256;
 use sha3::Keccak256;
 use thiserror::Error;
 
-mod barretenberg;
-
-#[allow(deprecated)]
-pub use barretenberg::BarretenbergSolver;
-
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum BlackBoxResolutionError {
     #[error("unsupported blackbox function: {0}")]
@@ -27,7 +22,7 @@ pub enum BlackBoxResolutionError {
 
 /// This component will generate outputs for Blackbox function calls where the underlying [`acir::BlackBoxFunc`]
 /// doesn't have a canonical Rust implementation.
-///o
+///
 /// Returns an [`BlackBoxResolutionError`] if the backend does not support the given [`acir::BlackBoxFunc`].
 pub trait BlackBoxFunctionSolver {
     fn schnorr_verify(
