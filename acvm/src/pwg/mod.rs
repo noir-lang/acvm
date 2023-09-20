@@ -126,7 +126,7 @@ impl From<BlackBoxResolutionError> for OpcodeResolutionError {
     }
 }
 
-pub struct ACVM<'backend, B: BlackBoxFunctionSolver> {
+pub struct ACVM<'opcodes, 'backend, B: BlackBoxFunctionSolver> {
     status: ACVMStatus,
 
     backend: &'backend B,
@@ -135,15 +135,23 @@ pub struct ACVM<'backend, B: BlackBoxFunctionSolver> {
     block_solvers: HashMap<BlockId, MemoryOpSolver>,
 
     /// A list of opcodes which are to be executed by the ACVM.
-    opcodes: Vec<Opcode>,
+    opcodes: &'opcodes [Opcode],
     /// Index of the next opcode to be executed.
     instruction_pointer: usize,
 
     witness_map: WitnessMap,
+
+    /// Results of oracles/functions external to brillig like a database read.
+    // Each element of this vector corresponds to a single foreign call but may contain several values.
+    foreign_call_results: HashMap<usize, Vec<ForeignCallResult>>,
 }
 
-impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
-    pub fn new(backend: &'backend B, opcodes: Vec<Opcode>, initial_witness: WitnessMap) -> Self {
+impl<'opcodes, 'backend, B: BlackBoxFunctionSolver> ACVM<'opcodes, 'backend, B> {
+    pub fn new(
+        backend: &'backend B,
+        opcodes: &'opcodes [Opcode],
+        initial_witness: WitnessMap,
+    ) -> Self {
         let status = if opcodes.is_empty() { ACVMStatus::Solved } else { ACVMStatus::InProgress };
         ACVM {
             status,
@@ -152,6 +160,7 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
             opcodes,
             instruction_pointer: 0,
             witness_map: initial_witness,
+            foreign_call_results: HashMap::default(),
         }
     }
 
@@ -164,7 +173,7 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
 
     /// Returns a slice containing the opcodes of the circuit being executed.
     pub fn opcodes(&self) -> &[Opcode] {
-        &self.opcodes
+        self.opcodes
     }
 
     /// Returns the index of the current opcode to be executed.
@@ -217,11 +226,9 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
         }
 
         // We want to inject the foreign call result into the brillig opcode which initiated the call.
-        let opcode = &mut self.opcodes[self.instruction_pointer];
-        let Opcode::Brillig(brillig) = opcode else {
-            unreachable!("ACVM can only enter `RequiresForeignCall` state on a Brillig opcode");
-        };
-        brillig.foreign_call_results.push(foreign_call_result);
+        let foreign_call_results =
+            self.foreign_call_results.entry(self.instruction_pointer).or_default();
+        foreign_call_results.push(foreign_call_result);
 
         // Now that the foreign call has been resolved then we can resume execution.
         self.status(ACVMStatus::InProgress);
@@ -261,6 +268,9 @@ impl<'backend, B: BlackBoxFunctionSolver> ACVM<'backend, B> {
                 match BrilligSolver::solve(
                     &mut self.witness_map,
                     brillig,
+                    self.foreign_call_results
+                        .get(&self.instruction_pointer)
+                        .unwrap_or(&Vec::default()),
                     self.backend,
                     self.instruction_pointer,
                 ) {
