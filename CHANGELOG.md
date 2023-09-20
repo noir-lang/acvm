@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0](https://github.com/noir-lang/acvm/compare/root-v0.26.1...root-v0.27.0) (2023-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554))
+
+### Features
+
+* **acir:** add method on `Circuit` to return assert message ([#551](https://github.com/noir-lang/acvm/issues/551)) ([ee18cde](https://github.com/noir-lang/acvm/commit/ee18cde3537b2be6714061af0bc9ef3793929f7f))
+
+
+### Bug Fixes
+
+* bump brillig_vm version in release please ([#556](https://github.com/noir-lang/acvm/issues/556)) ([f6c7823](https://github.com/noir-lang/acvm/commit/f6c7823b3be2b85a6ce8dc4af7a3b57ee7a577db))
+* use the exact version for the hex crate ([#546](https://github.com/noir-lang/acvm/issues/546)) ([2a546e5](https://github.com/noir-lang/acvm/commit/2a546e5b5cc9f39737ad81f8e96d58313a74eced))
+
+
+### Miscellaneous Chores
+
+* Separate barretenberg solver from generic blackbox solver code ([#554](https://github.com/noir-lang/acvm/issues/554)) ([a4b9772](https://github.com/noir-lang/acvm/commit/a4b97722a0892fe379ff075e6080675adafdce0e))
+
 ## [0.26.1](https://github.com/noir-lang/acvm/compare/root-v0.26.0...root-v0.26.1) (2023-09-12)
 
 
