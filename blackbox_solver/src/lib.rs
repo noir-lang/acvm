@@ -388,8 +388,12 @@ mod secp256r1_tests {
         let mut long_hashed_message = HASHED_MESSAGE.to_vec();
         long_hashed_message.push(0xff);
 
-        let valid =
-            verify_secp256r1_ecdsa_signature(&HASHED_MESSAGE, &PUB_KEY_X, &PUB_KEY_Y, &SIGNATURE);
+        let valid = verify_secp256r1_ecdsa_signature(
+            &long_hashed_message,
+            &PUB_KEY_X,
+            &PUB_KEY_Y,
+            &SIGNATURE,
+        );
 
         assert!(valid)
     }
