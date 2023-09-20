@@ -111,6 +111,15 @@ impl<F: PrimeField> From<i128> for FieldElement<F> {
     }
 }
 
+impl<F: PrimeField> From<FieldElement<F>> for char {
+    fn from(element: FieldElement<F>) -> Self {
+        let mut field_as_bytes = element.to_be_bytes();
+        let char_byte = field_as_bytes.pop().expect("The last byte should be a char"); // A character in a string is represented by a u8, thus we just want the last byte of the element
+        assert!(field_as_bytes.into_iter().all(|b| b == 0)); // Assert that the rest of the field element's bytes are empty
+        char_byte as char
+    }
+}
+
 impl<T: ark_ff::PrimeField> Serialize for FieldElement<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
