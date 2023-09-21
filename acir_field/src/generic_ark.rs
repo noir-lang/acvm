@@ -13,6 +13,7 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
         // First check if the number is zero
         //
         let number = BigUint::from_bytes_be(&self.to_be_bytes());
+
         if number == BigUint::zero() {
             return write!(f, "0");
         }
@@ -74,6 +75,24 @@ impl<F: PrimeField> std::fmt::Display for FieldElement<F> {
 }
 
 impl<F: PrimeField> std::fmt::Debug for FieldElement<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct DivisionResult<F: PrimeField>(Result<FieldElement<F>, String>);
+
+impl<F: PrimeField> std::fmt::Display for DivisionResult<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match &self.0 {
+            Ok(field_element) => std::fmt::Display::fmt(field_element, f),
+            Err(error) => write!(f, "{}", error),
+        }
+    }
+}
+
+impl<F: PrimeField> std::fmt::Debug for DivisionResult<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         std::fmt::Display::fmt(self, f)
     }
@@ -353,9 +372,72 @@ impl<F: PrimeField> FieldElement<F> {
     pub fn xor(&self, rhs: &FieldElement<F>, num_bits: u32) -> FieldElement<F> {
         self.and_xor(rhs, num_bits, true)
     }
+
+    /// Returns the result of module(%) operation
+    /// The dividend is changed to the result of the division
+    pub fn division_with_reminder(&mut self, rhs: &FieldElement<F>) -> FieldElement<F> {
+        if rhs.is_zero() {
+            return *rhs;
+        }
+        if rhs.is_one() {
+            return FieldElement::zero();
+        }
+
+        let mut div = 0;
+        let (is_self_neg, mut abs_self) = {
+            let minus_number = self.clone().neg();
+
+            let is_neg = *self >= minus_number;
+            let res = if is_neg { minus_number } else { self.clone() };
+
+            (is_neg, res)
+        };
+
+        let (is_rhs_neg, abs_rhs) = {
+            let minus_number = rhs.clone().neg();
+
+            let is_neg = *rhs >= minus_number;
+            let res = if is_neg { minus_number } else { rhs.clone() };
+
+            (is_neg, res)
+        };
+
+        while abs_self >= abs_rhs {
+            div += 1;
+            abs_self -= abs_rhs;
+        }
+        match (is_self_neg, is_rhs_neg) {
+            (true, true) => {
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self.neg()
+            }
+            (true, false) | (false, true) => {
+                div = div.neg();
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self.neg()
+            }
+            (false, false) => {
+                *self = FieldElement::<F>::from(div as i128);
+                abs_self
+            }
+        }
+    }
+
+    /// Performs the division of the FieldElement
+    /// Returns FieldElement if the number is divisible
+    /// Returns String in a pretty format if the number is not divisible
+    pub fn pretty_div(self, rhs: FieldElement<F>) -> DivisionResult<F> {
+        let division = self.clone().division_with_reminder(&rhs);
+
+        if !division.is_zero() {
+            DivisionResult(Err(format!("{} / {}", self, rhs)))
+        } else {
+            DivisionResult(Ok(self * rhs.inverse()))
+        }
+    }
 }
 
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, Neg, Rem, Sub, SubAssign};
 
 impl<F: PrimeField> Neg for FieldElement<F> {
     type Output = FieldElement<F>;
@@ -405,6 +487,44 @@ impl<F: PrimeField> SubAssign for FieldElement<F> {
     }
 }
 
+impl<F: PrimeField> Rem for FieldElement<F> {
+    type Output = FieldElement<F>;
+    fn rem(self, rhs: FieldElement<F>) -> Self::Output {
+        if rhs.is_zero() {
+            return rhs;
+        }
+        if rhs.is_one() {
+            return FieldElement::zero();
+        }
+
+        let (is_self_neg, mut abs_self) = {
+            let minus_number = self.clone().neg();
+
+            let is_neg = self >= minus_number;
+            let res = if is_neg { minus_number } else { self.clone() };
+
+            (is_neg, res)
+        };
+
+        let (is_rhs_neg, abs_rhs) = {
+            let minus_number = rhs.clone().neg();
+
+            let is_neg = rhs >= minus_number;
+            let res = if is_neg { minus_number } else { rhs.clone() };
+
+            (is_neg, res)
+        };
+
+        while abs_self >= abs_rhs {
+            abs_self -= abs_rhs;
+        }
+        match (is_self_neg, is_rhs_neg) {
+            (false, false) => abs_self,
+            _ => abs_self.neg(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -440,6 +560,101 @@ mod tests {
     fn max_num_bits_smoke() {
         let max_num_bits_bn254 = crate::generic_ark::FieldElement::<ark_bn254::Fr>::max_num_bits();
         assert_eq!(max_num_bits_bn254, 254)
+    }
+
+    mod division_with_reminder {
+        use crate::FieldElement;
+
+        #[test]
+        fn simple_case() {
+            //test for a simple case: 1000 % 3 = 1
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(7 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::from(6 as i128));
+
+            assert_eq!(dividend, FieldElement::from(142 as i128));
+        }
+
+        #[test]
+        fn one_divisor() {
+            //test for a case when the divisor is 1: 1000 % 1 = 0
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(1 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::from(0 as i128));
+
+            assert_eq!(dividend, FieldElement::from(1000 as i128));
+        }
+
+        #[test]
+        fn zero_divisor() {
+            //test for a case when the divisor is 0: 1000 % 0 = 0
+            let mut dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(0 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::from(0 as i128));
+
+            assert_eq!(dividend, FieldElement::from(1000 as i128));
+        }
+
+        #[test]
+        fn negative_dividend() {
+            //test for a case when the dividend is -1: -1 % 2 = -1
+            let mut dividend = FieldElement::from(-1 as i128);
+            let divisor = FieldElement::from(2 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::from(-1 as i128));
+
+            assert_eq!(dividend, FieldElement::from(0 as i128));
+        }
+
+        #[test]
+        fn negative_dividend_and_divisor() {
+            //test for a simple case when the dividend is negative: -1000 % -3 = -1
+            let mut dividend = FieldElement::from(-1000 as i128);
+            let divisor = FieldElement::from(-3 as i128);
+            let result = dividend.division_with_reminder(&divisor);
+
+            assert_eq!(result, FieldElement::from(-1 as i128));
+
+            assert_eq!(dividend, FieldElement::from(333 as i128));
+        }
+
+        #[test]
+        fn rem_smoke() {
+            let dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(7 as i128);
+            let result = dividend % divisor;
+
+            assert_eq!(result, FieldElement::from(6 as i128));
+
+            let dividend = FieldElement::from(1000 as i128);
+            let divisor = FieldElement::from(1 as i128);
+            let result = dividend % divisor;
+
+            assert_eq!(result, FieldElement::from(0 as i128));
+        }
+
+        #[test]
+        fn pretty_div_test() {
+            let dividend = FieldElement::from(10 as i128);
+            let divisor = FieldElement::from(3 as i128);
+            let result = dividend.pretty_div(divisor);
+
+            assert!(result.0.is_err());
+            assert_eq!(result.0.err().unwrap(), "10 / 3".to_string());
+
+            let dividend = FieldElement::from(9 as i128);
+            let divisor = FieldElement::from(3 as i128);
+            let result = dividend.pretty_div(divisor);
+
+            assert_eq!(result.0.unwrap(), divisor);
+        }
     }
 }
 
