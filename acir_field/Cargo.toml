@@ -14,6 +14,7 @@ repository.workspace = true
 hex.workspace = true
 num-bigint.workspace = true
 serde.workspace = true
+ruint = "1.10.1"
 
 ark-bn254 = { version = "^0.4.0", optional = true, default-features = false, features = [
     "curve",
@@ -29,3 +30,11 @@ cfg-if = "1.0.0"
 default = ["bn254"]
 bn254 = ["dep:ark-bn254", "dep:ark-ff"]
 bls12_381 = ["dep:ark-bls12-381", "dep:ark-ff"]
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "acir_field_benchmarks"
+path = "tests/benchmarks.rs"
+harness = false

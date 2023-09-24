@@ -1,6 +1,7 @@
 use ark_ff::PrimeField;
 use ark_ff::Zero;
 use num_bigint::BigUint;
+use ruint::Uint;
 use serde::{Deserialize, Serialize};
 
 // XXX: Switch out for a trait and proper implementations
@@ -107,6 +108,18 @@ impl<F: PrimeField> From<i128> for FieldElement<F> {
         if negative {
             result = -result;
         }
+        FieldElement(result)
+    }
+}
+
+type U254 = Uint<254, 4>;
+
+impl<F: PrimeField> From<U254> for FieldElement<F> {
+    fn from(value: U254) -> Self {
+        let result = match F::from_str(&value.to_string()) {
+            Ok(result) => result,
+            Err(_) => panic!("Cannot convert u254 as a string to a field element"),
+        };
         FieldElement(result)
     }
 }
